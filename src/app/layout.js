@@ -16,13 +16,13 @@ export const metadata = {
   title: "Keuangan Isnan",
   description: "Dashboard Keuangan Pribadi",
   manifest: "/manifest.json",
-  themeColor: "#c4b5f4",
+   themeColor: "#6b5b4f",
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="id" className={`${playfair.variable} ${dmSans.variable}`}>
-      <body>
+      <body className="font-body">
         <Providers>{children}</Providers>
       </body>
     </html>
