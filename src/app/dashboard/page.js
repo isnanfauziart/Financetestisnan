@@ -3,7 +3,7 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useRef, useCallback } from "react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Legend } from "recharts"
-import { LogOut, Plus, Check, X, ChevronDown, Activity, CreditCard, User, Home, ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react"
+import { LogOut, Plus, Check, X, ChevronDown, ChevronLeft, ChevronRight, Activity, CreditCard, User, Home, ArrowUpRight, ArrowDownRight, Wallet, Calendar } from "lucide-react"
 
 // Earthy premium color palette
 const THEME = {
@@ -27,6 +27,7 @@ const EXPENSE_CATEGORIES = [
   "Skincare","Belanja","Laundry","Ilmu","Pakaian", "Tabungan Cash"
 ]
 const INCOME_CATEGORIES = ["Monthly Salary","Insentif","Reimbursement","Pemberian"]
+const SAVINGS_CATEGORIES = ["Tabungan Cash","Emas","Saham"]
 const BANK_ACCOUNTS = ["Cash","Bank BCA","Bank BNI","Bank BRI","Bank Mandiri","OVO","DANA","ShoopePay","Gopay","BSI","Other Bank"]
 const AVAILABLE_MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
 
@@ -134,6 +135,11 @@ export default function Dashboard() {
   const [compareYearA, setCompareYearA] = useState(new Date().getFullYear().toString())
   const [compareMonthB, setCompareMonthB] = useState(AVAILABLE_MONTHS[new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1])
   const [compareYearB, setCompareYearB] = useState(new Date().getMonth() === 0 ? (new Date().getFullYear() - 1).toString() : new Date().getFullYear().toString())
+
+  // Calendar state for daily expense heatmap
+  const [calMonth, setCalMonth] = useState(AVAILABLE_MONTHS[new Date().getMonth()])
+  const [calYear, setCalYear] = useState(new Date().getFullYear())
+  const [selectedDayTx, setSelectedDayTx] = useState(null) // { day, transactions } for popover
 
   useEffect(() => { if (status === "unauthenticated") router.push("/") }, [status, router])
 
@@ -299,6 +305,69 @@ export default function Dashboard() {
   const gaugeColor = expenseRatio < 50 ? THEME.savings : expenseRatio < 80 ? "#d4a853" : THEME.expense
   const gaugeOffset = (1 - gaugeAngle / 180) * 188.5
 
+  // --- Calendar helpers ---
+  const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
+  const calMonthIdx = AVAILABLE_MONTHS.indexOf(calMonth) // 0-based
+  const daysInCalMonth = new Date(calYear, calMonthIdx + 1, 0).getDate()
+  const firstDayOfWeek = new Date(calYear, calMonthIdx, 1).getDay() // 0=Min in Indonesian locale? JS 0=Minggu, so Min=0 works
+
+  const calendarDayTotals = {}
+  ;(data?.transactions || []).filter(t => t.type === "expense" && t.month === calMonth && String(t.year) === String(calYear)).forEach(t => {
+    const dayMatch = t.date?.match(/^(\d+)/) // extract day number from "25 Mei 2026"
+    if (dayMatch) {
+      const day = parseInt(dayMatch[1], 10)
+      calendarDayTotals[day] = (calendarDayTotals[day] || 0) + t.amount
+    }
+  })
+
+  function heatmapColor(amount) {
+    if (!amount || amount === 0) return "#f6efe5"
+    if (amount <= 100000) return "#e8d5c0"
+    if (amount <= 250000) return "#d4a853"
+    if (amount <= 500000) return "#c47d5a"
+    return "#8c5a3a"
+  }
+
+  function heatmapTextColor(amount) {
+    if (!amount || amount <= 250000) return THEME.textPrimary
+    return "#fff"
+  }
+
+  // Build calendar grid row-wise
+  const calGrid = []
+  let dayCount = 1
+  const totalCells = Math.ceil((firstDayOfWeek + daysInCalMonth) / 7) * 7
+  for (let cell = 0; cell < totalCells; cell++) {
+    if (cell < firstDayOfWeek || dayCount > daysInCalMonth) {
+      calGrid.push(null)
+    } else {
+      calGrid.push({ day: dayCount, amount: calendarDayTotals[dayCount] || 0 })
+      dayCount++
+    }
+  }
+  // chunk into weeks
+  const calWeeks = []
+  for (let i = 0; i < calGrid.length; i += 7) {
+    calWeeks.push(calGrid.slice(i, i + 7))
+  }
+
+  const handleDayClick = (day) => {
+    if (!day) return
+    const txs = (data?.transactions || []).filter(t =>
+      t.type === "expense" && t.month === calMonth && String(t.year) === String(calYear) && t.date?.startsWith(String(day.day))
+    )
+    setSelectedDayTx({ day: day.day, transactions: txs })
+  }
+
+  const navigateCalendar = (delta) => {
+    let newIdx = calMonthIdx + delta
+    let newYear = calYear
+    if (newIdx < 0) { newIdx = 11; newYear-- }
+    if (newIdx > 11) { newIdx = 0; newYear++ }
+    setCalMonth(AVAILABLE_MONTHS[newIdx])
+    setCalYear(newYear)
+  }
+
   return (
     <div className="min-h-screen pb-32 font-body relative" style={{ background: THEME.bg, color: THEME.textPrimary }}>
       {/* Organic background blobs */}
@@ -420,31 +489,36 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Recent Transactions List */}
-            <div>
-              <div className="flex justify-between items-end mb-4">
-                <h3 className="text-lg font-bold font-display">Recent Transactions</h3>
-                <button onClick={() => setActiveNav("stats")} className="text-xs font-semibold transition-colors hover:opacity-80" style={{ color: THEME.income }}>View All</button>
-              </div>
-              <div className="bg-white rounded-[32px] p-2 shadow-warm card-hover">
-                {data?.transactions?.slice(0, 5).map((t, i) => (
-                  <div key={i} className={`flex items-center justify-between p-4 border-b border-earth-50 last:border-b-0 animate-fade-in-up stagger-${i + 1}`}>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: THEME.bg }}>
-                        {t.type === "income" ? <ArrowDownRight size={20} color={THEME.income} /> : t.type === "savings" ? <Wallet size={20} color={THEME.savings} /> : <ArrowUpRight size={20} color={THEME.expense} />}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">{t.category}</p>
-                        <p className="text-xs font-medium mt-0.5" style={{ color: THEME.textSecondary }}>{t.date} • {t.desc || t.type}</p>
-                      </div>
-                    </div>
-                    <p className="font-bold text-sm" style={{ color: t.type === "income" ? THEME.income : THEME.textPrimary }}>
-                      {t.type === "income" ? "+" : "-"}{formatRp(t.amount)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
+             {/* Recent Transactions List */}
+             <div>
+               <div className="flex justify-between items-end mb-4">
+                 <h3 className="text-lg font-bold font-display">Recent Transactions</h3>
+                 <button onClick={() => setActiveNav("stats")} className="text-xs font-semibold transition-colors hover:opacity-80" style={{ color: THEME.income }}>View All</button>
+               </div>
+               <div className="bg-white rounded-[32px] p-2 shadow-warm card-hover">
+                 {data?.transactions?.slice(0, 5).map((t, i) => (
+                   <div key={i} className={`flex items-center justify-between p-4 border-b border-earth-50 last:border-b-0 animate-fade-in-up stagger-${i + 1}`}>
+                     <div className="flex items-center gap-4 min-w-0 flex-1">
+                       <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: THEME.bg }}>
+                         {t.type === "income" ? <ArrowDownRight size={20} color={THEME.income} /> : t.type === "savings" ? <Wallet size={20} color={THEME.savings} /> : <ArrowUpRight size={20} color={THEME.expense} />}
+                       </div>
+                       <div className="min-w-0 flex-1">
+                         <p className="font-semibold text-sm truncate">{t.category}</p>
+                         <p className="text-xs font-medium mt-0.5 truncate" style={{ color: THEME.textSecondary }}>
+                           {t.desc || "—"}
+                         </p>
+                       </div>
+                     </div>
+                     <p className="font-bold text-sm flex-shrink-0 ml-3" style={{ color: t.type === "income" ? THEME.income : t.type === "savings" ? THEME.savings : THEME.expense }}>
+                       {t.type === "income" ? "+" : t.type === "savings" ? "" : "-"}{formatRp(t.amount)}
+                     </p>
+                   </div>
+                 ))}
+                 {(!data?.transactions || data.transactions.length === 0) && (
+                   <p className="text-center text-xs text-earth-500 py-6">No transactions yet</p>
+                 )}
+               </div>
+             </div>
           </div>
         )}
 
@@ -659,6 +733,104 @@ export default function Dashboard() {
               )}
             </div>
 
+            {/* ---- Peta Pengeluaran Harian (Daily Expense Calendar) ---- */}
+            <div className="bg-white rounded-[32px] p-6 shadow-warm card-hover overflow-hidden">
+              <h3 className="text-sm font-bold mb-1 font-display">Peta Pengeluaran Harian</h3>
+              <p className="text-[10px] text-earth-500 mb-4">Rincian pengeluaran harian bulan {calMonth} {calYear}</p>
+
+              {/* Month/Year navigator */}
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => navigateCalendar(-1)} className="w-8 h-8 rounded-xl bg-earth-50 flex items-center justify-center hover:bg-earth-100 transition-colors">
+                  <ChevronLeft size={16} color={THEME.textSecondary} />
+                </button>
+                <span className="text-sm font-bold text-earth-800">{calMonth} {calYear}</span>
+                <button onClick={() => navigateCalendar(1)} className="w-8 h-8 rounded-xl bg-earth-50 flex items-center justify-center hover:bg-earth-100 transition-colors">
+                  <ChevronRight size={16} color={THEME.textSecondary} />
+                </button>
+              </div>
+
+              {/* Day headers */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {DAY_HEADERS.map(d => (
+                  <div key={d} className="text-center text-[10px] font-bold text-earth-500 uppercase py-1">{d}</div>
+                ))}
+              </div>
+
+              {/* Calendar grid */}
+              <div className="space-y-1">
+                {calWeeks.map((week, wi) => (
+                  <div key={wi} className="grid grid-cols-7 gap-1">
+                    {week.map((cell, ci) => {
+                      if (!cell) {
+                        return <div key={ci} className="aspect-square rounded-xl" />
+                      }
+                      const bg = heatmapColor(cell.amount)
+                      const txt = heatmapTextColor(cell.amount)
+                      return (
+                        <button
+                          key={ci}
+                          onClick={() => handleDayClick(cell)}
+                          className="aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-warm cursor-pointer"
+                          style={{ background: bg, color: txt }}
+                        >
+                          <span className="text-[10px] font-bold leading-none">{cell.day}</span>
+                          {cell.amount > 0 && (
+                            <span className="text-[9px] font-semibold mt-0.5 leading-none" style={{ opacity: 0.85 }}>
+                              {cell.amount >= 1000000 ? `${(cell.amount / 1000000).toFixed(1)}jt` : `${(cell.amount / 1000).toFixed(0)}rb`}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+
+              {/* Color Legend */}
+              <div className="mt-5 pt-4 border-t border-earth-50">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-medium text-earth-500">Sedikit</span>
+                  <div className="flex-1 h-3 rounded-full" style={{ background: "linear-gradient(90deg, #f6efe5 0%, #e8d5c0 25%, #d4a853 50%, #c47d5a 75%, #8c5a3a 100%)" }} />
+                  <span className="text-[9px] font-medium text-earth-500">Banyak</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Day popover */}
+            {selectedDayTx && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.3)" }} onClick={() => setSelectedDayTx(null)}>
+                <div className="bg-white rounded-[32px] p-6 shadow-warm-xl w-full max-w-sm max-h-[70vh] overflow-y-auto animate-fade-in-up" onClick={e => e.stopPropagation()}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-bold font-display text-earth-900">{selectedDayTx.day} {calMonth} {calYear}</h3>
+                    <button onClick={() => setSelectedDayTx(null)} className="w-7 h-7 rounded-full bg-earth-50 flex items-center justify-center">
+                      <X size={14} color={THEME.textSecondary} />
+                    </button>
+                  </div>
+                  {selectedDayTx.transactions.length === 0 ? (
+                    <p className="text-xs text-earth-500 text-center py-4">Tidak ada pengeluaran pada hari ini</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedDayTx.transactions.map((t, i) => (
+                        <div key={i} className="flex justify-between items-center pb-3 border-b border-earth-50 last:border-b-0">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm text-earth-800">{t.category}</p>
+                            {t.desc && <p className="text-xs text-earth-500 mt-0.5 truncate">{t.desc}</p>}
+                          </div>
+                          <p className="font-bold text-sm text-clay-main ml-3">-{formatRp(t.amount)}</p>
+                        </div>
+                      ))}
+                      <div className="pt-2 flex justify-between items-center">
+                        <span className="text-xs font-bold text-earth-600">Total</span>
+                        <span className="text-sm font-bold text-clay-main">
+                          -{formatRp(selectedDayTx.transactions.reduce((s, t) => s + t.amount, 0))}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Overview Table */}
             <div className="bg-white rounded-[32px] p-6 shadow-warm card-hover overflow-hidden">
               <div className="flex justify-between items-center mb-4">
@@ -720,7 +892,7 @@ export default function Dashboard() {
         {activeNav === "wallet" && (
           <div className="px-6 mt-2 animate-fade-in-up" key="wallet-tab">
             <div className="bg-white rounded-[32px] p-6 shadow-warm card-hover">
-              {/* Type Toggle */}
+              {/* Type Toggle — 3-way */}
               <div className="flex gap-2 mb-6 p-1.5 bg-earth-50 rounded-2xl">
                 <button onClick={() => { setTxType("expense"); setFormData(f => ({ ...f, kategori: "" })) }}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${txType === "expense" ? "bg-white text-earth-900 shadow-warm" : "bg-transparent text-earth-500 shadow-none"}`}>
@@ -730,11 +902,15 @@ export default function Dashboard() {
                   className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${txType === "income" ? "bg-white text-earth-900 shadow-warm" : "bg-transparent text-earth-500 shadow-none"}`}>
                   Income
                 </button>
+                <button onClick={() => { setTxType("savings"); setFormData(f => ({ ...f, kategori: "" })) }}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${txType === "savings" ? "bg-white text-earth-900 shadow-warm" : "bg-transparent text-earth-500 shadow-none"}`}>
+                  Tabungan
+                </button>
               </div>
 
               <div className="text-center mb-8 mt-4">
                 <p className="text-xs font-medium text-earth-600 uppercase tracking-wider mb-2">Amount</p>
-                <h2 className="text-4xl font-bold font-display" style={{ color: txType === "expense" ? THEME.textPrimary : THEME.income }}>
+                <h2 className="text-4xl font-bold font-display" style={{ color: txType === "expense" ? THEME.textPrimary : txType === "savings" ? THEME.savings : THEME.income }}>
                   {rawAmount ? `Rp ${rawAmount}` : "Rp 0"}
                 </h2>
               </div>
@@ -754,7 +930,7 @@ export default function Dashboard() {
                 </div>
 
                 <SelectField label="Category" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
-                  options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
+                  options={txType === "expense" ? EXPENSE_CATEGORIES : txType === "savings" ? SAVINGS_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
 
                 <SelectField label="Bank Account" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
                   options={BANK_ACCOUNTS} placeholder="Select Bank" />

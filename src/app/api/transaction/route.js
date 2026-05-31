@@ -52,7 +52,7 @@ export async function POST(request) {
     const month = getMonthName(tanggal)
     const year = new Date(tanggal).getFullYear()
     const amount = parseFloat(String(jumlah).replace(/[^0-9.]/g, ""))
-    const sheetName = type === "income" ? "Pemasukan" : "Pengeluaran"
+    const sheetName = type === "income" ? "Pemasukan" : type === "savings" ? "Tabungan" : "Pengeluaran"
 
     // Format: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M | Y | Y2
     const row = [
