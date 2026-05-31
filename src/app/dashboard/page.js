@@ -2,7 +2,7 @@
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, Legend } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Legend } from "recharts"
 import { LogOut, Plus, Check, X, ChevronDown, Activity, CreditCard, User, Home, ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react"
 
 // Premium color palette based on reference
@@ -108,6 +108,13 @@ export default function Dashboard() {
   // Stats state
   const [selectedMonth, setSelectedMonth] = useState("Semua Bulan")
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  
+  // Comparison state
+  const [compareMode, setCompareMode] = useState(false)
+  const [compareMonthA, setCompareMonthA] = useState(AVAILABLE_MONTHS[new Date().getMonth()])
+  const [compareYearA, setCompareYearA] = useState(new Date().getFullYear().toString())
+  const [compareMonthB, setCompareMonthB] = useState(AVAILABLE_MONTHS[new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1])
+  const [compareYearB, setCompareYearB] = useState(new Date().getMonth() === 0 ? (new Date().getFullYear() - 1).toString() : new Date().getFullYear().toString())
 
   useEffect(() => { if (status === "unauthenticated") router.push("/") }, [status, router])
 
@@ -224,6 +231,49 @@ export default function Dashboard() {
   const availableYears = Array.from(new Set(data?.transactions?.map(t => t.year).filter(Boolean) || [])).sort((a,b) => b.localeCompare(a))
   if (availableYears.length === 0) availableYears.push(new Date().getFullYear().toString())
 
+  // --- Comparison Derived Data ---
+  const getMonthData = (month, year) => {
+    const tx = (data?.transactions || []).filter(t => t.month === month && t.year === year)
+    const income = tx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
+    const expense = tx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+    const savings = tx.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
+    const catMap = {}
+    tx.filter(t => t.type === "expense").forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + t.amount })
+    const categories = Object.entries(catMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+    return { income, expense, savings, surplus: income - expense, categories }
+  }
+  const compareDataA = getMonthData(compareMonthA, compareYearA)
+  const compareDataB = getMonthData(compareMonthB, compareYearB)
+
+  // All-category-level comparison data for dual bar chart
+  const allCompareCategories = Array.from(new Set([...compareDataA.categories.map(c => c.name), ...compareDataB.categories.map(c => c.name)]))
+  const compareChartData = allCompareCategories.map(cat => ({
+    category: cat,
+    [compareMonthA]: compareDataA.categories.find(c => c.name === cat)?.value || 0,
+    [compareMonthB]: compareDataB.categories.find(c => c.name === cat)?.value || 0,
+  })).sort((a,b) => (b[compareMonthA] + b[compareMonthB]) - (a[compareMonthA] + a[compareMonthB]))
+
+  // --- Expense Category Trend (top 5) ---
+  const top5Categories = Object.entries(
+    (data?.transactions || []).filter(t => t.type === "expense").reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + t.amount
+      return acc
+    }, {})
+  ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name]) => name)
+
+  const trendData = AVAILABLE_MONTHS.map(m => {
+    const row = { month: m }
+    top5Categories.forEach(cat => {
+      row[cat] = (data?.transactions || []).filter(t => t.month === m && t.type === "expense" && t.category === cat).reduce((s, t) => s + t.amount, 0)
+    })
+    return row
+  })
+
+  // --- Spending vs Earning Ratio ---
+  const expenseRatio = data ? (data.totalExpense / (data.totalIncome || 1)) * 100 : 0
+  const gaugeAngle = Math.min(expenseRatio / 100 * 180, 180)
+  const gaugeColor = expenseRatio < 50 ? THEME.savings : expenseRatio < 80 ? "#f5a623" : THEME.expense
+
 
   return (
     <div className="min-h-screen pb-32 font-sans" style={{ background: THEME.bg, color: THEME.textPrimary }}>
@@ -293,6 +343,40 @@ export default function Dashboard() {
                 <p className="text-xs font-medium uppercase tracking-wider mb-0.5" style={{ color: THEME.textSecondary }}>Margin</p>
                 <p className="font-bold text-lg">{data?.profitMargin || 0}%</p>
               </div>
+            </div>
+          </div>
+
+          {/* Spending vs Earning Gauge */}
+          <div className="bg-white rounded-[32px] p-5 shadow-sm border border-gray-50">
+            <h3 className="text-xs font-bold text-[#8a8d9f] text-center mb-2">Pengeluaran / Pemasukan</h3>
+            <div className="flex flex-col items-center">
+              <svg width="160" height="90" viewBox="0 0 160 90">
+                <defs>
+                  <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor={THEME.savings} />
+                    <stop offset="50%" stopColor="#f5a623" />
+                    <stop offset="100%" stopColor={THEME.expense} />
+                  </linearGradient>
+                </defs>
+                {/* Background arc */}
+                <path d="M20 80 A 60 60 0 0 1 140 80" fill="none" stroke="#e8ecf0" strokeWidth="12" strokeLinecap="round" />
+                {/* Colored arc */}
+                <path d="M20 80 A 60 60 0 0 1 140 80" fill="none" stroke="url(#gaugeGrad)" strokeWidth="12" strokeLinecap="round"
+                  strokeDasharray={`${(gaugeAngle / 180) * 188.5} 188.5`} />
+                {/* Needle */}
+                {(() => {
+                  const angleRad = (gaugeAngle - 90) * (Math.PI / 180)
+                  const cx = 80, cy = 80, len = 40
+                  const nx = cx + len * Math.cos(angleRad)
+                  const ny = cy + len * Math.sin(angleRad)
+                  return <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="#2d2f45" strokeWidth="2.5" strokeLinecap="round" />
+                })()}
+                <circle cx="80" cy="80" r="5" fill="#2d2f45" />
+              </svg>
+              <p className="text-3xl font-bold mt-1" style={{ color: gaugeColor }}>{expenseRatio.toFixed(1)}%</p>
+              <p className="text-[10px] font-medium text-[#8a8d9f] mt-1">
+                {expenseRatio < 50 ? "Healthy — spending well below income" : expenseRatio < 80 ? "Moderate — watch your spending" : "High — spending close to income"}
+              </p>
             </div>
           </div>
 
@@ -426,6 +510,105 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
             </div>
+          </div>
+
+          {/* --- Expense Category Trend (LineChart) --- */}
+          {isAllMonths && isAllYears && top5Categories.length > 0 && (
+            <div className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-50">
+              <h3 className="text-sm font-bold mb-4">Top Kategori Pengeluaran</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={trendData}>
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: THEME.textSecondary }} axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: "11px" }} />
+                  {top5Categories.map((cat, i) => (
+                    <Line key={cat} type="monotone" dataKey={cat} name={cat} stroke={COLORS[i % COLORS.length]} strokeWidth={2.5} dot={{ r: 3, fill: COLORS[i % COLORS.length] }} connectNulls />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* --- Month vs Month Comparison --- */}
+          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-50">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-bold">Bandingkan Bulan</h3>
+              <button onClick={() => setCompareMode(!compareMode)} className="text-xs font-semibold py-1.5 px-4 rounded-xl transition-colors"
+                style={{ background: compareMode ? THEME.heroBg : "#f4f7f9", color: compareMode ? "white" : THEME.textSecondary }}>
+                {compareMode ? "Sembunyikan" : "Bandingkan"}
+              </button>
+            </div>
+
+            {compareMode && (
+              <div className="space-y-4 mt-4">
+                {/* Month selectors */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold text-[#8a8d9f] mb-1">Bulan A</p>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <SelectField value={compareMonthA} onChange={setCompareMonthA} options={AVAILABLE_MONTHS} placeholder="Month" />
+                      </div>
+                      <div className="w-24">
+                        <SelectField value={compareYearA} onChange={setCompareYearA} options={availableYears} placeholder="Year" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-[#8a8d9f] mb-1">Bulan B</p>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <SelectField value={compareMonthB} onChange={setCompareMonthB} options={AVAILABLE_MONTHS} placeholder="Month" />
+                      </div>
+                      <div className="w-24">
+                        <SelectField value={compareYearB} onChange={setCompareYearB} options={availableYears} placeholder="Year" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPI comparison cards */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: "Pemasukan", a: compareDataA.income, b: compareDataB.income, color: THEME.income },
+                    { label: "Pengeluaran", a: compareDataA.expense, b: compareDataB.expense, color: THEME.expense },
+                    { label: "Surplus", a: compareDataA.surplus, b: compareDataB.surplus, color: THEME.savings },
+                  ].map((item) => {
+                    const delta = item.b > 0 ? ((item.a - item.b) / item.b * 100) : 0
+                    const isUp = delta > 0
+                    return (
+                      <div key={item.label} className="rounded-2xl p-3 text-center" style={{ background: "#f4f7f9" }}>
+                        <p className="text-[10px] font-medium text-[#8a8d9f] mb-1">{item.label}</p>
+                        <p className="text-sm font-bold" style={{ color: item.color }}>{formatRp(item.a)}</p>
+                        <p className="text-[10px] text-[#8a8d9f] my-0.5">vs {formatRp(item.b)}</p>
+                        {delta !== 0 && (
+                          <p className="text-[11px] font-bold" style={{ color: isUp && item.label !== "Pengeluaran" ? THEME.savings : isUp ? THEME.expense : isUp ? THEME.expense : THEME.savings }}>
+                            {isUp ? "↑" : "↓"} {Math.abs(delta).toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Dual bar chart */}
+                {compareChartData.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-[#8a8d9f] mb-3">Perbandingan per Kategori</p>
+                    <ResponsiveContainer width="100%" height={Math.max(150, compareChartData.length * 30)}>
+                      <BarChart data={compareChartData} layout="vertical" barCategoryGap="30%">
+                        <XAxis type="number" hide />
+                        <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 10, fill: THEME.textSecondary }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey={compareMonthA} name={compareMonthA} fill={THEME.income} radius={[0, 4, 4, 0]} maxBarSize={12} />
+                        <Bar dataKey={compareMonthB} name={compareMonthB} fill={THEME.expense} radius={[0, 4, 4, 0]} maxBarSize={12} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Overview Table */}
