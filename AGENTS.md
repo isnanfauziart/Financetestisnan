@@ -47,8 +47,32 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 - Custom Tailwind colors: earth, sage, clay, moss, violet
 - The app is in Indonesian (id locale)
 
-## Additional Informations
+## Important Gotchas
+- **`const` TDZ with `useCallback` deps**: If `handleX = useCallback(fn, [fetchData])` appears before `const fetchData = useCallback(...)`, the `[fetchData]` array accesses `fetchData` while it's still in the temporal dead zone → `ReferenceError: Cannot access 'X' before initialization`. Always define callbacks/variables **before** they appear in another hook's dependency array.
+- **`backdrop-filter` creates a CSS stacking context**: `absolute`/`fixed` children with `z-50` inside a `.glass` element are clipped to that context. For dropdowns/menus, use `position: fixed` on `<body>` level with viewport-clamped coordinates.
+- **Touch event ordering**: `touchstart` fires before `click` on mobile. If a document-level `touchstart` listener closes a dropdown before `click` fires on a child option, the tap is lost. Fix: use `mousedown` instead of `touchstart` for outside-click handlers, or check a dropdown ref in the handler.
 
-- Use Skills that related with the task/plan 
+## Recent Work (June 2026)
+- **Bento grid UI revamp** — Mixed-size tiles, hero card, glassmorphism, mesh gradients
+- **Smart Insights panel** — Auto-generated spending patterns with glow icons
+- **Click-to-filter** — Pie chart taps set category filter chip
+- **KPI drill-down modal** — Tap income/expense/savings → top 10 transactions
+- **Account filter** — Stats tab reads AkunBank from Google Sheets
+- **Month comparison** — Category breakdown between two months
+- **Donut chart legends** — Percentage + color dots under both pie charts
+- **Fixed SelectField dropdown** — Root cause was `touchstart` closing dropdown before `click` on option. Fix: `mousedown` handler + `ddRef` container check + viewport clamping.
+- **Pull-to-refresh** — Mobile-native pull gesture with indicator, triggers data refetch
+- **Trend chart restored** — Removed `isAllMonths && isAllYears` gate that was hiding it
+- **Hooks order fix** — Moved `useMemo`/early returns to fix "Rendered fewer hooks" crash after login
+
+## Relevant Files
+- `src/app/dashboard/page.js` — Main dashboard (1490 lines): tabs, charts, modals, pull-to-refresh, SelectField
+- `src/app/dashboard/page.original.js` — Pre-revamp UI backup
+- `src/app/globals.css` — Glass surfaces, mesh gradients, bento/insight card styles, animations
+- `tailwind.config.js` — Extended palette (earth, cream, sage, clay, moss, violet, amber, rose, indigo)
+- `src/app/api/dashboard/route.js` — Google Sheets aggregation with `account` field
+- `src/lib/sheets.js` — Sheet helpers
+
+## Additional Information
+- Use Skills that relate to the task/plan
 - Use subagents if the task/plan are possible
-- 

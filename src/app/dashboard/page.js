@@ -76,6 +76,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 function SelectField({ label, value, onChange, options, placeholder, isDark = false }) {
   const [open, setOpen] = useState(false)
   const btnRef = useRef(null)
+  const ddRef = useRef(null)
   const [pos, setPos] = useState({ top: 0, left: 0, width: 200 })
 
   const updatePos = useCallback(() => {
@@ -93,17 +94,17 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
     if (!open) return
     updatePos()
     const handleOutside = (e) => {
-      if (btnRef.current && !btnRef.current.contains(e.target)) setOpen(false)
+      const isOutsideBtn = btnRef.current && !btnRef.current.contains(e.target)
+      const isOutsideDd = !ddRef.current || (ddRef.current && !ddRef.current.contains(e.target))
+      if (isOutsideBtn && isOutsideDd) setOpen(false)
     }
     window.addEventListener("scroll", updatePos, { passive: true })
     window.addEventListener("resize", updatePos, { passive: true })
     document.addEventListener("mousedown", handleOutside)
-    document.addEventListener("touchstart", handleOutside, { passive: true })
     return () => {
       window.removeEventListener("scroll", updatePos)
       window.removeEventListener("resize", updatePos)
       document.removeEventListener("mousedown", handleOutside)
-      document.removeEventListener("touchstart", handleOutside)
     }
   }, [open, updatePos])
 
@@ -114,7 +115,7 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
         ref={btnRef}
         type="button"
         onClick={() => { if (!open) updatePos(); setOpen(!open) }}
-        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm text-left transition-all ${
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm text-left transition-all active:scale-[0.98] ${
           isDark ? "bg-white/15 text-white hover:bg-white/20" : "glass text-earth-800 hover:bg-white/90"
         }`}
       >
@@ -123,6 +124,7 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
       </button>
       {open && (
         <div
+          ref={ddRef}
           className="fixed z-[9999] glass-strong rounded-2xl overflow-hidden shadow-pop-lg"
           style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: "50vh", overflowY: "auto" }}
         >
@@ -131,7 +133,7 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
               key={opt}
               type="button"
               onClick={() => { onChange(opt); setOpen(false) }}
-              className="w-full text-left px-4 py-3 sm:py-2.5 text-sm hover:bg-earth-100/60 transition-colors border-b last:border-b-0 border-earth-100/40"
+              className="w-full text-left px-4 py-3.5 sm:py-3 text-sm hover:bg-earth-100/60 transition-colors border-b last:border-b-0 border-earth-100/40"
               style={{ color: value === opt ? THEME.primary : THEME.textPrimary, fontWeight: value === opt ? 700 : 500 }}
             >
               {opt}
@@ -227,8 +229,6 @@ export default function Dashboard() {
   // Drill-down modal
   const [drillDown, setDrillDown] = useState(null)
 
-  useEffect(() => { if (status === "unauthenticated") router.push("/") }, [status, router])
-
   const fetchData = useCallback(() => {
     if (!session) return
     setLoading(true)
@@ -239,6 +239,39 @@ export default function Dashboard() {
   }, [session])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // Pull-to-refresh
+  const [pullDistance, setPullDistance] = useState(0)
+  const [pullRefreshing, setPullRefreshing] = useState(false)
+  const pullStartY = useRef(0)
+  const pullDistRef = useRef(0)
+  const contentRef = useRef(null)
+
+  const handleTouchStart = useCallback((e) => {
+    if (contentRef.current && contentRef.current.scrollTop <= 0) {
+      pullStartY.current = e.touches[0].clientY
+    }
+  }, [])
+
+  const handleTouchMove = useCallback((e) => {
+    if (pullStartY.current === 0) return
+    const dy = e.touches[0].clientY - pullStartY.current
+    if (dy <= 0) { setPullDistance(0); pullDistRef.current = 0; return }
+    const d = Math.min(dy * 0.5, 120)
+    setPullDistance(d)
+    pullDistRef.current = d
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    if (pullDistRef.current >= 60) {
+      setPullRefreshing(true)
+      fetchData()
+      setTimeout(() => setPullRefreshing(false), 1200)
+    }
+    setPullDistance(0)
+    pullDistRef.current = 0
+    pullStartY.current = 0
+  }, [fetchData])
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type })
@@ -624,7 +657,28 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="relative z-10 max-w-3xl mx-auto">
+      {/* Pull-to-refresh indicator */}
+      {(pullDistance > 0 || pullRefreshing) && (
+        <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-center transition-all duration-300 overflow-hidden"
+          style={{ height: pullRefreshing ? 48 : pullDistance, background: pullDistance >= 60 ? THEME.surfaceWarm : "transparent" }}>
+          <div className={`flex items-center gap-2 text-xs font-bold text-earth-500 transition-all duration-300 ${pullRefreshing ? "opacity-100" : pullDistance >= 60 ? "opacity-100" : "opacity-0"}`}>
+            {pullRefreshing ? (
+              <><div className="w-4 h-4 border-2 border-earth-400 border-t-transparent rounded-full animate-spin" /> Memperbarui...</>
+            ) : (
+              <><ArrowUpRight size={14} className="rotate-90" /> Lepaskan untuk memperbarui</>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div
+        ref={contentRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="relative z-10 max-w-3xl mx-auto"
+        style={{ transform: `translateY(${pullDistance}px)`, transition: pullDistance === 0 ? "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" : "none" }}
+      >
         {/* HOME TAB — Bento grid */}
         {activeNav === "home" && (
           <div className="px-5 pt-4 animate-bento-in" key="home-tab">
