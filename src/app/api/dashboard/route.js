@@ -39,7 +39,8 @@ export async function GET() {
           amount: amount,
           type: "income",
           month: month,
-          year: String(row[11] || new Date().getFullYear()).trim()
+          year: String(row[11] || new Date().getFullYear()).trim(),
+          account: String(row[7] || "").trim()
         })
       }
     }
@@ -64,7 +65,8 @@ export async function GET() {
           amount: amount,
           type: "expense",
           month: month,
-          year: String(row[11] || new Date().getFullYear()).trim()
+          year: String(row[11] || new Date().getFullYear()).trim(),
+          account: String(row[7] || "").trim()
         })
       }
     }
@@ -87,7 +89,8 @@ export async function GET() {
           amount: amount,
           type: "savings",
           month: month,
-          year: String(row[11] || new Date().getFullYear()).trim()
+          year: String(row[11] || new Date().getFullYear()).trim(),
+          account: String(row[7] || "").trim()
         })
       }
     }
