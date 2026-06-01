@@ -1,7 +1,7 @@
 "use client"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, useRef, useCallback, useMemo } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Legend } from "recharts"
 import { LogOut, Plus, Check, X, ChevronDown, ChevronLeft, ChevronRight, Activity, CreditCard, User, Home, ArrowUpRight, ArrowDownRight, Wallet, Calendar, Sparkles, TrendingUp, TrendingDown, Lightbulb, Filter, XCircle, Target, Zap, ArrowRight, PiggyBank } from "lucide-react"
 
@@ -282,14 +282,12 @@ export default function Dashboard() {
   const isAllYears = selectedYear === "Semua Tahun"
   const isAllAccounts = selectedAccount === "Semua Akun"
 
-  const filteredTransactions = useMemo(() => {
-    return (data?.transactions || []).filter(t =>
-      (isAllYears || t.year === selectedYear) &&
-      (isAllMonths || t.month === selectedMonth) &&
-      (isAllAccounts || (t.account || "") === selectedAccount) &&
-      (!categoryFilter || t.category === categoryFilter)
-    )
-  }, [data?.transactions, isAllYears, isAllMonths, isAllAccounts, selectedYear, selectedMonth, selectedAccount, categoryFilter])
+  const filteredTransactions = (data?.transactions || []).filter(t =>
+    (isAllYears || t.year === selectedYear) &&
+    (isAllMonths || t.month === selectedMonth) &&
+    (isAllAccounts || (t.account || "") === selectedAccount) &&
+    (!categoryFilter || t.category === categoryFilter)
+  )
 
   const statIncome = filteredTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
   const statExpense = filteredTransactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
@@ -323,9 +321,7 @@ export default function Dashboard() {
   const availableYears = Array.from(new Set(data?.transactions?.map(t => t.year).filter(Boolean) || [])).sort((a,b) => b.localeCompare(a))
   if (availableYears.length === 0) availableYears.push(new Date().getFullYear().toString())
 
-  const availableAccounts = useMemo(() => {
-    return Array.from(new Set((data?.transactions || []).map(t => t.account).filter(Boolean))).sort()
-  }, [data?.transactions])
+  const availableAccounts = Array.from(new Set((data?.transactions || []).map(t => t.account).filter(Boolean))).sort()
 
   // --- Comparison Derived Data ---
   const getMonthData = (month, year) => {
@@ -371,7 +367,7 @@ export default function Dashboard() {
   const gaugeOffset = (1 - gaugeAngle / 180) * 188.5
 
   // --- Smart Insights ---
-  const insights = useMemo(() => {
+  const insights = (() => {
     const out = []
     if (!data?.transactions) return out
     const allTx = data.transactions
@@ -480,7 +476,7 @@ export default function Dashboard() {
     }
 
     return out.slice(0, 4)
-  }, [data, expenseRatio, expenseCategories, statExpense])
+  })()
 
   // --- Calendar helpers ---
   const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
