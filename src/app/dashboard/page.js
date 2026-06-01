@@ -75,12 +75,39 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 function SelectField({ label, value, onChange, options, placeholder, isDark = false }) {
   const [open, setOpen] = useState(false)
+  const btnRef = useRef(null)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 200 })
+
+  const updatePos = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 160) })
+    }
+  }
+
+  useEffect(() => {
+    if (!open) return
+    updatePos()
+    const handleOutside = (e) => {
+      if (btnRef.current && !btnRef.current.contains(e.target)) setOpen(false)
+    }
+    window.addEventListener("scroll", updatePos, { passive: true })
+    document.addEventListener("mousedown", handleOutside)
+    document.addEventListener("touchstart", handleOutside, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", updatePos)
+      document.removeEventListener("mousedown", handleOutside)
+      document.removeEventListener("touchstart", handleOutside)
+    }
+  }, [open, updatePos])
+
   return (
     <div className="relative">
       {label && <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">{label}</label>}
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => { if (!open) updatePos(); setOpen(!open) }}
         className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm text-left transition-all ${
           isDark ? "bg-white/15 text-white hover:bg-white/20" : "glass text-earth-800 hover:bg-white/90"
         }`}
@@ -89,13 +116,16 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
         <ChevronDown size={14} className={`transition-transform duration-200 flex-shrink-0 ml-2 ${open ? "rotate-180" : ""} ${isDark ? "text-white/70" : "text-earth-500"}`} />
       </button>
       {open && (
-        <div className="absolute z-50 w-full mt-2 glass-strong rounded-2xl overflow-hidden" style={{ maxHeight: "220px", overflowY: "auto" }}>
+        <div
+          className="fixed z-[9999] glass-strong rounded-2xl overflow-hidden shadow-pop-lg"
+          style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: "50vh", overflowY: "auto" }}
+        >
           {options.map((opt) => (
             <button
               key={opt}
               type="button"
               onClick={() => { onChange(opt); setOpen(false) }}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-earth-100/60 transition-colors border-b last:border-b-0 border-earth-100/40"
+              className="w-full text-left px-4 py-3 sm:py-2.5 text-sm hover:bg-earth-100/60 transition-colors border-b last:border-b-0 border-earth-100/40"
               style={{ color: value === opt ? THEME.primary : THEME.textPrimary, fontWeight: value === opt ? 700 : 500 }}
             >
               {opt}
@@ -714,12 +744,12 @@ export default function Dashboard() {
                     const Icon = ins.icon
                     return (
                       <div key={i} className="insight-card animate-fade-in-up" style={{ background: ins.color + "12", color: ins.color, animationDelay: `${0.05 * i}s` }}>
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: ins.color + "22" }}>
-                          <Icon size={16} strokeWidth={2.5} />
+                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: ins.color + "22", boxShadow: `0 4px 12px ${ins.color}30` }}>
+                          <Icon size={20} strokeWidth={2.5} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Insight</p>
-                          <p className="text-xs font-semibold text-earth-800 leading-snug">{ins.text}</p>
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <p className="text-[9px] font-bold uppercase tracking-wider opacity-70">{ins.type === "positive" ? "Positif" : ins.type === "warning" ? "Perhatian" : "Info"}</p>
+                          <p className="text-sm font-semibold text-earth-800 leading-snug mt-0.5">{ins.text}</p>
                         </div>
                       </div>
                     )
@@ -841,15 +871,18 @@ export default function Dashboard() {
                   <Lightbulb size={13} className="text-amber-500" />
                   <h3 className="text-xs font-bold font-display text-earth-700 uppercase tracking-wider">Insights</h3>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {insights.slice(0, 3).map((ins, i) => {
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {insights.slice(0, 4).map((ins, i) => {
                     const Icon = ins.icon
                     return (
-                      <div key={i} className="insight-card" style={{ background: ins.color + "12", color: ins.color }}>
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: ins.color + "22" }}>
-                          <Icon size={14} strokeWidth={2.5} />
+                      <div key={i} className="insight-card animate-fade-in-up" style={{ background: ins.color + "12", color: ins.color, animationDelay: `${0.05 * i}s` }}>
+                        <div className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: ins.color + "22", boxShadow: `0 4px 12px ${ins.color}30` }}>
+                          <Icon size={18} strokeWidth={2.5} />
                         </div>
-                        <p className="text-[11px] font-semibold text-earth-800 leading-snug flex-1">{ins.text}</p>
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <p className="text-[9px] font-bold uppercase tracking-wider opacity-70">{ins.type === "positive" ? "Positif" : ins.type === "warning" ? "Perhatian" : "Info"}</p>
+                          <p className="text-xs font-semibold text-earth-800 leading-snug mt-0.5">{ins.text}</p>
+                        </div>
                       </div>
                     )
                   })}
@@ -931,17 +964,24 @@ export default function Dashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 )}
-                <div className="mt-2 space-y-1 max-h-16 overflow-y-auto">
-                  {incomeCategories.slice(0, 3).map((c, i) => (
-                    <div key={c.name} className="flex items-center justify-between text-[10px]">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                        <span className="truncate text-earth-700 font-medium">{c.name}</span>
-                      </div>
-                      <span className="text-earth-500 font-semibold">{formatRp(c.value)}</span>
+                {(() => {
+                  const incTotal = incomeCategories.reduce((s, c) => s + c.value, 0) || 1
+                  return (
+                    <div className="mt-2 space-y-1.5">
+                      {incomeCategories.slice(0, 6).map((c, i) => {
+                        const pct = ((c.value / incTotal) * 100).toFixed(1)
+                        return (
+                          <div key={c.name} className="flex items-center gap-2 text-[10px]">
+                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                            <span className="flex-1 truncate font-medium text-earth-700">{c.name}</span>
+                            <span className="font-bold text-earth-800">{pct}%</span>
+                            <span className="text-earth-500 font-medium">{formatRp(c.value)}</span>
+                          </div>
+                        )
+                      })}
                     </div>
-                  ))}
-                </div>
+                  )
+                })()}
               </div>
               <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
                 <h3 className="text-xs font-bold text-center mb-2 font-display text-earth-800">Expense Mix</h3>
@@ -965,17 +1005,24 @@ export default function Dashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 )}
-                <div className="mt-2 space-y-1 max-h-16 overflow-y-auto">
-                  {expenseCategories.slice(0, 3).map((c, i) => (
-                    <div key={c.name} className="flex items-center justify-between text-[10px]">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[(i+3) % COLORS.length] }} />
-                        <span className="truncate text-earth-700 font-medium">{c.name}</span>
-                      </div>
-                      <span className="text-earth-500 font-semibold">{formatRp(c.value)}</span>
+                {(() => {
+                  const expTotal = expenseCategories.reduce((s, c) => s + c.value, 0) || 1
+                  return (
+                    <div className="mt-2 space-y-1.5">
+                      {expenseCategories.slice(0, 6).map((c, i) => {
+                        const pct = ((c.value / expTotal) * 100).toFixed(1)
+                        return (
+                          <div key={c.name} className="flex items-center gap-2 text-[10px]">
+                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[(i+3) % COLORS.length] }} />
+                            <span className="flex-1 truncate font-medium text-earth-700">{c.name}</span>
+                            <span className="font-bold text-earth-800">{pct}%</span>
+                            <span className="text-earth-500 font-medium">{formatRp(c.value)}</span>
+                          </div>
+                        )
+                      })}
                     </div>
-                  ))}
-                </div>
+                  )
+                })()}
               </div>
             </div>
 
