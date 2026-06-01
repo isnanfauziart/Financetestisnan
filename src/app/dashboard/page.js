@@ -78,12 +78,16 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
   const btnRef = useRef(null)
   const [pos, setPos] = useState({ top: 0, left: 0, width: 200 })
 
-  const updatePos = () => {
+  const updatePos = useCallback(() => {
     if (btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
-      setPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 160) })
+      const dw = Math.max(rect.width, 160)
+      const vw = window.innerWidth
+      let left = rect.left
+      if (left + dw > vw - 8) left = vw - dw - 8
+      setPos({ top: rect.bottom + 4, left: Math.max(8, left), width: dw })
     }
-  }
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -92,10 +96,12 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
       if (btnRef.current && !btnRef.current.contains(e.target)) setOpen(false)
     }
     window.addEventListener("scroll", updatePos, { passive: true })
+    window.addEventListener("resize", updatePos, { passive: true })
     document.addEventListener("mousedown", handleOutside)
     document.addEventListener("touchstart", handleOutside, { passive: true })
     return () => {
       window.removeEventListener("scroll", updatePos)
+      window.removeEventListener("resize", updatePos)
       document.removeEventListener("mousedown", handleOutside)
       document.removeEventListener("touchstart", handleOutside)
     }
@@ -1027,7 +1033,7 @@ export default function Dashboard() {
             </div>
 
             {/* Top categories trend */}
-            {isAllMonths && isAllYears && top5Categories.length > 0 && (
+            {top5Categories.length > 0 && (
               <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
                 <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Top Kategori Pengeluaran</h3>
                 <ResponsiveContainer width="100%" height={250}>
