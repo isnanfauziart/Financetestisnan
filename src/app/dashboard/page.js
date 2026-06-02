@@ -2,6 +2,7 @@
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useRef, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Legend } from "recharts"
 import { LogOut, Plus, Check, X, ChevronDown, ChevronLeft, ChevronRight, Activity, CreditCard, User, Home, ArrowUpRight, ArrowDownRight, Wallet, Calendar, Sparkles, TrendingUp, TrendingDown, Lightbulb, Filter, XCircle, Target, Zap, ArrowRight, PiggyBank } from "lucide-react"
 
@@ -83,12 +84,18 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
     if (btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
       const dw = Math.max(rect.width, 160)
+      const vh = window.innerHeight
       const vw = window.innerWidth
+      const ddEstH = Math.min(options.length * 48, vh * 0.5)
+      const spaceBelow = vh - rect.bottom - 8
+      const openUp = spaceBelow < ddEstH && rect.top > ddEstH
       let left = rect.left
       if (left + dw > vw - 8) left = vw - dw - 8
-      setPos({ top: rect.bottom + 4, left: Math.max(8, left), width: dw })
+      left = Math.max(8, left)
+      const top = openUp ? Math.max(8, rect.top - ddEstH - 4) : rect.bottom + 4
+      setPos({ top, left, width: dw })
     }
-  }, [])
+  }, [options.length])
 
   useEffect(() => {
     if (!open) return
@@ -122,7 +129,7 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
         <span className="truncate font-medium">{value || placeholder}</span>
         <ChevronDown size={14} className={`transition-transform duration-200 flex-shrink-0 ml-2 ${open ? "rotate-180" : ""} ${isDark ? "text-white/70" : "text-earth-500"}`} />
       </button>
-      {open && (
+      {open && createPortal(
         <div
           ref={ddRef}
           className="fixed z-[9999] glass-strong rounded-2xl overflow-hidden shadow-pop-lg"
@@ -139,7 +146,8 @@ function SelectField({ label, value, onChange, options, placeholder, isDark = fa
               {opt}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
