@@ -438,7 +438,7 @@ export default function Dashboard() {
   })
 
   // --- Spending vs Earning Ratio ---
-  const expenseRatio = data ? (data.totalExpense / (data.totalIncome || 1)) * 100 : 0
+  const expenseRatio = statIncome > 0 ? (statExpense / statIncome) * 100 : 0
   const gaugeAngle = Math.min(expenseRatio / 100 * 180, 180)
   const gaugeColor = expenseRatio < 50 ? THEME.savings : expenseRatio < 80 ? THEME.warning : THEME.danger
   const gaugeOffset = (1 - gaugeAngle / 180) * 188.5
@@ -446,113 +446,154 @@ export default function Dashboard() {
   // --- Smart Insights ---
   const insights = (() => {
     const out = []
-    if (!data?.transactions) return out
-    const allTx = data.transactions
-    const monthsWithData = Array.from(new Set(allTx.map(t => `${t.month} ${t.year}`)))
-    if (monthsWithData.length === 0) return out
+    const tx = filteredTransactions
+    if (tx.length === 0) return out
 
-    const sortedMonthKeys = monthsWithData.sort((a, b) => {
-      const idxA = AVAILABLE_MONTHS.indexOf(a.split(" ")[0])
-      const idxB = AVAILABLE_MONTHS.indexOf(b.split(" ")[0])
-      const yA = parseInt(a.split(" ")[1])
-      const yB = parseInt(b.split(" ")[1])
-      return (yA - yB) || (idxA - idxB)
-    })
-    const lastKey = sortedMonthKeys[sortedMonthKeys.length - 1]
-    const prevKey = sortedMonthKeys[sortedMonthKeys.length - 2]
-
-    const sumBy = (key, type, cat) => allTx
-      .filter(t => `${t.month} ${t.year}` === key && t.type === type && (!cat || t.category === cat))
-      .reduce((s, t) => s + t.amount, 0)
-
-    if (prevKey) {
-      // Expense change
-      const lastExp = sumBy(lastKey, "expense")
-      const prevExp = sumBy(prevKey, "expense")
-      if (prevExp > 0) {
-        const delta = ((lastExp - prevExp) / prevExp) * 100
-        if (Math.abs(delta) > 5) {
-          out.push({
-            type: delta > 0 ? "warning" : "positive",
-            icon: delta > 0 ? TrendingUp : TrendingDown,
-            text: delta > 0
-              ? `Pengeluaran naik ${delta.toFixed(0)}% dari ${prevKey.split(" ")[0]}`
-              : `Pengeluaran turun ${Math.abs(delta).toFixed(0)}% dari ${prevKey.split(" ")[0]}`,
-            color: delta > 0 ? THEME.clay : THEME.sage
-          })
-        }
-      }
-      // Top category change
-      const lastCatMap = {}
-      const prevCatMap = {}
-      allTx.filter(t => `${t.month} ${t.year}` === lastKey && t.type === "expense").forEach(t => { lastCatMap[t.category] = (lastCatMap[t.category] || 0) + t.amount })
-      allTx.filter(t => `${t.month} ${t.year}` === prevKey && t.type === "expense").forEach(t => { prevCatMap[t.category] = (prevCatMap[t.category] || 0) + t.amount })
-      let maxDelta = 0; let maxCat = null; let maxPct = 0
-      Object.keys(lastCatMap).forEach(cat => {
-        const lc = lastCatMap[cat] || 0
-        const pc = prevCatMap[cat] || 0
-        if (pc > 0) {
-          const d = ((lc - pc) / pc) * 100
-          if (Math.abs(d) > Math.abs(maxDelta)) { maxDelta = d; maxCat = cat; maxPct = ((lc - pc) / pc) * 100 }
-        }
-      })
-      if (maxCat && Math.abs(maxPct) > 15) {
-        out.push({
-          type: maxPct > 0 ? "warning" : "positive",
-          icon: Zap,
-          text: `'${maxCat}' ${maxPct > 0 ? "naik" : "turun"} ${Math.abs(maxPct).toFixed(0)}% dari bulan lalu`,
-          color: maxPct > 0 ? THEME.amber : THEME.sage
-        })
-      }
-    }
-
-    // Best savings month
-    const savingsByMonth = {}
-    allTx.filter(t => t.type === "savings").forEach(t => {
-      const k = `${t.month} ${t.year}`
-      savingsByMonth[k] = (savingsByMonth[k] || 0) + t.amount
-    })
-    const sortedSavings = Object.entries(savingsByMonth).sort((a, b) => b[1] - a[1])
-    if (sortedSavings.length > 1) {
-      const [bestKey, bestVal] = sortedSavings[0]
-      const avg = sortedSavings.reduce((s, [, v]) => s + v, 0) / sortedSavings.length
-      if (bestVal > avg * 1.4) {
-        out.push({
-          type: "positive",
-          icon: PiggyBank,
-          text: `Tabungan terbaik: ${bestKey} (${Math.round(((bestVal - avg) / avg) * 100)}% di atas rata-rata)`,
-          color: THEME.moss
-        })
-      }
-    }
-
-    // Spending ratio health
-    if (expenseRatio > 0) {
+    // ── ALWAYS-ON #1: Spending ratio health ──
+    if (statIncome > 0) {
+      const ratio = (statExpense / statIncome) * 100
       out.push({
-        type: expenseRatio < 50 ? "positive" : expenseRatio < 80 ? "info" : "warning",
-        icon: expenseRatio < 50 ? Target : Activity,
-        text: expenseRatio < 50 ? `Sangat sehat — ${expenseRatio.toFixed(0)}% income terpakai`
-            : expenseRatio < 80 ? `Moderat — ${expenseRatio.toFixed(0)}% income terpakai`
-            : `Tinggi — ${expenseRatio.toFixed(0)}% income terpakai`,
-        color: expenseRatio < 50 ? THEME.sage : expenseRatio < 80 ? THEME.amber : THEME.danger
+        type: ratio < 50 ? "positive" : ratio < 80 ? "info" : "warning",
+        icon: ratio < 50 ? Target : Activity,
+        text: ratio < 50 ? `Sangat sehat — ${ratio.toFixed(0)}% income terpakai`
+            : ratio < 80 ? `Moderat — ${ratio.toFixed(0)}% income terpakai`
+            : `Tinggi — ${ratio.toFixed(0)}% income terpakai`,
+        color: ratio < 50 ? THEME.sage : ratio < 80 ? THEME.amber : THEME.danger
       })
     }
 
-    // Top spender insight
+    // ── ALWAYS-ON #2: Top spending category ──
     if (expenseCategories.length > 0) {
       const top = expenseCategories[0]
       const pct = (top.value / (statExpense || 1)) * 100
-      if (pct > 25) {
+      if (pct > 10) {
         out.push({
           type: "info",
-          icon: Sparkles,
+          icon: CreditCard,
           text: `Kategori terbesar: ${top.name} (${pct.toFixed(0)}% dari pengeluaran)`,
           color: THEME.primary
         })
       }
     }
 
-    return out.slice(0, 4)
+    // ── FILTER-SPECIFIC (3 cards) ──
+    const allTx = data?.transactions || []
+
+    if (!isAllMonths) {
+      // --- Specific month selected ---
+      // Card 3: Month vs previous month expense comparison
+      const monthIdx = AVAILABLE_MONTHS.indexOf(selectedMonth)
+      const prevMonth = AVAILABLE_MONTHS[monthIdx - 1] || AVAILABLE_MONTHS[11]
+      const prevYear = monthIdx === 0 ? String(Number(selectedYear) - 1) : selectedYear
+      const prevTx = allTx.filter(t => t.month === prevMonth && t.year === prevYear)
+      const prevExp = prevTx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+      if (prevExp > 0 && statExpense > 0) {
+        const delta = ((statExpense - prevExp) / prevExp) * 100
+        if (Math.abs(delta) > 5) {
+          out.push({
+            type: delta > 0 ? "warning" : "positive",
+            icon: delta > 0 ? TrendingUp : TrendingDown,
+            text: delta > 0
+              ? `Pengeluaran naik ${delta.toFixed(0)}% dari ${prevMonth}`
+              : `Pengeluaran turun ${Math.abs(delta).toFixed(0)}% dari ${prevMonth}`,
+            color: delta > 0 ? THEME.clay : THEME.sage
+          })
+        }
+      }
+
+      // Card 4: Savings this month
+      if (statSavings > 0) {
+        out.push({
+          type: "positive",
+          icon: PiggyBank,
+          text: `Tabungan ${selectedMonth}: ${formatRp(statSavings)}`,
+          color: THEME.moss
+        })
+      }
+
+      // Card 5: Top account (when "Semua Akun")
+      if (isAllAccounts) {
+        const acctMap = {}
+        tx.filter(t => t.type === "expense").forEach(t => {
+          acctMap[t.account || "Unknown"] = (acctMap[t.account || "Unknown"] || 0) + t.amount
+        })
+        const sorted = Object.entries(acctMap).sort((a, b) => b[1] - a[1])
+        if (sorted.length > 0) {
+          const [name, val] = sorted[0]
+          const pct = (val / (statExpense || 1)) * 100
+          out.push({
+            type: "info",
+            icon: User,
+            text: `Akun terbesar: ${name} (${pct.toFixed(0)}% pengeluaran)`,
+            color: THEME.primaryDeep
+          })
+        }
+      }
+
+    } else {
+      // --- All months selected ---
+      // Card 3: Best vs worst spending month
+      const monthlyExpense = {}
+      tx.filter(t => t.type === "expense").forEach(t => {
+        const k = `${t.month} ${t.year}`
+        monthlyExpense[k] = (monthlyExpense[k] || 0) + t.amount
+      })
+      const sortedMonths = Object.entries(monthlyExpense).sort((a, b) => b[1] - a[1])
+      if (sortedMonths.length >= 2) {
+        const [best, bestVal] = sortedMonths[0]
+        const [worst, worstVal] = sortedMonths[sortedMonths.length - 1]
+        if (bestVal > worstVal * 1.5) {
+          out.push({
+            type: "info",
+            icon: Calendar,
+            text: `Pengeluaran tertinggi: ${best}, terendah: ${worst}`,
+            color: THEME.primary
+          })
+        }
+      }
+
+      // Card 4: Savings highlight
+      if (statSavings > 0) {
+        const savingsPerMonth = {}
+        tx.filter(t => t.type === "savings").forEach(t => {
+          const k = `${t.month} ${t.year}`
+          savingsPerMonth[k] = (savingsPerMonth[k] || 0) + t.amount
+        })
+        const sortedSav = Object.entries(savingsPerMonth).sort((a, b) => b[1] - a[1])
+        if (sortedSav.length >= 2) {
+          const [bestKey, bestVal] = sortedSav[0]
+          const avg = sortedSav.reduce((s, [, v]) => s + v, 0) / sortedSav.length
+          if (bestVal > avg * 1.3) {
+            out.push({
+              type: "positive",
+              icon: PiggyBank,
+              text: `Tabungan terbaik: ${bestKey} (${Math.round(((bestVal - avg) / avg) * 100)}% di atas rata-rata)`,
+              color: THEME.moss
+            })
+          }
+        }
+      }
+
+      // Card 5: Most active account (when "Semua Akun")
+      if (isAllAccounts) {
+        const acctMap = {}
+        tx.forEach(t => {
+          acctMap[t.account || "Unknown"] = (acctMap[t.account || "Unknown"] || 0) + t.amount
+        })
+        const sorted = Object.entries(acctMap).sort((a, b) => b[1] - a[1])
+        if (sorted.length > 0) {
+          const [name, val] = sorted[0]
+          out.push({
+            type: "info",
+            icon: User,
+            text: `Akun paling aktif: ${name}`,
+            color: THEME.primaryDeep
+          })
+        }
+      }
+    }
+
+    return out.slice(0, 5)
   })()
 
   // --- Calendar helpers ---
@@ -940,7 +981,7 @@ export default function Dashboard() {
                   <h3 className="text-xs font-bold font-display text-earth-700 uppercase tracking-wider">Insights</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {insights.slice(0, 4).map((ins, i) => {
+                  {insights.slice(0, 5).map((ins, i) => {
                     const Icon = ins.icon
                     return (
                       <div key={i} className="insight-card animate-fade-in-up" style={{ background: ins.color + "12", color: ins.color, animationDelay: `${0.05 * i}s` }}>
