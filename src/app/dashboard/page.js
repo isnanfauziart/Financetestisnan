@@ -58,6 +58,14 @@ function formatInputRupiah(val) {
   return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
 }
 
+function parseTxDate(dateStr) {
+  if (!dateStr) return 0
+  const months = { Jan:0, Feb:1, Mar:2, Apr:3, Mei:4, Jun:5, Jul:6, Agu:7, Ags:7, Sep:8, Okt:9, Nov:10, Des:11 }
+  const m = String(dateStr).match(/^(\d+)\s+(\w+)\s+(\d+)/)
+  if (!m) return 0
+  return new Date(+m[3], months[m[2]] ?? 0, +m[1]).getTime()
+}
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -667,7 +675,10 @@ export default function Dashboard() {
   const topCategoryPct = statExpense > 0 ? (topCategory.value / statExpense) * 100 : 0
 
   // Top income / savings for bento tiles
-  const recent5 = (data?.transactions || []).slice(0, 5)
+  const recent5 = (data?.transactions || [])
+    .slice()
+    .sort((a, b) => parseTxDate(b.date) - parseTxDate(a.date))
+    .slice(0, 5)
 
   return (
     <div className="min-h-screen pb-32 font-body relative text-earth-800">
@@ -892,7 +903,7 @@ export default function Dashboard() {
                     strokeDasharray="251 251"
                     style={{ "--gauge-offset": `${(1 - gaugeAngle / 180) * 251}px`, animation: `gaugeFill 1.4s cubic-bezier(0.16, 1, 0.3, 1) both` }} />
                   {(() => {
-                    const angleRad = (gaugeAngle - 90) * (Math.PI / 180)
+                    const angleRad = (180 + gaugeAngle) * (Math.PI / 180)
                     const cx = 100, cy = 100, len = 52
                     const nx = cx + len * Math.cos(angleRad)
                     const ny = cy + len * Math.sin(angleRad)
