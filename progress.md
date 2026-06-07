@@ -263,3 +263,35 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
 - Goals section accepts `refreshTrigger` prop to re-fetch on data changes (parent-controlled)
 - Confirmation modal for goal delete (separate from the inline edit/delete on card)
 
+## Session: June 7, 2026 (continued — #REF! parsing fix)
+
+### Problem
+User reported Net Worth displayed `Rp 7.348.000` but their `Tabungan` sheet formula `=SUM(E7:E)` returned `7.848.000` — a 500,000 discrepancy.
+
+### Root Cause
+- `Tabungan` sheet has broken `#REF!` formulas in column I (`PENGELUARAN BERSIH` / "Net")
+- API used pattern `parseRupiah(row[8] || row[4] || 0)` to read amount
+- `"#REF!"` is a **truthy** string, so the `||` operator did NOT fall through to column E (Jumlah)
+- `parseRupiah("#REF!")` stripped non-numeric chars → `parseFloat("REF")` = `NaN` → returned 0
+- The `if (amount > 0)` filter then silently dropped the entire row from totals
+- Bug existed in all three parsers (income, expense, savings) — only manifested when a tab had `#REF!` errors
+
+### Fix Applied
+- `src/app/api/dashboard/route.js` — added `pickAmount(row, netIdx, grossIdx)` helper that:
+  - Detects error values (`#REF!`, `#VALUE!`, `#DIV/0!`, `#N/A`, `#NAME?`, `#NULL!`, `#NUM!`) by checking if the cell value starts with `#`
+  - Falls through to column E (Jumlah) when column I is broken or empty
+  - Preserves existing behavior when column I has a valid number
+- Replaced all 3 call sites in income/expense/savings parsers with `pickAmount(row)`
+- API is now robust to broken sheet formulas — the user does not need to fix the `#REF!` errors in the sheet for the dashboard to show correct totals (though cleaning the sheet is still recommended)
+
+### Verification
+- `npm run build` passes cleanly
+- Bundle size unchanged (138 kB)
+- All 8 routes generate successfully
+- Expected result: Net Worth now displays `Rp 7.848.000` matching the sheet
+
+### Notes
+- Sheet cleanup is recommended but not required: user can either delete column I contents or fix the formulas to `=E7`, `=E8`, etc.
+- Same protection now applies to all 3 transaction parsers, so future `#REF!` errors in any tab won't cause silent data loss
+
+

@@ -4,6 +4,17 @@ import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
 
+function pickAmount(row, netIdx = 8, grossIdx = 4) {
+  const net = row[netIdx]
+  const gross = row[grossIdx]
+  const isErr = (v) => v == null || (typeof v === "string" && v.trim().startsWith("#"))
+  if (!isErr(net)) {
+    const n = parseRupiah(net)
+    if (n > 0) return n
+  }
+  return parseRupiah(gross) || 0
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.accessToken) {
@@ -28,7 +39,7 @@ export async function GET() {
       const row = incomeRows[i]
       if (!row || !row[10]) continue // kolom M = nama bulan
       const month = String(row[10]).trim()
-      const amount = parseRupiah(row[8] || row[4] || 0)
+      const amount = pickAmount(row)
       if (amount > 0) {
         monthlyIncome[month] = (monthlyIncome[month] || 0) + amount
         transactions.push({
@@ -54,7 +65,7 @@ export async function GET() {
       if (!row || !row[10]) continue
       const month = String(row[10]).trim()
       const cat = String(row[3] || "Lainnya").trim()
-      const amount = parseRupiah(row[8] || row[4] || 0)
+      const amount = pickAmount(row)
       if (amount > 0) {
         monthlyExpense[month] = (monthlyExpense[month] || 0) + amount
         categoryMap[cat] = (categoryMap[cat] || 0) + amount
@@ -80,7 +91,7 @@ export async function GET() {
       if (!row || !row[10]) continue
       const month = String(row[10]).trim()
       const cat = String(row[3] || "Tabungan").trim()
-      const amount = parseRupiah(row[8] || row[4] || 0)
+      const amount = pickAmount(row)
       if (amount > 0) {
         monthlySavings[month] = (monthlySavings[month] || 0) + amount
         transactions.push({
