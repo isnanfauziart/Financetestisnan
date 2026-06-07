@@ -118,4 +118,37 @@
 ### Key Details
 - 36 total subagents now documented (7 project + 29 global)
 - 7 project-level override the global versions with same name
-- Global path: `C:\Users\acer\.config\opencode\agents\`
+- Global path: `C:\Users\acer\.config\opencode/agents/`
+
+## Session: June 7, 2026 (continued — Vercel hard refresh crash fix)
+
+### Problem
+Vercel deployment showed "Application error: a client-side exception has occurred" on hard refresh of `/dashboard`. Browser console revealed `Minified React error #310` ("Rendered fewer hooks than expected. This can be caused by an accidental early return statement.").
+
+### Root Cause
+During the Phase 0 refactor, hooks (`useMemo` for `filteredTransactions` and `insights`) were left **after** the early returns (`if (status === "loading")` and `if (error)`) in `src/app/dashboard/page.js`. On the first render (loading=true), React called N hooks, then returned the loading spinner. On the second render (data loaded), React called N+2 hooks (the 2 useMemos were now reached). Different hook count → React error #310 → entire tree crashes.
+
+This is the same class of bug mentioned in AGENTS.md "Hooks order fix" — it got re-introduced during the refactor.
+
+### Why local `npm run dev` worked
+Dev mode logs a warning but the page still renders. Production minified build crashes hard. The build also never crashed because `next build` only compiles, doesn't execute. The user had to test with `next start` or in the Vercel deployment.
+
+### Fix Applied
+- Moved the hooks block (`isAllMonths`, `isAllYears`, `isAllAccounts`, `hasDateRange`, `useMemo filteredTransactions`, `statIncome/statExpense/statSavings/statSurplus`, `useMemo expenseCategories`, `useMemo incomeCategories`, `useMemo insights`) to before the early returns, right after the last `useCallback` (`handleTouchEnd`)
+- Removed the duplicate inline computations that were after the early returns
+- Wrapped `expenseCategories` and `incomeCategories` in `useMemo` (was inline previously) so the `insights` useMemo dependency array is correct
+- Kept non-hook derivations (`clientMonthlyData`, `availableYears`, `availableAccounts`, `getMonthData`, `compareDataA/B`, `compareChartData`, `top5Categories`, `trendData`, `expenseRatio`, `gaugeAngle`, `gaugeColor`, calendar logic, `topCategory`, `recent5`, etc.) at their original positions after the early returns — they only need to run on the "loaded" path
+
+### Verification
+- `npm run build` passes cleanly
+- Bundle size unchanged: 129 kB → 129 kB
+- All 6 routes generate successfully
+- The 2 `useMemo`s handle `data === null` gracefully via `(data?.transactions || [])` so the loading render doesn't crash
+
+### Files Changed
+- `src/app/dashboard/page.js` — hooks block moved up, duplicate useMemos removed
+
+### Bonus Observations (not fixed)
+- `favicon.ico` 404 in console
+- `icon-192.png` 404 in console (referenced by `public/manifest.json` but doesn't exist)
+- Easy follow-up: add `public/icon-192.png` or remove from manifest

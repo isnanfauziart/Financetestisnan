@@ -117,6 +117,211 @@ export default function Dashboard() {
     pullStartY.current = 0
   }, [fetchData])
 
+  // --- Hooks that must run on every render (before any early return) ---
+  const isAllMonths = selectedMonth === "Semua Bulan"
+  const isAllYears = selectedYear === "Semua Tahun"
+  const isAllAccounts = selectedAccount === "Semua Akun"
+  const hasDateRange = dateFrom || dateTo
+
+  const filteredTransactions = useMemo(() => (data?.transactions || []).filter(t => {
+    if (!isAllYears && t.year !== selectedYear) return false
+    if (!isAllMonths && t.month !== selectedMonth) return false
+    if (!isAllAccounts && (t.account || "") !== selectedAccount) return false
+    if (categoryFilter && t.category !== categoryFilter) return false
+    if (hasDateRange) {
+      const txTime = parseTxDate(t.date)
+      if (dateFrom && txTime < parseTxDate(`${dateFrom.split("-")[2]} ${AVAILABLE_MONTHS[+dateFrom.split("-")[1] - 1]} ${dateFrom.split("-")[0]}`)) return false
+      if (dateTo && txTime > parseTxDate(`${dateTo.split("-")[2]} ${AVAILABLE_MONTHS[+dateTo.split("-")[1] - 1]} ${dateTo.split("-")[0]}`) + 86400000 - 1) return false
+    }
+    return true
+  }), [data, isAllYears, isAllMonths, isAllAccounts, selectedYear, selectedMonth, selectedAccount, categoryFilter, dateFrom, dateTo, hasDateRange])
+
+  const statIncome = filteredTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
+  const statExpense = filteredTransactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+  const statSavings = filteredTransactions.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
+  const statSurplus = statIncome - statExpense
+
+  const expenseCategories = useMemo(() => {
+    const map = {}
+    filteredTransactions.filter(t => t.type === "expense").forEach(t => { map[t.category] = (map[t.category] || 0) + t.amount })
+    return Object.entries(map).map(([name, value]) => ({name, value})).sort((a,b) => b.value - a.value)
+  }, [filteredTransactions])
+
+  const incomeCategories = useMemo(() => {
+    const map = {}
+    filteredTransactions.filter(t => t.type === "income").forEach(t => { map[t.category] = (map[t.category] || 0) + t.amount })
+    return Object.entries(map).map(([name, value]) => ({name, value})).sort((a,b) => b.value - a.value)
+  }, [filteredTransactions])
+
+  const insights = useMemo(() => {
+    const out = []
+    const tx = filteredTransactions
+    if (tx.length === 0) return out
+
+    if (statIncome > 0) {
+      const ratio = (statExpense / statIncome) * 100
+      out.push({
+        type: ratio < 50 ? "positive" : ratio < 80 ? "info" : "warning",
+        icon: ratio < 50 ? Target : Activity,
+        text: ratio < 50 ? `Sangat sehat — ${ratio.toFixed(0)}% income terpakai`
+            : ratio < 80 ? `Moderat — ${ratio.toFixed(0)}% income terpakai`
+            : `Tinggi — ${ratio.toFixed(0)}% income terpakai`,
+        color: ratio < 50 ? THEME.sage : ratio < 80 ? THEME.amber : THEME.danger
+      })
+    }
+
+    if (expenseCategories.length > 0) {
+      const top = expenseCategories[0]
+      const pct = (top.value / (statExpense || 1)) * 100
+      if (pct > 10) {
+        out.push({
+          type: "info",
+          icon: CreditCard,
+          text: `Kategori terbesar: ${top.name} (${pct.toFixed(0)}% dari pengeluaran)`,
+          color: THEME.primary
+        })
+      }
+    }
+
+    if (!isAllMonths) {
+      const allTx = data?.transactions || []
+      const monthExpense = statExpense
+      if (allTx.length > 0) {
+        const monthGroups = {}
+        allTx.filter(t => t.type === "expense").forEach(t => {
+          const k = `${t.month} ${t.year}`
+          monthGroups[k] = (monthGroups[k] || 0) + t.amount
+        })
+        const monthValues = Object.values(monthGroups)
+        if (monthValues.length >= 2) {
+          const avg = monthValues.reduce((s, v) => s + v, 0) / monthValues.length
+          if (avg > 0) {
+            const delta = ((monthExpense - avg) / avg) * 100
+            if (Math.abs(delta) > 10) {
+              out.push({
+                type: delta > 0 ? "warning" : "positive",
+                icon: delta > 0 ? TrendingUp : TrendingDown,
+                text: delta > 0
+                  ? `Spending ${delta.toFixed(0)}% di atas rata-rata`
+                  : `Spending ${Math.abs(delta).toFixed(0)}% di bawah rata-rata`,
+                color: delta > 0 ? THEME.danger : THEME.savings
+              })
+            }
+          }
+        }
+      }
+    }
+
+    const allTx = data?.transactions || []
+
+    if (!isAllMonths) {
+      const monthIdx = AVAILABLE_MONTHS.indexOf(selectedMonth)
+      const prevMonth = AVAILABLE_MONTHS[monthIdx - 1] || AVAILABLE_MONTHS[11]
+      const prevYear = monthIdx === 0 ? String(Number(selectedYear) - 1) : selectedYear
+      const prevTx = allTx.filter(t => t.month === prevMonth && t.year === prevYear)
+      const prevExp = prevTx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+      if (prevExp > 0 && statExpense > 0) {
+        const delta = ((statExpense - prevExp) / prevExp) * 100
+        if (Math.abs(delta) > 5) {
+          out.push({
+            type: delta > 0 ? "warning" : "positive",
+            icon: delta > 0 ? TrendingUp : TrendingDown,
+            text: delta > 0
+              ? `Pengeluaran naik ${delta.toFixed(0)}% dari ${prevMonth}`
+              : `Pengeluaran turun ${Math.abs(delta).toFixed(0)}% dari ${prevMonth}`,
+            color: delta > 0 ? THEME.clay : THEME.sage
+          })
+        }
+      }
+
+      if (statSavings > 0) {
+        out.push({
+          type: "positive",
+          icon: PiggyBank,
+          text: `Tabungan ${selectedMonth}: ${formatRpForInsights(statSavings)}`,
+          color: THEME.moss
+        })
+      }
+
+      if (isAllAccounts) {
+        const acctMap = {}
+        tx.filter(t => t.type === "expense").forEach(t => {
+          acctMap[t.account || "Unknown"] = (acctMap[t.account || "Unknown"] || 0) + t.amount
+        })
+        const sorted = Object.entries(acctMap).sort((a, b) => b[1] - a[1])
+        if (sorted.length > 0) {
+          const [name, val] = sorted[0]
+          const pct = (val / (statExpense || 1)) * 100
+          out.push({
+            type: "info",
+            icon: User,
+            text: `Akun terbesar: ${name} (${pct.toFixed(0)}% pengeluaran)`,
+            color: THEME.primaryDeep
+          })
+        }
+      }
+    } else {
+      const monthlyExpense = {}
+      tx.filter(t => t.type === "expense").forEach(t => {
+        const k = `${t.month} ${t.year}`
+        monthlyExpense[k] = (monthlyExpense[k] || 0) + t.amount
+      })
+      const sortedMonths = Object.entries(monthlyExpense).sort((a, b) => b[1] - a[1])
+      if (sortedMonths.length >= 2) {
+        const [best, bestVal] = sortedMonths[0]
+        const [worst, worstVal] = sortedMonths[sortedMonths.length - 1]
+        if (bestVal > worstVal * 1.5) {
+          out.push({
+            type: "info",
+            icon: Calendar,
+            text: `Pengeluaran tertinggi: ${best}, terendah: ${worst}`,
+            color: THEME.primary
+          })
+        }
+      }
+
+      if (statSavings > 0) {
+        const savingsPerMonth = {}
+        tx.filter(t => t.type === "savings").forEach(t => {
+          const k = `${t.month} ${t.year}`
+          savingsPerMonth[k] = (savingsPerMonth[k] || 0) + t.amount
+        })
+        const sortedSav = Object.entries(savingsPerMonth).sort((a, b) => b[1] - a[1])
+        if (sortedSav.length >= 2) {
+          const [bestKey, bestVal] = sortedSav[0]
+          const avg = sortedSav.reduce((s, [, v]) => s + v, 0) / sortedSav.length
+          if (bestVal > avg * 1.3) {
+            out.push({
+              type: "positive",
+              icon: PiggyBank,
+              text: `Tabungan terbaik: ${bestKey} (${Math.round(((bestVal - avg) / avg) * 100)}% di atas rata-rata)`,
+              color: THEME.moss
+            })
+          }
+        }
+      }
+
+      if (isAllAccounts) {
+        const acctMap = {}
+        tx.forEach(t => {
+          acctMap[t.account || "Unknown"] = (acctMap[t.account || "Unknown"] || 0) + t.amount
+        })
+        const sorted = Object.entries(acctMap).sort((a, b) => b[1] - a[1])
+        if (sorted.length > 0) {
+          const [name, val] = sorted[0]
+          out.push({
+            type: "info",
+            icon: User,
+            text: `Akun paling aktif: ${name}`,
+            color: THEME.primaryDeep
+          })
+        }
+      }
+    }
+
+    return out.slice(0, 5)
+  }, [filteredTransactions, isAllMonths, isAllAccounts, selectedMonth, selectedYear, statIncome, statExpense, statSavings, expenseCategories, data])
+
   const showToast = (msg, type = "success", action = null) => {
     setToast({ msg, type, action })
     setTimeout(() => setToast(t => (t && t.msg === msg ? null : t)), 5000)
@@ -215,42 +420,7 @@ export default function Dashboard() {
     )
   }
 
-  // --- Statistics Derived Data ---
-  const isAllMonths = selectedMonth === "Semua Bulan"
-  const isAllYears = selectedYear === "Semua Tahun"
-  const isAllAccounts = selectedAccount === "Semua Akun"
-  const hasDateRange = dateFrom || dateTo
-
-  const filteredTransactions = useMemo(() => (data?.transactions || []).filter(t => {
-    if (!isAllYears && t.year !== selectedYear) return false
-    if (!isAllMonths && t.month !== selectedMonth) return false
-    if (!isAllAccounts && (t.account || "") !== selectedAccount) return false
-    if (categoryFilter && t.category !== categoryFilter) return false
-    if (hasDateRange) {
-      const txTime = parseTxDate(t.date)
-      if (dateFrom && txTime < parseTxDate(`${dateFrom.split("-")[2]} ${AVAILABLE_MONTHS[+dateFrom.split("-")[1] - 1]} ${dateFrom.split("-")[0]}`)) return false
-      if (dateTo && txTime > parseTxDate(`${dateTo.split("-")[2]} ${AVAILABLE_MONTHS[+dateTo.split("-")[1] - 1]} ${dateTo.split("-")[0]}`) + 86400000 - 1) return false
-    }
-    return true
-  }), [data, isAllYears, isAllMonths, isAllAccounts, selectedYear, selectedMonth, selectedAccount, categoryFilter, dateFrom, dateTo, hasDateRange])
-
-  const statIncome = filteredTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
-  const statExpense = filteredTransactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
-  const statSavings = filteredTransactions.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
-  const statSurplus = statIncome - statExpense
-
-  const expenseCategoryMap = {}
-  filteredTransactions.filter(t => t.type === "expense").forEach(t => {
-    expenseCategoryMap[t.category] = (expenseCategoryMap[t.category] || 0) + t.amount
-  })
-  const expenseCategories = Object.entries(expenseCategoryMap).map(([name, value]) => ({name, value})).sort((a,b) => b.value - a.value)
-
-  const incomeCategoryMap = {}
-  filteredTransactions.filter(t => t.type === "income").forEach(t => {
-    incomeCategoryMap[t.category] = (incomeCategoryMap[t.category] || 0) + t.amount
-  })
-  const incomeCategories = Object.entries(incomeCategoryMap).map(([name, value]) => ({name, value})).sort((a,b) => b.value - a.value)
-
+  // --- Non-hook derivations (depend on hooks defined above) ---
   let clientMonthlyData = []
   if (isAllMonths) {
     clientMonthlyData = AVAILABLE_MONTHS.map(m => {
@@ -305,178 +475,6 @@ export default function Dashboard() {
   const expenseRatio = statIncome > 0 ? (statExpense / statIncome) * 100 : 0
   const gaugeAngle = Math.min(expenseRatio / 100 * 180, 180)
   const gaugeColor = expenseRatio < 50 ? THEME.savings : expenseRatio < 80 ? THEME.warning : THEME.danger
-
-  // --- Smart Insights ---
-  const insights = useMemo(() => {
-    const out = []
-    const tx = filteredTransactions
-    if (tx.length === 0) return out
-
-    if (statIncome > 0) {
-      const ratio = (statExpense / statIncome) * 100
-      out.push({
-        type: ratio < 50 ? "positive" : ratio < 80 ? "info" : "warning",
-        icon: ratio < 50 ? Target : Activity,
-        text: ratio < 50 ? `Sangat sehat — ${ratio.toFixed(0)}% income terpakai`
-            : ratio < 80 ? `Moderat — ${ratio.toFixed(0)}% income terpakai`
-            : `Tinggi — ${ratio.toFixed(0)}% income terpakai`,
-        color: ratio < 50 ? THEME.sage : ratio < 80 ? THEME.amber : THEME.danger
-      })
-    }
-
-    if (expenseCategories.length > 0) {
-      const top = expenseCategories[0]
-      const pct = (top.value / (statExpense || 1)) * 100
-      if (pct > 10) {
-        out.push({
-          type: "info",
-          icon: CreditCard,
-          text: `Kategori terbesar: ${top.name} (${pct.toFixed(0)}% dari pengeluaran)`,
-          color: THEME.primary
-        })
-      }
-    }
-
-    // H8: "This month vs average" insight
-    if (!isAllMonths) {
-      const allTx = data?.transactions || []
-      const monthExpense = statExpense
-      if (allTx.length > 0) {
-        const monthGroups = {}
-        allTx.filter(t => t.type === "expense").forEach(t => {
-          const k = `${t.month} ${t.year}`
-          monthGroups[k] = (monthGroups[k] || 0) + t.amount
-        })
-        const monthValues = Object.values(monthGroups)
-        if (monthValues.length >= 2) {
-          const avg = monthValues.reduce((s, v) => s + v, 0) / monthValues.length
-          if (avg > 0) {
-            const delta = ((monthExpense - avg) / avg) * 100
-            if (Math.abs(delta) > 10) {
-              out.push({
-                type: delta > 0 ? "warning" : "positive",
-                icon: delta > 0 ? TrendingUp : TrendingDown,
-                text: delta > 0
-                  ? `Spending ${delta.toFixed(0)}% di atas rata-rata`
-                  : `Spending ${Math.abs(delta).toFixed(0)}% di bawah rata-rata`,
-                color: delta > 0 ? THEME.danger : THEME.savings
-              })
-            }
-          }
-        }
-      }
-    }
-
-    const allTx = data?.transactions || []
-
-    if (!isAllMonths) {
-      const monthIdx = AVAILABLE_MONTHS.indexOf(selectedMonth)
-      const prevMonth = AVAILABLE_MONTHS[monthIdx - 1] || AVAILABLE_MONTHS[11]
-      const prevYear = monthIdx === 0 ? String(Number(selectedYear) - 1) : selectedYear
-      const prevTx = allTx.filter(t => t.month === prevMonth && t.year === prevYear)
-      const prevExp = prevTx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
-      if (prevExp > 0 && statExpense > 0) {
-        const delta = ((statExpense - prevExp) / prevExp) * 100
-        if (Math.abs(delta) > 5) {
-          out.push({
-            type: delta > 0 ? "warning" : "positive",
-            icon: delta > 0 ? TrendingUp : TrendingDown,
-            text: delta > 0
-              ? `Pengeluaran naik ${delta.toFixed(0)}% dari ${prevMonth}`
-              : `Pengeluaran turun ${Math.abs(delta).toFixed(0)}% dari ${prevMonth}`,
-            color: delta > 0 ? THEME.clay : THEME.sage
-          })
-        }
-      }
-
-      if (statSavings > 0) {
-        out.push({
-          type: "positive",
-          icon: PiggyBank,
-          text: `Tabungan ${selectedMonth}: ${formatRpForInsights(statSavings)}`,
-          color: THEME.moss
-        })
-      }
-
-      if (isAllAccounts) {
-        const acctMap = {}
-        tx.filter(t => t.type === "expense").forEach(t => {
-          acctMap[t.account || "Unknown"] = (acctMap[t.account || "Unknown"] || 0) + t.amount
-        })
-        const sorted = Object.entries(acctMap).sort((a, b) => b[1] - a[1])
-        if (sorted.length > 0) {
-          const [name, val] = sorted[0]
-          const pct = (val / (statExpense || 1)) * 100
-          out.push({
-            type: "info",
-            icon: User,
-            text: `Akun terbesar: ${name} (${pct.toFixed(0)}% pengeluaran)`,
-            color: THEME.primaryDeep
-          })
-        }
-      }
-
-    } else {
-      const monthlyExpense = {}
-      tx.filter(t => t.type === "expense").forEach(t => {
-        const k = `${t.month} ${t.year}`
-        monthlyExpense[k] = (monthlyExpense[k] || 0) + t.amount
-      })
-      const sortedMonths = Object.entries(monthlyExpense).sort((a, b) => b[1] - a[1])
-      if (sortedMonths.length >= 2) {
-        const [best, bestVal] = sortedMonths[0]
-        const [worst, worstVal] = sortedMonths[sortedMonths.length - 1]
-        if (bestVal > worstVal * 1.5) {
-          out.push({
-            type: "info",
-            icon: Calendar,
-            text: `Pengeluaran tertinggi: ${best}, terendah: ${worst}`,
-            color: THEME.primary
-          })
-        }
-      }
-
-      if (statSavings > 0) {
-        const savingsPerMonth = {}
-        tx.filter(t => t.type === "savings").forEach(t => {
-          const k = `${t.month} ${t.year}`
-          savingsPerMonth[k] = (savingsPerMonth[k] || 0) + t.amount
-        })
-        const sortedSav = Object.entries(savingsPerMonth).sort((a, b) => b[1] - a[1])
-        if (sortedSav.length >= 2) {
-          const [bestKey, bestVal] = sortedSav[0]
-          const avg = sortedSav.reduce((s, [, v]) => s + v, 0) / sortedSav.length
-          if (bestVal > avg * 1.3) {
-            out.push({
-              type: "positive",
-              icon: PiggyBank,
-              text: `Tabungan terbaik: ${bestKey} (${Math.round(((bestVal - avg) / avg) * 100)}% di atas rata-rata)`,
-              color: THEME.moss
-            })
-          }
-        }
-      }
-
-      if (isAllAccounts) {
-        const acctMap = {}
-        tx.forEach(t => {
-          acctMap[t.account || "Unknown"] = (acctMap[t.account || "Unknown"] || 0) + t.amount
-        })
-        const sorted = Object.entries(acctMap).sort((a, b) => b[1] - a[1])
-        if (sorted.length > 0) {
-          const [name, val] = sorted[0]
-          out.push({
-            type: "info",
-            icon: User,
-            text: `Akun paling aktif: ${name}`,
-            color: THEME.primaryDeep
-          })
-        }
-      }
-    }
-
-    return out.slice(0, 5)
-  }, [filteredTransactions, isAllMonths, isAllAccounts, selectedMonth, selectedYear, statIncome, statExpense, statSavings, expenseCategories, data])
 
   const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
   const calMonthIdx = AVAILABLE_MONTHS.indexOf(calMonth)
