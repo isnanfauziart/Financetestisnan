@@ -32,7 +32,10 @@ Column layout: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | A
 One optional tab for the Budgets feature (Phase A):
 - `Budgets` — per-category monthly limits. Schema in `docs/sheets-budgets.md`. Columns A–F: Kategori | Bulan | Tahun | Limit | Akun | Catatan.
 
-If tab names in sheets differ, update `src/app/api/dashboard/route.js` (and the budgets route for the Budgets tab).
+One optional tab for the Goals feature (Phase B):
+- `Goals` — savings goals. Schema in `docs/sheets-goals.md`. Columns A–H: ID | Nama | Target | Deadline | Kategori | Icon | Color | CreatedAt.
+
+If tab names in sheets differ, update `src/app/api/dashboard/route.js` (and the budgets/goals routes for those tabs).
 
 ## OAuth scope
 Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `src/app/api/auth/[...nextauth]/route.js`).
@@ -43,6 +46,7 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 - `src/app/api/transaction/route.js` — appends rows to sheets via Sheets API
 - `src/app/api/transaction/[id]/route.js` — update (PUT) and clear (DELETE) transaction rows
 - `src/app/api/budgets/route.js` — CRUD on the Budgets tab (`GET ?month&year`, `POST`, `PUT`, `DELETE`)
+- `src/app/api/goals/route.js` — CRUD on the Goals tab (`GET`, `POST`, `PUT`, `DELETE`); auto-generates ID (`Date.now()`) and `CreatedAt` on POST
 - `src/lib/sheets.js` — `getSheetData()`, `parseRupiah()`, `formatRupiah()`, `MONTHS` helpers
 
 ## Notes
@@ -77,6 +81,18 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
   - `NetWorthCard` placed as full-width bento-tile below the bento grid on HOME; formula `(Income − Expense) + Savings` accumulated chronologically
   - `BudgetsSection` on STATS between hero and trend chart; respects year+month+account filter (account-less + matching)
   - G6 light: "Saran budget" pills on unbudgeted categories
+- **Phase B: Savings Goals + Celebration** (Goals push) — auto-link to Tabungan by category + first-time 100% celebration
+  - New `docs/sheets-goals.md` schema doc
+  - New `src/app/api/goals/route.js` with rowIndex-based find/update/delete
+  - New `src/components/`: `GoalProgressRing`, `GoalSetupModal`, `GoalContributeModal`, `GoalCelebration`, `GoalCard`, `GoalsSection`
+  - New `src/app/dashboard/_components/goalUtils.js` (shared `parseDateLoose`, `computeGoalProgress`, `computeAllGoalProgress`)
+  - `GoalsSection` placed at top of HOME tab (above bento grid); receives `refreshTrigger` prop from parent to re-fetch
+  - `GoalContributeModal` posts to `/api/transaction` with `type: "savings"` and pre-filled `kategori` (auto-link)
+  - `GoalCelebration` is dynamic-imported (`canvas-confetti`, ~9KB) with gold-accented toast + `navigator.vibrate([50,30,50])`
+  - Celebration trigger: `prevGoalPctRef` in `page.js` tracks last-known progress %; fires only on `<100% → >=100%` crossings (no re-fire past 100%)
+  - Triggered after: WALLET submit (savings only), edit transaction, delete transaction — 800ms delay to let `/api/dashboard` refetch complete first
+  - Completed goals stay visible with "✓ Selesai" badge + gold ring; ETA shows "Belum ada kontribusi" when rate is 0
+  - `canvas-confetti` added as dependency
 
 ## Relevant Files
 - `src/app/dashboard/page.js` — Main dashboard orchestrator (~820 lines): state, filters, modals, pull-to-refresh
@@ -84,15 +100,14 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 - `src/app/dashboard/StatsTab.jsx` — Stats tab UI (filters, charts, budgets, calendar, table)
 - `src/app/dashboard/WalletTab.jsx` — Add-transaction form
 - `src/app/dashboard/ProfileTab.jsx` — Profile tab
-- `src/app/dashboard/_components/` — Shared components and constants (THEME, categories, banks, helpers, SelectField, modals)
-- `src/components/` — New feature components (NetWorthCard, BudgetCard, BudgetProgressBar, BudgetSetupModal, BudgetDetailModal, BudgetsSection)
-- `src/app/dashboard/page.original.js` — Pre-refactor backup (do not import)
-- `src/app/globals.css` — Glass surfaces, mesh gradients, bento/insight card styles, animations
-- `tailwind.config.js` — Extended palette (earth, cream, sage, clay, moss, violet, amber, rose, indigo)
+- `src/app/dashboard/_components/` — Shared components and constants (THEME, categories, banks, helpers, SelectField, modals, goalUtils)
+- `src/components/` — New feature components (NetWorthCard, BudgetCard, BudgetProgressBar, BudgetSetupModal, BudgetDetailModal, BudgetsSection, GoalProgressRing, GoalSetupModal, GoalContributeModal, GoalCelebration, GoalCard)
 - `src/app/api/dashboard/route.js` — Google Sheets aggregation (with netWorth, netWorthMonthlyDelta, netWorthHistory)
 - `src/app/api/budgets/route.js` — Budgets CRUD
+- `src/app/api/goals/route.js` — Goals CRUD
 - `src/lib/sheets.js` — Sheet helpers
 - `docs/sheets-budgets.md` — Budgets tab schema
+- `docs/sheets-goals.md` — Goals tab schema
 
 ## Agent Workflow Rules
 

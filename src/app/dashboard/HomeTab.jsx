@@ -4,7 +4,7 @@ import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, Plus, Lightb
 import { THEME } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
-import NetWorthCard from "@/components/NetWorthCard"
+import GoalsSection from "@/components/GoalsSection"
 
 export default function HomeTab({
   data, session,
@@ -14,20 +14,23 @@ export default function HomeTab({
   expenseRatio, gaugeAngle, gaugeColor,
   recent5,
   setActiveNav, openQuickAdd, setDrillDown,
+  onToast, onGoalsRefresh,
 }) {
-  const netWorth = data?.netWorth || 0
-  const netWorthMonthlyDelta = data?.netWorthMonthlyDelta || 0
-  const netWorthHistory = data?.netWorthHistory || []
-  const animatedBalance = useCountUpOvershoot(data?.totalSurplus || 0)
+  const animatedBalance = useCountUpOvershoot(data?.totalSavings || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)
   const animatedExpense = useCountUp(data?.totalExpense || 0)
   const animatedSavings = useCountUp(data?.totalSavings || 0)
 
   return (
     <div className="px-5 pt-4 animate-bento-in" key="home-tab">
+      <GoalsSection
+        transactions={data?.transactions}
+        onToast={onToast}
+        onRefresh={onGoalsRefresh}
+      />
       <div className="grid grid-cols-3 gap-3 auto-rows-[110px]">
 
-        {/* Hero — Total Balance (2 cols x 2 rows) */}
+        {/* Hero — Net Worth (2 cols x 2 rows) */}
         <div className="col-span-2 row-span-2 bento-tile-dark mesh-hero text-white p-5 relative overflow-hidden animate-bento-in stagger-1">
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl animate-glow" style={{ background: "radial-gradient(circle, rgba(159,135,239,0.4) 0%, transparent 70%)" }} />
           <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(212,168,83,0.3) 0%, transparent 70%)" }} />
@@ -35,7 +38,7 @@ export default function HomeTab({
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Wallet size={12} className="opacity-70" aria-hidden="true" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-80">Total Balance</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-80">Net Worth</p>
               </div>
               <h2 className="text-3xl font-display font-bold tracking-tight animate-count-in leading-none">
                 {formatRpFull(animatedBalance)}
@@ -117,23 +120,7 @@ export default function HomeTab({
           </div>
         </button>
 
-        {/* Savings tile */}
-        <button onClick={() => setDrillDown({ type: "savings", title: "Tabungan" })} aria-label="View top 10 savings transactions" className="col-span-1 row-span-1 bento-tile bg-moss-50 border border-moss-100 p-3.5 text-left animate-bento-in stagger-6 active:scale-95 transition-transform">
-          <div className="h-full flex flex-col justify-between">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: THEME.savings + "22", color: THEME.savings }}>
-              <PiggyBank size={14} strokeWidth={2.5} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-[8px] font-bold uppercase tracking-wider text-moss-600">Savings</p>
-              <p className="text-sm font-bold text-moss-600 leading-tight">{formatRp(animatedSavings)}</p>
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {/* Net Worth tile (full-width) */}
-      <div className="mt-3">
-        <NetWorthCard netWorth={netWorth} netWorthMonthlyDelta={netWorthMonthlyDelta} netWorthHistory={netWorthHistory} />
+        {/* Savings tile (removed - duplicated Net Worth hero) */}
       </div>
 
       {/* Smart Insights */}

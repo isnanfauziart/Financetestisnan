@@ -153,6 +153,34 @@ Dev mode logs a warning but the page still renders. Production minified build cr
 - `icon-192.png` 404 in console (referenced by `public/manifest.json` but doesn't exist)
 - Easy follow-up: add `public/icon-192.png` or remove from manifest
 
+## Session: June 7, 2026 (continued — Net Worth refactor)
+
+### Goal
+Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings from `Tabungan`), and remove the existing full-width NetWorthCard section that was showing a different (more complex) calculation.
+
+### Changes Applied
+- **`src/app/dashboard/HomeTab.jsx`** (5 edits):
+  - Removed `import NetWorthCard from "@/components/NetWorthCard"` (no longer needed)
+  - Removed unused local vars `netWorth`, `netWorthMonthlyDelta`, `netWorthHistory`
+  - Changed hero value source: `data?.totalSurplus` → `data?.totalSavings` (cumulative savings)
+  - Renamed hero label: "Total Balance" → "Net Worth"
+  - Removed the small `Savings` bento tile (was `bg-moss-50`, PiggyBank icon) — now duplicates the hero
+  - Removed the full-width NetWorthCard section below the bento grid
+  - Updated stale comment: "Hero — Total Balance" → "Hero — Net Worth"
+- **`src/components/NetWorthCard.jsx`**: Deleted the file (no longer imported anywhere)
+- **`src/app/api/dashboard/route.js`**: No changes (API still returns `netWorth`, `netWorthMonthlyDelta`, `netWorthHistory` for future use)
+
+### Result
+- Bento grid: 5 small tiles + hero (2×2) = 8 cells. Bottom-right cell intentionally left empty (user plans to add a future metric there)
+- Bundle size: 129 kB → 132 kB
+- Build passes cleanly
+
+### Visual Result
+- Hero card now labeled "Net Worth" and shows cumulative `totalSavings` (sum of all `Tabungan` transactions)
+- Income/Expense sub-pills inside hero kept (still showing current month values)
+- No more full-width NetWorthCard below the bento grid
+- One empty bento slot in bottom-right (intentional)
+
 ## Session: June 7, 2026 (Phase A — Goals: Budgets + Net Worth)
 
 ### Updates Made
@@ -191,3 +219,47 @@ Dev mode logs a warning but the page still renders. Production minified build cr
 ### Notes
 - Phase A deliberately skips: goals tab (Phase B), explicit assets (G4 full), spending alerts (G3), recap/sharing (G7/G8)
 - Next: Phase B (Savings Goals + G5 celebration + auto-link to Tabungan by category)
+
+## Session: June 7, 2026 (Phase B — Goals: Savings Goals + Celebration)
+
+### Updates Made
+- **Goals Google Sheets tab schema** documented in `docs/sheets-goals.md` (ID | Nama | Target | Deadline | Kategori | Icon | Color | CreatedAt)
+- **New API**: `src/app/api/goals/route.js` — `GET`, `POST`, `PUT`, `DELETE` with rowIndex-based find; auto-generates ID and CreatedAt on POST
+- **6 new components in `src/components/`**:
+  - `GoalProgressRing.jsx` — animated SVG ring with `useCountUp` percentage, supports completed state (gold ring)
+  - `GoalSetupModal.jsx` — create/edit form with live preview, 17 Lucide icon options, 7 color swatches
+  - `GoalContributeModal.jsx` — quick-add form that posts to `/api/transaction` with `type: "savings"` and pre-filled `kategori`
+  - `GoalCelebration.jsx` — dynamic-imported `canvas-confetti` + gold-accented toast + `navigator.vibrate([50,30,50])`
+  - `GoalCard.jsx` — glass card with ring, name, progress text, ETA, deadline, +Kontribusi button, hover edit/delete
+  - `GoalsSection.jsx` — orchestrator: fetches goals, computes progress from transactions, header + grid + empty state + confirm-delete
+- **Shared helper**: `src/app/dashboard/_components/goalUtils.js` with `parseDateLoose`, `computeGoalProgress`, `computeAllGoalProgress`
+- **HOME wiring**: `GoalsSection` rendered at top of HOME tab (above bento grid)
+- **Celebration detection in `page.js`**:
+  - `prevGoalPctRef` ref tracks each goal's last-known progress %
+  - `checkGoalCelebration()` callback fetches goals + computes current % + compares to ref
+  - If `prev < 100% && current >= 100%` → set `goalCelebration` state → render `<GoalCelebration>` with confetti + toast + haptic
+  - Triggered after: WALLET submit (savings only), edit transaction, delete transaction
+  - 800ms delay to let `/api/dashboard` refetch complete first
+- **Goals refresh trigger**: `goalsRefreshTrigger` state increments after WALLET/edit/delete to force `GoalsSection` to re-fetch its goals list
+
+### Defaults Applied
+- **Completed goals**: stay visible with "✓ Selesai" badge + gold ring (no auto-archive)
+- **No initial contribution**: goals start at 0% (creator adds via +Kontribusi or via regular WALLET tabungan)
+- **ETA fallback**: shows "Belum ada kontribusi" when dailyRate is 0
+- **First-time-100% trigger**: only fires on the exact crossing from `<100%` to `>=100%`; subsequent saves past 100% don't re-fire
+
+### Files Changed
+- New: 9 files (`docs/sheets-goals.md`, `src/app/api/goals/route.js`, 6 components, `src/app/dashboard/_components/goalUtils.js`)
+- Modified: 3 files (`src/app/dashboard/page.js`, `src/app/dashboard/HomeTab.jsx`, `src/app/dashboard/StatsTab.jsx`)
+
+### Verification
+- `npm run build` passes cleanly
+- Bundle size: 133 kB → 138 kB (+5 kB for goal components and confetti dynamic chunk)
+- All 8 routes generate successfully (new `/api/goals` added)
+
+### Notes
+- `canvas-confetti` added as dependency (~9KB, dynamic-imported on celebration)
+- `selectEmptyOption` semantics for goal icon/color: defaults to "Target" icon + moss green
+- Goals section accepts `refreshTrigger` prop to re-fetch on data changes (parent-controlled)
+- Confirmation modal for goal delete (separate from the inline edit/delete on card)
+

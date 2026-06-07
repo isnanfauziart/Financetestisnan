@@ -5,12 +5,14 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { LogOut, Plus, Check, X, ChevronDown, Activity, User, Home, ArrowUpRight, Wallet, Sparkles, Lightbulb, TrendingUp, TrendingDown, PiggyBank, Target, Calendar, CreditCard } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { useCountUp, useSoundPref, playSuccessSound, parseTxDate } from "./_components/helpers"
+import { computeAllGoalProgress, computeGoalProgress } from "./_components/goalUtils"
 import EmptyState from "./_components/EmptyState"
 import HomeTab from "./HomeTab"
 import StatsTab from "./StatsTab"
 import WalletTab from "./WalletTab"
 import ProfileTab from "./ProfileTab"
 import EditTransactionModal from "./_components/EditTransactionModal"
+import GoalCelebration from "@/components/GoalCelebration"
 
 export default function Dashboard() {
   const { data: session, status } = useSession()
@@ -53,6 +55,11 @@ export default function Dashboard() {
   // Drill-down modal
   const [drillDown, setDrillDown] = useState(null)
 
+  // Goals state
+  const [goalsRefreshTrigger, setGoalsRefreshTrigger] = useState(0)
+  const [goalCelebration, setGoalCelebration] = useState(null)
+  const prevGoalPctRef = useRef({})
+
   // Scroll Y for P8 parallax
   const [scrollY, setScrollY] = useState(0)
 
@@ -67,6 +74,28 @@ export default function Dashboard() {
   }, [session, data])
 
   useEffect(() => { if (session && !data) fetchData() }, [session, data, fetchData])
+
+  const checkGoalCelebration = useCallback(async () => {
+    try {
+      const res = await fetch("/api/goals")
+      if (!res.ok) return
+      const d = await res.json()
+      const goals = d.goals || []
+      const tx = data?.transactions || []
+      const prev = prevGoalPctRef.current
+      for (const goal of goals) {
+        const sum = computeGoalProgress(goal, tx)
+        const pct = goal.target > 0 ? (sum / goal.target) * 100 : 0
+        const prevPct = prev[goal.id] || 0
+        if (prevPct < 100 && pct >= 100) {
+          setGoalCelebration(goal)
+          prev[goal.id] = pct
+          break
+        }
+        prev[goal.id] = pct
+      }
+    } catch {}
+  }, [data])
 
   // P8: Parallax scroll listener
   useEffect(() => {
@@ -348,6 +377,10 @@ export default function Dashboard() {
         setFormData({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "" })
         setRawAmount("")
         fetchData()
+        setGoalsRefreshTrigger(t => t + 1)
+        if (txType === "savings") {
+          setTimeout(() => checkGoalCelebration(), 800)
+        }
       } else {
         showToast(result.error || "Gagal menyimpan", "error")
       }
@@ -362,6 +395,8 @@ export default function Dashboard() {
     if (soundEnabled) playSuccessSound()
     showToast("Transaksi diperbarui ✓")
     fetchData()
+    setGoalsRefreshTrigger(t => t + 1)
+    setTimeout(() => checkGoalCelebration(), 800)
   }
 
   const handleDelete = async (tx) => {
@@ -381,6 +416,7 @@ export default function Dashboard() {
       }
       showToast("Transaksi dihapus")
       fetchData()
+      setGoalsRefreshTrigger(t => t + 1)
     } catch (err) {
       showToast(err.message, "error")
     }
@@ -612,6 +648,8 @@ export default function Dashboard() {
             expenseRatio={expenseRatio} gaugeAngle={gaugeAngle} gaugeColor={gaugeColor}
             recent5={recent5}
             setActiveNav={setActiveNav} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
+            onToast={showToast}
+            goalsRefreshTrigger={goalsRefreshTrigger}
           />
         )}
         {activeNav === "stats" && (
@@ -700,6 +738,14 @@ export default function Dashboard() {
           transaction={editingTx}
           onClose={() => setEditingTx(null)}
           onSaved={handleEditSave}
+        />
+      )}
+
+      {/* Goal celebration */}
+      {goalCelebration && (
+        <GoalCelebration
+          goal={goalCelebration}
+          onDone={() => setGoalCelebration(null)}
         />
       )}
 
