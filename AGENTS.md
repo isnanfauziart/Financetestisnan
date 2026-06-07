@@ -43,7 +43,7 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 ## Data flow
 - `src/app/api/auth/[...nextauth]/route.js` — NextAuth config, stores `accessToken` in session
 - `src/app/api/dashboard/route.js` — reads all 3 sheets, returns aggregated data (includes `netWorth`, `netWorthMonthlyDelta`, `netWorthHistory`)
-- `src/app/api/transaction/route.js` — appends rows to sheets via Sheets API
+- `src/app/api/transaction/route.js` — appends rows to sheets via Sheets API (now uses find-empty-row + `values.update` instead of `:append` to avoid table-end detection issues)
 - `src/app/api/transaction/[id]/route.js` — update (PUT) and clear (DELETE) transaction rows
 - `src/app/api/budgets/route.js` — CRUD on the Budgets tab (`GET ?month&year`, `POST`, `PUT`, `DELETE`)
 - `src/app/api/goals/route.js` — CRUD on the Goals tab (`GET`, `POST`, `PUT`, `DELETE`); auto-generates ID (`Date.now()`) and `CreatedAt` on POST
@@ -94,6 +94,8 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
   - Completed goals stay visible with "✓ Selesai" badge + gold ring; ETA shows "Belum ada kontribusi" when rate is 0
   - `canvas-confetti` added as dependency
 - **`#REF!` parsing fix** — `pickAmount(row, netIdx, grossIdx)` helper in `src/app/api/dashboard/route.js` detects Google Sheets error values (`#REF!`, `#VALUE!`, `#DIV/0!`, etc.) in column I (Net) and falls through to column E (Jumlah). Prevents silent row drops when sheet has broken formulas. Replaces fragile `parseRupiah(row[8] || row[4] || 0)` pattern at all 3 parser sites (income/expense/savings).
+- **POST `/api/transaction` find-empty + update** — Rewrote to use `findNextEmptyRow(accessToken, sheetName)` + `sheetsUpdate` instead of `:append`. Avoids Google Sheets' table-end detection issue (writes to row 9996+ when sheet has formatted empty rows). Now writes to the row immediately after the last data row. Response includes `rowIndex` for the success toast.
+- **`pickAmount` hardening** — Replaced `isErr` check (only caught `#`-prefixed strings) with strict `isNumeric` regex `/^-?[\d.,]+$/`. Now also rejects date strings (`"7 Jun 2026"`), text, and any non-numeric value in column I, falling through to column E.
 
 ## Relevant Files
 - `src/app/dashboard/page.js` — Main dashboard orchestrator (~820 lines): state, filters, modals, pull-to-refresh

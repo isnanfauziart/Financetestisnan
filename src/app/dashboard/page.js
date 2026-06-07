@@ -373,7 +373,8 @@ export default function Dashboard() {
       if (result.success) {
         if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50)
         if (soundEnabled) playSuccessSound()
-        showToast("Transaksi berhasil disimpan! ✓")
+        const rowNote = result.rowIndex ? ` · baris ${result.rowIndex}` : ""
+        showToast(`Transaksi berhasil disimpan! ✓${rowNote}`)
         setFormData({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "" })
         setRawAmount("")
         fetchData()

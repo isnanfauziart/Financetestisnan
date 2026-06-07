@@ -1,12 +1,13 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
+import { getSheetData } from "@/lib/sheets"
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID
 
-async function appendToSheet(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+async function sheetsUpdate(accessToken, range, values) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
   const res = await fetch(url, {
-    method: "POST",
+    method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
@@ -18,6 +19,16 @@ async function appendToSheet(accessToken, range, values) {
     throw new Error(`Sheets API error: ${err}`)
   }
   return res.json()
+}
+
+async function findNextEmptyRow(accessToken, sheetName) {
+  const colA = await getSheetData(accessToken, `${sheetName}!A:A`)
+  for (let i = colA.length - 1; i >= 1; i--) {
+    if (colA[i] && String(colA[i][0] || "").trim() !== "") {
+      return i + 2
+    }
+  }
+  return 2
 }
 
 function formatDate(dateStr) {
@@ -71,9 +82,10 @@ export async function POST(request) {
       year,
     ]
 
-    await appendToSheet(session.accessToken, `${sheetName}!A:M`, [row])
+    const targetRow = await findNextEmptyRow(session.accessToken, sheetName)
+    await sheetsUpdate(session.accessToken, `${sheetName}!A${targetRow}:M${targetRow}`, [row])
 
-    return Response.json({ success: true, message: `Transaksi berhasil disimpan ke tab ${sheetName}` })
+    return Response.json({ success: true, message: `Transaksi berhasil disimpan ke tab ${sheetName}`, rowIndex: targetRow })
   } catch (err) {
     console.error(err)
     return Response.json({ error: err.message }, { status: 500 })

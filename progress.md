@@ -294,6 +294,58 @@ User reported Net Worth displayed `Rp 7.348.000` but their `Tabungan` sheet form
 - Sheet cleanup is recommended but not required: user can either delete column I contents or fix the formulas to `=E7`, `=E8`, etc.
 - Same protection now applies to all 3 transaction parsers, so future `#REF!` errors in any tab won't cause silent data loss
 
+## Session: June 7, 2026 (continued — append→find-empty-row + pickAmount hardening)
+
+### Problem
+After the `#REF!` fix, user reported Net Worth still wrong:
+- Sheet `=SUM(E7:E)` = 7,848,000 (correct)
+- Dashboard Net Worth = 7,920,026 (off by 72,026)
+- New transaction added via web app landed at row 9996 instead of row 17
+- A second test transaction landed at row 9997 with data scattered into wrong columns (e.g. 5jt in column Q)
+
+### Root Cause
+**Two separate bugs:**
+
+**Bug A — `pickAmount` accepts dates:**
+The previous fix only rejected strings starting with `#`. A cell containing `"7 Jun 2026"` (a misplaced date in column I) passed the check, then `parseRupiah("7 Jun 2026")` stripped non-digits to get `"72026"` (7 concatenated with 2026). Returned 72,026 as a fake "amount" → 72,026 ghost contribution to totals.
+
+**Bug B — `:append` writes to Sheets-detected table end, not data end:**
+Google Sheets' `values.append` with `insertDataOption=INSERT_ROWS` finds the table end based on formatting/structure, not actual data. The user's `Tabungan` sheet has formatted empty rows with dropdowns extending to ~row 9995, so Sheets' detected table end is row 9996 — way below the actual data at rows 7-16. The new transaction was inserted there. A second transaction got pushed to row 9997, with the date string in column I being re-interpreted as a date by `USER_ENTERED`, displacing other values into wrong columns (Q).
+
+### Fix Applied
+- **`src/app/api/dashboard/route.js` — hardened `pickAmount`:**
+  - Replaced `isErr` (only catches `#`-prefixed strings) with `isNumeric` (regex `/^-?[\d.,]+$/`)
+  - Now rejects dates (`"7 Jun 2026"`), text, and any string with non-numeric characters
+  - Falls through to column E (Jumlah) for any non-numeric column I value
+
+- **`src/app/api/transaction/route.js` — rewrote POST to use find-empty + update:**
+  - Added `sheetsUpdate(accessToken, range, values)` helper using `values.update` (PUT)
+  - Added `findNextEmptyRow(accessToken, sheetName)` — reads column A, finds last row with content, returns `lastRow + 2`
+  - Replaced `appendToSheet` call with two-step: find empty row, then update specific range
+  - Response now includes `rowIndex` so the frontend can show it
+  - Bypasses Sheets' table-end detection entirely; works correctly even with formatted empty rows
+
+- **`src/app/dashboard/page.js` — show row in success toast:**
+  - Toast now reads `"Transaksi berhasil disimpan! ✓ · baris 17"` when API returns `rowIndex`
+  - Useful for confirming the fix worked; helps user verify transactions land in the right place
+
+### Cleanup Steps Required (user to do in Sheets UI)
+- Delete rows 9996 and 9997 in the `Tabungan` tab (the misplaced test entries)
+- Re-add the 500rb and 5jt savings transactions via the fixed web app → they will land at rows 17 and 18
+- Sheet should now show `=SUM(E7:E)` matching the dashboard Net Worth exactly
+
+### Verification
+- `npm run build` passes cleanly
+- Bundle size unchanged (138 kB)
+- All 8 routes generate successfully
+- After cleanup, expected Net Worth = 7,848,000 + 500,000 + 5,000,000 = 13,348,000
+
+### Notes
+- Race condition: two concurrent POSTs could pick the same `targetRow`. Last-write-wins. Acceptable for single-user app.
+- Same find-empty + update pattern could be applied to the PUT/DELETE in `/api/transaction/[id]/route.js` if the user ever has data gaps in the middle of the sheet (currently they don't).
+- The previous `appendToSheet` helper is no longer used and was removed (replaced by `sheetsUpdate`).
+
+
 ## Session: June 7, 2026 (continued — move Goals section + fix prop bug)
 
 ### Changes Applied
