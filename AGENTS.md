@@ -73,6 +73,77 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 - `src/app/api/dashboard/route.js` — Google Sheets aggregation with `account` field
 - `src/lib/sheets.js` — Sheet helpers
 
-## Additional Information
-- Use Skills that relate to the task/plan
-- Use subagents if the task/plan are possible
+## Agent Workflow Rules
+
+These rules are persistent and apply to every chat session.
+
+### Subagent Dispatch
+- For code, edit, or feature work, dispatch the appropriate subagent(s) from `.agents/` or global `~/.config/opencode/agents/`
+- Skip dispatch for read-only questions, explanations, and quick lookups
+- Subagent guide:
+
+  **Architecture & Organization**
+  - `architect-reviewer` — System design validation, architectural patterns
+  - `agent-organizer` — Multi-agent orchestration and team assembly
+  - `api-designer` — REST/GraphQL API design and documentation
+  - `multi-agent-coordinator` — Complex workflow orchestration across agents
+
+  **Backend & API**
+  - `backend-developer` — API routes, server-side logic, auth, databases
+  - `fullstack-developer` — End-to-end features (DB → API → UI)
+  - `it-ops-orchestrator` — PowerShell, .NET, infrastructure, Azure
+
+  **Frontend & Mobile**
+  - `frontend-developer` — React components, UI, state management
+  - `ui-designer` — Design systems, visual hierarchy, accessibility
+  - `ux-researcher` — User insights, usability testing
+  - `mobile-developer` — React Native, Flutter mobile apps
+  - `mobile-app-developer` — iOS/Android native development
+
+  **Data & Database**
+  - `data-analyst` — Business intelligence, data visualization
+  - `data-engineer` — Data pipelines, ETL/ELT processes
+  - `data-researcher` — Data mining, collection, pattern recognition
+  - `database-optimizer` — Query optimization, performance tuning
+  - `postgres-pro` — PostgreSQL administration and optimization
+
+  **Quality & Performance**
+  - `code-reviewer` — Code quality, security vulnerabilities, best practices
+  - `debugger` — Complex issue diagnosis, root cause analysis
+  - `performance-monitor` — System metrics collection, anomaly detection
+  - `seo-specialist` — Technical SEO, content optimization
+
+  **Domain & Strategy**
+  - `fintech-engineer` — Financial systems, regulatory compliance
+  - `business-analyst` — Requirements gathering, process improvement
+  - `product-manager` — Product strategy, roadmap planning
+  - `project-manager` — Project planning, risk mitigation
+  - `risk-manager` — Risk assessment, compliance frameworks
+  - `sales-engineer` — Technical pre-sales, solution architecture
+
+  **Research & Analysis**
+  - `research-analyst` — Comprehensive information gathering, synthesis
+  - `market-researcher` — Market analysis, consumer insights
+  - `competitive-analyst` — Competitor intelligence, market positioning
+  - `trend-analyst` — Emerging patterns, forecasting
+  - `content-marketer` — Content strategy, SEO optimization
+  - `technical-writer` — API docs, user guides, technical content
+  - `customer-success-manager` — Customer retention, growth
+
+  **Workflow & Distribution**
+  - `task-distributor` — Parallel work allocation
+  - `workflow-orchestrator` — Multi-step workflows with dependencies
+
+- Invoke multiple subagents in parallel when tasks are independent
+- Always pass subagent full context (files, requirements, constraints)
+
+### Skills Auto-Loading
+- Load relevant skills from `.agents/skills/` when the task matches triggers
+- Available: ai-sdk, frontend-design, grill-me, ui-ux-pro-max, vercel-react-best-practices
+
+### Progress Tracking
+- Maintain `progress.md` at project root
+- Append new session entries at the BOTTOM (chronological, oldest first)
+- Update progress.md at the end of each task/milestone (not after every line edit)
+- Each session entry includes: date, tasks completed, files changed, decisions, blockers
+
