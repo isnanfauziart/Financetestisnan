@@ -294,4 +294,26 @@ User reported Net Worth displayed `Rp 7.348.000` but their `Tabungan` sheet form
 - Sheet cleanup is recommended but not required: user can either delete column I contents or fix the formulas to `=E7`, `=E8`, etc.
 - Same protection now applies to all 3 transaction parsers, so future `#REF!` errors in any tab won't cause silent data loss
 
+## Session: June 7, 2026 (continued — move Goals section + fix prop bug)
+
+### Changes Applied
+- **`src/app/dashboard/HomeTab.jsx`** (3 edits):
+  - Removed `<GoalsSection>` from top of Overview tab (was lines 26-30)
+  - Inserted `<GoalsSection>` between Spending Ratio gauge and Recent transactions
+  - Fixed prop name mismatch bug: `onRefresh={onGoalsRefresh}` → `refreshTrigger={onGoalsRefresh}` (the prop name that `GoalsSection` actually destructures on line 11 of `GoalsSection.jsx`)
+
+### New Order on Overview Tab
+1. Bento grid (Hero + 5 small tiles)
+2. Smart Insights
+3. Spending Ratio gauge
+4. **Goals** ← moved here
+5. Recent transactions
+
+### Bug Fix Detail
+The prop name mismatch meant `page.js`'s `goalsRefreshTrigger` state increment (after wallet submit, edit, or delete) was not triggering `GoalsSection` to refetch. The section still worked because it refetches on its own internal modal-close callbacks, but external triggers were silently ignored. Now fixed.
+
+### Verification
+- `npm run build` passes (138 kB)
+- GoalsSection now receives `refreshTrigger` correctly
+
 

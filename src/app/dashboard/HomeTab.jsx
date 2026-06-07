@@ -23,11 +23,6 @@ export default function HomeTab({
 
   return (
     <div className="px-5 pt-4 animate-bento-in" key="home-tab">
-      <GoalsSection
-        transactions={data?.transactions}
-        onToast={onToast}
-        onRefresh={onGoalsRefresh}
-      />
       <div className="grid grid-cols-3 gap-3 auto-rows-[110px]">
 
         {/* Hero — Net Worth (2 cols x 2 rows) */}
@@ -192,6 +187,13 @@ export default function HomeTab({
           <p className="text-3xl font-display font-bold -mt-3" style={{ color: gaugeColor }}>{expenseRatio.toFixed(1)}%</p>
         </div>
       </div>
+
+      {/* Goals */}
+      <GoalsSection
+        transactions={data?.transactions}
+        onToast={onToast}
+        refreshTrigger={onGoalsRefresh}
+      />
 
       {/* Recent transactions */}
       <div className="mt-6 animate-bento-in stagger-9">
