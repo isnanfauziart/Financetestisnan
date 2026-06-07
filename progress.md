@@ -152,3 +152,42 @@ Dev mode logs a warning but the page still renders. Production minified build cr
 - `favicon.ico` 404 in console
 - `icon-192.png` 404 in console (referenced by `public/manifest.json` but doesn't exist)
 - Easy follow-up: add `public/icon-192.png` or remove from manifest
+
+## Session: June 7, 2026 (Phase A — Goals: Budgets + Net Worth)
+
+### Updates Made
+- **G1 Per-Category Budgets** shipped end-to-end (data layer + UI):
+  - New `Budgets` Google Sheets tab (schema documented in `docs/sheets-budgets.md`)
+  - `src/app/api/budgets/route.js` — `GET ?month&year`, `POST`, `PUT`, `DELETE` with composite-key find (Kategori|Bulan|Tahun|Akun)
+  - `src/components/BudgetProgressBar.jsx` — 4-tier color (sage < 70%, amber 70-90%, clay 90-100%, rose ≥ 100%)
+  - `src/components/BudgetCard.jsx` — category/account/limit/spent card with hover edit/delete
+  - `src/components/BudgetSetupModal.jsx` — create/edit form (category/month/year/limit/account/note)
+  - `src/components/BudgetDetailModal.jsx` — drill-down view (all transactions for that category+month)
+  - `src/components/BudgetsSection.jsx` — STATS tab section between hero and trend chart
+  - G6 light suggestion: "Saran budget" pills on unbudgeted categories from `expenseCategories`
+- **G4 Net Worth (lite)** shipped:
+  - `/api/dashboard` adds `netWorth`, `netWorthMonthlyDelta`, `netWorthHistory`
+  - Formula: `(Income − Expense) + Savings` accumulated chronologically (year+month sort)
+  - `src/components/NetWorthCard.jsx` — full-width bento-tile below the bento grid on HOME; big animated number + monthly delta + 12-month mini sparkline + help-tooltip explaining the formula
+- **Filter chain**: budget cards respect year+month+account filter (account-less + matching — YNAB-style). Spent is computed from `filteredTransactions`.
+
+### Key Decisions
+- **Per-month records** (user chose this over templates+overrides — accepts the friction, mitigated with "Saran budget" pills)
+- **Account-less + matching account** for account filter
+- **Big number + monthly delta** for Net Worth
+- **Filtered KPI drill-down modal** for budget tap (reuses existing visual pattern)
+- Net Worth card placed as full-width sibling to the bento grid (chart needs more room than 110px row)
+
+### Files Changed
+- New: 7 files (`docs/sheets-budgets.md`, `src/app/api/budgets/route.js`, 5 components in `src/components/`, 1 detail modal)
+- Modified: 3 files (`src/app/api/dashboard/route.js`, `src/app/dashboard/HomeTab.jsx`, `src/app/dashboard/StatsTab.jsx`, `src/app/dashboard/page.js` — 4 actually)
+
+### Verification
+- `npm run build` passes cleanly
+- Bundle size: 129 kB → 133 kB (+4 kB for the new components)
+- All 7 routes generate successfully
+- Net worth derived client-side from existing transaction data (no extra Sheets call)
+
+### Notes
+- Phase A deliberately skips: goals tab (Phase B), explicit assets (G4 full), spending alerts (G3), recap/sharing (G7/G8)
+- Next: Phase B (Savings Goals + G5 celebration + auto-link to Tabungan by category)

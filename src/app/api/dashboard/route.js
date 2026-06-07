@@ -121,10 +121,33 @@ export async function GET() {
       .sort((a, b) => b.value - a.value)
       .slice(0, 7)
 
+    // Compute net worth: cumulative (income - expense + savings) over time
+    // Net Worth = (Income − Expense) + Savings  (savings treated as accumulated wealth)
+    const MONTH_ORDER = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, Mei: 5, Jun: 6, Jul: 7, Agu: 8, Sep: 9, Okt: 10, Nov: 11, Des: 12 }
+    const monthlyKey = (m, y) => `${y}-${String(MONTH_ORDER[m] || 0).padStart(2, "0")}`
+    const yearMonthAmounts = {}
+    for (const t of transactions) {
+      const k = monthlyKey(t.month, t.year)
+      if (!yearMonthAmounts[k]) yearMonthAmounts[k] = { income: 0, expense: 0, savings: 0, month: t.month, year: t.year }
+      yearMonthAmounts[k][t.type] += t.amount
+    }
+    const sortedKeys = Object.keys(yearMonthAmounts).sort()
+    const netWorthHistory = []
+    let cum = 0
+    for (const k of sortedKeys) {
+      const d = yearMonthAmounts[k]
+      cum += (d.income - d.expense) + d.savings
+      netWorthHistory.push({ month: d.month, year: d.year, value: cum })
+    }
+    const netWorth = netWorthHistory.length > 0 ? netWorthHistory[netWorthHistory.length - 1].value : 0
+    const netWorthMonthlyDelta = netWorthHistory.length >= 2
+      ? netWorthHistory[netWorthHistory.length - 1].value - netWorthHistory[netWorthHistory.length - 2].value
+      : 0
+
     // Reverse to show newest transactions first roughly (assuming appended at bottom)
     transactions.reverse()
 
-    return Response.json({ totalIncome, totalExpense, totalSurplus, totalSavings, profitMargin, monthlyData, categories, transactions })
+    return Response.json({ totalIncome, totalExpense, totalSurplus, totalSavings, profitMargin, monthlyData, categories, transactions, netWorth, netWorthMonthlyDelta, netWorthHistory })
   } catch (err) {
     console.error(err)
     return Response.json({ error: err.message }, { status: 500 })

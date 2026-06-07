@@ -4,6 +4,7 @@ import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, Plus, Lightb
 import { THEME } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
+import NetWorthCard from "@/components/NetWorthCard"
 
 export default function HomeTab({
   data, session,
@@ -14,6 +15,9 @@ export default function HomeTab({
   recent5,
   setActiveNav, openQuickAdd, setDrillDown,
 }) {
+  const netWorth = data?.netWorth || 0
+  const netWorthMonthlyDelta = data?.netWorthMonthlyDelta || 0
+  const netWorthHistory = data?.netWorthHistory || []
   const animatedBalance = useCountUpOvershoot(data?.totalSurplus || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)
   const animatedExpense = useCountUp(data?.totalExpense || 0)
@@ -125,6 +129,11 @@ export default function HomeTab({
             </div>
           </div>
         </button>
+      </div>
+
+      {/* Net Worth tile (full-width) */}
+      <div className="mt-3">
+        <NetWorthCard netWorth={netWorth} netWorthMonthlyDelta={netWorthMonthlyDelta} netWorthHistory={netWorthHistory} />
       </div>
 
       {/* Smart Insights */}

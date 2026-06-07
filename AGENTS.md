@@ -22,23 +22,28 @@ All 5 vars required at runtime:
 - `SPREADSHEET_ID` — target Google Sheets spreadsheet ID
 
 ## Google Sheets structure
-Three tabs must exist with columns A–M:
+Three required tabs with columns A–M (transaction data):
 - `Pemasukan` — income transactions
 - `Pengeluaran` — expense transactions
 - `Tabungan` — savings transactions
 
 Column layout: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M(bulan) | Y(tahun) | Y2
 
-If tab names in sheets differ, update `src/app/api/dashboard/route.js`.
+One optional tab for the Budgets feature (Phase A):
+- `Budgets` — per-category monthly limits. Schema in `docs/sheets-budgets.md`. Columns A–F: Kategori | Bulan | Tahun | Limit | Akun | Catatan.
+
+If tab names in sheets differ, update `src/app/api/dashboard/route.js` (and the budgets route for the Budgets tab).
 
 ## OAuth scope
 Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `src/app/api/auth/[...nextauth]/route.js`).
 
 ## Data flow
 - `src/app/api/auth/[...nextauth]/route.js` — NextAuth config, stores `accessToken` in session
-- `src/app/api/dashboard/route.js` — reads all 3 sheets, returns aggregated data
+- `src/app/api/dashboard/route.js` — reads all 3 sheets, returns aggregated data (includes `netWorth`, `netWorthMonthlyDelta`, `netWorthHistory`)
 - `src/app/api/transaction/route.js` — appends rows to sheets via Sheets API
-- `src/lib/sheets.js` — `getSheetData()`, `parseRupiah()`, `formatRupiah()` helpers
+- `src/app/api/transaction/[id]/route.js` — update (PUT) and clear (DELETE) transaction rows
+- `src/app/api/budgets/route.js` — CRUD on the Budgets tab (`GET ?month&year`, `POST`, `PUT`, `DELETE`)
+- `src/lib/sheets.js` — `getSheetData()`, `parseRupiah()`, `formatRupiah()`, `MONTHS` helpers
 
 ## Notes
 - `.kilo/` is a separate plugin package; don't modify unless working on Kilo features
@@ -64,14 +69,30 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 - **Pull-to-refresh** — Mobile-native pull gesture with indicator, triggers data refetch
 - **Trend chart restored** — Removed `isAllMonths && isAllYears` gate that was hiding it
 - **Hooks order fix** — Moved `useMemo`/early returns to fix "Rendered fewer hooks" crash after login
+- **Phase 0 refactor** — Split monolithic `page.js` into tab files (`HomeTab.jsx`, `StatsTab.jsx`, `WalletTab.jsx`, `ProfileTab.jsx`) + `_components/` for shared bits
+- **H2 Edit/Delete transactions** — `EditTransactionModal` + `/api/transaction/[id]` (PUT/DELETE), `rowIndex` field on all transactions
+- **Phase A: Budgets + Net Worth** (Goals push) — G1 per-category monthly budgets (per-month records) + G4 net worth (lite, from transactions)
+  - New `src/app/api/budgets/route.js` with composite-key find/update/delete
+  - New `src/components/`: `NetWorthCard`, `BudgetCard`, `BudgetProgressBar`, `BudgetSetupModal`, `BudgetDetailModal`, `BudgetsSection`
+  - `NetWorthCard` placed as full-width bento-tile below the bento grid on HOME; formula `(Income − Expense) + Savings` accumulated chronologically
+  - `BudgetsSection` on STATS between hero and trend chart; respects year+month+account filter (account-less + matching)
+  - G6 light: "Saran budget" pills on unbudgeted categories
 
 ## Relevant Files
-- `src/app/dashboard/page.js` — Main dashboard (1490 lines): tabs, charts, modals, pull-to-refresh, SelectField
-- `src/app/dashboard/page.original.js` — Pre-revamp UI backup
+- `src/app/dashboard/page.js` — Main dashboard orchestrator (~820 lines): state, filters, modals, pull-to-refresh
+- `src/app/dashboard/HomeTab.jsx` — Home tab UI (bento grid + insights + recent)
+- `src/app/dashboard/StatsTab.jsx` — Stats tab UI (filters, charts, budgets, calendar, table)
+- `src/app/dashboard/WalletTab.jsx` — Add-transaction form
+- `src/app/dashboard/ProfileTab.jsx` — Profile tab
+- `src/app/dashboard/_components/` — Shared components and constants (THEME, categories, banks, helpers, SelectField, modals)
+- `src/components/` — New feature components (NetWorthCard, BudgetCard, BudgetProgressBar, BudgetSetupModal, BudgetDetailModal, BudgetsSection)
+- `src/app/dashboard/page.original.js` — Pre-refactor backup (do not import)
 - `src/app/globals.css` — Glass surfaces, mesh gradients, bento/insight card styles, animations
 - `tailwind.config.js` — Extended palette (earth, cream, sage, clay, moss, violet, amber, rose, indigo)
-- `src/app/api/dashboard/route.js` — Google Sheets aggregation with `account` field
+- `src/app/api/dashboard/route.js` — Google Sheets aggregation (with netWorth, netWorthMonthlyDelta, netWorthHistory)
+- `src/app/api/budgets/route.js` — Budgets CRUD
 - `src/lib/sheets.js` — Sheet helpers
+- `docs/sheets-budgets.md` — Budgets tab schema
 
 ## Agent Workflow Rules
 

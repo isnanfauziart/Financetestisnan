@@ -7,6 +7,7 @@ import { formatRp, formatRpFull, formatShortDate, parseTxDate } from "./_compone
 import SelectField from "./_components/SelectField"
 import CustomTooltip from "./_components/CustomTooltip"
 import EmptyState from "./_components/EmptyState"
+import BudgetsSection from "@/components/BudgetsSection"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 
@@ -32,6 +33,7 @@ export default function StatsTab({
   navigateCalendar, handleDayClick,
   insights,
   isAllMonths, refreshing,
+  onToast,
 }) {
   const [showDateRange, setShowDateRange] = useState(false)
   const hasDateRange = dateFrom || dateTo
@@ -147,6 +149,16 @@ export default function StatsTab({
         </div>
       </div>
       )}
+
+      {/* Budgets section — between stat hero and monthly trend */}
+      <BudgetsSection
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        selectedAccount={selectedAccount}
+        filteredTransactions={filteredTransactions}
+        expenseCategories={expenseCategories}
+        onToast={onToast}
+      />
 
       {/* Monthly trend */}
       {isAllMonths && (
