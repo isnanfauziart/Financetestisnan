@@ -1,0 +1,41 @@
+export const THEME = {
+  bg: "#fefaf3",
+  surface: "#ffffff",
+  surfaceMuted: "#fdf6ea",
+  surfaceWarm: "#f6efe5",
+  textPrimary: "#2a2018",
+  textSecondary: "#6b5b4f",
+  textTertiary: "#9c8978",
+  income: "#7c8c5a",
+  incomeBg: "#f4f6ec",
+  expense: "#c47d5a",
+  expenseBg: "#fbf0e9",
+  savings: "#5b8c7a",
+  savingsBg: "#ebf3f0",
+  primary: "#7c5fcf",
+  primaryBg: "#f3effc",
+  primaryDeep: "#6349a8",
+  warning: "#d4a853",
+  warningBg: "#fdf7e8",
+  danger: "#c44545",
+  dangerBg: "#fbecec",
+  heroBg: "#4a3d33",
+  heroMid: "#6b5b4f",
+  heroLight: "#8c7b6a",
+}
+
+export const COLORS = ["#7c8c5a", "#c47d5a", "#5b8c7a", "#9f87ef", "#d4a853", "#5069cc", "#c44545", "#7aab9a", "#d99a7d", "#a8b3e6"]
+
+export const EXPENSE_CATEGORIES = [
+  "Transportasi","Sedekah","Elektronik","Healthcare","Utang","Body Care",
+  "Musibah","Kondangan","Makan di luar","Makan di rumah","Hiburan","Jajan",
+  "Skincare","Belanja","Laundry","Ilmu","Pakaian", "Tabungan Cash"
+]
+
+export const INCOME_CATEGORIES = ["Monthly Salary","Insentif","Reimbursement","Pemberian"]
+
+export const SAVINGS_CATEGORIES = ["Tabungan Cash","Emas","Saham"]
+
+export const BANK_ACCOUNTS = ["Cash","Bank BCA","Bank BNI","Bank BRI","Bank Mandiri","OVO","DANA","ShoopePay","Gopay","BSI","Other Bank"]
+
+export const AVAILABLE_MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]

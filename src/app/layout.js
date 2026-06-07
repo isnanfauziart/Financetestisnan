@@ -16,7 +16,10 @@ export const metadata = {
   title: "Keuangan Isnan",
   description: "Dashboard Keuangan Pribadi",
   manifest: "/manifest.json",
-   themeColor: "#6b5b4f",
+}
+
+export const viewport = {
+  themeColor: "#6b5b4f",
 }
 
 export default function RootLayout({ children }) {

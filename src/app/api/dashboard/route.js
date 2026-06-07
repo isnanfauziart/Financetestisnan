@@ -33,6 +33,7 @@ export async function GET() {
         monthlyIncome[month] = (monthlyIncome[month] || 0) + amount
         transactions.push({
           id: row[1] || `in-${i}`,
+          rowIndex: i + 1,
           date: row[0],
           desc: row[2] || "",
           category: row[3] || "Lainnya",
@@ -59,6 +60,7 @@ export async function GET() {
         categoryMap[cat] = (categoryMap[cat] || 0) + amount
         transactions.push({
           id: row[1] || `ex-${i}`,
+          rowIndex: i + 1,
           date: row[0],
           desc: row[2] || "",
           category: cat,
@@ -83,6 +85,7 @@ export async function GET() {
         monthlySavings[month] = (monthlySavings[month] || 0) + amount
         transactions.push({
           id: row[1] || `sv-${i}`,
+          rowIndex: i + 1,
           date: row[0],
           desc: row[2] || "",
           category: cat,

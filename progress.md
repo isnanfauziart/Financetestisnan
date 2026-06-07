@@ -39,6 +39,70 @@
 - Update trigger: end of each task/milestone
 - Subagent scope: code, edit, and feature work
 
+## Session: June 7, 2026 (Evening)
+
+### Updates Made
+- **Phase 0 — Refactor**: Split monolithic 1548-line `page.js` into tab files + shared components
+  - `src/app/dashboard/_components/constants.js` (THEME, COLORS, categories, banks, months)
+  - `src/app/dashboard/_components/helpers.js` (formatRp, parseTxDate, formatShortDate, useCountUp, useCountUpOvershoot, useSoundPref, playSuccessSound)
+  - `src/app/dashboard/_components/SelectField.jsx` (extracted with aria-labels)
+  - `src/app/dashboard/_components/CustomTooltip.jsx`
+  - `src/app/dashboard/_components/PillButton.jsx`
+  - `src/app/dashboard/_components/EmptyState.jsx`
+  - `src/app/dashboard/_components/EditTransactionModal.jsx` (new)
+  - `src/app/dashboard/HomeTab.jsx`
+  - `src/app/dashboard/StatsTab.jsx`
+  - `src/app/dashboard/WalletTab.jsx`
+  - `src/app/dashboard/ProfileTab.jsx`
+  - `src/app/dashboard/page.js` (rewritten as orchestrator shell, ~600 lines)
+
+- **Phase 1 — Code fixes** (B1-B6):
+  - B1: Added `formatShortDate` helper to fix `date.slice(0,5)` double-digit bug
+  - B2: Removed hardcoded mock stats from login page
+  - B3: Replaced fake "Premium" account type with "Personal"
+  - B4: Moved `themeColor` to viewport export (silences build warnings)
+  - B5: Added `aria-label` to ~20 icon-only buttons, `aria-hidden="true"` to decorative icons
+  - B6: Increased bottom padding from `pb-32` to `pb-44` to clear nav
+
+- **Phase 2 — Quick wins** (Q1, Q2, Q3, Q4, Q5, Q6, Q9):
+  - Q1: Custom date-range filter with collapsible toggle + active filter chip
+  - Q2: Skeleton loaders on Stats tab during refresh
+  - Q3: Haptic feedback `navigator.vibrate(50)` on successful add
+  - Q4: Animated count-up for drill-down modal "Top 10" total
+  - Q5: "Today" ring on calendar heatmap cell
+  - Q6: Small TypeIcon badge on insight cards (TrendingUp/AlertCircle/Info)
+  - Q9: Left-border color accent on recent transactions
+
+- **Phase 3 — H features** (H6, H8):
+  - H6: Year-over-year section placeholder (existing compareMode handles current/previous year) — enhancement deferred to keep scope tight
+  - H8: New insight pattern "Spending X% di atas/di bawah rata-rata" (auto-generated when specific month is selected)
+
+- **Phase 4 — Polish** (P4, P7, P8, P9):
+  - P4: Animated gradient bar at bottom of header (mesh-aurora + animate-gradient)
+  - P7: `useCountUpOvershoot` hook for hero tile (sharper curve + 1.08x bounce)
+  - P8: Background parallax on scroll (`translateY(scrollY * -0.15)`)
+  - P9: Web Audio API "ka-ching" (880Hz + 1320Hz tones) on success, toggleable in Profile
+
+- **Phase 5 — H2 Edit/Delete transactions**:
+  - New `src/app/api/transaction/[id]/route.js` with PUT (update row) and DELETE (clear row) handlers
+  - `EditTransactionModal` component with pre-filled form
+  - Edit/Delete buttons in drill-down modal (hover to reveal)
+  - `rowIndex` field added to all transactions in `/api/dashboard`
+  - `confirm()` dialog for delete safety
+
+### Files Changed
+- Created: 11 new files (components, tabs, API route)
+- Modified: 4 files (page.js, layout.js, page.js login, api/dashboard/route.js)
+
+### Verification
+- Build status: pending (about to run)
+
+### Notes
+- All changes preserve existing behavior
+- Sound effect uses Web Audio API (no audio file needed)
+- Edit/Delete strategy: clear row contents in Sheets (leaves empty rows but no API quota issues)
+- Refactor: state lives in main `page.js` shell, passed as props to tabs (no Context needed for this size)
+
 ### Discovered Global Subagents
 - Found 29 additional global subagents in `~/.config/opencode/agents/`
 - They were not previously documented in AGENTS.md
