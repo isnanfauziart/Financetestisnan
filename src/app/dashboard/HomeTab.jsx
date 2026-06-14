@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, Plus, Lightbulb, ArrowRight, AlertCircle, Info, TrendingUp } from "lucide-react"
+import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, Plus, ArrowRight } from "lucide-react"
 import { THEME } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
@@ -10,7 +10,6 @@ export default function HomeTab({
   data, session,
   statIncome, statExpense, statSavings,
   topCategory, topCategoryPct,
-  insights,
   expenseRatio, gaugeAngle, gaugeColor,
   recent5,
   setActiveNav, openQuickAdd, setDrillDown,
@@ -117,39 +116,6 @@ export default function HomeTab({
 
         {/* Savings tile (removed - duplicated Net Worth hero) */}
       </div>
-
-      {/* Smart Insights */}
-      {insights.length > 0 && (
-        <div className="mt-6 animate-bento-in stagger-7">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <div className="flex items-center gap-1.5">
-              <Lightbulb size={14} className="text-amber-500" aria-hidden="true" />
-              <h3 className="text-sm font-bold font-display text-earth-800">Smart Insights</h3>
-            </div>
-            <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">{insights.length} baru</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2.5">
-            {insights.map((ins, i) => {
-              const Icon = ins.icon
-              const TypeIcon = ins.type === "positive" ? TrendingUp : ins.type === "warning" ? AlertCircle : Info
-              return (
-                <div key={i} className="insight-card animate-fade-in-up" style={{ background: ins.color + "12", color: ins.color, animationDelay: `${0.05 * i}s` }}>
-                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 relative" style={{ background: ins.color + "22", boxShadow: `0 4px 12px ${ins.color}30` }}>
-                    <Icon size={18} strokeWidth={2.5} aria-hidden="true" />
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: ins.color, color: "white" }}>
-                      <TypeIcon size={9} strokeWidth={3} aria-hidden="true" />
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <p className="text-[9px] font-bold uppercase tracking-wider opacity-70">{ins.type === "positive" ? "Positif" : ins.type === "warning" ? "Perhatian" : "Info"}</p>
-                    <p className="text-sm font-semibold text-earth-800 leading-snug mt-0.5">{ins.text}</p>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Spending gauge */}
       <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in stagger-8">

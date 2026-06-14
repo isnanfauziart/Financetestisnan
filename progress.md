@@ -151,7 +151,61 @@ Dev mode logs a warning but the page still renders. Production minified build cr
 ### Bonus Observations (not fixed)
 - `favicon.ico` 404 in console
 - `icon-192.png` 404 in console (referenced by `public/manifest.json` but doesn't exist)
-- Easy follow-up: add `public/icon-192.png` or remove from manifest
+  - Easy follow-up: add `public/icon-192.png` or remove from manifest
+
+## Session: June 14, 2026
+
+### Updates Made
+- **Monthly Recap section** on Stats tab — per-month collapsible groups with edit/delete/pagination
+  - Replaced the existing "Annual Overview / Monthly Breakdown" table block (which had no edit, no pagination, and only showed 15 tx for one month)
+  - New self-contained filter bar (month / year / account / category dropdowns + type pill row) **independent from the top filter bar** (which still drives charts/insights/comparison/calendar)
+  - 10-tx-per-page numbered pager, per month, with state preserved across re-fetches (clamped to new max after delete)
+  - Edit/Delete buttons always visible on mobile (replaces hover-only pattern from DrillDownModal)
+  - First month expanded by default; rest collapsed. User choice persists per month key
+  - Header summary chips per group: Income / Expense / Savings / Net (color-coded)
+  - 3-dot type indicator on collapsed headers shows at a glance which types have tx in that month
+  - Sort: `date desc` (newest first), hardcoded for v1; sort toggle deferred to v1.1
+
+### Files Changed
+- **Created**:
+  - `src/app/dashboard/_components/ConfirmSheet.jsx` — polished bottom-sheet confirm modal (replaces `window.confirm` for delete)
+  - `src/app/dashboard/_components/RecapMonthGroup.jsx` — single month group (header, summary chips, row list, pager)
+  - `src/app/dashboard/_components/RecapSection.jsx` — orchestrator (filter, grouping, empty/loading states)
+- **Modified**:
+  - `src/app/dashboard/StatsTab.jsx` — replaced overview table block with `<RecapSection>`; added 2 props (`onEditTx`, `onDeleteTx`); removed now-unused `formatShortDate` + `parseTxDate` imports
+  - `src/app/dashboard/page.js` — added `deleteConfirmTx` + `deletingTx` state; refactored `handleDelete` to set state; new `performDelete` async; new `handleEditTx` wrapper that clears confirm-on-edit (so the home tab drill-down flow uses the same path); rendered `<ConfirmSheet>` next to other modals; passed 2 new props to StatsTab; DrillDownModal now uses `handleEditTx` (was `setEditingTx`)
+
+### Key Decisions
+- **Recap filter is fully independent** from the top bar (per user's explicit instruction). Top bar month/year/account/category/date does NOT affect recap; recap has its own copies of the same dimensions + a type segmented control on top.
+- **Pagination keyed by month-year string** (e.g. `"Jan 2026"`), not array index. Survives delete/re-fetch, gets clamped to new totalPages automatically.
+- **Goal celebration trigger preserved** in the delete path (`setGoalsRefreshTrigger(t => t + 1)`) — moved from old `handleDelete` to new `performDelete`.
+- **No `window.confirm` left in the delete path.** Both the home tab drill-down and the recap now route through the same `ConfirmSheet`. (The `confirm()` import in `EditTransactionModal` was checked — doesn't exist there; the only `confirm()` was in the old `handleDelete`, which I removed.)
+- **Sort toggle (date ↔ amount) deferred to v1.1** to keep v1 tight. The data layer in `RecapSection` already groups + sorts inside `useMemo`, so adding a toggle is a 3-line change.
+- **Bulk select / bulk delete deferred to v2** (as agreed during planning).
+
+### Edge Cases Handled
+- 0 transactions total → `EmptyState` with hint
+- Filter returns 0 → "Tidak ada transaksi yang cocok dengan filter" + Reset button
+- Delete shrinks month below current page → `safePage = min(page, totalPages)` clamps
+- User opens ConfirmSheet, then taps edit on a different row → `handleEditTx` clears the confirm first
+- Goal celebration fires correctly for both `handleEditSave` AND `performDelete`
+
+### Verification
+- `npm run build` passes (dashboard bundle 129 kB → 141 kB, +12 kB for the recap)
+- `npm run dev` boots in 3.7s, no compile/runtime errors
+
+### Files NOT Changed (intentionally)
+- `src/app/api/transaction/[id]/route.js` — PUT/DELETE endpoints already worked
+- `src/app/api/dashboard/route.js` — already returns all needed fields (`id`, `rowIndex`, `type`, `account`, `date`, `category`, `desc`, `amount`, `month`, `year`)
+- `EditTransactionModal` — reused as-is
+- `SelectField`, `PillButton`, `EmptyState`, `helpers` — all reused as-is
+- Top filter bar / charts / insights / comparison / calendar — untouched
+
+### Follow-ups (not in v1)
+- v1.1: Sort toggle (date ↔ amount) in recap filter bar
+- v1.1: `RecapRow` could be a separate component if it grows
+- v2: Bulk select + batch delete (long-press or checkbox mode)
+- Unrelated bonus from previous session: still TODO — `favicon.ico` + `icon-192.png` 404s
 
 ## Session: June 7, 2026 (continued — Net Worth refactor)
 
@@ -367,5 +421,35 @@ The prop name mismatch meant `page.js`'s `goalsRefreshTrigger` state increment (
 ### Verification
 - `npm run build` passes (138 kB)
 - GoalsSection now receives `refreshTrigger` correctly
+
+## Session: June 7, 2026 (continued — remove Overview insights)
+
+### Goal
+Remove the Smart Insights section from the Overview tab. The Statistics page already has its own (compact) insights, so the Overview copy was redundant.
+
+### Changes Applied
+- **`src/app/dashboard/HomeTab.jsx`** (3 edits):
+  - Removed entire Smart Insights JSX block (was lines 121-168)
+  - Removed `insights,` from props destructuring
+  - Removed unused lucide-react imports: `Lightbulb`, `AlertCircle`, `Info`, `TrendingUp` (only used in the deleted block)
+- **`src/app/dashboard/page.js`** (1 edit):
+  - Removed `insights={insights}` from `<HomeTab>` usage (no longer needed)
+
+### Stays
+- `page.js` line 185 `useMemo(() => { ... insights ... })` — still computed (StatsTab needs it)
+- `page.js` line 673 `insights={insights}` on `<StatsTab>` — kept
+- `StatsTab.jsx` compact Insights section — untouched
+
+### New Overview Tab Order
+1. Bento grid (Hero + 5 small tiles)
+2. ~~Smart Insights~~ ← **removed**
+3. Spending Ratio gauge
+4. Goals
+5. Recent transactions
+
+### Verification
+- `npm run build` passes (138 kB unchanged)
+- Overview tab no longer shows insights section
+- Statistics tab still shows its compact Insights section
 
 

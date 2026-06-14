@@ -3,10 +3,11 @@ import { useState } from "react"
 import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, AlertCircle, Info, TrendingUp, BarChart3, BarChartHorizontal } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Legend } from "recharts"
 import { THEME, COLORS, AVAILABLE_MONTHS } from "./_components/constants"
-import { formatRp, formatRpFull, formatShortDate, parseTxDate } from "./_components/helpers"
+import { formatRp, formatRpFull } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
 import CustomTooltip from "./_components/CustomTooltip"
 import EmptyState from "./_components/EmptyState"
+import RecapSection from "./_components/RecapSection"
 import BudgetsSection from "@/components/BudgetsSection"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
@@ -33,7 +34,8 @@ export default function StatsTab({
   navigateCalendar, handleDayClick,
   insights,
   isAllMonths, refreshing,
-  onToast,
+  onEditTx,
+  onDeleteTx,
 }) {
   const [showDateRange, setShowDateRange] = useState(false)
   const hasDateRange = dateFrom || dateTo
@@ -411,59 +413,8 @@ export default function StatsTab({
         </div>
       </div>
 
-      {/* Overview table */}
-      <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm overflow-hidden">
-        <h3 className="text-sm font-bold mb-3 font-display text-earth-800">{isAllMonths ? "Annual Overview" : "Monthly Breakdown"}</h3>
-        {isAllMonths ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[500px]">
-              <thead>
-                <tr>
-                  <th className="pb-3 text-[10px] font-bold text-earth-500 uppercase tracking-wider pr-3 border-b border-earth-100">Bulan</th>
-                  <th className="pb-3 text-[10px] font-bold text-earth-500 uppercase tracking-wider pr-3 border-b border-earth-100">Pemasukan</th>
-                  <th className="pb-3 text-[10px] font-bold text-earth-500 uppercase tracking-wider pr-3 border-b border-earth-100">Pengeluaran</th>
-                  <th className="pb-3 text-[10px] font-bold text-earth-500 uppercase tracking-wider pr-3 border-b border-earth-100">Selisih</th>
-                  <th className="pb-3 text-[10px] font-bold text-earth-500 uppercase tracking-wider text-right border-b border-earth-100">Tabungan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clientMonthlyData.map((row, i) => (
-                  <tr key={i} className={`hover:bg-earth-50/60 transition-colors animate-fade-in-up stagger-${(i % 10) + 1}`}>
-                    <td className="py-3 text-xs font-semibold pr-3 border-b border-earth-100/60">{row.month}</td>
-                    <td className="py-3 text-xs text-sage-600 font-bold pr-3 border-b border-earth-100/60">{formatRp(row.pemasukan)}</td>
-                    <td className="py-3 text-xs text-clay-500 font-bold pr-3 border-b border-earth-100/60">{formatRp(row.pengeluaran)}</td>
-                    <td className="py-3 text-xs font-semibold pr-3 border-b border-earth-100/60 text-earth-800">{formatRp(row.surplus)}</td>
-                    <td className="py-3 text-xs font-bold text-right border-b border-earth-100/60 text-moss-500">{formatRp(row.tabungan)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredTransactions.slice(0, 15).map((t, idx) => {
-              const borderColor = t.type === "income" ? THEME.income : t.type === "savings" ? THEME.savings : THEME.expense
-              return (
-                <div key={idx} className={`flex justify-between items-center pb-3 pl-3 border-b border-l-4 border-earth-100/60 last:border-b-0 last:pb-0 animate-fade-in-up stagger-${(idx % 10) + 1}`} style={{ borderLeftColor: borderColor }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-earth-50 flex items-center justify-center font-bold text-[10px] text-earth-600 text-center leading-tight">
-                      {formatShortDate(t.date)}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-earth-800">{t.category}</p>
-                      <p className="text-[11px] text-earth-500 mt-0.5">{t.desc || t.type}</p>
-                    </div>
-                  </div>
-                  <p className="font-bold text-sm" style={{ color: t.type === "income" ? THEME.income : t.type === "savings" ? THEME.savings : THEME.textPrimary }}>
-                    {t.type === "income" ? "+" : "-"}{formatRp(t.amount)}
-                  </p>
-                </div>
-              )
-            })}
-            {filteredTransactions.length === 0 && <p className="text-center text-xs text-earth-500 py-4">No transactions found.</p>}
-          </div>
-        )}
-      </div>
+      {/* Monthly Recap */}
+      <RecapSection transactions={data?.transactions || []} onEdit={onEditTx} onDelete={onDeleteTx} />
     </div>
   )
 }

@@ -12,6 +12,7 @@ import StatsTab from "./StatsTab"
 import WalletTab from "./WalletTab"
 import ProfileTab from "./ProfileTab"
 import EditTransactionModal from "./_components/EditTransactionModal"
+import ConfirmSheet from "./_components/ConfirmSheet"
 import GoalCelebration from "@/components/GoalCelebration"
 
 export default function Dashboard() {
@@ -31,6 +32,8 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
   const [editingTx, setEditingTx] = useState(null)
+  const [deleteConfirmTx, setDeleteConfirmTx] = useState(null)
+  const [deletingTx, setDeletingTx] = useState(false)
 
   // Stats state
   const [selectedMonth, setSelectedMonth] = useState("Semua Bulan")
@@ -396,12 +399,21 @@ export default function Dashboard() {
     if (soundEnabled) playSuccessSound()
     showToast("Transaksi diperbarui ✓")
     fetchData()
-    setGoalsRefreshTrigger(t => t + 1)
-    setTimeout(() => checkGoalCelebration(), 800)
   }
 
-  const handleDelete = async (tx) => {
-    if (!confirm(`Hapus transaksi ${tx.category} - ${formatRpForConfirm(tx.amount)}?`)) return
+  const handleEditTx = (tx) => {
+    setDeleteConfirmTx(null)
+    setEditingTx(tx)
+  }
+
+  const handleDelete = (tx) => {
+    setDeleteConfirmTx(tx)
+  }
+
+  const performDelete = async () => {
+    const tx = deleteConfirmTx
+    if (!tx) return
+    setDeletingTx(true)
     try {
       const res = await fetch(`/api/transaction/${tx.id}`, {
         method: "DELETE",
@@ -416,10 +428,13 @@ export default function Dashboard() {
         throw new Error(err.error || "Gagal menghapus")
       }
       showToast("Transaksi dihapus")
+      setDeleteConfirmTx(null)
       fetchData()
       setGoalsRefreshTrigger(t => t + 1)
     } catch (err) {
       showToast(err.message, "error")
+    } finally {
+      setDeletingTx(false)
     }
   }
 
@@ -645,7 +660,6 @@ export default function Dashboard() {
             data={data} session={session}
             statIncome={statIncome} statExpense={statExpense} statSavings={statSavings}
             topCategory={topCategory} topCategoryPct={topCategoryPct}
-            insights={insights}
             expenseRatio={expenseRatio} gaugeAngle={gaugeAngle} gaugeColor={gaugeColor}
             recent5={recent5}
             setActiveNav={setActiveNav} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
@@ -673,7 +687,8 @@ export default function Dashboard() {
             navigateCalendar={navigateCalendar} handleDayClick={handleDayClick}
             insights={insights}
             isAllMonths={isAllMonths} refreshing={refreshing}
-            onToast={showToast}
+            onEditTx={handleEditTx}
+            onDeleteTx={handleDelete}
           />
         )}
         {activeNav === "wallet" && (
@@ -728,8 +743,21 @@ export default function Dashboard() {
           drillDown={drillDown}
           data={data}
           onClose={() => setDrillDown(null)}
-          onEdit={setEditingTx}
+          onEdit={handleEditTx}
           onDelete={handleDelete}
+        />
+      )}
+
+      {/* Delete confirm sheet */}
+      {deleteConfirmTx && (
+        <ConfirmSheet
+          title="Hapus Transaksi?"
+          message={`${deleteConfirmTx.category} - ${formatRpForConfirm(deleteConfirmTx.amount)} pada ${deleteConfirmTx.date} akan dihapus permanen.`}
+          confirmLabel="Hapus"
+          confirmColor={THEME.danger}
+          onConfirm={performDelete}
+          onClose={() => { if (!deletingTx) setDeleteConfirmTx(null) }}
+          confirming={deletingTx}
         />
       )}
 
