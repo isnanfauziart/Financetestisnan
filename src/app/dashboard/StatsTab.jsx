@@ -34,6 +34,7 @@ export default function StatsTab({
   navigateCalendar, handleDayClick,
   insights,
   isAllMonths, refreshing,
+  onToast,
   onEditTx,
   onDeleteTx,
 }) {

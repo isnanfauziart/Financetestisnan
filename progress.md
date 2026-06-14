@@ -452,4 +452,36 @@ Remove the Smart Insights section from the Overview tab. The Statistics page alr
 - Overview tab no longer shows insights section
 - Statistics tab still shows its compact Insights section
 
+## Session: June 14, 2026
+
+### Updates Made
+- Fixed `ReferenceError: onToast is not defined` crash on the Statistics tab
+- Removed dead `icons` array from PWA manifest to clear `icon-192.png` 404
+
+### Bug 1 — Stats tab crash (`onToast is not defined`)
+- **Symptom**: Stats page rendered broken / blank after deploy. Console:
+  `ReferenceError: onToast is not defined at e_ (page-c432aa49ff6442a7.js:1:70245)`
+- **Root cause**: Commit `a73fc89` (recap refactor) removed `onToast` from `StatsTab`'s props destructure but left the `<BudgetsSection onToast={onToast} />` call at `StatsTab.jsx:162` untouched. The JSX expression evaluated an undeclared identifier at render time.
+- **Fix**:
+  1. `src/app/dashboard/StatsTab.jsx:37` — re-added `onToast,` to the props destructure
+  2. `src/app/dashboard/page.js:690` — forwarded `onToast={showToast}` to `<StatsTab>` (same `showToast` already used by `<HomeTab>` on line 666)
+- **Side effect**: Restores silent budget create/update/delete toasts inside `BudgetsSection` (all its `onToast` calls are optional-chained, so this doesn't regress anything — it just re-enables feedback that had been lost since the refactor).
+
+### Bug 2 — PWA manifest icon 404
+- **Symptom**: Console `icon-192.png:1 Failed to load resource: 404` plus a "Download error or resource isn't a valid image" warning on `https://financedashv1.vercel.app/icon-192.png`.
+- **Root cause**: `public/manifest.json` referenced `/icon-192.png` and `/icon-512.png` which never existed in `public/`. Cosmetic — does not block the page.
+- **Fix**: Removed the entire `icons` array from `public/manifest.json` (Option A). Manifest is now valid JSON with name/colors/start_url only. `<link rel="manifest" href="/manifest.json">` in `src/app/layout.js:18` is still in place and now resolves cleanly.
+
+### Files Changed
+- `src/app/dashboard/StatsTab.jsx` (+1 line: `onToast,` in props destructure)
+- `src/app/dashboard/page.js` (+1 line: `onToast={showToast}` on `<StatsTab>`)
+- `public/manifest.json` (−12 lines: removed `icons` array)
+
+### Verification
+- `npm run build` passes — `Compiled successfully`, 6/6 static pages, `/dashboard` 141 kB (unchanged from prior good build)
+- No new console errors expected after deploy
+
+### Decisions
+- Chose Option A (drop `icons` array) for the PWA fix per user preference. PWA install icon will be missing until real icon assets are added — revisit when a logo is available.
+- Did not change `BudgetsSection` or `<HomeTab>` — both are correct as-is.
 

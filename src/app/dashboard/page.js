@@ -687,6 +687,7 @@ export default function Dashboard() {
             navigateCalendar={navigateCalendar} handleDayClick={handleDayClick}
             insights={insights}
             isAllMonths={isAllMonths} refreshing={refreshing}
+            onToast={showToast}
             onEditTx={handleEditTx}
             onDeleteTx={handleDelete}
           />
