@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { MONTHS_MAP } from "./constants"
 
 export function formatRp(amount) {
   if (amount >= 1000000) return `Rp ${(amount / 1000000).toFixed(1)} jt`
@@ -17,10 +18,9 @@ export function formatInputRupiah(val) {
 
 export function parseTxDate(dateStr) {
   if (!dateStr) return 0
-  const months = { Jan:0, Feb:1, Mar:2, Apr:3, Mei:4, Jun:5, Jul:6, Agu:7, Ags:7, Sep:8, Okt:9, Nov:10, Des:11 }
   const m = String(dateStr).match(/^(\d+)\s+(\w+)\s+(\d+)/)
   if (!m) return 0
-  return new Date(+m[3], months[m[2]] ?? 0, +m[1]).getTime()
+  return new Date(+m[3], MONTHS_MAP[m[2]] ?? 0, +m[1]).getTime()
 }
 
 export function formatShortDate(dateStr) {

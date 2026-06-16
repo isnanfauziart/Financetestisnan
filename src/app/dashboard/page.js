@@ -1,10 +1,9 @@
 "use client"
 import { useSession, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
-import { LogOut, Plus, Check, X, ChevronDown, Activity, User, Home, ArrowUpRight, Wallet, Sparkles, Lightbulb, TrendingUp, TrendingDown, PiggyBank, Target, Calendar, CreditCard } from "lucide-react"
+import { LogOut, Plus, X, ChevronDown, Activity, User, Home, ArrowUpRight, Wallet, Sparkles, Lightbulb, TrendingUp, TrendingDown, PiggyBank, Target, Calendar, CreditCard } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
-import { useCountUp, useSoundPref, playSuccessSound, parseTxDate } from "./_components/helpers"
+import { useCountUp, useSoundPref, playSuccessSound, parseTxDate, formatRp } from "./_components/helpers"
 import { computeAllGoalProgress, computeGoalProgress } from "./_components/goalUtils"
 import EmptyState from "./_components/EmptyState"
 import HomeTab from "./HomeTab"
@@ -13,11 +12,12 @@ import WalletTab from "./WalletTab"
 import ProfileTab from "./ProfileTab"
 import EditTransactionModal from "./_components/EditTransactionModal"
 import ConfirmSheet from "./_components/ConfirmSheet"
+import Sheet from "./_components/Sheet"
+import Toast from "./_components/Toast"
 import GoalCelebration from "@/components/GoalCelebration"
 
 export default function Dashboard() {
   const { data: session, status } = useSession()
-  const router = useRouter()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -270,7 +270,7 @@ export default function Dashboard() {
         out.push({
           type: "positive",
           icon: PiggyBank,
-          text: `Tabungan ${selectedMonth}: ${formatRpForInsights(statSavings)}`,
+          text: `Tabungan ${selectedMonth}: ${formatRp(statSavings)}`,
           color: THEME.moss
         })
       }
@@ -356,7 +356,6 @@ export default function Dashboard() {
 
   const showToast = (msg, type = "success", action = null) => {
     setToast({ msg, type, action })
-    setTimeout(() => setToast(t => (t && t.msg === msg ? null : t)), 5000)
   }
 
   const handleSubmit = async (e) => {
@@ -595,16 +594,16 @@ export default function Dashboard() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-6 left-1/2 z-50 px-6 py-3 rounded-2xl shadow-pop-lg text-sm font-semibold text-white flex items-center gap-3 animate-slide-down"
-          style={{ transform: "translateX(-50%)", background: toast.type === "error" ? THEME.danger : toast.type === "info" ? THEME.primary : "linear-gradient(135deg, #5b8c7a, #7aab9a)" }} role="status" aria-live="polite">
-          {toast.type === "error" ? <X size={16} strokeWidth={3} aria-hidden="true" /> : <Check size={16} strokeWidth={3} aria-hidden="true" />}
+        <Toast
+          open={!!toast}
+          onDone={() => setToast(null)}
+          variant={toast.type}
+          position="top"
+          duration={toast.action ? 8000 : 5000}
+          action={toast.action}
+        >
           {toast.msg}
-          {toast.action && (
-            <button onClick={toast.action.onClick} className="ml-2 px-2 py-1 rounded-lg bg-white/20 text-xs font-bold hover:bg-white/30">
-              {toast.action.label}
-            </button>
-          )}
-        </div>
+        </Toast>
       )}
 
       {/* Header with P4 animated gradient */}
@@ -705,37 +704,35 @@ export default function Dashboard() {
 
       {/* Day transactions modal */}
       {selectedDayTx && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(42,32,24,0.5)", backdropFilter: "blur(8px)" }} onClick={() => setSelectedDayTx(null)}>
-          <div className="glass-strong rounded-t-[32px] sm:rounded-[32px] p-6 shadow-pop-lg w-full max-w-md max-h-[80vh] overflow-y-auto animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold font-display text-earth-800">{selectedDayTx.day} {calMonth} {calYear}</h3>
-              <button onClick={() => setSelectedDayTx(null)} aria-label="Close day transactions" className="w-8 h-8 rounded-full bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center">
-                <X size={14} color={THEME.textSecondary} aria-hidden="true" />
-              </button>
-            </div>
-            {selectedDayTx.transactions.length === 0 ? (
-              <p className="text-xs text-earth-500 text-center py-4">Tidak ada pengeluaran pada hari ini</p>
-            ) : (
-              <div className="space-y-3">
-                {selectedDayTx.transactions.map((t, i) => (
-                  <div key={i} className="flex justify-between items-center pb-3 border-b border-earth-100 last:border-b-0">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-earth-800">{t.category}</p>
-                      {t.desc && <p className="text-xs text-earth-500 mt-0.5 truncate">{t.desc}</p>}
-                    </div>
-                    <p className="font-bold text-sm text-clay-500 ml-3">-{formatRpForConfirm(t.amount)}</p>
+        <Sheet
+          open={!!selectedDayTx}
+          onClose={() => setSelectedDayTx(null)}
+          title={`${selectedDayTx.day} ${calMonth} ${calYear}`}
+          size="md"
+          maxHeight="80vh"
+        >
+          {selectedDayTx.transactions.length === 0 ? (
+            <p className="text-xs text-earth-500 text-center py-4">Tidak ada pengeluaran pada hari ini</p>
+          ) : (
+            <div className="space-y-3">
+              {selectedDayTx.transactions.map((t, i) => (
+                <div key={i} className="flex justify-between items-center pb-3 border-b border-earth-100 last:border-b-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm text-earth-800">{t.category}</p>
+                    {t.desc && <p className="text-xs text-earth-500 mt-0.5 truncate">{t.desc}</p>}
                   </div>
-                ))}
-                <div className="pt-2 flex justify-between items-center">
-                  <span className="text-xs font-bold text-earth-600">Total</span>
-                  <span className="text-sm font-bold text-clay-500">
-                    -{formatRpForConfirm(selectedDayTx.transactions.reduce((s, t) => s + t.amount, 0))}
-                  </span>
+                  <p className="font-bold text-sm text-clay-500 ml-3">-{formatRp(t.amount)}</p>
                 </div>
+              ))}
+              <div className="pt-2 flex justify-between items-center">
+                <span className="text-xs font-bold text-earth-600">Total</span>
+                <span className="text-sm font-bold text-clay-500">
+                  -{formatRp(selectedDayTx.transactions.reduce((s, t) => s + t.amount, 0))}
+                </span>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </Sheet>
       )}
 
       {/* Drill-down modal with Q4: animated counter + Edit/Delete actions */}
@@ -753,7 +750,7 @@ export default function Dashboard() {
       {deleteConfirmTx && (
         <ConfirmSheet
           title="Hapus Transaksi?"
-          message={`${deleteConfirmTx.category} - ${formatRpForConfirm(deleteConfirmTx.amount)} pada ${deleteConfirmTx.date} akan dihapus permanen.`}
+          message={`${deleteConfirmTx.category} - ${formatRp(deleteConfirmTx.amount)} pada ${deleteConfirmTx.date} akan dihapus permanen.`}
           confirmLabel="Hapus"
           confirmColor={THEME.danger}
           onConfirm={performDelete}
@@ -828,71 +825,55 @@ function DrillDownModal({ drillDown, data, onClose, onEdit, onDelete }) {
   const animatedTotal = useCountUp(total)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(42,32,24,0.5)", backdropFilter: "blur(8px)" }} onClick={onClose}>
-      <div className="glass-strong rounded-t-[32px] sm:rounded-[32px] p-6 shadow-pop-lg w-full max-w-md max-h-[85vh] overflow-y-auto animate-slide-up" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Top 10 Transaksi</p>
-            <h3 className="text-lg font-display font-bold text-earth-800">{drillDown.title}</h3>
+    <Sheet
+      open={true}
+      onClose={onClose}
+      subtitle="Top 10 Transaksi"
+      title={drillDown.title}
+      size="md"
+      maxHeight="85vh"
+    >
+      {txs.length === 0 ? (
+        <EmptyState icon={<Wallet size={20} />} title="Belum ada transaksi" />
+      ) : (
+        <>
+          <div className="rounded-2xl p-3 mb-3" style={{ background: THEME.surfaceWarm }}>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Total Top 10</p>
+            <p className="text-xl font-display font-bold" style={{ color: drillDown.type === "income" ? THEME.income : drillDown.type === "savings" ? THEME.savings : THEME.expense }}>
+              {formatRp(animatedTotal)}
+            </p>
           </div>
-          <button onClick={onClose} aria-label="Close drill-down" className="w-8 h-8 rounded-full bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center">
-            <X size={14} color={THEME.textSecondary} aria-hidden="true" />
-          </button>
-        </div>
-        {txs.length === 0 ? (
-          <EmptyState icon={<Wallet size={20} />} title="Belum ada transaksi" />
-        ) : (
-          <>
-            <div className="rounded-2xl p-3 mb-3" style={{ background: THEME.surfaceWarm }}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Total Top 10</p>
-              <p className="text-xl font-display font-bold" style={{ color: drillDown.type === "income" ? THEME.income : drillDown.type === "savings" ? THEME.savings : THEME.expense }}>
-                {formatRpForConfirm(animatedTotal)}
-              </p>
-            </div>
-            <div className="space-y-2.5">
-              {txs.map((t, i) => {
-                const colorOfType = drillDown.type === "income" ? THEME.income : drillDown.type === "savings" ? THEME.savings : THEME.expense
-                return (
-                  <div key={i} className="flex items-center gap-2 p-2.5 rounded-2xl hover:bg-earth-50/80 transition-colors group">
-                    <div className="w-7 h-7 rounded-xl flex items-center justify-center font-bold text-[10px] flex-shrink-0"
-                      style={{ background: colorOfType + "18", color: colorOfType }}>
-                      {i + 1}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
-                      <p className="text-[10px] text-earth-500 mt-0.5">{t.date} · {t.desc || "—"}</p>
-                    </div>
-                    <p className="font-bold text-sm flex-shrink-0"
-                      style={{ color: colorOfType }}>
-                      {drillDown.type === "income" ? "+" : drillDown.type === "savings" ? "" : "-"}{formatRpForConfirm(t.amount)}
-                    </p>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => onEdit(t)} aria-label={`Edit ${t.category}`} className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-violet-100 flex items-center justify-center text-earth-600 hover:text-violet-600">
-                        <span className="text-xs">✎</span>
-                      </button>
-                      <button onClick={() => onDelete(t)} aria-label={`Delete ${t.category}`} className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500">
-                        <span className="text-xs">×</span>
-                      </button>
-                    </div>
+          <div className="space-y-2.5">
+            {txs.map((t, i) => {
+              const colorOfType = drillDown.type === "income" ? THEME.income : drillDown.type === "savings" ? THEME.savings : THEME.expense
+              return (
+                <div key={i} className="flex items-center gap-2 p-2.5 rounded-2xl hover:bg-earth-50/80 transition-colors group">
+                  <div className="w-7 h-7 rounded-xl flex items-center justify-center font-bold text-[10px] flex-shrink-0"
+                    style={{ background: colorOfType + "18", color: colorOfType }}>
+                    {i + 1}
                   </div>
-                )
-              })}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
+                    <p className="text-[10px] text-earth-500 mt-0.5">{t.date} · {t.desc || "—"}</p>
+                  </div>
+                  <p className="font-bold text-sm flex-shrink-0"
+                    style={{ color: colorOfType }}>
+                    {drillDown.type === "income" ? "+" : drillDown.type === "savings" ? "" : "-"}{formatRp(t.amount)}
+                  </p>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => onEdit(t)} aria-label={`Edit ${t.category}`} className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-violet-100 flex items-center justify-center text-earth-600 hover:text-violet-600">
+                      <span className="text-xs">✎</span>
+                    </button>
+                    <button onClick={() => onDelete(t)} aria-label={`Delete ${t.category}`} className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500">
+                      <span className="text-xs">×</span>
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </Sheet>
   )
-}
-
-function formatRpForConfirm(amount) {
-  if (amount >= 1000000) return `Rp ${(amount / 1000000).toFixed(1)} jt`
-  if (amount >= 1000) return `Rp ${(amount / 1000).toFixed(0)} rb`
-  return `Rp ${amount}`
-}
-
-function formatRpForInsights(amount) {
-  if (amount >= 1000000) return `Rp ${(amount / 1000000).toFixed(1)} jt`
-  if (amount >= 1000) return `Rp ${(amount / 1000).toFixed(0)} rb`
-  return `Rp ${amount}`
 }

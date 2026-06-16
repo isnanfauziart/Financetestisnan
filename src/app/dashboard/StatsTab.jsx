@@ -153,15 +153,24 @@ export default function StatsTab({
       </div>
       )}
 
-      {/* Budgets section — between stat hero and monthly trend */}
-      <BudgetsSection
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-        selectedAccount={selectedAccount}
-        filteredTransactions={filteredTransactions}
-        expenseCategories={expenseCategories}
-        onToast={onToast}
-      />
+      {/* Budgets section — only visible when filtered to a specific month */}
+      {isAllMonths ? (
+        <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
+          <div className="flex items-center gap-2 text-earth-600">
+            <Info size={14} className="text-earth-400" aria-hidden="true" />
+            <p className="text-xs font-medium">Pilih bulan tertentu untuk melihat Budget per kategori.</p>
+          </div>
+        </div>
+      ) : (
+        <BudgetsSection
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          selectedAccount={selectedAccount}
+          filteredTransactions={filteredTransactions}
+          expenseCategories={expenseCategories}
+          onToast={onToast}
+        />
+      )}
 
       {/* Monthly trend */}
       {isAllMonths && (

@@ -452,6 +452,27 @@ Remove the Smart Insights section from the Overview tab. The Statistics page alr
 - Overview tab no longer shows insights section
 - Statistics tab still shows its compact Insights section
 
+## Session: June 7, 2026 (continued — conditional BudgetsSection)
+
+### Goal
+Hide the BudgetsSection on the Statistics tab when the filter is set to "Semua Bulan" (all months), and show a small hint instead reminding the user to filter to a specific month.
+
+### Changes Applied
+- **`src/app/dashboard/StatsTab.jsx`** (1 edit):
+  - Wrapped the `<BudgetsSection>` in a conditional: when `isAllMonths === true`, show a subtle bento-tile note with an `Info` icon and the text "Pilih bulan tertentu untuk melihat Budget per kategori."; otherwise render the budget section as before
+  - The `Info` icon was already imported (no new import needed)
+
+### Stays
+- `BudgetsSection` component itself — unchanged
+- `/api/budgets` endpoint — unchanged (the API still returns all-months budgets when no month param; only the UI is conditional now)
+- `page.js` props passed to StatsTab — unchanged
+
+### Verification
+- `npm run build` passes (141 kB, up from 138 kB)
+- Default (Semua Bulan + current year): shows the Info note, no budget cards
+- Change to specific month (e.g. "Mei"): shows the budget section as before
+- Change back to "Semua Bulan": note reappears
+
 ## Session: June 14, 2026
 
 ### Updates Made
@@ -485,3 +506,211 @@ Remove the Smart Insights section from the Overview tab. The Statistics page alr
 - Chose Option A (drop `icons` array) for the PWA fix per user preference. PWA install icon will be missing until real icon assets are added — revisit when a logo is available.
 - Did not change `BudgetsSection` or `<HomeTab>` — both are correct as-is.
 
+
+## Session: June 16, 2026 — Pre-Android-port frontend audit
+
+### Deliverable
+- Produced 12 concrete frontend-engineering recommendations ahead of the React Native + Expo port of Keuangan Isnan
+  - 6 P0 (must-do before port): delete page.original.js + split page.js; extract insights/calendar/comparison/filters/trend to src/lib/; consolidate 6 duplicate MONTHS arrays into src/lib/dates.js; complete PWA (icons, screenshots, theme_color, service worker); add zod env validation; add /api/auth/exchange token endpoint for native OAuth
+  - 4 P1 (high impact, parallel with port): adopt Zustand for the dashboard store; code-split Recharts via 
+ext/dynamic; add Vitest+RTL for lib/ (concrete test list for parseRupiah, pickAmount, parseDateLoose, computeGoalProgress, insights, calendar, filters); add Sentry + lib/telemetry.js abstraction
+  - 2 P2 (nice-to-have): API hardening (zod, error envelopes, Cache-Control, rate limit); single-source design tokens + JSDoc on lib/ + 	sconfig.json with llowJs+checkJs+
+oEmit+	arget: ES2022+moduleResolution: bundler+jsx: preserve+path alias @/*→./src/*+aseUrl: .+include: src/**/*`n  - 4 quick-wins: server-component split for the dashboard shell, modal focus trap, prefers-reduced-motion guard, move DrillDownModal to its own file
+- Included a 4-week execution plan that leaves src/lib/ + src/stores/ + src/hooks/ RN-portable by week 4 (the only thing rewritten for native is the screen layer)
+
+### Files Referenced (read-only, no edits made)
+- src/app/dashboard/page.js (898 lines — orchestrator)
+- src/app/dashboard/HomeTab.jsx, StatsTab.jsx, WalletTab.jsx, ProfileTab.jsx`n- src/app/dashboard/_components/{helpers.js, goalUtils.js, constants.js, SelectField.jsx, EditTransactionModal.jsx} plus the other 6 files in that dir
+- src/components/{BudgetCard, BudgetsSection, GoalCard, GoalsSection, GoalCelebration, GoalProgressRing, GoalSetupModal, GoalContributeModal, BudgetSetupModal, BudgetDetailModal, BudgetProgressBar}.jsx (11 feature components)
+- src/app/api/{dashboard, transaction, transaction/[id], budgets, goals, auth/[...nextauth]}/route.js (6 route handlers)
+- src/lib/sheets.js, public/manifest.json, src/app/layout.js, 
+ext.config.js, 	ailwind.config.js, package.json, jsconfig.json, AGENTS.md, progress.md`n
+### Key Findings
+- page.original.js (57KB / 1548 lines) is dead code from the Phase 0 refactor — git rm candidate
+- 6 copies of month-name lookup across sheets.js, constants.js, goalUtils.js, helpers.js, pi/dashboard/route.js (2 places), pi/transaction/route.js (2 places) — port-nightmare if not consolidated
+- THEME (in _components/constants.js:1-25) duplicates the Tailwind color scales (	ailwind.config.js:12-119) — two names, one color, will drift
+- echarts is synchronous-imported in StatsTab.jsx:4 even though the Home tab never renders a chart — ~150KB of dead weight on first paint
+- public/manifest.json is 10 lines with no icons/screenshots/	heme_color/id — no service worker registered
+- 4 API routes return raw err.message (could leak Google Sheets API URLs) — no zod, no rate limit, no Cache-Control, no request IDs
+- ccessToken in NextAuth session is browser-cookie-bound — needs a token-exchange endpoint for the Expo/RN shell
+- 0 tests today; parseRupiah/pickAmount/parseDateLoose/computeGoalProgress (with the 	xTime < goalCreated filter at goalUtils.js:19) are all untested
+- @types/* are in devDeps but no 	sconfig.json exists
+
+### Decisions
+- Did not edit any source files — this session was a read-only audit + recommendations deliverable per the user's request
+- Recommended Zustand over Jotai/Context because the dashboard has 30+ useState with frequent cross-field coordination (filters, modals, toasts, goals) — Zustand's slices and shallow selectors map cleanly, and persist middleware works on web (localStorage) and RN (AsyncStorage) with one config switch
+- Recommended Vitest over Jest: faster, native ESM, no Babel config needed, integrates with ite for the future Expo Web build
+- Did not include a recommendation to switch to React Server Components wholesale — too disruptive before the port. Server-component split for the dashboard shell is the minimum viable change.
+- Did not include a recommendation to leave the Recharts library — the user can swap to Victory Native or react-native-svg-charts for native, but keeping Recharts on web is fine. The code-split (#8) is the right boundary.
+
+### Blockers
+- None. All recommendations are optional and sequential.
+
+### Next Steps (for the user to pick from)
+- Start with Week 1 (mechanical): #3 MONTHS consolidation, #1 delete dead file, #5 zod env, #12 JSDoc on lib/ — all low-risk, build stays green
+- Or jump to #7 Zustand first if the prop-drilling pain is acute (it is — 30 props to StatsTab is a code-smell that's getting worse with each Phase)
+
+
+## Session: June 16, 2026
+
+### Pre-Android-Port Refactor — PR 3 + PR 2 complete
+
+**Decision:** Adopt 11-PR plan to reduce page.js 898 → ~680 lines and prepare the codebase for an Android port (PWA excluded per user). Tests gate PRs 10-11.
+
+### PR 3 — Code hygiene (zero behavior change)
+- Deleted src/app/dashboard/page.original.js (-898 lines dead code)
+- constants.js: added MONTHS_MAP export (defensive Ags/Agu parse map)
+- helpers.js, goalUtils.js, EditTransactionModal.jsx: replaced inline months object → MONTHS_MAP import
+- sheets.js: deleted dead MONTHS export (had Ags spelling, 0 consumers)
+- pi/dashboard/route.js, pi/transaction/route.js, pi/transaction/[id]/route.js: replaced inline MONTHS arrays → AVAILABLE_MONTHS import
+- GoalCard.jsx: replaced inline months array → AVAILABLE_MONTHS import
+- page.js: removed useRouter import + var (dead code), added ormatRp to helpers import, replaced 6 ormatRpForConfirm/ormatRpForInsights call sites with ormatRp, deleted both duplicate function definitions
+- Net diff: -910 lines, page.js 898 → 884, build green
+
+### PR 2 — Test infrastructure
+- Added Vitest + RTL + jsdom devDeps (179 packages, 1 changed)
+- Created itest.config.js (jsdom env, @ alias, React plugin with .js include for JSX)
+- Created 	ests/setup.js (loads @testing-library/jest-dom/vitest)
+- Scripts: 
+pm test, 
+pm test:watch, 
+pm test:coverage
+- Extracted pickAmount from pi/dashboard/route.js to src/lib/parseSheetRow.js (testable in isolation); route imports from new location
+- **3 test suites (32 tests passing, 2 skipped)**:
+  - 	ests/lib/parseSheetRow.test.js (9 tests) — catches #REF!/#DIV/0!/#VALUE!/#N/A/date-string/empty/text/zero fallthrough, custom indices
+  - 	ests/lib/format.test.js (23 tests) — ormatRp, ormatRpFull, ormatInputRupiah, parseRupiah, parseTxDate (Agu + Ags), parseDateLoose, AVAILABLE_MONTHS (Agu canonical), MONTHS_MAP (Agu + Ags defensive)
+  - 	ests/components/Dashboard.smoke.test.jsx (**2 tests skipped** with TODO) — Vite/Next.js bundler conflict on page.js "use client" component; will revisit after PR 10 extracts testable modules
+
+### Build & tests
+- 
+pm run build — ✓ Compiled successfully, dashboard 141 kB unchanged
+- 
+pm test — 32 passed, 2 skipped in 5s
+- All grep checks green (0 hits for ormatRpForConfirm/Insights, useRouter, inline MONTHS arrays)
+
+### Decisions locked
+- 11-PR plan (page.js 898 → ~680, not 370 or 250)
+- Tests first; PRs 10-11 gated on passing tests
+- Form state stays local in page.js (Zustand slices for ui/data/filters/goals only)
+- popstate modal stack cut; use ESC + backdrop click
+- goalCelebration is a toast (not modal) — separate <Toast> primitive in PR 5
+- 3 byte-identical ormatRp copies consolidated to 1
+- PWA excluded from this cycle (deferred to post-port)
+
+### Next: PR 1 (Token layer, ~2 hours) or skip to PR 4 (<Sheet> primitive)
+
+## Session: June 16, 2026 (continued)
+
+### PR 1 — Design token layer (zero behavior change)
+- src/app/globals.css — added :root block with 16 semantic CSS custom properties (--bg, --surface, --surface-warm, --text-primary/secondary/tertiary, --income, --expense, --savings, --primary, --primary-deep, --warning, --danger, --hero-bg, --hero-mid, --hero-light) + [data-theme="dark"] override block
+- 	ailwind.config.js — added 16 semantic color keys (bg, surface, surface-warm, text-primary, text-secondary, text-tertiary, income, expense, savings, primary, primary-deep, warning, danger, hero-bg, hero-mid, hero-light) mapping to ar(--*)
+- src/lib/theme.js — NEW, exports getTheme() reading CSS vars via getComputedStyle, memoized + SSR-safe
+- 	ests/lib/theme.test.js — NEW, 4 tests (key set, cache identity, reset, SSR safety)
+- **No THEME callers migrated** (substrate only); behavior unchanged
+- Tests: 36 pass, 2 skip
+
+### PR 4 — <Sheet> primitive (8 modals unified)
+- src/app/dashboard/_components/Sheet.jsx — NEW, supports:
+  - Built-in header (	itle + subtitle + close X) OR custom header prop
+  - size ("sm"|"md"|"lg"), maxHeight, closeOnBackdrop, closeOnEsc, ooter, riaLabel props
+  - ESC key close (new — fixes inconsistency where 4 in-page modals lacked ESC)
+  - Body scroll lock while open
+  - Backdrop click closes (configurable)
+  - ole="dialog" aria-modal="true"
+- **Refactored 8 modals to use <Sheet>:**
+  1. ConfirmSheet.jsx (delete confirm) — custom header (trash icon + title + message) + footer (2 buttons); added closeOnBackdrop={!confirming} (was a minor bug — backdrop click during submit would close mid-operation)
+  2. EditTransactionModal.jsx — built-in header; added closeOnBackdrop={!submitting}
+  3. BudgetDetailModal.jsx — built-in header (subtitle + title)
+  4. GoalSetupModal.jsx — custom header (Target icon + title) for visual emphasis
+  5. GoalContributeModal.jsx — custom header (Plus icon + colored title)
+  6. BudgetSetupModal.jsx — custom header (Target icon + title)
+  7. page.js selectedDayTx modal — built-in header
+  8. page.js DrillDownModal — built-in header (subtitle "Top 10 Transaksi" + title)
+- 	ests/components/Sheet.test.jsx — NEW, 10 tests (closed-state, header types, body, footer, close button, ESC key, ESC disabled, body scroll lock restore)
+- **Deleted 6 duplicate ESC key useEffect handlers** (now in Sheet) — closes a real inconsistency
+- **Deleted 6 duplicate backdrop/scroll-lock code blocks**
+- page.js: 884 → 879 lines (-5; the bigger win is in the 6 component modals which collectively dropped ~100 lines)
+- ackdropFilter: "blur(8px)" matches: 8 → 2 (only Sheet.jsx + GoalsSection.jsx, which has its own delete confirm not in PR 4 scope)
+
+### Build & tests
+- 
+pm run build — ✓ Compiled successfully, dashboard 141 kB unchanged
+- 
+pm test — 46 passed, 2 skipped in 6s
+
+### File-level diff (PR 4 only)
+| File | Before | After | Delta |
+|---|---|---|---|
+| Sheet.jsx | 0 | 113 | +113 |
+| ConfirmSheet.jsx | 71 | 76 | +5 (header/footer props are more verbose) |
+| EditTransactionModal.jsx | 105 | 91 | -14 |
+| GoalSetupModal.jsx | 210 | 186 | -24 |
+| GoalContributeModal.jsx | 110 | 86 | -24 |
+| BudgetSetupModal.jsx | 125 | 102 | -23 |
+| BudgetDetailModal.jsx | 62 | 49 | -13 |
+| page.js | 884 | 879 | -5 |
+| 	ests/components/Sheet.test.jsx | 0 | 87 | +87 |
+| 	ests/lib/theme.test.js | 0 | 46 | +46 |
+| **Net** | | | **+150 lines** (mostly tests + Sheet definition) |
+
+### Next: PR 5 (<Toast> primitive) or PR 6 (Skeleton + last-sync + offline cache)
+
+## Session: June 16, 2026 (continued — PR 5)
+
+### PR 5 — <Toast> primitive (2 toasts unified)
+- src/app/dashboard/_components/Toast.jsx — NEW, supports:
+  - ariant ("info" | "success" | "error" | "celebration") with built-in backgrounds and icons
+  - position ("top" | "top-high" | "bottom") for vertical placement
+  - duration (ms) — auto-dismiss via setTimeout, progress bar via rAF
+  - ction prop — renders undo/action button
+  - 
+oPointerEvents — for non-blocking toasts (celebration)
+  - celebrationColor — overrides default gold gradient
+  - ole="status" aria-live="polite"
+- src/components/GoalCelebration.jsx — refactored to use <Toast variant="celebration"> internally (visual moved to Toast, confetti + vibrate side-effect stays)
+- src/app/dashboard/page.js:
+  - Replaced inline toast div (was lines 595-607) with <Toast> invocation
+  - showToast simplified — manual setTimeout TTL removed (now handled by <Toast duration>)
+  - Action button TTL extended to 8s when ction is present (was hardcoded 5s)
+  - Removed unused Check from lucide-react import
+- 	ests/components/Toast.test.jsx — NEW, 14 tests:
+  - Renders nothing when closed
+  - Renders children when open
+  - Renders Check icon for success/info variants
+  - Renders X icon for error variant
+  - No built-in icon for celebration variant
+  - Renders action button (with click)
+  - No action button when prop absent
+  - position="top" → top-6
+  - position="top-high" → top-20
+  - position="bottom" → bottom-24
+  - noPointerEvents → pointer-events-none
+  - Calls onDone after duration (fake timers)
+  - duration=0 → no auto-dismiss
+  - role="status" aria-live="polite"
+- **Pattern: setTimeout for onDone, rAF for progress bar smooth visual**
+  - setTimeout fires once after duration → calls onDone
+  - rAF ticks the progress bar smoothly from 100% → 0%
+  - Test uses i.useFakeTimers() to control setTimeout
+
+### Build & tests
+- 
+pm run build — ✓ dashboard 141 kB unchanged
+- 
+pm test — 60 passed, 2 skipped in 7s
+
+### File-level diff
+| File | Before | After | Delta |
+|---|---|---|---|
+| Toast.jsx | 0 | 109 | +109 |
+| GoalCelebration.jsx | 71 | 69 | -2 (visual moved to Toast) |
+| page.js (toast usage) | 13 | 11 | -2 (similar size) |
+| page.js (showToast) | 3 | 1 | -2 (TTL moved) |
+| 	ests/components/Toast.test.jsx | 0 | 108 | +108 |
+| **Net** | | | **+211 lines** (mostly tests + Toast definition) |
+
+### Primitives complete
+- ✅ PR 4: <Sheet> (8 modals)
+- ✅ PR 5: <Toast> (2 toasts: regular + goal celebration)
+
+### Next: PR 6 (Skeleton + last-sync + offline cache) — higher user value, more complex

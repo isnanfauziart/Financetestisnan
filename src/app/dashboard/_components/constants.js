@@ -39,3 +39,5 @@ export const SAVINGS_CATEGORIES = ["Tabungan Cash","Emas","Saham"]
 export const BANK_ACCOUNTS = ["Cash","Bank BCA","Bank BNI","Bank BRI","Bank Mandiri","OVO","DANA","ShoopePay","Gopay","BSI","Other Bank"]
 
 export const AVAILABLE_MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
+
+export const MONTHS_MAP = { Jan:0, Feb:1, Mar:2, Apr:3, Mei:4, Jun:5, Jul:6, Agu:7, Ags:7, Sep:8, Okt:9, Nov:10, Des:11 }

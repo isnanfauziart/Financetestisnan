@@ -1,6 +1,6 @@
 "use client"
 import { Pencil, Trash2, Plus, Calendar } from "lucide-react"
-import { THEME } from "@/app/dashboard/_components/constants"
+import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import GoalProgressRing from "./GoalProgressRing"
 
@@ -10,9 +10,8 @@ function deadlineLabel(deadline) {
   if (!m) return deadline
   const year = m[1]
   if (!m[2]) return year
-  const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
   const idx = Math.max(0, Math.min(11, parseInt(m[2], 10) - 1))
-  return `${months[idx]} ${year}`
+  return `${AVAILABLE_MONTHS[idx]} ${year}`
 }
 
 function etaLabel(progress, target, createdAt) {

@@ -9,6 +9,32 @@
                   radial-gradient(at 92% 12%, rgba(196,125,90,0.16) 0px, transparent 50%),
                   radial-gradient(at 88% 88%, rgba(91,140,122,0.14) 0px, transparent 50%),
                   radial-gradient(at 18% 88%, rgba(212,168,83,0.12) 0px, transparent 50%);
+
+  --bg: #fefaf3;
+  --surface: #ffffff;
+  --surface-warm: #f6efe5;
+  --text-primary: #4a3d33;
+  --text-secondary: #6b5b4f;
+  --text-tertiary: #9c8978;
+  --income: #5b8c7a;
+  --expense: #c47d5a;
+  --savings: #7aab9a;
+  --primary: #7c5fcf;
+  --primary-deep: #6349a8;
+  --warning: #d4a853;
+  --danger: #c44545;
+  --hero-bg: #1a1410;
+  --hero-mid: #3d3027;
+  --hero-light: #9f87ef;
+}
+
+[data-theme="dark"] {
+  --bg: #1a1410;
+  --surface: #2a2018;
+  --surface-warm: #3d3027;
+  --text-primary: #f6efe5;
+  --text-secondary: #d4c4b0;
+  --text-tertiary: #9c8978;
 }
 
 * {

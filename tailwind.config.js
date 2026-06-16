@@ -8,6 +8,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Semantic tokens (read from CSS vars defined in globals.css)
+        bg: 'var(--bg)',
+        surface: 'var(--surface)',
+        'surface-warm': 'var(--surface-warm)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-tertiary': 'var(--text-tertiary)',
+        income: 'var(--income)',
+        expense: 'var(--expense)',
+        savings: 'var(--savings)',
+        primary: 'var(--primary)',
+        'primary-deep': 'var(--primary-deep)',
+        warning: 'var(--warning)',
+        danger: 'var(--danger)',
+        'hero-bg': 'var(--hero-bg)',
+        'hero-mid': 'var(--hero-mid)',
+        'hero-light': 'var(--hero-light)',
+
         // Earth (neutral / surface)
         earth: {
           50: '#fefaf5',

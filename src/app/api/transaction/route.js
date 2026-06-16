@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
 import { getSheetData } from "@/lib/sheets"
+import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID
 
@@ -34,15 +35,13 @@ async function findNextEmptyRow(accessToken, sheetName) {
 function formatDate(dateStr) {
   const d = new Date(dateStr)
   const day = d.getDate()
-  const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
-  const month = months[d.getMonth()]
+  const month = AVAILABLE_MONTHS[d.getMonth()]
   const year = d.getFullYear()
   return `${day} ${month} ${year}`
 }
 
 function getMonthName(dateStr) {
-  const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
-  return months[new Date(dateStr).getMonth()]
+  return AVAILABLE_MONTHS[new Date(dateStr).getMonth()]
 }
 
 export async function POST(request) {

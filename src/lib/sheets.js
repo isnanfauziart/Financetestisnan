@@ -32,5 +32,3 @@ export function formatRupiah(amount) {
     maximumFractionDigits: 0,
   }).format(amount)
 }
-
-export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"]

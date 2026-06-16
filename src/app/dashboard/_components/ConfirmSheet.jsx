@@ -1,6 +1,7 @@
 "use client"
 import { Trash2, X } from "lucide-react"
 import { THEME } from "./constants"
+import Sheet from "./Sheet"
 
 export default function ConfirmSheet({
   title = "Konfirmasi",
@@ -13,18 +14,13 @@ export default function ConfirmSheet({
   confirming = false,
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-      style={{ background: "rgba(42,32,24,0.5)", backdropFilter: "blur(8px)" }}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="glass-strong rounded-t-[32px] sm:rounded-[32px] p-6 shadow-pop-lg w-full max-w-md animate-slide-up"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-start gap-3 mb-5">
+    <Sheet
+      open={true}
+      onClose={onClose}
+      size="md"
+      closeOnBackdrop={!confirming}
+      header={
+        <div className="flex items-start gap-3">
           <div
             className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
             style={{ background: confirmColor + "18", color: confirmColor }}
@@ -44,6 +40,8 @@ export default function ConfirmSheet({
             <X size={14} color={THEME.textSecondary} aria-hidden="true" />
           </button>
         </div>
+      }
+      footer={
         <div className="flex gap-2.5">
           <button
             onClick={onClose}
@@ -65,7 +63,7 @@ export default function ConfirmSheet({
             )}
           </button>
         </div>
-      </div>
-    </div>
+      }
+    />
   )
 }

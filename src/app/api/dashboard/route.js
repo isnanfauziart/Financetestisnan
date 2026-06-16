@@ -1,19 +1,10 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
+import { pickAmount } from "@/lib/parseSheetRow"
+import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
 export const dynamic = 'force-dynamic'
-
-function pickAmount(row, netIdx = 8, grossIdx = 4) {
-  const net = row[netIdx]
-  const gross = row[grossIdx]
-  const isNumeric = (v) => v != null && /^-?[\d.,]+$/.test(String(v).trim())
-  if (isNumeric(net)) {
-    const n = parseRupiah(net)
-    if (n > 0) return n
-  }
-  return parseRupiah(gross) || 0
-}
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -110,8 +101,7 @@ export async function GET() {
     }
 
     // Gabungkan data bulanan
-    const MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
-    const monthlyData = MONTHS
+    const monthlyData = AVAILABLE_MONTHS
       .filter(m => monthlyIncome[m] || monthlyExpense[m] || monthlySavings[m])
       .map(m => ({
         month: m,

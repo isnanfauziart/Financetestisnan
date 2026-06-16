@@ -1,15 +1,14 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../auth/[...nextauth]/route"
+import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID
-
-const MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
 
 function formatDate(dateStr) {
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return dateStr
   const day = d.getDate()
-  const month = MONTHS[d.getMonth()]
+  const month = AVAILABLE_MONTHS[d.getMonth()]
   const year = d.getFullYear()
   return `${day} ${month} ${year}`
 }
@@ -17,7 +16,7 @@ function formatDate(dateStr) {
 function getMonthName(dateStr) {
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return ""
-  return MONTHS[d.getMonth()]
+  return AVAILABLE_MONTHS[d.getMonth()]
 }
 
 export async function PUT(request, { params }) {

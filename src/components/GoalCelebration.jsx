@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useRef } from "react"
 import { CheckCircle2 } from "lucide-react"
+import Toast from "@/app/dashboard/_components/Toast"
 
 export default function GoalCelebration({ goal, onDone }) {
   const fired = useRef(false)
@@ -8,7 +9,6 @@ export default function GoalCelebration({ goal, onDone }) {
   useEffect(() => {
     if (fired.current) return
     fired.current = true
-
     if (typeof window === "undefined") return
 
     if (typeof navigator !== "undefined" && navigator.vibrate) {
@@ -50,22 +50,23 @@ export default function GoalCelebration({ goal, onDone }) {
       })
     }).catch(() => {})
 
-    const t = setTimeout(() => onDone && onDone(), 4000)
-    return () => { cancelled = true; clearTimeout(t) }
-  }, [goal, onDone])
+    return () => {
+      cancelled = true
+    }
+  }, [goal])
 
   return (
-    <div
-      className="fixed top-20 left-1/2 z-[60] px-5 py-3 rounded-2xl shadow-pop-lg text-sm font-bold text-white flex items-center gap-3 animate-slide-down pointer-events-none"
-      style={{
-        transform: "translateX(-50%)",
-        background: `linear-gradient(135deg, ${goal.color || "#5b8c7a"}, #d4a853)`,
-      }}
-      role="status"
-      aria-live="polite"
+    <Toast
+      open={true}
+      onDone={onDone}
+      variant="celebration"
+      position="top-high"
+      duration={4000}
+      noPointerEvents
+      celebrationColor={goal.color}
     >
       <CheckCircle2 size={18} strokeWidth={3} aria-hidden="true" />
-      Goal tercapai — {goal.nama} 🎉
-    </div>
+      <span>Goal tercapai — {goal.nama} 🎉</span>
+    </Toast>
   )
 }
