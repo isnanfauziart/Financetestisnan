@@ -37,6 +37,8 @@ export default function StatsTab({
   onToast,
   onEditTx,
   onDeleteTx,
+  haptics,
+  hapticsEnabled,
 }) {
   const [showDateRange, setShowDateRange] = useState(false)
   const hasDateRange = dateFrom || dateTo
@@ -206,7 +208,7 @@ export default function StatsTab({
                 <Pie
                   data={incomeCategories} cx="50%" cy="50%" innerRadius={42} outerRadius={64}
                   paddingAngle={2} dataKey="value" stroke="none"
-                  onClick={(d) => { setCategoryFilter(d.name) }}
+                  onClick={(d) => { if (hapticsEnabled) haptics.tap(); setCategoryFilter(d.name) }}
                   labelLine={false}
                   label={({ percent }) => percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : ''}
                   style={{ fontSize: '10px', fontWeight: 700 }}
@@ -247,7 +249,7 @@ export default function StatsTab({
                 <Pie
                   data={expenseCategories} cx="50%" cy="50%" innerRadius={42} outerRadius={64}
                   paddingAngle={2} dataKey="value" stroke="none"
-                  onClick={(d) => { setCategoryFilter(d.name) }}
+                  onClick={(d) => { if (hapticsEnabled) haptics.tap(); setCategoryFilter(d.name) }}
                   labelLine={false}
                   label={({ percent }) => percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : ''}
                   style={{ fontSize: '10px', fontWeight: 700 }}

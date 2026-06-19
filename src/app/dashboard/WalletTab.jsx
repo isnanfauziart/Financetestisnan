@@ -30,7 +30,7 @@ export default function WalletTab({ txType, formData, rawAmount, submitting, set
           </h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit({ formData, rawAmount, txType }) }} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="amount-input" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Amount</label>

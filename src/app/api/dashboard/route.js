@@ -148,7 +148,20 @@ export async function GET() {
     // Reverse to show newest transactions first roughly (assuming appended at bottom)
     transactions.reverse()
 
-    return Response.json({ totalIncome, totalExpense, totalSurplus, totalSavings, profitMargin, monthlyData, categories, transactions, netWorth, netWorthMonthlyDelta, netWorthHistory })
+    return Response.json({
+      totalIncome,
+      totalExpense,
+      totalSurplus,
+      totalSavings,
+      profitMargin,
+      monthlyData,
+      categories,
+      transactions,
+      netWorth,
+      netWorthMonthlyDelta,
+      netWorthHistory,
+      serverTimestamp: new Date().toISOString(),
+    })
   } catch (err) {
     console.error(err)
     return Response.json({ error: err.message }, { status: 500 })

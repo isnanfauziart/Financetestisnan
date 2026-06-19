@@ -2,7 +2,7 @@
 import { LogOut } from "lucide-react"
 import { THEME } from "./_components/constants"
 
-export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled }) {
+export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled }) {
   return (
     <div className="px-5 pt-4 flex flex-col items-center animate-bento-in" key="profile-tab">
       <div className="relative mb-5">
@@ -37,6 +37,21 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
             <span
               className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-warm transition-transform"
               style={{ transform: soundEnabled ? "translateX(22px)" : "translateX(2px)" }}
+            />
+          </button>
+        </div>
+        <div className="flex justify-between items-center border-b border-earth-100 pb-3">
+          <span className="text-sm font-medium text-earth-500">Haptic Feedback</span>
+          <button
+            onClick={() => setHapticsEnabled(!hapticsEnabled)}
+            aria-label={`Haptic feedback ${hapticsEnabled ? "on" : "off"}`}
+            aria-pressed={hapticsEnabled}
+            className="relative w-11 h-6 rounded-full transition-colors"
+            style={{ background: hapticsEnabled ? THEME.primary : THEME.surfaceWarm }}
+          >
+            <span
+              className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-warm transition-transform"
+              style={{ transform: hapticsEnabled ? "translateX(22px)" : "translateX(2px)" }}
             />
           </button>
         </div>

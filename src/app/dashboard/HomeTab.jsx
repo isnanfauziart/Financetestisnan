@@ -5,6 +5,7 @@ import { THEME } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
 import GoalsSection from "@/components/GoalsSection"
+import BudgetStatusCard from "@/components/BudgetStatusCard"
 
 export default function HomeTab({
   data, session,
@@ -13,7 +14,8 @@ export default function HomeTab({
   expenseRatio, gaugeAngle, gaugeColor,
   recent5,
   setActiveNav, openQuickAdd, setDrillDown,
-  onToast, onGoalsRefresh,
+  onToast, goalsRefreshTrigger,
+  filteredTransactions,
 }) {
   const animatedBalance = useCountUpOvershoot(data?.totalSavings || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)
@@ -153,6 +155,12 @@ export default function HomeTab({
           <p className="text-3xl font-display font-bold -mt-3" style={{ color: gaugeColor }}>{expenseRatio.toFixed(1)}%</p>
         </div>
       </div>
+
+      {/* Budget status (compact summary, hides if no budgets) */}
+      <BudgetStatusCard
+        filteredTransactions={filteredTransactions}
+        setActiveNav={setActiveNav}
+      />
 
       {/* Goals */}
       <GoalsSection

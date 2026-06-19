@@ -50,7 +50,7 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
           </div>
           <p className="text-[10px] text-earth-500">{goal.kategori}</p>
         </div>
-        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <div className="flex gap-0.5 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button onClick={onEdit} aria-label={`Edit ${goal.nama} goal`} className="w-6 h-6 rounded-lg bg-earth-50 hover:bg-violet-100 flex items-center justify-center text-earth-500 hover:text-violet-600">
             <Pencil size={11} aria-hidden="true" />
           </button>

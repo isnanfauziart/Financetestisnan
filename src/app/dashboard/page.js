@@ -4,6 +4,8 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { LogOut, Plus, X, ChevronDown, Activity, User, Home, ArrowUpRight, Wallet, Sparkles, Lightbulb, TrendingUp, TrendingDown, PiggyBank, Target, Calendar, CreditCard } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { useCountUp, useSoundPref, playSuccessSound, parseTxDate, formatRp } from "./_components/helpers"
+import useHaptics from "./_components/useHaptics"
+import useHapticsPref from "./_components/useHapticsPref"
 import { computeAllGoalProgress, computeGoalProgress } from "./_components/goalUtils"
 import EmptyState from "./_components/EmptyState"
 import HomeTab from "./HomeTab"
@@ -14,16 +16,36 @@ import EditTransactionModal from "./_components/EditTransactionModal"
 import ConfirmSheet from "./_components/ConfirmSheet"
 import Sheet from "./_components/Sheet"
 import Toast from "./_components/Toast"
+import Skeleton from "./_components/Skeleton"
+import QuickAddSheet from "./_components/QuickAddSheet"
+import { readCache, writeCache, getLastSyncAgo } from "./_components/useDashboardCache"
 import GoalCelebration from "@/components/GoalCelebration"
 
 export default function Dashboard() {
   const { data: session, status } = useSession()
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(() => {
+    if (typeof window === "undefined") return null
+    return readCache()?.data || null
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window === "undefined") return true
+    return !readCache()?.data
+  })
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
+  const [lastSyncAt, setLastSyncAt] = useState(() => {
+    if (typeof window === "undefined") return null
+    return readCache()?.cachedAt || null
+  })
+  const [isOnline, setIsOnline] = useState(() => {
+    if (typeof window === "undefined") return true
+    return navigator.onLine
+  })
+  const [syncNow, setSyncNow] = useState(() => Date.now())
   const [activeNav, setActiveNav] = useState("home")
   const [soundEnabled, setSoundEnabled] = useSoundPref()
+  const [hapticsEnabled, setHapticsEnabled] = useHapticsPref()
+  const haptics = useHaptics()
 
   // Form state
   const [txType, setTxType] = useState("expense")
@@ -34,6 +56,7 @@ export default function Dashboard() {
   const [editingTx, setEditingTx] = useState(null)
   const [deleteConfirmTx, setDeleteConfirmTx] = useState(null)
   const [deletingTx, setDeletingTx] = useState(false)
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
 
   // Stats state
   const [selectedMonth, setSelectedMonth] = useState("Semua Bulan")
@@ -71,12 +94,38 @@ export default function Dashboard() {
     if (data) setRefreshing(true)
     fetch("/api/dashboard")
       .then(r => r.json())
-      .then(d => { if (d.error) setError(d.error); else setData(d) })
+      .then(d => {
+        if (d.error) {
+          setError(d.error)
+        } else {
+          setData(d)
+          setError(null)
+          const ts = d.serverTimestamp || new Date().toISOString()
+          setLastSyncAt(ts)
+          writeCache(d)
+        }
+      })
       .catch(e => { setError(e.message) })
       .finally(() => { setLoading(false); setRefreshing(false) })
   }, [session, data])
 
   useEffect(() => { if (session && !data) fetchData() }, [session, data, fetchData])
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true)
+    const onOffline = () => setIsOnline(false)
+    window.addEventListener("online", onOnline)
+    window.addEventListener("offline", onOffline)
+    return () => {
+      window.removeEventListener("online", onOnline)
+      window.removeEventListener("offline", onOffline)
+    }
+  }, [])
+
+  useEffect(() => {
+    const id = setInterval(() => setSyncNow(Date.now()), 30000)
+    return () => clearInterval(id)
+  }, [])
 
   const checkGoalCelebration = useCallback(async () => {
     try {
@@ -358,13 +407,11 @@ export default function Dashboard() {
     setToast({ msg, type, action })
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const submitTransaction = async ({ formData, rawAmount, txType }) => {
     if (!formData.tanggal || !formData.kategori || !rawAmount) {
       showToast("Tanggal, kategori, dan jumlah wajib diisi!", "error")
-      return
+      return false
     }
-    setSubmitting(true)
     try {
       const res = await fetch("/api/transaction", {
         method: "POST",
@@ -373,28 +420,40 @@ export default function Dashboard() {
       })
       const result = await res.json()
       if (result.success) {
-        if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50)
+        if (hapticsEnabled) haptics.success()
         if (soundEnabled) playSuccessSound()
         const rowNote = result.rowIndex ? ` · baris ${result.rowIndex}` : ""
         showToast(`Transaksi berhasil disimpan! ✓${rowNote}`)
-        setFormData({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "" })
-        setRawAmount("")
         fetchData()
         setGoalsRefreshTrigger(t => t + 1)
         if (txType === "savings") {
           setTimeout(() => checkGoalCelebration(), 800)
         }
+        return true
       } else {
         showToast(result.error || "Gagal menyimpan", "error")
+        return false
       }
     } catch (err) {
       showToast("Terjadi kesalahan", "error")
+      return false
     }
-    setSubmitting(false)
+  }
+
+  const handleWalletSubmit = (data) => {
+    setSubmitting(true)
+    submitTransaction(data).then((ok) => {
+      if (ok) {
+        setFormData({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "" })
+        setRawAmount("")
+      }
+      setSubmitting(false)
+    })
   }
 
   const handleEditSave = () => {
     setEditingTx(null)
+    if (hapticsEnabled) haptics.success()
     if (soundEnabled) playSuccessSound()
     showToast("Transaksi diperbarui ✓")
     fetchData()
@@ -426,10 +485,14 @@ export default function Dashboard() {
         const err = await res.json()
         throw new Error(err.error || "Gagal menghapus")
       }
-      showToast("Transaksi dihapus")
+      if (hapticsEnabled) haptics.warning()
       setDeleteConfirmTx(null)
-      fetchData()
       setGoalsRefreshTrigger(t => t + 1)
+      showToast("Transaksi dihapus", "success", {
+        label: "Undo",
+        onClick: () => restoreTransaction(tx),
+      })
+      fetchData()
     } catch (err) {
       showToast(err.message, "error")
     } finally {
@@ -437,7 +500,37 @@ export default function Dashboard() {
     }
   }
 
-  if (status === "loading" || loading) {
+  const restoreTransaction = async (tx) => {
+    setToast(null)
+    try {
+      const res = await fetch("/api/transaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tanggal: tx.date,
+          keterangan: tx.desc || "",
+          kategori: tx.category,
+          jumlah: String(tx.amount),
+          akunBank: tx.account || "",
+          catatan: "",
+          type: tx.type,
+        }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        if (hapticsEnabled) haptics.success()
+        showToast("Transaksi dipulihkan ✓")
+        fetchData()
+        setGoalsRefreshTrigger(t => t + 1)
+      } else {
+        showToast(result.error || "Gagal memulihkan", "error")
+      }
+    } catch {
+      showToast("Gagal memulihkan", "error")
+    }
+  }
+
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <div className="relative">
@@ -449,7 +542,24 @@ export default function Dashboard() {
     )
   }
 
-  if (error) {
+  if (loading && !data) {
+    return (
+      <div className="min-h-screen p-5 space-y-4">
+        <div className="grid grid-cols-3 gap-3 auto-rows-[110px] pt-6">
+          <Skeleton variant="hero" className="col-span-2 row-span-2" />
+          <Skeleton variant="tile" />
+          <Skeleton variant="tile" />
+          <Skeleton variant="tile" />
+          <Skeleton variant="tile" />
+        </div>
+        <Skeleton variant="chart" />
+        <Skeleton variant="card" />
+        <Skeleton variant="card" />
+      </div>
+    )
+  }
+
+  if (error && !data) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="glass-strong rounded-[32px] p-8 max-w-sm w-full text-center">
@@ -576,7 +686,7 @@ export default function Dashboard() {
 
   const openQuickAdd = (type = "expense") => {
     setTxType(type)
-    setActiveNav("wallet")
+    setQuickAddOpen(true)
   }
 
   const topCategory = expenseCategories[0] || { name: "—", value: 0 }
@@ -598,7 +708,7 @@ export default function Dashboard() {
           open={!!toast}
           onDone={() => setToast(null)}
           variant={toast.type}
-          position="top"
+          position="bottom"
           duration={toast.action ? 8000 : 5000}
           action={toast.action}
         >
@@ -620,6 +730,15 @@ export default function Dashboard() {
               {activeNav === "wallet" && "Add Transaction"}
               {activeNav === "profile" && "Profile"}
             </h1>
+            {activeNav === "home" && lastSyncAt && (
+              <p className="text-[10px] font-bold text-earth-500 mt-1 tracking-wide">
+                {!isOnline
+                  ? `Offline · ${getLastSyncAgo(lastSyncAt, syncNow)}`
+                  : refreshing
+                    ? "Memperbarui..."
+                    : `Synced ${getLastSyncAgo(lastSyncAt, syncNow)}`}
+              </p>
+            )}
           </div>
           {activeNav === "home" && (
             <button onClick={() => setActiveNav("profile")} aria-label="Open profile" className="relative active:scale-95 transition-transform flex-shrink-0 ml-3">
@@ -664,6 +783,7 @@ export default function Dashboard() {
             setActiveNav={setActiveNav} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
             onToast={showToast}
             goalsRefreshTrigger={goalsRefreshTrigger}
+            filteredTransactions={filteredTransactions}
           />
         )}
         {activeNav === "stats" && (
@@ -689,16 +809,18 @@ export default function Dashboard() {
             onToast={showToast}
             onEditTx={handleEditTx}
             onDeleteTx={handleDelete}
+            haptics={haptics}
+            hapticsEnabled={hapticsEnabled}
           />
         )}
         {activeNav === "wallet" && (
           <WalletTab
             txType={txType} formData={formData} rawAmount={rawAmount} submitting={submitting}
-            setTxType={setTxType} setFormData={setFormData} setRawAmount={setRawAmount} handleSubmit={handleSubmit}
+            setTxType={setTxType} setFormData={setFormData} setRawAmount={setRawAmount} handleSubmit={handleWalletSubmit}
           />
         )}
         {activeNav === "profile" && (
-          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
+          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} />
         )}
       </div>
 
@@ -768,10 +890,20 @@ export default function Dashboard() {
         />
       )}
 
+      {/* Quick-add sheet (mobile-native fast path) */}
+      <QuickAddSheet
+        open={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        initialType={txType}
+        onSubmit={submitTransaction}
+      />
+
       {/* Goal celebration */}
       {goalCelebration && (
         <GoalCelebration
           goal={goalCelebration}
+          haptics={haptics}
+          hapticsEnabled={hapticsEnabled}
           onDone={() => setGoalCelebration(null)}
         />
       )}
@@ -788,7 +920,7 @@ export default function Dashboard() {
             const isActive = activeNav === nav.id
             if (nav.isFab) {
               return (
-                <button key={nav.id} onClick={() => setActiveNav(nav.id)} aria-label={nav.aria} aria-current={isActive ? "page" : undefined} className="-mt-8 active:scale-95 transition-transform">
+                <button key={nav.id} onClick={() => { if (hapticsEnabled) haptics.tap(); setActiveNav(nav.id) }} aria-label={nav.aria} aria-current={isActive ? "page" : undefined} className="-mt-8 active:scale-95 transition-transform">
                   <div className="w-14 h-14 rounded-2xl mesh-aurora shadow-pop flex items-center justify-center" style={{ boxShadow: "0 12px 32px rgba(124,95,207,0.4)" }}>
                     <nav.icon size={24} color="white" strokeWidth={2.5} aria-hidden="true" />
                   </div>
@@ -796,7 +928,7 @@ export default function Dashboard() {
               )
             }
             return (
-              <button key={nav.id} onClick={() => setActiveNav(nav.id)} aria-label={nav.aria} aria-current={isActive ? "page" : undefined} className="flex flex-col items-center gap-0.5 group relative px-3 py-1 rounded-2xl transition-all">
+              <button key={nav.id} onClick={() => { if (hapticsEnabled) haptics.tap(); setActiveNav(nav.id) }} aria-label={nav.aria} aria-current={isActive ? "page" : undefined} className="flex flex-col items-center gap-0.5 group relative px-3 py-1 rounded-2xl transition-all">
                 {isActive && (
                   <span className="absolute inset-0 rounded-2xl animate-scale-in" style={{ background: THEME.surfaceWarm }} />
                 )}
@@ -860,7 +992,7 @@ function DrillDownModal({ drillDown, data, onClose, onEdit, onDelete }) {
                     style={{ color: colorOfType }}>
                     {drillDown.type === "income" ? "+" : drillDown.type === "savings" ? "" : "-"}{formatRp(t.amount)}
                   </p>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
                     <button onClick={() => onEdit(t)} aria-label={`Edit ${t.category}`} className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-violet-100 flex items-center justify-center text-earth-600 hover:text-violet-600">
                       <span className="text-xs">✎</span>
                     </button>

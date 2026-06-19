@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react"
 import { CheckCircle2 } from "lucide-react"
 import Toast from "@/app/dashboard/_components/Toast"
 
-export default function GoalCelebration({ goal, onDone }) {
+export default function GoalCelebration({ goal, haptics, hapticsEnabled, onDone }) {
   const fired = useRef(false)
 
   useEffect(() => {
@@ -11,9 +11,7 @@ export default function GoalCelebration({ goal, onDone }) {
     fired.current = true
     if (typeof window === "undefined") return
 
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-      try { navigator.vibrate([50, 30, 50]) } catch {}
-    }
+    if (hapticsEnabled) haptics.success()
 
     let cancelled = false
     import("canvas-confetti").then(({ default: confetti }) => {

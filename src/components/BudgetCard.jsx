@@ -42,7 +42,7 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete })
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: status.color + "18", color: status.color }}>
             {status.text}
           </span>
-          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-0.5 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
             <button onClick={onEdit} aria-label={`Edit ${budget.kategori} budget`} className="w-6 h-6 rounded-lg bg-earth-50 hover:bg-violet-100 flex items-center justify-center text-earth-500 hover:text-violet-600">
               <Pencil size={11} aria-hidden="true" />
             </button>

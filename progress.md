@@ -714,3 +714,320 @@ pm test — 60 passed, 2 skipped in 7s
 - ✅ PR 5: <Toast> (2 toasts: regular + goal celebration)
 
 ### Next: PR 6 (Skeleton + last-sync + offline cache) — higher user value, more complex
+
+## Session: June 16, 2026 (continued — PR 6)
+
+### PR 6 — <Skeleton> + last-sync + offline cache
+- src/app/dashboard/_components/Skeleton.jsx — NEW, 5 variants: tile (h-[110px]), card (h-[140px]), row (h-[64px]), chart (h-[180px]), hero (h-[220px]); aria-hidden
+- src/app/dashboard/_components/useDashboardCache.js — NEW, 4 functions:
+  - eadCache() — localStorage read with SSR safety
+  - writeCache(data) — localStorage write with fresh cachedAt timestamp
+  - invalidateCache() — localStorage remove
+  - getLastSyncAgo(cachedAt, now?) — formats "baru saja"/"Xm lalu"/"Xj lalu"/"Xh lalu"
+- src/app/api/dashboard/route.js — added serverTimestamp: new Date().toISOString() to response
+- src/app/dashboard/page.js:
+  - State initialized from cache via lazy useState(() => ...) (SSR-safe with 	ypeof window guard)
+  - etchData now writes cache + sets lastSyncAt on success; keeps cached data on fetch error
+  - isOnline state with online/offline event listeners
+  - syncNow state updates every 30s for fresh "Xm ago" text
+  - Loading state split: status === "loading" → spinner; loading && !data → bento skeleton (5 tiles + chart + 2 cards)
+  - Error state: only shows error screen if no cached data (error && !data)
+  - Sync indicator in header: "Synced Xm ago" / "Memperbarui..." / "Offline · Xm ago"
+  - **Bug fix:** Found orphaned const router = useRouter() (PR 3 left the import removed but kept the var — was causing build to fail). Removed it.
+- 	ests/lib/useDashboardCache.test.js — NEW, 12 tests (read/write/invalidate/getLastSyncAgo with all time formats)
+- 	ests/components/Skeleton.test.jsx — NEW, 8 tests (5 variants, className merge, aria-hidden)
+
+### Build & tests
+- 
+pm run build — ✓ dashboard 142 kB (+1 kB for new code)
+- 
+pm test — 80 passed, 2 skipped in 10s
+
+### User-facing wins
+- **Instant paint on cold start** — cached data renders immediately
+- **Offline-survivable** — cached data + "Offline · Xm ago" indicator
+- **Visible freshness** — header shows "Synced Xm ago" updating every 30s
+- **Bento skeleton** — 5-tile placeholder matches the real home grid (no more "centered spinner" on first load)
+- **Resilient refetch** — fetch failure keeps cached data; only shows error screen if no cache
+
+### File-level diff
+| File | Before | After | Delta |
+|---|---|---|---|
+| Skeleton.jsx | 0 | 16 | +16 |
+| useDashboardCache.js | 0 | 38 | +38 |
+| page.js | 879 | 948 | +69 (state init, bento skeleton, sync indicator, listeners) |
+| pi/dashboard/route.js | 165 | 166 | +1 (serverTimestamp) |
+| 	ests/lib/useDashboardCache.test.js | 0 | 89 | +89 |
+| 	ests/components/Skeleton.test.jsx | 0 | 41 | +41 |
+| **Net** | | | **+254 lines** (mostly tests + new primitives) |
+
+### Next: PR 7 (useHaptics + Snackbar reposition) or PR 8 (hover-only fix on cards)
+
+## Session: June 18, 2026
+
+### PR 7 — useHaptics() hook + bottom-anchored Snackbar
+
+**Decisions locked:**
+- Conservative vibration patterns (tap=10, select=5, success=50, warning=[100,50,100], error=[200,100,200,100,200]ms)
+- GoalCelebration's raw `navigator.vibrate([50,30,50])` migrated to `haptics.success()` (one canonical vibration path)
+- Hook files live in `src/app/dashboard/_components/` as separate files (not consolidated into helpers.js)
+- localStorage key: `hapticsEnabled` (mirrors existing `soundEnabled` key — bare, not versioned)
+
+**Files changed:**
+- **Created**:
+  - `src/app/dashboard/_components/useHaptics.js` (29 lines) — pure hook, returns `{tap, select, success, warning, error}`; feature-detects `navigator.vibrate`, try/catch for security-policy blocks
+  - `src/app/dashboard/_components/useHapticsPref.js` (17 lines) — mirror of `useSoundPref` from `helpers.js:66-78`; localStorage key `hapticsEnabled`
+  - `tests/lib/useHaptics.test.js` (108 lines, 12 tests) — verifies each pattern, no-op on undefined vibrate, no-op on throw, SSR-safe, pref read/write defaults
+- **Modified**:
+  - `src/app/dashboard/page.js` (5 wiring points + 1 toast position):
+    - Lines 6-7: import `useHaptics` + `useHapticsPref`
+    - Lines 44-45: instantiate `[hapticsEnabled, setHapticsEnabled] = useHapticsPref()` and `haptics = useHaptics()`
+    - Line 419: `navigator.vibrate(50)` → `if (hapticsEnabled) haptics.success()`
+    - Line 441: handleEditSave gains `if (hapticsEnabled) haptics.success()` (mirrors playSuccessSound symmetry)
+    - Line 475: performDelete gains `if (hapticsEnabled) haptics.warning()` (NEW — wasn't a haptic point before)
+    - Line 663: `<Toast position="top">` → `<Toast position="bottom">` (Snackbar reposition; Toast primitive already supports it from PR 5)
+    - Lines 851-868: bottom nav (4 buttons: FAB + 3 tabs) all wrap `setActiveNav` in `if (hapticsEnabled) haptics.tap()`
+    - Line 772: forward `hapticsEnabled` + `setHapticsEnabled` to `<ProfileTab>`
+    - Line 756: forward `haptics` + `hapticsEnabled` to `<StatsTab>`
+    - Line 844: forward `haptics` + `hapticsEnabled` to `<GoalCelebration>`
+  - `src/app/dashboard/StatsTab.jsx` (2 pie onClick):
+    - Props destructure gains `haptics, hapticsEnabled` (line 39-40)
+    - Lines 209, 250: pie slice `onClick={(d) => { setCategoryFilter(d.name) }}` → `onClick={(d) => { if (hapticsEnabled) haptics.tap(); setCategoryFilter(d.name) }}`
+  - `src/app/dashboard/ProfileTab.jsx` (1 new toggle row):
+    - Props destructure gains `hapticsEnabled, setHapticsEnabled` (line 5)
+    - New row between Sound Effects and Log Out: identical toggle structure, "Haptic Feedback" label
+  - `src/components/GoalCelebration.jsx` (migration):
+    - Props destructure gains `haptics, hapticsEnabled` (line 6)
+    - Lines 14-16: raw `navigator.vibrate([50,30,50])` → `if (hapticsEnabled) haptics.success()` (50ms — close to original 50-30-50 cadence; no double-pulse equivalent in success pattern)
+
+**Verification:**
+- `npm run build` — ✓ Compiled successfully, dashboard 142 kB (unchanged from PR 6)
+- `npm test` — 92 passed, 2 skipped in 13.28s (was 80 + 2 before, +12 new useHaptics tests)
+- All 6 routes generate successfully
+
+**User-facing wins:**
+- Bottom nav taps now give 10ms vibration on Android (was 0ms — silent)
+- Pie slice taps give 10ms vibration (was 0ms)
+- Add tx: 50ms success vibration (was 50ms — same)
+- Edit tx: NEW 50ms success vibration (was 0ms)
+- Delete tx: NEW 100-50-100ms warning vibration (was 0ms)
+- Goal 100%: 50ms success vibration (was [50,30,50] — close)
+- Profile toggle: users can now opt out of all haptics
+- iOS Safari / desktop / SSR: all silent (no `navigator.vibrate` support)
+- Snackbar now appears at `bottom-24` instead of `top-6` — Android Snackbar-style UX
+
+**File-level diff (PR 7 only):**
+| File | Before | After | Delta |
+|---|---|---|---|
+| useHaptics.js | 0 | 29 | +29 |
+| useHapticsPref.js | 0 | 17 | +17 |
+| useHaptics.test.js | 0 | 108 | +108 |
+| page.js | 948 | ~970 | +22 (5 wiring points + position change + 2 new prop forwards) |
+| StatsTab.jsx | 449 | ~452 | +3 (2 onClick + 2 new props) |
+| ProfileTab.jsx | 50 | ~78 | +28 (new toggle row) |
+| GoalCelebration.jsx | 72 | ~72 | ~0 (migration, equal size) |
+| **Net** | | | **+207 lines** (mostly tests + new hooks) |
+
+**Decisions / Notes:**
+- "Haptic Feedback" label chosen over "Vibration" / "Haptics" — matches iOS Settings (Sounds & Haptics) and Android System (Sound & vibration) mental models
+- Conservative pattern intensities: 5/10/50/100/200ms (sub-100ms for taps, escalating for warning/error). Future v2 can add "Haptic intensity" settings (Low/Med/High → 3 pattern tables)
+- Pattern table in `useHaptics.js` is a const outside the hook → not re-allocated on each render
+- Hook is RN-portable: 1-line swap of `navigator.vibrate(pattern)` for `expo-haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)` in Phase 4
+- Did NOT add haptic on: pull-to-refresh release, recap row click, modal close, RecapSection pagination. Deferred per "Out of scope" in PR 7 plan
+
+**Out of scope (deferred):**
+- Reduced-motion guard (some users have haptic-sensitivity conditions; can add `if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) haptics.tap()` later)
+- Haptic on PullToRefresh release (60px threshold reached in handleTouchEnd)
+- Haptic on RecapSection row click / modal open-close
+- Haptic intensity settings (Low/Med/High)
+
+### Next: PR 8 (hover-only fix on GoalCard/BudgetCard) — touch-device bug
+
+## Session: June 18, 2026 (continued — PR 8)
+
+### PR 8 — Hover-only fix on GoalCard/BudgetCard (touch device bug)
+
+**Problem:**
+- 3 sites used `opacity-0 group-hover:opacity-100` to hide edit/delete buttons until card hover
+- On Android Chrome (and any touch device), there's no `:hover` state, so buttons were permanently invisible
+- Users couldn't edit or delete goals/budgets/transactions from their phone
+- Bug was filed under "touch device" UX, not Android-specific — affects iOS Safari, Android Chrome, any `(hover: none)` device
+
+**Solution: `can-hover:` Tailwind custom variant**
+- New variant in `tailwind.config.js` wrapping `@media (hover: hover) and (pointer: fine)` — the standard "device with mouse-like interaction" test
+- Pattern at each site: `opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity`
+- CSS cascade:
+  - Default (touch): only `opacity-100` applies → always visible
+  - On hover-fine devices: `can-hover:opacity-0` overrides → hidden
+  - On hover-fine devices, on group hover: `can-hover:group-hover:opacity-100` overrides → visible
+- The `pointer: fine` part is important: hybrid devices (touchscreen + mouse) have `(hover: hover) AND (pointer: coarse)`. Without `pointer: fine`, we'd hide buttons on hybrids even though the user touch-first. With it, we keep buttons visible on any touch-capable device
+
+**Why custom variant over inline arbitrary:**
+- Inline `[@media(hover:hover)_and_(pointer:fine)]:opacity-0` is 50+ chars per use
+- Custom variant `can-hover:opacity-0` is 22 chars + 1 config line
+- Reusable for future touch fixes (e.g., future kebab menu triggers, long-press cards, hover-reveal tips)
+
+**Files changed:**
+- **Modified**:
+  - `tailwind.config.js` (+7 lines): import `tailwindcss/plugin`, register `addVariant("can-hover", "@media (hover: hover) and (pointer: fine)")` in `plugins: [...]`
+  - `src/components/GoalCard.jsx:53`: `opacity-0 group-hover:opacity-100` → `opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100`
+  - `src/components/BudgetCard.jsx:45`: same change
+  - `src/app/dashboard/page.js:942` (DrillDownModal transaction row): same change (was NOT in the original PR 8 brief but had the same bug — included in the fix)
+- **Created**:
+  - `tests/components/GoalCard.test.jsx` (60 lines, 8 tests): name+category render, "Selesai" badge, Kontribusi button visibility, edit/delete buttons in DOM (the touch fix proof), click handlers fire
+  - `tests/components/BudgetCard.test.jsx` (62 lines, 9 tests): name+account+progress render, 4 status levels (Sehat/Warning/Hampir/Over), account badge omission, edit/delete buttons in DOM, click handlers fire
+
+**Verification:**
+- `npm run build` — ✓ Compiled successfully, dashboard 142 kB (unchanged from PR 7)
+- `npm test` — 109 passed, 2 skipped in 17.5s (was 92 + 2 before, +17 new)
+- Compiled CSS contains:
+  ```css
+  @media (hover:hover) and (pointer:fine){
+    .can-hover\:opacity-0{opacity:0}
+    .group:hover .can-hover\:group-hover\:opacity-100{opacity:1}
+  }
+  ```
+- All 6 routes generate successfully
+
+**User-facing wins:**
+- Android Chrome: edit/delete buttons on goal cards, budget cards, and drill-down rows are now ALWAYS visible (no hover required)
+- iOS Safari: same fix
+- iPad with Magic Keyboard: still hover-only (correct — user has fine pointer)
+- Surface Pro (touch + type cover): still always visible (correct — touch-first)
+- Desktop with mouse: unchanged — hover-to-reveal still works
+- No regressions on desktop UX
+
+**File-level diff (PR 8 only):**
+| File | Before | After | Delta |
+|---|---|---|---|
+| tailwind.config.js | 219 | 226 | +7 (custom variant) |
+| GoalCard.jsx | 93 | 93 | 0 (class swap, equal length) |
+| BudgetCard.jsx | 61 | 61 | 0 (class swap, equal length) |
+| page.js (DrillDownModal) | 948 | 948 | 0 (class swap, equal length) |
+| tests/components/GoalCard.test.jsx | 0 | 60 | +60 |
+| tests/components/BudgetCard.test.jsx | 0 | 62 | +62 |
+| **Net** | | | **+129 lines** (mostly tests + 7-line config) |
+
+**Decisions / Notes:**
+- Naming: chose `can-hover:` (most common naming in 2024-2025 design system code) over `pointer-fine-hover:` (more precise but verbose) over `hvr:` (too cryptic)
+- Variant handles the common case (hover + fine pointer). Hybrid devices correctly fall into the "always visible" bucket
+- Did NOT add a kebab menu or alternative UI on hover-reveal — just made the existing pattern work on touch. Kebab menus are a v1.1 enhancement, not a fix
+- The 3 sites are now consistent — same pattern at each. Future devs will copy the pattern when adding new cards
+- NativeWind v4 supports custom variants out of the box (Phase 2 of the Android port), so `can-hover:` carries over to the React Native app
+
+**Out of scope (deferred):**
+- "Long-press to reveal" as alternative for touch (could be useful for kebab menus in v1.1)
+- Hover-only `bento-tile:hover { transform: translateY(-2px) }` already in CSS (line ~108 of compiled CSS) — this still works on touch via `:active` (browser default) so no fix needed there
+- Group-hover on RecapSection rows: RecapSection already has always-visible Edit/Delete buttons (per June 14 session), so no fix needed
+
+### Next: PR 9 (Quick-Add Sheet + Undo Delete + Budget Status Card on Home)
+
+## Session: June 18, 2026 (continued — PR 9)
+
+### PR 9 — Quick-Add Sheet + Undo Delete + Budget Status Card on Home
+
+**Three user-facing features shipped in one PR:**
+
+1. **Quick-Add Sheet** — condensed bottom-sheet form, mobile-native fast path
+2. **Undo Delete** — toast with action button restores deleted tx
+3. **Budget Status Card on Home** — compact budget health summary section
+
+**Decisions locked (from pre-PR planning session):**
+- Quick-Add Sheet + WalletTab both exist; FAB → sheet, nav-bar "Add" → WalletTab
+- Undo = append as new row (no API restore endpoint)
+- Budget Status Card = section below Spending Ratio (top 3 urgent budgets as rows)
+
+**Files changed:**
+- **Created**:
+  - `src/app/dashboard/_components/QuickAddSheet.jsx` (~115 lines) — condensed form, self-contained state, uses `<Sheet>` primitive from PR 4
+  - `src/components/BudgetStatusCard.jsx` (~135 lines) — fetches `/api/budgets?month=&year=` for current month, computes urgency, shows top 3 (≥70% spent) as tappable rows
+  - `tests/components/QuickAddSheet.test.jsx` (10 tests) — closed/open render, type pills, initialType, default selection, submit button disabled state, form data shape on submit, success closes sheet, failure keeps sheet open
+  - `tests/components/BudgetStatusCard.test.jsx` (11 tests) — fetches with current month/year, hides when no budgets, shimmer skeleton during loading, "all healthy" empty state, over/hampir summary chips, spent computation, top-3 sort, click navigation
+- **Modified**:
+  - `src/app/dashboard/page.js` (6 surgical edits):
+    - Added `quickAddOpen` state (line ~53)
+    - Renamed `handleSubmit` → `submitTransaction` with new signature `({ formData, rawAmount, txType }) => Promise<boolean>`; returns true/false instead of implicit success
+    - Added `handleWalletSubmit` thin wrapper that manages page-level `submitting` state + form reset
+    - Added `restoreTransaction` function — POSTs deleted tx fields back to `/api/transaction`
+    - Modified `performDelete` to show `showToast("Transaksi dihapus", "success", { label: "Undo", onClick: () => restoreTransaction(tx) })` instead of plain toast
+    - Modified `openQuickAdd` to open sheet (`setQuickAddOpen(true)`) instead of `setActiveNav("wallet")`
+    - Imported `QuickAddSheet`
+    - Added `<QuickAddSheet>` render after EditTransactionModal block
+    - Threaded `filteredTransactions` to `<HomeTab>`
+    - Updated `<WalletTab>` to use `handleWalletSubmit` (the wrapper) instead of `handleSubmit`
+  - `src/app/dashboard/WalletTab.jsx` (1 line): form `onSubmit` now wraps `handleSubmit({ formData, rawAmount, txType })` instead of bare event handler
+  - `src/app/dashboard/HomeTab.jsx` (3 edits): imported `BudgetStatusCard`, added `filteredTransactions` prop, inserted `<BudgetStatusCard>` between Spending Ratio gauge and `<GoalsSection>`
+
+**The `submitTransaction` refactor — the only behavior-adjacent change in PR 9:**
+
+Before (PR 8):
+```js
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  if (!formData.tanggal || !formData.kategori || !rawAmount) { showToast(...); return }
+  setSubmitting(true)
+  try { ... POST ... } finally { setSubmitting(false) }
+}
+// Wired: <WalletTab handleSubmit={handleSubmit} />
+```
+
+After (PR 9):
+```js
+const submitTransaction = async ({ formData, rawAmount, txType }) => {
+  if (!formData.tanggal || !formData.kategori || !rawAmount) { showToast(...); return false }
+  try { ... POST ...; return true } catch { ...; return false }
+}
+const handleWalletSubmit = (data) => {
+  setSubmitting(true)
+  submitTransaction(data).then((ok) => {
+    if (ok) { setFormData(initial); setRawAmount("") }
+    setSubmitting(false)
+  })
+}
+// Wired: <WalletTab handleSubmit={handleWalletSubmit} />
+// Wired: <QuickAddSheet onSubmit={submitTransaction} />
+```
+
+Behavior preserved: WalletTab's full form still works identically (submit, spinner, form reset, toasts, haptics, goal celebration). The split just makes the submit logic reusable for QuickAddSheet without coupling to page-level state.
+
+**Verification:**
+- `npm run build` — ✓ Compiled successfully, dashboard 143 kB (was 142, +1 kB for 2 new components)
+- `npm test` — 130 passed, 2 skipped in 38s (was 109 + 2 before, +21 new tests)
+- All 6 routes generate successfully
+- Manual smoke (pending): FAB → Quick-Add Sheet appears, fill + submit → data refreshes, sheet closes, user stays on current tab
+
+**User-facing wins:**
+- Tap FAB on any tab → Quick-Add Sheet pops up over current view (was: full tab switch losing context)
+- Delete a transaction → 8-second window to Undo via toast action button (was: no recovery, data gone forever)
+- Home tab now shows at-a-glance Budget Status with over/hampir counts + top 3 most urgent categories (was: had to navigate to Stats tab to check budgets)
+- Nav-bar "Add" still goes to WalletTab (full form, full features) — both paths coexist
+
+**File-level diff (PR 9 only):**
+| File | Before | After | Delta |
+|---|---|---|---|
+| QuickAddSheet.jsx | 0 | 115 | +115 |
+| BudgetStatusCard.jsx | 0 | 135 | +135 |
+| QuickAddSheet.test.jsx | 0 | 138 | +138 |
+| BudgetStatusCard.test.jsx | 0 | 169 | +169 |
+| page.js | 958 | ~995 | +37 (state + 2 functions + render + 2 prop forwards + import) |
+| WalletTab.jsx | 64 | 64 | 0 (semantic swap, same line count) |
+| HomeTab.jsx | 212 | ~224 | +12 (import + 1 prop + 1 section) |
+| **Net** | | | **+606 lines** (mostly new components + tests) |
+
+**Decisions / Notes:**
+- Quick-Add Sheet is a separate, condensed form (not a wrapper around WalletTab's form). Different fields, different UX. Form duplication is ~30 lines and contained.
+- `submitTransaction` signature: `({ formData, rawAmount, txType }) => Promise<boolean>`. Boolean return lets callers know if validation succeeded (QuickAddSheet uses this to decide whether to close the sheet).
+- Undo restore uses today's date format from the deleted tx (`tx.date` passed through). Sheets re-parses on write. If user notices a date format issue, a proper `parseTxDateToISO` converter can be extracted in PR 10.
+- BudgetStatusCard self-fetches budgets (doesn't reuse BudgetsSection's data layer). Trade-off: 2x fetch on tabs that render both. PR 11 (Zustand) will consolidate.
+- act() warnings in tests for QuickAddSheet + BudgetStatusCard — cosmetic, async state updates inside promise resolutions not wrapped in `act()`. Tests still pass. Fix would be a refactor of the submit handlers; deferred.
+
+**Out of scope (deferred):**
+- TransactionForm shared component extraction (~30 lines of duplication). Extract in PR 10.
+- Undo restore to original rowIndex (would need API endpoint)
+- Date format converter for undo payload
+- BudgetStatusCard filters (account, month) — fixed to current month, all accounts
+- Edit modal from BudgetStatusCard tap — currently navigates to Stats tab
+
+### Next: PR 10 (Extract src/lib/) — REQUIRES 1-WEEK PRODUCTION OBSERVATION WINDOW FIRST
+
+
