@@ -1031,3 +1031,24 @@ Behavior preserved: WalletTab's full form still works identically (submit, spinn
 ### Next: PR 10 (Extract src/lib/) â€” REQUIRES 1-WEEK PRODUCTION OBSERVATION WINDOW FIRST
 
 
+
+
+### Hotfix: Google OAuth token refresh (June 19, 2026)
+- **Issue:** Production dashboard crashed with UNAUTHENTICATED 401 from Google Sheets API. Google OAuth access tokens expire after ~1 hour; the previous NextAuth config stored ccess_token on sign-in but never refreshed it. After expiry, every /api/dashboard (and other Sheets calls) returned 401 and the dashboard rendered an error state.
+- **Fix:**
+  1. **New src/lib/auth.js** — extracted efreshAccessToken(token) that POSTs to https://oauth2.googleapis.com/token with grant_type=refresh_token, returns updated token or { error: "RefreshAccessTokenError" } on failure. Keeps existing efresh_token if Google doesn't rotate it.
+  2. **src/app/api/auth/[...nextauth]/route.js** — jwt callback now:
+     - Stores efreshToken and ccessTokenExpires (using ccount.expires_at if provided, else Date.now() + 60 min) on initial sign-in
+     - Returns existing token if not yet expired
+     - Calls efreshAccessToken when expired
+  3. **Session callback** — surfaces 	oken.error to session.error so UI can show "session expired, sign in again" if refresh fails
+  4. **src/app/dashboard/HomeTab.jsx:169** — fixed prop name: efreshTrigger={onGoalsRefresh} ? efreshTrigger={goalsRefreshTrigger}. The destructured prop is goalsRefreshTrigger (line 17), so onGoalsRefresh was always undefined, meaning GoalsSection never auto-refreshed on new transactions. Functional bug, not a crash.
+- **Verification:**
+  - 
+pm run build — Compiled successfully, dashboard 143 kB (unchanged), all 6 routes
+  - 
+pm test — 135 passed, 2 skipped (+5 new auth tests, was 130 + 2)
+  - New 	ests/lib/auth.test.js covers: happy path, refresh token rotation, no-rotation keep, non-OK response, network error, expiry math
+- **User action required:** Sign out and sign back in once to seed the new efreshToken in the JWT (existing sessions may not have efresh_token stored because the old config didn't capture it). Subsequent token refreshes will work automatically.
+- **Why PR 9 specifically:** PR 9 added BudgetStatusCard which makes its own /api/budgets call. This doubled Sheets API traffic on the home tab and accelerated token-expiry error reproduction. The root cause (no refresh logic) predates PR 9, but PR 9 made the failure user-visible.
+

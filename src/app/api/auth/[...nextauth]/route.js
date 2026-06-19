@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import { refreshAccessToken } from "@/lib/auth"
 
 export const authOptions = {
   providers: [
@@ -19,11 +20,20 @@ export const authOptions = {
     async jwt({ token, account }) {
       if (account) {
         token.accessToken = account.access_token
+        token.refreshToken = account.refresh_token
+        token.accessTokenExpires = account.expires_at
+          ? account.expires_at * 1000
+          : Date.now() + 60 * 60 * 1000
+        return token
       }
-      return token
+      if (Date.now() < (token.accessTokenExpires ?? 0)) {
+        return token
+      }
+      return await refreshAccessToken(token)
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken
+      if (token.error) session.error = token.error
       return session
     },
   },

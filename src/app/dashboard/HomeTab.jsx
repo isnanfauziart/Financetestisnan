@@ -166,7 +166,7 @@ export default function HomeTab({
       <GoalsSection
         transactions={data?.transactions}
         onToast={onToast}
-        refreshTrigger={onGoalsRefresh}
+        refreshTrigger={goalsRefreshTrigger}
       />
 
       {/* Recent transactions */}
