@@ -1,4 +1,4 @@
-const KEY = "isnan.dashboard.cache.v1"
+const KEY = "isnan.dashboard.cache.v2"
 
 function isBrowser() {
   return typeof window !== "undefined" && typeof localStorage !== "undefined"
