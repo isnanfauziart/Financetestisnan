@@ -13,13 +13,13 @@ const dmSans = DM_Sans({
 })
 
 export const metadata = {
-  title: "Keuangan Isnan",
-  description: "Dashboard Keuangan Pribadi",
+  title: "Artoku",
+  description: "Dashboard keuangan pribadi",
   manifest: "/manifest.json",
 }
 
 export const viewport = {
-  themeColor: "#6b5b4f",
+  themeColor: "#9f87ef",
 }
 
 export default function RootLayout({ children }) {

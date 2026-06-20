@@ -216,7 +216,7 @@ export function generateReportHTML({
 <body>
 
 <h1>LAPORAN KEUANGAN BULANAN</h1>
-<p class="subtitle">${esc(month)} ${esc(year)} &mdash; Keuangan Isnan Finance</p>
+<p class="subtitle">${esc(month)} ${esc(year)} &mdash; Artoku</p>
 
 ${healthScore ? `
 <div style="text-align:center; margin-bottom:12pt;">
@@ -363,7 +363,7 @@ ${prevTx ? `
 ` : ""}
 
 <div class="footer">
-  Dibuat otomatis oleh Keuangan Isnan Finance &mdash; ${timestamp}
+  Dibuat otomatis oleh Artoku &mdash; ${timestamp}
 </div>
 
 </body>

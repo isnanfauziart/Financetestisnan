@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.artoku.app",
+      "sha256_cert_fingerprints": ["34:CF:44:8C:93:D7:DA:49:73:8B:D8:BB:E8:4D:8D:E4:83:67:07:C0:FD:22:B4:A9:0B:0F:89:E0:3C:30:64:F2"]
+    }
+  }
+]

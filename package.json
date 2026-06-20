@@ -8,9 +8,11 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "generate:icons": "node scripts/generate-icons.js"
   },
   "dependencies": {
+    "@bubblewrap/core": "^1.24.1",
     "canvas-confetti": "^1.9.4",
     "googleapis": "^140.0.1",
     "lucide-react": "^0.460.0",
@@ -30,6 +32,7 @@
     "autoprefixer": "^10.0.1",
     "jsdom": "^24.0.0",
     "postcss": "^8",
+    "sharp": "^0.35.2",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^1.6.0"

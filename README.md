@@ -1,4 +1,4 @@
-# 💰 Keuangan Isnan — Finance Dashboard
+# 💰 Artoku — Finance Dashboard
 
 Dashboard keuangan pribadi berbasis Next.js yang terhubung langsung ke Google Sheets.
 

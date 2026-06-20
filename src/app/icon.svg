@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdf8f3"/>
+      <stop offset="100%" stop-color="#ede0d0"/>
+    </linearGradient>
+    <linearGradient id="violetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b8a5f7"/>
+      <stop offset="100%" stop-color="#9f87ef"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" ry="7" fill="url(#bgGrad)"/>
+  <!-- Wallet body -->
+  <rect x="8" y="10" width="16" height="14" rx="3" ry="3" fill="url(#violetGrad)"/>
+  <!-- Wallet flap -->
+  <path d="M8 12 L8 10 C8 9 9 8 10 8 L22 8 C23 8 24 9 24 10 L24 12 Z" fill="url(#violetGrad)" opacity="0.9"/>
+  <!-- Wallet clasp -->
+  <circle cx="22" cy="17" r="2.5" fill="#fdf8f3" opacity="0.9"/>
+  <circle cx="22" cy="17" r="1.5" fill="url(#violetGrad)" opacity="0.7"/>
+  <!-- Letter A -->
+  <text x="16" y="22" font-family="Georgia, serif" font-size="9" font-weight="bold" fill="#fdf8f3" text-anchor="middle" opacity="0.95">A</text>
+</svg>

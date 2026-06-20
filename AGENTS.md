@@ -1,4 +1,4 @@
-# AGENTS.md — Keuangan Isnan Finance Dashboard
+# AGENTS.md — Artoku Finance Dashboard
 
 ## Stack
 - Next.js 14.2.5 (App Router), React 18, JavaScript only (no TypeScript)
