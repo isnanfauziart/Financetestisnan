@@ -1,20 +1,20 @@
 "use client"
 import { useMemo, useState } from "react"
-import { Info, PiggyBank, Shield, Target, Crosshair, TrendingUp, TrendingDown, ChevronRight } from "lucide-react"
+import { Info, PiggyBank, Shield, Target, TrendingDown, TrendingUp, ChevronRight } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { useCountUp } from "@/app/dashboard/_components/helpers"
-import { useBudgets, useGoals } from "@/lib/useSharedData"
+import { useBudgets } from "@/lib/useSharedData"
 import { computeHealthScore } from "@/lib/healthScore"
 import Sheet from "@/app/dashboard/_components/Sheet"
 
-const ICONS = { PiggyBank, Shield, Target, Crosshair, TrendingUp }
+const ICONS = { PiggyBank, Shield, Target, TrendingDown, TrendingUp }
 
 const FORMULA_ROWS = [
   { label: "Savings Rate", weight: "30%", desc: "Rata-rata (Pemasukan \u2013 Pengeluaran) / Pemasukan. Target: \u2265 20%" },
   { label: "Emergency Fund", weight: "25%", desc: "(Tabungan Cash + Emas) / rata-rata pengeluaran bulanan. Target: \u2265 6 bulan" },
-  { label: "Budget Adherence", weight: "20%", desc: "Kategori di bawah limit / total kategori berbudget. Tanpa budget = netral (50)" },
-  { label: "Goal Progress", weight: "15%", desc: "Rata-rata progress semua goals aktif. Tanpa goals = netral (50)" },
-  { label: "Income Stability", weight: "10%", desc: "Konsistensi pemasukan 3 bulan terakhir (1 \u2013 koefisien variasi)" },
+  { label: "Budget Adherence", weight: "20%", desc: "Kategori di bawah limit / total kategori berbudget. Tanpa budget = tidak aktif" },
+  { label: "Expense Trend", weight: "15%", desc: "Tren pengeluaran 6 bulan terakhir (linear regression). Turun = bagus, naik = buruk" },
+  { label: "Income Stability", weight: "10%", desc: "Konsistensi pemasukan (1 \u2013 koefisien variasi). Butuh \u2265 2 bulan data" },
 ]
 
 export default function HealthScoreCard({
@@ -28,12 +28,11 @@ export default function HealthScoreCard({
     selectedMonth && selectedMonth !== "Semua Bulan" ? selectedMonth : "",
     selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : ""
   )
-  const { goals } = useGoals()
 
   const healthResult = useMemo(() => {
     if (!transactions || transactions.length === 0) return null
-    return computeHealthScore({ transactions, monthlyData, budgets, goals })
-  }, [transactions, monthlyData, budgets, goals])
+    return computeHealthScore({ transactions, monthlyData, budgets })
+  }, [transactions, monthlyData, budgets])
 
   const animatedScore = useCountUp(healthResult?.score || 0, 1400)
 
@@ -122,33 +121,40 @@ export default function HealthScoreCard({
         <div className="space-y-3">
           {components.map((c, i) => {
             const Icon = ICONS[c.icon] || Info
+            const isActive = c.score !== null
             return (
-              <div key={c.key} className="flex items-center gap-3">
+              <div key={c.key} className={`flex items-center gap-3 ${!isActive ? "opacity-40" : ""}`}>
                 <div
                   className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: gradeColor + "12", color: gradeColor }}
+                  style={{ background: isActive ? gradeColor + "12" : THEME.surfaceWarm, color: isActive ? gradeColor : "#b8a590" }}
                 >
                   <Icon size={13} aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-[11px] font-semibold text-earth-700">{c.label}</span>
-                    <span className="text-[10px] font-bold text-earth-500">{Math.round(c.score)}</span>
+                    <span className="text-[10px] font-bold text-earth-500">
+                      {isActive ? Math.round(c.score) : "\u2014"}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: THEME.surfaceWarm }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${Math.min(100, c.score)}%`,
-                          background: c.score >= 70 ? THEME.savings : c.score >= 40 ? THEME.warning : THEME.danger,
-                          transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
-                          transitionDelay: `${400 + i * 80}ms`,
-                        }}
-                      />
+                  {isActive ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: THEME.surfaceWarm }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${Math.min(100, c.score)}%`,
+                            background: c.score >= 70 ? THEME.savings : c.score >= 40 ? THEME.warning : THEME.danger,
+                            transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+                            transitionDelay: `${400 + i * 80}ms`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-earth-500 w-16 text-right flex-shrink-0 truncate">{c.detail}</span>
                     </div>
-                    <span className="text-[9px] text-earth-500 w-16 text-right flex-shrink-0 truncate">{c.detail}</span>
-                  </div>
+                  ) : (
+                    <p className="text-[9px] text-earth-400">{c.detail}</p>
+                  )}
                 </div>
               </div>
             )
@@ -171,7 +177,7 @@ export default function HealthScoreCard({
         maxHeight="85vh"
       >
         <p className="text-xs text-earth-600 mb-4">
-          Skor dihitung dari 5 komponen yang masing-masing memiliki bobot berbeda:
+          Skor dihitung dari 5 komponen. Komponen tanpa data tidak ikut dihitung (bobot didistribusikan ke komponen aktif):
         </p>
         <div className="space-y-3">
           {FORMULA_ROWS.map((row, i) => (

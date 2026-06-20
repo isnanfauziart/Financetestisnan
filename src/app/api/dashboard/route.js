@@ -1,8 +1,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
-import { getSheetData, parseRupiah } from "@/lib/sheets"
+import { getSheetData } from "@/lib/sheets"
 import { pickAmount } from "@/lib/parseSheetRow"
-import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
 export const dynamic = 'force-dynamic'
 
@@ -13,8 +12,6 @@ export async function GET() {
   }
 
   try {
-    const SHEET_ID = process.env.SPREADSHEET_ID
-
     // Baca transaksi pemasukan (kolom: Tanggal, ID, Ket, Kategori, Jumlah, Pajak, Biaya, AkunBank, Net, Catatan, M, Y, Y2)
     const incomeRows = await getSheetData(session.accessToken, "Pemasukan!A:M")
     // Baca transaksi pengeluaran
@@ -23,16 +20,20 @@ export async function GET() {
     const savingsRows = await getSheetData(session.accessToken, "Tabungan!A:M").catch(() => [])
 
     const transactions = []
+    const MONTH_ORDER = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, Mei: 5, Jun: 6, Jul: 7, Agu: 8, Sep: 9, Okt: 10, Nov: 11, Des: 12 }
+    const mkKey = (m, y) => `${y}-${String(MONTH_ORDER[m] || 0).padStart(2, "0")}`
 
-    // Parse pemasukan per bulan
+    // Parse pemasukan per bulan (keyed by "Jan 2025" format)
     const monthlyIncome = {}
     for (let i = 1; i < incomeRows.length; i++) {
       const row = incomeRows[i]
       if (!row || !row[10]) continue // kolom M = nama bulan
       const month = String(row[10]).trim()
+      const year = String(row[11] || new Date().getFullYear()).trim()
       const amount = pickAmount(row)
       if (amount > 0) {
-        monthlyIncome[month] = (monthlyIncome[month] || 0) + amount
+        const key = `${month} ${year}`
+        monthlyIncome[key] = (monthlyIncome[key] || 0) + amount
         transactions.push({
           id: row[1] || `in-${i}`,
           rowIndex: i + 1,
@@ -42,7 +43,7 @@ export async function GET() {
           amount: amount,
           type: "income",
           month: month,
-          year: String(row[11] || new Date().getFullYear()).trim(),
+          year: year,
           account: String(row[7] || "").trim()
         })
       }
@@ -55,10 +56,12 @@ export async function GET() {
       const row = expenseRows[i]
       if (!row || !row[10]) continue
       const month = String(row[10]).trim()
+      const year = String(row[11] || new Date().getFullYear()).trim()
       const cat = String(row[3] || "Lainnya").trim()
       const amount = pickAmount(row)
       if (amount > 0) {
-        monthlyExpense[month] = (monthlyExpense[month] || 0) + amount
+        const key = `${month} ${year}`
+        monthlyExpense[key] = (monthlyExpense[key] || 0) + amount
         categoryMap[cat] = (categoryMap[cat] || 0) + amount
         transactions.push({
           id: row[1] || `ex-${i}`,
@@ -69,7 +72,7 @@ export async function GET() {
           amount: amount,
           type: "expense",
           month: month,
-          year: String(row[11] || new Date().getFullYear()).trim(),
+          year: year,
           account: String(row[7] || "").trim()
         })
       }
@@ -81,10 +84,12 @@ export async function GET() {
       const row = savingsRows[i]
       if (!row || !row[10]) continue
       const month = String(row[10]).trim()
+      const year = String(row[11] || new Date().getFullYear()).trim()
       const cat = String(row[3] || "Tabungan").trim()
       const amount = pickAmount(row)
       if (amount > 0) {
-        monthlySavings[month] = (monthlySavings[month] || 0) + amount
+        const key = `${month} ${year}`
+        monthlySavings[key] = (monthlySavings[key] || 0) + amount
         transactions.push({
           id: row[1] || `sv-${i}`,
           rowIndex: i + 1,
@@ -94,22 +99,30 @@ export async function GET() {
           amount: amount,
           type: "savings",
           month: month,
-          year: String(row[11] || new Date().getFullYear()).trim(),
+          year: year,
           account: String(row[7] || "").trim()
         })
       }
     }
 
-    // Gabungkan data bulanan
-    const monthlyData = AVAILABLE_MONTHS
-      .filter(m => monthlyIncome[m] || monthlyExpense[m] || monthlySavings[m])
-      .map(m => ({
-        month: m,
-        pemasukan: monthlyIncome[m] || 0,
-        pengeluaran: monthlyExpense[m] || 0,
-        surplus: (monthlyIncome[m] || 0) - (monthlyExpense[m] || 0),
-        tabungan: monthlySavings[m] || 0,
-      }))
+    // Gabungkan data bulanan — year-aware, sorted chronologically
+    const allKeys = new Set([...Object.keys(monthlyIncome), ...Object.keys(monthlyExpense), ...Object.keys(monthlySavings)])
+    const monthlyData = Array.from(allKeys)
+      .map(k => {
+        const parts = k.split(" ")
+        const month = parts[0]
+        const year = parts[1]
+        return {
+          month,
+          year,
+          sortKey: mkKey(month, year),
+          pemasukan: monthlyIncome[k] || 0,
+          pengeluaran: monthlyExpense[k] || 0,
+          surplus: (monthlyIncome[k] || 0) - (monthlyExpense[k] || 0),
+          tabungan: monthlySavings[k] || 0,
+        }
+      })
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
 
     const totalIncome = Object.values(monthlyIncome).reduce((s, v) => s + v, 0)
     const totalExpense = Object.values(monthlyExpense).reduce((s, v) => s + v, 0)
@@ -124,11 +137,9 @@ export async function GET() {
 
     // Compute net worth: cumulative (income - expense + savings) over time
     // Net Worth = (Income − Expense) + Savings  (savings treated as accumulated wealth)
-    const MONTH_ORDER = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, Mei: 5, Jun: 6, Jul: 7, Agu: 8, Sep: 9, Okt: 10, Nov: 11, Des: 12 }
-    const monthlyKey = (m, y) => `${y}-${String(MONTH_ORDER[m] || 0).padStart(2, "0")}`
     const yearMonthAmounts = {}
     for (const t of transactions) {
-      const k = monthlyKey(t.month, t.year)
+      const k = mkKey(t.month, t.year)
       if (!yearMonthAmounts[k]) yearMonthAmounts[k] = { income: 0, expense: 0, savings: 0, month: t.month, year: t.year }
       yearMonthAmounts[k][t.type] += t.amount
     }

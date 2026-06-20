@@ -1,5 +1,4 @@
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
-import { computeGoalProgress } from "@/app/dashboard/_components/goalUtils"
 
 function formatRpFull(amount) {
   return new Intl.NumberFormat("id-ID", {
@@ -32,8 +31,7 @@ function prevMonth(month, year) {
  * @param {string} params.year — e.g. "2026"
  * @param {Array}  params.transactions — filtered to month/year
  * @param {Array}  params.budgets — filtered to month/year
- * @param {Array}  params.goals — all goals
- * @param {Array}  params.allTransactions — all transactions (for goal progress)
+ * @param {Array}  params.allTransactions — all transactions
  * @param {Array}  params.monthlyData — full monthlyData (for trend context)
  * @param {Object} [params.healthScore] — { score, grade } from computeHealthScore
  * @returns {string} — complete HTML document string
@@ -43,7 +41,6 @@ export function generateReportHTML({
   year,
   transactions,
   budgets,
-  goals,
   allTransactions,
   monthlyData,
   healthScore,
@@ -82,13 +79,6 @@ export function generateReportHTML({
     const usedPct = limit > 0 ? (spent / limit) * 100 : 0
     const status = usedPct >= 100 ? "Over" : usedPct >= 90 ? "Hampir" : usedPct >= 70 ? "Warning" : "Sehat"
     return { ...b, spent, usedPct, status }
-  })
-
-  // Goals progress
-  const goalRows = (goals || []).map((g) => {
-    const sum = computeGoalProgress(g, allTransactions || [])
-    const pct = g.target > 0 ? Math.min(100, (sum / g.target) * 100) : 0
-    return { ...g, sum, pct }
   })
 
   const timestamp = new Date().toLocaleString("id-ID", {
@@ -344,8 +334,8 @@ ${prevTx ? `
   <thead>
     <tr>
       <th>Metrik</th>
-      <th class="num">${esc(prev.month)}</th>
-      <th class="num">${esc(month)}</th>
+      <th class="num">${esc(prev.month)} ${esc(prev.year)}</th>
+      <th class="num">${esc(month)} ${esc(year)}</th>
       <th class="num">Perubahan</th>
     </tr>
   </thead>
@@ -368,29 +358,6 @@ ${prevTx ? `
       <td class="num ${surplus >= 0 ? 'positive' : 'negative'}">${formatRpFull(surplus)}</td>
       <td class="num ${surplus >= prevSurplus ? 'delta-positive' : 'delta-negative'}">${surplus >= prevSurplus ? "\u2191" : "\u2193"} ${formatRpFull(Math.abs(surplus - prevSurplus))}</td>
     </tr>
-  </tbody>
-</table>
-` : ""}
-
-${goalRows.length > 0 ? `
-<h2>Progress Goals</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Goal</th>
-      <th class="num">Terkumpul</th>
-      <th class="num">Target</th>
-      <th class="num">%</th>
-    </tr>
-  </thead>
-  <tbody>
-    ${goalRows.map((g) => `
-    <tr>
-      <td>${esc(g.nama || g.kategori || "Goal")}</td>
-      <td class="num">${formatRpFull(g.sum)}</td>
-      <td class="num">${formatRpFull(g.target)}</td>
-      <td class="num ${g.pct >= 100 ? 'positive' : ''}">${g.pct.toFixed(0)}%${g.pct >= 100 ? " \u2713" : ""}</td>
-    </tr>`).join("")}
   </tbody>
 </table>
 ` : ""}

@@ -1052,3 +1052,14 @@ pm test — 135 passed, 2 skipped (+5 new auth tests, was 130 + 2)
 - **User action required:** Sign out and sign back in once to seed the new efreshToken in the JWT (existing sessions may not have efresh_token stored because the old config didn't capture it). Subsequent token refreshes will work automatically.
 - **Why PR 9 specifically:** PR 9 added BudgetStatusCard which makes its own /api/budgets call. This doubled Sheets API traffic on the home tab and accelerated token-expiry error reproduction. The root cause (no refresh logic) predates PR 9, but PR 9 made the failure user-visible.
 
+
+
+### Favicon fix (June 20, 2026)
+- **Issue:** Browser console showed GET /favicon.ico 404 (Not Found) on every page load. No favicon file existed anywhere in the project.
+- **Fix:**
+  1. **src/app/favicon.ico** (new, 1118 bytes) — 16x16 violet gradient circle, generated via Node.js script. Served automatically by Next.js App Router at /favicon.ico.
+  2. **src/app/icon.svg** (new, 706 bytes) — SVG favicon with violet gradient rounded rect + white chart line + gold accent stroke. Served at /icon.svg via Next.js file convention. Modern browsers use this as primary icon.
+- **Verification:** 
+pm run build compiled successfully, /icon.svg route auto-registered. 135 tests pass.
+- **No layout.js changes needed** — Next.js App Router auto-generates <link rel="icon"> tags from special files in src/app/.
+

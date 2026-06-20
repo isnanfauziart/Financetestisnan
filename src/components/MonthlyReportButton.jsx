@@ -1,12 +1,11 @@
 "use client"
 import { useMemo } from "react"
 import { FileText, Download } from "lucide-react"
-import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
-import { useBudgets, useGoals } from "@/lib/useSharedData"
+import { useBudgets } from "@/lib/useSharedData"
 import { generateReportHTML } from "@/lib/report"
 import { computeHealthScore } from "@/lib/healthScore"
-import Sheet from "@/app/dashboard/_components/Sheet"
 
 export default function MonthlyReportButton({
   selectedMonth,
@@ -23,12 +22,19 @@ export default function MonthlyReportButton({
     canReport ? selectedMonth : "",
     canReport ? selectedYear : ""
   )
-  const { goals } = useGoals()
+
+  // Filter monthlyData to the selected month/year for month-specific health score
+  const monthFilteredData = useMemo(() => {
+    if (!canReport || !monthlyData) return []
+    return monthlyData.filter(
+      (m) => m.month === selectedMonth && String(m.year) === String(selectedYear)
+    )
+  }, [canReport, monthlyData, selectedMonth, selectedYear])
 
   const healthScore = useMemo(() => {
     if (!canReport || !transactions || transactions.length === 0) return null
-    return computeHealthScore({ transactions, monthlyData, budgets, goals })
-  }, [canReport, transactions, monthlyData, budgets, goals])
+    return computeHealthScore({ transactions, monthlyData: monthFilteredData, budgets })
+  }, [canReport, transactions, monthFilteredData, budgets])
 
   const handleDownload = () => {
     const html = generateReportHTML({
@@ -36,7 +42,6 @@ export default function MonthlyReportButton({
       year: selectedYear,
       transactions: transactions || [],
       budgets: budgets || [],
-      goals: goals || [],
       allTransactions: allTransactions || [],
       monthlyData: monthlyData || [],
       healthScore,

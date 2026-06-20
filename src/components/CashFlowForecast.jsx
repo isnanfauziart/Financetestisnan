@@ -1,6 +1,6 @@
 "use client"
 import { useMemo } from "react"
-import { TrendingUp, ArrowDownRight, ArrowUpRight, Info, Wallet } from "lucide-react"
+import { TrendingUp, Info } from "lucide-react"
 import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp, useCountUp } from "@/app/dashboard/_components/helpers"
@@ -100,7 +100,7 @@ export default function CashFlowForecast({ monthlyData }) {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.surfaceWarm} vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="label"
               tick={{ fontSize: 10, fill: "#9c8978", fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
@@ -134,7 +134,7 @@ export default function CashFlowForecast({ monthlyData }) {
             {/* Actual surplus area + line */}
             <Area
               type="monotone"
-              dataKey={(d) => (d.isProjected ? null : d.surplus)}
+              dataKey="surplusActual"
               stroke="none"
               fill="url(#cfActualGrad)"
               fillOpacity={1}
@@ -143,7 +143,7 @@ export default function CashFlowForecast({ monthlyData }) {
             />
             <Line
               type="monotone"
-              dataKey={(d) => (d.isProjected ? null : d.surplus)}
+              dataKey="surplusActual"
               stroke={THEME.primary}
               strokeWidth={2.5}
               dot={{ r: 3.5, fill: THEME.primary, strokeWidth: 2, stroke: "#fff" }}
@@ -154,7 +154,7 @@ export default function CashFlowForecast({ monthlyData }) {
             {/* Projected surplus dashed line */}
             <Line
               type="monotone"
-              dataKey={(d) => (d.isProjected ? d.surplus : null)}
+              dataKey="surplusProjected"
               stroke={THEME.warning}
               strokeWidth={2}
               strokeDasharray="6 4"
