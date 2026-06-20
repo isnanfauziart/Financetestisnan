@@ -633,10 +633,6 @@ export default function Dashboard() {
     return row
   })
 
-  const expenseRatio = statIncome > 0 ? (statExpense / statIncome) * 100 : 0
-  const gaugeAngle = Math.min(expenseRatio / 100 * 180, 180)
-  const gaugeColor = expenseRatio < 50 ? THEME.savings : expenseRatio < 80 ? THEME.warning : THEME.danger
-
   const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
   const calMonthIdx = AVAILABLE_MONTHS.indexOf(calMonth)
   const daysInCalMonth = new Date(calYear, calMonthIdx + 1, 0).getDate()
@@ -778,12 +774,13 @@ export default function Dashboard() {
             data={data} session={session}
             statIncome={statIncome} statExpense={statExpense} statSavings={statSavings}
             topCategory={topCategory} topCategoryPct={topCategoryPct}
-            expenseRatio={expenseRatio} gaugeAngle={gaugeAngle} gaugeColor={gaugeColor}
             recent5={recent5}
             setActiveNav={setActiveNav} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
             onToast={showToast}
             goalsRefreshTrigger={goalsRefreshTrigger}
             filteredTransactions={filteredTransactions}
+            selectedMonth={selectedMonth} selectedYear={selectedYear}
+            monthlyData={data?.monthlyData || []}
           />
         )}
         {activeNav === "stats" && (
@@ -811,6 +808,8 @@ export default function Dashboard() {
             onDeleteTx={handleDelete}
             haptics={haptics}
             hapticsEnabled={hapticsEnabled}
+            monthlyData={data?.monthlyData || []}
+            allTransactions={data?.transactions || []}
           />
         )}
         {activeNav === "wallet" && (

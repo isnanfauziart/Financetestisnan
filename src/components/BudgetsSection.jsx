@@ -1,8 +1,9 @@
 "use client"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { Plus, Target, Sparkles } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
+import { useBudgets } from "@/lib/useSharedData"
 import BudgetCard from "./BudgetCard"
 import BudgetSetupModal from "./BudgetSetupModal"
 import BudgetDetailModal from "./BudgetDetailModal"
@@ -16,34 +17,13 @@ export default function BudgetsSection({
   expenseCategories,
   onToast,
 }) {
-  const [budgets, setBudgets] = useState([])
-  const [loading, setLoading] = useState(false)
   const [setupState, setSetupState] = useState(null)
   const [detailBudget, setDetailBudget] = useState(null)
 
   const monthParam = selectedMonth && selectedMonth !== "Semua Bulan" ? selectedMonth : ""
   const yearParam = selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : ""
 
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      try {
-        const params = new URLSearchParams()
-        if (monthParam) params.set("month", monthParam)
-        if (yearParam) params.set("year", yearParam)
-        const res = await fetch(`/api/budgets?${params.toString()}`)
-        const data = await res.json()
-        if (!cancelled) setBudgets(data.budgets || [])
-      } catch (err) {
-        if (!cancelled) onToast?.(err.message || "Gagal memuat budget", "error")
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [monthParam, yearParam])
+  const { budgets, loading, refetch } = useBudgets(monthParam, yearParam)
 
   const visibleBudgets = useMemo(() => {
     if (selectedAccount === "Semua Akun") return budgets
@@ -115,7 +95,7 @@ export default function BudgetsSection({
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || "Gagal menghapus")
       onToast?.("Budget dihapus ✓", "success")
-      setBudgets(prev => prev.filter(b => !(b.kategori === budget.kategori && b.bulan === budget.bulan && b.tahun === budget.tahun && (b.akun || "") === (budget.akun || ""))))
+      refetch()
     } catch (err) {
       onToast?.(err.message, "error")
     }
@@ -124,13 +104,7 @@ export default function BudgetsSection({
   function handleSaved() {
     onToast?.(setupState?.mode === "edit" ? "Budget diperbarui ✓" : "Budget dibuat ✓", "success")
     closeSetup()
-    const params = new URLSearchParams()
-    if (monthParam) params.set("month", monthParam)
-    if (yearParam) params.set("year", yearParam)
-    fetch(`/api/budgets?${params.toString()}`)
-      .then(r => r.json())
-      .then(d => setBudgets(d.budgets || []))
-      .catch(err => onToast?.(err.message, "error"))
+    refetch()
   }
 
   return (

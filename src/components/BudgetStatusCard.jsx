@@ -1,8 +1,9 @@
 "use client"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import { Target, ArrowRight } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
+import { useBudgets } from "@/lib/useSharedData"
 
 function statusColor(pct) {
   if (pct >= 100) return THEME.danger
@@ -19,30 +20,10 @@ function statusLabel(pct) {
 }
 
 export default function BudgetStatusCard({ filteredTransactions, setActiveNav }) {
-  const [budgets, setBudgets] = useState([])
-  const [loading, setLoading] = useState(true)
-
   const currentMonth = AVAILABLE_MONTHS[new Date().getMonth()]
   const currentYear = String(new Date().getFullYear())
 
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      try {
-        const params = new URLSearchParams({ month: currentMonth, year: currentYear })
-        const res = await fetch(`/api/budgets?${params.toString()}`)
-        const data = await res.json()
-        if (!cancelled) setBudgets(data.budgets || [])
-      } catch {
-        if (!cancelled) setBudgets([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [currentMonth, currentYear])
+  const { budgets, loading } = useBudgets(currentMonth, currentYear)
 
   const spentByCategory = useMemo(() => {
     const map = {}

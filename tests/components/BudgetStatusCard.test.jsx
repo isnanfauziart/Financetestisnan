@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest"
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react"
 import BudgetStatusCard from "@/components/BudgetStatusCard"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { _resetBudgetCache } from "@/lib/useSharedData"
 
 afterEach(() => cleanup())
 
@@ -23,6 +24,7 @@ function mockFailedResponse() {
 
 describe("BudgetStatusCard", () => {
   beforeEach(() => {
+    _resetBudgetCache()
     mockBudgetsResponse()
   })
 

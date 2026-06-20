@@ -1,21 +1,22 @@
 "use client"
-import { useState } from "react"
 import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, Plus, ArrowRight } from "lucide-react"
 import { THEME } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
 import GoalsSection from "@/components/GoalsSection"
 import BudgetStatusCard from "@/components/BudgetStatusCard"
+import HealthScoreCard from "@/components/HealthScoreCard"
+import CashFlowForecast from "@/components/CashFlowForecast"
 
 export default function HomeTab({
   data, session,
   statIncome, statExpense, statSavings,
   topCategory, topCategoryPct,
-  expenseRatio, gaugeAngle, gaugeColor,
   recent5,
   setActiveNav, openQuickAdd, setDrillDown,
   onToast, goalsRefreshTrigger,
   filteredTransactions,
+  selectedMonth, selectedYear, monthlyData,
 }) {
   const animatedBalance = useCountUpOvershoot(data?.totalSavings || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)
@@ -119,42 +120,16 @@ export default function HomeTab({
         {/* Savings tile (removed - duplicated Net Worth hero) */}
       </div>
 
-      {/* Spending gauge */}
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in stagger-8">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Spending Ratio</p>
-            <p className="text-xs text-earth-600">Pengeluaran / Pemasukan</p>
-          </div>
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ background: gaugeColor + "18", color: gaugeColor }}>
-            {expenseRatio < 50 ? "Sehat" : expenseRatio < 80 ? "Moderat" : "Tinggi"}
-          </span>
-        </div>
-        <div className="flex flex-col items-center">
-          <svg width="200" height="110" viewBox="0 0 200 110" className="overflow-visible" role="img" aria-label={`Spending ratio ${expenseRatio.toFixed(1)} percent`}>
-            <defs>
-              <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor={THEME.savings} />
-                <stop offset="50%" stopColor={THEME.warning} />
-                <stop offset="100%" stopColor={THEME.danger} />
-              </linearGradient>
-            </defs>
-            <path d="M20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#ede0d0" strokeWidth="14" strokeLinecap="round" />
-            <path d="M20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGrad)" strokeWidth="14" strokeLinecap="round"
-              strokeDasharray="251 251"
-              style={{ "--gauge-offset": `${(1 - gaugeAngle / 180) * 251}px`, animation: `gaugeFill 1.4s cubic-bezier(0.16, 1, 0.3, 1) both` }} />
-            {(() => {
-              const angleRad = (180 + gaugeAngle) * (Math.PI / 180)
-              const cx = 100, cy = 100, len = 52
-              const nx = cx + len * Math.cos(angleRad)
-              const ny = cy + len * Math.sin(angleRad)
-              return <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="#2a2018" strokeWidth="3" strokeLinecap="round" />
-            })()}
-            <circle cx="100" cy="100" r="6" fill="#2a2018" />
-          </svg>
-          <p className="text-3xl font-display font-bold -mt-3" style={{ color: gaugeColor }}>{expenseRatio.toFixed(1)}%</p>
-        </div>
-      </div>
+      {/* Financial Health Score (replaces spending gauge) */}
+      <HealthScoreCard
+        transactions={data?.transactions}
+        monthlyData={monthlyData}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
+
+      {/* Cash Flow Forecast */}
+      <CashFlowForecast monthlyData={monthlyData} />
 
       {/* Budget status (compact summary, hides if no budgets) */}
       <BudgetStatusCard

@@ -4,35 +4,26 @@ import { Plus, Target, Sparkles } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import EmptyState from "@/app/dashboard/_components/EmptyState"
 import { computeAllGoalProgress } from "@/app/dashboard/_components/goalUtils"
+import { useGoals } from "@/lib/useSharedData"
 import GoalCard from "./GoalCard"
 import GoalSetupModal from "./GoalSetupModal"
 import GoalContributeModal from "./GoalContributeModal"
 
 export default function GoalsSection({ transactions, onToast, refreshTrigger }) {
-  const [goals, setGoals] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { goals, loading, error, refetch } = useGoals()
   const [setupState, setSetupState] = useState(null)
   const [contributeGoal, setContributeGoal] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
 
-  const fetchGoals = async () => {
-    try {
-      const res = await fetch("/api/goals")
-      const data = await res.json()
-      if (res.ok) {
-        setGoals(data.goals || [])
-      } else if (data.error) {
-        onToast && onToast(data.error, "error")
-      }
-    } catch (err) {
-      onToast && onToast(err.message, "error")
-    }
-    setLoading(false)
-  }
-
+  // Re-fetch when parent signals a savings transaction was added
   useEffect(() => {
-    fetchGoals()
-  }, [refreshTrigger])
+    if (refreshTrigger > 0) refetch()
+  }, [refreshTrigger, refetch])
+
+  // Toast errors from the shared hook
+  useEffect(() => {
+    if (error) onToast?.(error, "error")
+  }, [error, onToast])
 
   const progressByGoal = useMemo(() => {
     return computeAllGoalProgress(goals, transactions)
@@ -53,7 +44,7 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
       if (!res.ok) throw new Error(data.error || "Gagal menghapus")
       setConfirmDelete(null)
       onToast && onToast("Goal dihapus", "success")
-      fetchGoals()
+      refetch()
     } catch (err) {
       onToast && onToast(err.message, "error")
     }
@@ -153,7 +144,7 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
           onSaved={() => {
             setSetupState(null)
             onToast && onToast(setupState.mode === "edit" ? "Goal diperbarui ✓" : "Goal dibuat ✓", "success")
-            fetchGoals()
+            refetch()
           }}
         />
       )}
@@ -165,7 +156,7 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
           onSaved={() => {
             setContributeGoal(null)
             onToast && onToast("Kontribusi disimpan ✓", "success")
-            fetchGoals()
+            refetch()
           }}
         />
       )}

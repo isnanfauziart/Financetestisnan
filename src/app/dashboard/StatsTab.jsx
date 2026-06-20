@@ -9,6 +9,7 @@ import CustomTooltip from "./_components/CustomTooltip"
 import EmptyState from "./_components/EmptyState"
 import RecapSection from "./_components/RecapSection"
 import BudgetsSection from "@/components/BudgetsSection"
+import MonthlyReportButton from "@/components/MonthlyReportButton"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 
@@ -39,6 +40,8 @@ export default function StatsTab({
   onDeleteTx,
   haptics,
   hapticsEnabled,
+  monthlyData,
+  allTransactions,
 }) {
   const [showDateRange, setShowDateRange] = useState(false)
   const hasDateRange = dateFrom || dateTo
@@ -89,6 +92,15 @@ export default function StatsTab({
           </div>
         )}
       </div>
+
+      {/* Monthly Report download button */}
+      <MonthlyReportButton
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        transactions={filteredTransactions}
+        monthlyData={monthlyData}
+        allTransactions={allTransactions}
+      />
 
       {/* Smart Insights (compact) */}
       {insights.length > 0 && (
