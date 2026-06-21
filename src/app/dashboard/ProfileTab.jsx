@@ -1,8 +1,10 @@
 "use client"
 import { LogOut } from "lucide-react"
 import { THEME } from "./_components/constants"
+import YearInReviewButton from "@/components/YearInReviewButton"
+import MonthlyReportButton from "@/components/MonthlyReportButton"
 
-export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled }) {
+export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, selectedMonth, selectedYear, filteredTransactions, monthlyData }) {
   return (
     <div className="px-5 pt-4 flex flex-col items-center animate-bento-in" key="profile-tab">
       <div className="relative mb-5">
@@ -59,6 +61,21 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
           <span className="text-sm font-bold text-rose-500 group-hover:opacity-80 transition-opacity">Log Out</span>
           <LogOut size={16} color={THEME.danger} aria-hidden="true" className="group-hover:translate-x-1 transition-transform" />
         </button>
+      </div>
+
+      {/* Reports */}
+      <div className="w-full space-y-3 mt-4">
+        <MonthlyReportButton
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          transactions={filteredTransactions}
+          monthlyData={monthlyData}
+          allTransactions={data?.transactions || []}
+        />
+        <YearInReviewButton
+          transactions={data?.transactions || []}
+          monthlyData={monthlyData}
+        />
       </div>
     </div>
   )

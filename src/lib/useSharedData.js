@@ -178,6 +178,91 @@ export function useGoals() {
   }
 }
 
+// ─── Debts shared cache ─────────────────────────────────────────────
+let debtsCache = null
+let debtsLoaded = false
+let debtsListeners = new Set()
+let debtsInFlight = null
+let debtsError = null
+
+function subscribeDebts(listener) {
+  debtsListeners.add(listener)
+  return () => debtsListeners.delete(listener)
+}
+
+function getDebtsSnapshot() {
+  return JSON.stringify({ data: debtsCache, loaded: debtsLoaded, error: debtsError })
+}
+
+function notifyDebts() {
+  debtsListeners.forEach((fn) => fn())
+}
+
+async function fetchDebtsInternal() {
+  if (debtsLoaded && debtsCache !== null) return
+
+  if (debtsInFlight) {
+    await debtsInFlight
+    return
+  }
+
+  debtsError = null
+  notifyDebts()
+
+  debtsInFlight = (async () => {
+    try {
+      const res = await fetch("/api/debts")
+      const data = await res.json()
+      if (res.ok) {
+        debtsCache = data.debts || []
+      } else {
+        debtsError = data.error || "Gagal memuat utang"
+        debtsCache = []
+      }
+      debtsLoaded = true
+    } catch (err) {
+      debtsError = err.message
+      debtsCache = []
+      debtsLoaded = true
+    } finally {
+      debtsInFlight = null
+      notifyDebts()
+    }
+  })()
+
+  await debtsInFlight
+}
+
+/**
+ * Shared debts hook. Multiple components calling useDebts share a single
+ * fetch. Calling refetch() propagates the update to all subscribers.
+ *
+ * @returns {{ debts: Array, loading: boolean, error: string|null, refetch: () => Promise<void> }}
+ */
+export function useDebts() {
+  useEffect(() => {
+    fetchDebtsInternal()
+  }, [])
+
+  const snapshot = useSyncExternalStore(subscribeDebts, getDebtsSnapshot, getDebtsSnapshot)
+  const parsed = JSON.parse(snapshot)
+  const isLoading = !parsed.loaded && parsed.data === null && parsed.error === null
+
+  const refetch = useCallback(async () => {
+    debtsLoaded = false
+    debtsCache = null
+    debtsError = null
+    await fetchDebtsInternal()
+  }, [])
+
+  return {
+    debts: parsed.data || [],
+    loading: isLoading,
+    error: parsed.error,
+    refetch,
+  }
+}
+
 // ─── Test helpers ───────────────────────────────────────────────────
 // Reset caches between test runs. Not used in production.
 export function _resetBudgetCache() {

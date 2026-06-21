@@ -8,6 +8,9 @@ import BudgetStatusCard from "@/components/BudgetStatusCard"
 import HealthScoreCard from "@/components/HealthScoreCard"
 import CashFlowForecast from "@/components/CashFlowForecast"
 import AnomalyAlerts from "@/components/AnomalyAlerts"
+import SavingsRateTrend from "@/components/SavingsRateTrend"
+import FITrackerCard from "@/components/FITrackerCard"
+import DebtsSection from "@/components/DebtsSection"
 
 export default function HomeTab({
   data, session,
@@ -133,6 +136,12 @@ export default function HomeTab({
       {/* Cash Flow Forecast */}
       <CashFlowForecast monthlyData={monthlyData} />
 
+      {/* Savings Rate Trend */}
+      <SavingsRateTrend monthlyData={monthlyData} />
+
+      {/* FI Tracker */}
+      <FITrackerCard netWorth={data?.netWorth || 0} monthlyData={monthlyData} />
+
       {/* Category Anomaly Alerts */}
       <AnomalyAlerts
         transactions={data?.transactions}
@@ -168,6 +177,9 @@ export default function HomeTab({
           </div>
         </button>
       </div>
+
+      {/* Debts & Loans */}
+      <DebtsSection onToast={onToast} />
 
       {/* Goals */}
       <GoalsSection

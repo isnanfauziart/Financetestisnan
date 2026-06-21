@@ -828,7 +828,7 @@ export default function Dashboard() {
           />
         )}
         {activeNav === "profile" && (
-          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} />
+          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} selectedMonth={selectedMonth} selectedYear={selectedYear} filteredTransactions={filteredTransactions} monthlyData={data?.monthlyData || []} />
         )}
       </div>
 
