@@ -23,13 +23,14 @@ async function sheetsUpdate(accessToken, range, values) {
 }
 
 async function findNextEmptyRow(accessToken, sheetName) {
-  const colA = await getSheetData(accessToken, `${sheetName}!A:A`)
-  for (let i = colA.length - 1; i >= 1; i--) {
-    if (colA[i] && String(colA[i][0] || "").trim() !== "") {
-      return i + 2
+  const colA = await getSheetData(accessToken, `${sheetName}!A1:A9998`)
+  for (let i = 1; i < colA.length; i++) {
+    const cell = colA[i] && colA[i][0]
+    if (!cell || String(cell).trim().length === 0) {
+      return i + 1
     }
   }
-  return 2
+  return colA.length + 1
 }
 
 function formatDate(dateStr) {
