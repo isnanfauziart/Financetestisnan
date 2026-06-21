@@ -29,7 +29,8 @@ export default function YearInReviewButton({ transactions, monthlyData }) {
         monthlyData: monthlyData || [],
       })
 
-      const html2pdf = (await import("html2pdf.js")).default
+      const loadHtml2pdf = new Function('return import("html2pdf.js")')
+      const html2pdf = (await loadHtml2pdf()).default
 
       const container = document.createElement("div")
       container.innerHTML = html
