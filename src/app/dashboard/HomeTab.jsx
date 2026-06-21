@@ -1,5 +1,5 @@
 "use client"
-import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, Plus, ArrowRight } from "lucide-react"
+import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, Plus, ArrowRight, Calculator } from "lucide-react"
 import { THEME } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
@@ -7,6 +7,7 @@ import GoalsSection from "@/components/GoalsSection"
 import BudgetStatusCard from "@/components/BudgetStatusCard"
 import HealthScoreCard from "@/components/HealthScoreCard"
 import CashFlowForecast from "@/components/CashFlowForecast"
+import AnomalyAlerts from "@/components/AnomalyAlerts"
 
 export default function HomeTab({
   data, session,
@@ -17,6 +18,7 @@ export default function HomeTab({
   onToast, goalsRefreshTrigger,
   filteredTransactions,
   selectedMonth, selectedYear, monthlyData,
+  onCategoryClick, onWhatIfOpen,
 }) {
   const animatedBalance = useCountUpOvershoot(data?.totalSavings || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)
@@ -131,11 +133,41 @@ export default function HomeTab({
       {/* Cash Flow Forecast */}
       <CashFlowForecast monthlyData={monthlyData} />
 
+      {/* Category Anomaly Alerts */}
+      <AnomalyAlerts
+        transactions={data?.transactions}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        onCategoryClick={onCategoryClick}
+      />
+
       {/* Budget status (compact summary, hides if no budgets) */}
       <BudgetStatusCard
         filteredTransactions={filteredTransactions}
         setActiveNav={setActiveNav}
       />
+
+      {/* What-If Scenario button */}
+      <div className="mt-6 animate-bento-in">
+        <button
+          onClick={onWhatIfOpen}
+          className="w-full bento-tile bg-white border border-earth-100 p-4 shadow-warm active:scale-[0.99] transition-transform text-left"
+          aria-label="Open What-If Scenario simulator"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: THEME.primaryBg, color: THEME.primary }}>
+                <Calculator size={16} aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-earth-800">What-If Scenario</p>
+                <p className="text-[10px] text-earth-500 mt-0.5">Simulasi dampak pengurangan pengeluaran ke goal</p>
+              </div>
+            </div>
+            <ArrowRight size={14} className="text-earth-400" aria-hidden="true" />
+          </div>
+        </button>
+      </div>
 
       {/* Goals */}
       <GoalsSection

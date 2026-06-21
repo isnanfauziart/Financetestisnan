@@ -20,6 +20,7 @@ import Skeleton from "./_components/Skeleton"
 import QuickAddSheet from "./_components/QuickAddSheet"
 import { readCache, writeCache, getLastSyncAgo } from "./_components/useDashboardCache"
 import GoalCelebration from "@/components/GoalCelebration"
+import WhatIfModal from "@/components/WhatIfModal"
 
 export default function Dashboard() {
   const { data: session, status } = useSession()
@@ -84,6 +85,7 @@ export default function Dashboard() {
   // Goals state
   const [goalsRefreshTrigger, setGoalsRefreshTrigger] = useState(0)
   const [goalCelebration, setGoalCelebration] = useState(null)
+  const [whatIfOpen, setWhatIfOpen] = useState(false)
   const prevGoalPctRef = useRef({})
 
   // Scroll Y for P8 parallax
@@ -685,6 +687,11 @@ export default function Dashboard() {
     setQuickAddOpen(true)
   }
 
+  const handleAnomalyCategoryClick = (category) => {
+    setCategoryFilter(category)
+    setActiveNav("stats")
+  }
+
   const topCategory = expenseCategories[0] || { name: "—", value: 0 }
   const topCategoryPct = statExpense > 0 ? (topCategory.value / statExpense) * 100 : 0
 
@@ -781,6 +788,8 @@ export default function Dashboard() {
             filteredTransactions={filteredTransactions}
             selectedMonth={selectedMonth} selectedYear={selectedYear}
             monthlyData={data?.monthlyData || []}
+            onCategoryClick={handleAnomalyCategoryClick}
+            onWhatIfOpen={() => setWhatIfOpen(true)}
           />
         )}
         {activeNav === "stats" && (
@@ -906,6 +915,13 @@ export default function Dashboard() {
           onDone={() => setGoalCelebration(null)}
         />
       )}
+
+      {/* What-If Scenario Modal */}
+      <WhatIfModal
+        open={whatIfOpen}
+        onClose={() => setWhatIfOpen(false)}
+        transactions={data?.transactions || []}
+      />
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-5 left-5 right-5 z-30 safe-bottom max-w-md mx-auto" aria-label="Main navigation">
