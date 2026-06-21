@@ -1,6 +1,6 @@
 "use client"
 import { useState, useMemo } from "react"
-import { Calculator, ChevronRight, Sparkles, Clock } from "lucide-react"
+import { Calculator, ChevronRight, Sparkles, Clock, TrendingUp } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp, formatRpFull, formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import { computeGoalProgress } from "@/app/dashboard/_components/goalUtils"
@@ -8,10 +8,26 @@ import { useGoals } from "@/lib/useSharedData"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 
+function formatDaysSaved(days) {
+  if (!days || days <= 0) return null
+  const months = Math.floor(days / 30.44)
+  const remaining = Math.round(days % 30.44)
+  if (months === 0) return `${remaining} hari`
+  if (remaining === 0) return `${months} bulan`
+  return `${months} bulan ${remaining} hari`
+}
+
+function formatDateFromDays(now, totalDays) {
+  const d = new Date(now.getTime() + totalDays * 86400000)
+  if (d > new Date(now.getFullYear() + 10, 0, 1)) return "Sangat lama"
+  return `${AVAILABLE_MONTHS[d.getMonth()]} ${d.getFullYear()}`
+}
+
 export default function WhatIfModal({ open, onClose, transactions }) {
-  const { goals, loading: goalsLoading } = useGoals()
+  const { goals } = useGoals()
   const [selectedCategory, setSelectedCategory] = useState("")
   const [rawReduction, setRawReduction] = useState("")
+  const [rawIncomeIncrease, setRawIncomeIncrease] = useState("")
   const [selectedGoalId, setSelectedGoalId] = useState("")
 
   const expenseCategories = useMemo(() => {
@@ -42,6 +58,13 @@ export default function WhatIfModal({ open, onClose, transactions }) {
     return isNaN(num) || num <= 0 ? 0 : num
   }, [rawReduction])
 
+  const incomeIncrease = useMemo(() => {
+    const num = parseFloat(String(rawIncomeIncrease).replace(/\./g, ""))
+    return isNaN(num) || num <= 0 ? 0 : num
+  }, [rawIncomeIncrease])
+
+  const totalExtra = reduction + incomeIncrease
+
   const activeGoals = useMemo(() => {
     return (goals || []).filter(g => g.target > 0 && g.nama)
   }, [goals])
@@ -70,47 +93,50 @@ export default function WhatIfModal({ open, onClose, transactions }) {
   }, [selectedGoal, transactions])
 
   const result = useMemo(() => {
-    if (!reduction || !selectedGoal || !transactions) return null
+    if (!totalExtra || !selectedGoal || !transactions) return null
+    if (monthlyContributions <= 0) return { noContributions: true }
 
     const currentProgress = computeGoalProgress(selectedGoal, transactions)
     const remaining = Math.max(0, selectedGoal.target - currentProgress)
-
-    const originalMonths = remaining > 0 && monthlyContributions > 0
-      ? Math.ceil(remaining / monthlyContributions)
-      : Infinity
-
-    const newMonthlyContribution = monthlyContributions + reduction
-    const newMonths = remaining > 0 && newMonthlyContribution > 0
-      ? Math.ceil(remaining / newMonthlyContribution)
-      : Infinity
-
-    const monthsSaved = originalMonths - newMonths
+    if (remaining <= 0) return { alreadyDone: true }
 
     const now = new Date()
-    const origDate = new Date(now)
-    origDate.setMonth(origDate.getMonth() + originalMonths)
-    const newDate = new Date(now)
-    newDate.setMonth(newDate.getMonth() + newMonths)
 
-    const formatDate = (d) => {
-      if (d > new Date(now.getFullYear() + 10, 0, 1)) return "Sangat lama"
-      return `${AVAILABLE_MONTHS[d.getMonth()]} ${d.getFullYear()}`
+    const originalDays = (remaining / monthlyContributions) * 30.44
+    const newMonthlyContribution = monthlyContributions + totalExtra
+    const newDays = (remaining / newMonthlyContribution) * 30.44
+    const daysSaved = Math.round(originalDays - newDays)
+
+    const origDate = formatDateFromDays(now, originalDays)
+    const newDate = formatDateFromDays(now, newDays)
+
+    const parts = []
+    if (reduction > 0 && selectedCategory) {
+      parts.push(`Kurangi ${selectedCategory} ${formatRp(reduction)}`)
     }
+    if (incomeIncrease > 0) {
+      parts.push(`tambah pemasukan ${formatRp(incomeIncrease)}`)
+    }
+    const summaryAction = parts.join(" + ")
 
     return {
       goal: selectedGoal,
       currentProgress,
       remaining,
       monthlyContributions,
-      originalMonths: isFinite(originalMonths) ? originalMonths : null,
-      newMonths: isFinite(newMonths) ? newMonths : null,
-      monthsSaved: isFinite(monthsSaved) ? monthsSaved : null,
-      originalDate: formatDate(origDate),
-      newDate: formatDate(newDate),
       newMonthlyContribution,
+      totalExtra,
+      originalDays: Math.round(originalDays),
+      newDays: Math.round(newDays),
+      daysSaved,
+      originalDate: origDate,
+      newDate: newDate,
       reductionPct: categoryAvg > 0 ? ((reduction / categoryAvg) * 100).toFixed(0) : 0,
+      summaryAction,
     }
-  }, [reduction, selectedGoal, transactions, categoryAvg, monthlyContributions])
+  }, [totalExtra, selectedGoal, transactions, monthlyContributions, reduction, incomeIncrease, selectedCategory, categoryAvg])
+
+  const hasInput = reduction > 0 || incomeIncrease > 0
 
   return (
     <Sheet
@@ -127,12 +153,13 @@ export default function WhatIfModal({ open, onClose, transactions }) {
       }
     >
       <p className="text-xs text-earth-600 mb-4">
-        Simulasikan dampak pengurangan pengeluaran terhadap pencapaian goal kamu.
+        Simulasikan dampak perubahan pengeluaran dan pemasukan terhadap pencapaian goal kamu.
       </p>
 
       <div className="space-y-3">
+        {/* Expense reduction */}
         <SelectField
-          label="Kurangi Pengeluaran"
+          label="Kurangi Pengeluaran (opsional)"
           value={selectedCategory}
           onChange={setSelectedCategory}
           options={expenseCategories}
@@ -168,6 +195,31 @@ export default function WhatIfModal({ open, onClose, transactions }) {
           )}
         </div>
 
+        {/* Income increase */}
+        <div className="h-px bg-earth-100" />
+
+        <div>
+          <label htmlFor="income-amount" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
+            Tambah Pemasukan /bulan (opsional)
+          </label>
+          <input
+            id="income-amount"
+            type="text"
+            inputMode="numeric"
+            placeholder="1000000"
+            value={rawIncomeIncrease}
+            onChange={e => setRawIncomeIncrease(formatInputRupiah(e.target.value))}
+            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+          />
+          {incomeIncrease > 0 && (
+            <p className="text-[10px] text-earth-500 mt-1 px-1 flex items-center gap-1">
+              <TrendingUp size={10} className="text-moss-600" />
+              Tambahan {formatRp(incomeIncrease)} per bulan
+            </p>
+          )}
+        </div>
+
+        {/* Goal selector */}
         {activeGoals.length > 0 ? (
           <SelectField
             label="Alokasi ke Goal"
@@ -183,7 +235,8 @@ export default function WhatIfModal({ open, onClose, transactions }) {
         )}
       </div>
 
-      {result && (
+      {/* Results */}
+      {result && !result.noContributions && !result.alreadyDone && (
         <div className="mt-5 space-y-3">
           <div className="h-px bg-earth-100" />
 
@@ -206,12 +259,12 @@ export default function WhatIfModal({ open, onClose, transactions }) {
               </div>
             </div>
 
-            {result.monthsSaved !== null && result.monthsSaved > 0 && (
+            {result.daysSaved > 0 && (
               <div className="rounded-xl p-3 border-2" style={{ background: THEME.incomeBg, borderColor: THEME.income + "30" }}>
                 <div className="flex items-center gap-2 mb-1">
                   <Clock size={12} color={THEME.income} aria-hidden="true" />
                   <span className="text-xs font-bold" style={{ color: THEME.income }}>
-                    Lebih cepat {result.monthsSaved} bulan!
+                    Lebih cepat {formatDaysSaved(result.daysSaved)}!
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10px]">
@@ -226,29 +279,21 @@ export default function WhatIfModal({ open, onClose, transactions }) {
               </div>
             )}
 
-            {result.monthsSaved !== null && result.monthsSaved === 0 && (
+            {result.daysSaved <= 0 && (
               <div className="rounded-xl p-3" style={{ background: THEME.surfaceWarm }}>
                 <p className="text-xs text-earth-600 text-center">
-                  Pengurangan ini belum cukup untuk mempercepat pencapaian goal. Coba nominal lebih besar.
+                  Perubahan ini terlalu kecil untuk mempercepat goal secara signifikan. Coba nominal lebih besar.
                 </p>
               </div>
             )}
 
-            {result.originalMonths === null && (
-              <div className="rounded-xl p-3" style={{ background: THEME.surfaceWarm }}>
-                <p className="text-xs text-earth-600 text-center">
-                  Kontribusi bulanan saat ini 0. Tambahkan kontribusi ke goal ini terlebih dahulu.
-                </p>
-              </div>
-            )}
-
-            {result.monthsSaved !== null && result.monthsSaved > 0 && (
+            {result.daysSaved > 0 && (
               <div className="mt-3 pt-3 border-t border-earth-100">
                 <p className="text-[10px] text-earth-500 text-center leading-relaxed">
-                  Kurangi <strong style={{ color: THEME.expense }}>{selectedCategory}</strong> sebesar{" "}
-                  <strong>{formatRp(reduction)}</strong>/bulan = goal{" "}
-                  <strong style={{ color: THEME.primary }}>{result.goal.nama}</strong> tercapai{" "}
-                  <strong style={{ color: THEME.income }}>{result.monthsSaved} bulan lebih cepat</strong>
+                  {result.summaryAction}
+                  {result.summaryAction ? " /bulan = " : ""}
+                  goal <strong style={{ color: THEME.primary }}>{result.goal.nama}</strong> tercapai{" "}
+                  <strong style={{ color: THEME.income }}>{formatDaysSaved(result.daysSaved)} lebih cepat</strong>
                 </p>
               </div>
             )}
@@ -256,11 +301,31 @@ export default function WhatIfModal({ open, onClose, transactions }) {
         </div>
       )}
 
+      {result?.noContributions && (
+        <div className="mt-5">
+          <div className="rounded-xl p-3" style={{ background: THEME.surfaceWarm }}>
+            <p className="text-xs text-earth-600 text-center">
+              Kontribusi bulanan saat ini 0. Tambahkan kontribusi ke goal ini terlebih dahulu.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {result?.alreadyDone && (
+        <div className="mt-5">
+          <div className="rounded-xl p-3" style={{ background: THEME.incomeBg }}>
+            <p className="text-xs text-earth-600 text-center">
+              Goal ini sudah tercapai! 🎉
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 rounded-2xl p-3 border border-earth-200">
         <p className="text-[10px] font-bold text-earth-700 mb-1">Cara kerja:</p>
         <ul className="text-[10px] text-earth-600 space-y-0.5 list-disc list-inside">
-          <li>Pilih kategori pengeluaran yang ingin dikurangi</li>
-          <li>Tentukan nominal pengurangan per bulan</li>
+          <li>Pilih kategori pengeluaran yang ingin dikurangi (opsional)</li>
+          <li>Tambah pemasukan tambahan per bulan (opsional)</li>
           <li>Pilih goal yang ingin dipercepat</li>
           <li>Lihat perbandingan timeline pencapaian goal</li>
         </ul>
