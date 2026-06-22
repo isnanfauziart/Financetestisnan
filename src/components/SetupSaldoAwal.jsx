@@ -10,6 +10,7 @@ const DISMISSED_KEY = "saldoAwalDismissed"
 export default function SetupSaldoAwal({ settings, onSaved }) {
   const [open, setOpen] = useState(false)
   const [rawAmount, setRawAmount] = useState("")
+  const [dateValue, setDateValue] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
@@ -18,6 +19,7 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
     const dismissed = localStorage.getItem(DISMISSED_KEY) === "true"
     if (settings.startingBalance === 0 && !dismissed) {
       setOpen(true)
+      setDateValue(new Date().toISOString().split("T")[0])
     }
   }, [settings])
 
@@ -27,6 +29,10 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
       setError("Masukkan jumlah saldo awal")
       return
     }
+    if (!dateValue) {
+      setError("Masukkan tanggal")
+      return
+    }
 
     setSubmitting(true)
     setError(null)
@@ -34,7 +40,12 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "startingBalance", value: amount }),
+        body: JSON.stringify({
+          updates: [
+            ["startingBalance", amount],
+            ["startingBalanceDate", dateValue],
+          ],
+        }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || "Gagal menyimpan")
@@ -62,13 +73,13 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
       header={
         <div className="flex items-center gap-2">
           <Wallet size={18} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-lg font-display font-bold text-earth-800">Selamat Datang!</h3>
+          <h3 className="text-lg font-display font-bold text-earth-800">Saldo Awal</h3>
         </div>
       }
     >
       <div className="rounded-2xl p-4 mb-4" style={{ background: THEME.primaryBg }}>
         <p className="text-xs text-earth-700 leading-relaxed">
-          Untuk menghitung net worth yang akurat, masukkan total kekayaan kamu saat ini (saldo semua rekening bank, e-wallet, investasi, dll).
+          Masukkan total kekayaan kamu saat ini (saldo semua rekening bank, e-wallet, investasi, dll). Hanya transaksi setelah tanggal ini yang akan mempengaruhi net worth.
         </p>
       </div>
 
@@ -92,6 +103,22 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
               {formatRpFull(parseFloat(String(rawAmount).replace(/\./g, "")) || 0)}
             </p>
           )}
+        </div>
+
+        <div>
+          <label htmlFor="setup-date" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
+            Tanggal
+          </label>
+          <input
+            id="setup-date"
+            type="date"
+            value={dateValue}
+            onChange={e => setDateValue(e.target.value)}
+            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+          />
+          <p className="text-[10px] text-earth-400 mt-1 px-1">
+            Transaksi sebelum tanggal ini tidak mempengaruhi net worth
+          </p>
         </div>
 
         {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}

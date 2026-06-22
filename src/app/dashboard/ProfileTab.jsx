@@ -1,17 +1,33 @@
 "use client"
 import { useState } from "react"
-import { LogOut, Wallet } from "lucide-react"
-import { THEME } from "./_components/constants"
+import { LogOut, Wallet, Calendar } from "lucide-react"
+import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRpFull, formatInputRupiah } from "./_components/helpers"
 import { useSettings } from "@/lib/useSharedData"
 import YearInReviewButton from "@/components/YearInReviewButton"
 import MonthlyReportButton from "@/components/MonthlyReportButton"
 
+function formatDateDisplay(dateStr) {
+  if (!dateStr) return "—"
+  const parts = dateStr.split("-")
+  if (parts.length !== 3) return dateStr
+  const monthIdx = parseInt(parts[1], 10) - 1
+  const monthName = AVAILABLE_MONTHS[monthIdx] || parts[1]
+  return `${parseInt(parts[2], 10)} ${monthName} ${parts[0]}`
+}
+
 export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, selectedMonth, selectedYear, filteredTransactions, monthlyData, onToast }) {
   const { settings, refetch: refetchSettings } = useSettings()
   const [editingSaldo, setEditingSaldo] = useState(false)
   const [rawSaldo, setRawSaldo] = useState("")
+  const [editDate, setEditDate] = useState("")
   const [savingSaldo, setSavingSaldo] = useState(false)
+
+  const handleStartEdit = () => {
+    setRawSaldo(formatInputRupiah(String(settings.startingBalance)))
+    setEditDate(settings.startingBalanceDate || new Date().toISOString().split("T")[0])
+    setEditingSaldo(true)
+  }
 
   const handleSaveSaldo = async () => {
     const amount = parseFloat(String(rawSaldo).replace(/\./g, ""))
@@ -19,12 +35,22 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
       onToast("Masukkan jumlah yang valid", "error")
       return
     }
+    if (!editDate) {
+      onToast("Masukkan tanggal", "error")
+      return
+    }
+
     setSavingSaldo(true)
     try {
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "startingBalance", value: amount }),
+        body: JSON.stringify({
+          updates: [
+            ["startingBalance", amount],
+            ["startingBalanceDate", editDate],
+          ],
+        }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || "Gagal menyimpan")
@@ -62,8 +88,8 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
 
         {/* Saldo Awal */}
         {editingSaldo ? (
-          <div className="border-b border-earth-100 pb-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="border-b border-earth-100 pb-3 space-y-2">
+            <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-earth-500">Saldo Awal</span>
               <button onClick={() => setEditingSaldo(false)} className="text-xs font-semibold text-earth-400">Batal</button>
             </div>
@@ -77,28 +103,49 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
                 className="flex-1 px-3 py-2 bg-earth-50 border border-earth-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
                 autoFocus
               />
-              <button
-                onClick={handleSaveSaldo}
-                disabled={savingSaldo}
-                className="px-4 py-2 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-                style={{ background: savingSaldo ? "#ccc" : THEME.primary }}
-              >
-                {savingSaldo ? "..." : "Simpan"}
-              </button>
             </div>
-          </div>
-        ) : (
-          <div className="flex justify-between items-center border-b border-earth-100 pb-3">
-            <span className="text-sm font-medium text-earth-500">Saldo Awal</span>
+            <div>
+              <label className="text-[9px] font-bold text-earth-400 uppercase tracking-wider block mb-1">Tanggal</label>
+              <input
+                type="date"
+                value={editDate}
+                onChange={e => setEditDate(e.target.value)}
+                className="w-full px-3 py-2 bg-earth-50 border border-earth-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+              />
+            </div>
             <button
-              onClick={() => { setRawSaldo(formatInputRupiah(String(settings.startingBalance))); setEditingSaldo(true) }}
-              className="text-sm font-bold text-earth-800 hover:text-violet-600 transition-colors flex items-center gap-1"
+              onClick={handleSaveSaldo}
+              disabled={savingSaldo}
+              className="w-full py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ background: savingSaldo ? "#ccc" : THEME.primary }}
             >
-              <Wallet size={12} />
-              {formatRpFull(settings.startingBalance)}
+              {savingSaldo ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
+        ) : (
+          <div className="border-b border-earth-100 pb-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-earth-500">Saldo Awal</span>
+              <button
+                onClick={handleStartEdit}
+                className="text-sm font-bold text-earth-800 hover:text-violet-600 transition-colors flex items-center gap-1"
+              >
+                <Wallet size={12} />
+                {formatRpFull(settings.startingBalance)}
+              </button>
+            </div>
+            {settings.startingBalanceDate && (
+              <div className="flex justify-between items-center mt-1">
+                <span className="text-[10px] text-earth-400">Per tanggal</span>
+                <span className="text-[10px] font-semibold text-earth-500 flex items-center gap-1">
+                  <Calendar size={9} />
+                  {formatDateDisplay(settings.startingBalanceDate)}
+                </span>
+              </div>
+            )}
+          </div>
         )}
+
         <div className="flex justify-between items-center border-b border-earth-100 pb-3">
           <span className="text-sm font-medium text-earth-500">Sound Effects</span>
           <button

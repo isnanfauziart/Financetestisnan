@@ -145,28 +145,49 @@ export async function GET() {
     }
     const sortedKeys = Object.keys(yearMonthAmounts).sort()
 
-    // Read starting balance from Settings tab
+    // Read starting balance and date from Settings tab
     let startingBalance = 0
+    let startingBalanceDate = ""
     try {
       const settingsRows = await getSheetData(session.accessToken, "Settings!A:B")
       for (const row of settingsRows) {
-        if (String(row?.[0] || "").trim() === "startingBalance") {
+        const key = String(row?.[0] || "").trim()
+        if (key === "startingBalance") {
           startingBalance = parseRupiah(row[1] || 0)
-          break
+        } else if (key === "startingBalanceDate") {
+          startingBalanceDate = String(row[1] || "").trim()
         }
       }
     } catch (err) {
       // Settings tab may not exist yet — default to 0
     }
 
+    // Parse starting balance month/year for filtering
+    let startMonth = null
+    let startYear = null
+    if (startingBalanceDate) {
+      const parts = startingBalanceDate.split("-")
+      if (parts.length === 3) {
+        const monthIdx = parseInt(parts[1], 10) - 1
+        startMonth = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][monthIdx]
+        startYear = parts[0]
+      }
+    }
+
     const netWorthHistory = []
     let cum = startingBalance
     for (const k of sortedKeys) {
       const d = yearMonthAmounts[k]
-      cum += (d.income - d.expense) + d.savings
+      // Only count transactions from startingBalanceDate forward
+      const isAfterStart = !startMonth || !startYear
+        || (d.year > startYear)
+        || (d.year === startYear && MONTH_ORDER[d.month] >= MONTH_ORDER[startMonth])
+      if (isAfterStart) {
+        cum += d.income - d.expense
+      }
       netWorthHistory.push({ month: d.month, year: d.year, value: cum })
     }
-    const netWorth = netWorthHistory.length > 0 ? netWorthHistory[netWorthHistory.length - 1].value : 0
+    const netWorth = netWorthHistory.length > 0 ? netWorthHistory[netWorthHistory.length - 1].value : startingBalance
     const netWorthMonthlyDelta = netWorthHistory.length >= 2
       ? netWorthHistory[netWorthHistory.length - 1].value - netWorthHistory[netWorthHistory.length - 2].value
       : 0

@@ -214,15 +214,15 @@ async function fetchSettingsInternal() {
       const res = await fetch("/api/settings")
       const data = await res.json()
       if (res.ok) {
-        settingsCache = data.settings || { startingBalance: 0 }
+        settingsCache = data.settings || { startingBalance: 0, startingBalanceDate: "" }
       } else {
         settingsError = data.error || "Gagal memuat settings"
-        settingsCache = { startingBalance: 0 }
+        settingsCache = { startingBalance: 0, startingBalanceDate: "" }
       }
       settingsLoaded = true
     } catch (err) {
       settingsError = err.message
-      settingsCache = { startingBalance: 0 }
+      settingsCache = { startingBalance: 0, startingBalanceDate: "" }
       settingsLoaded = true
     } finally {
       settingsInFlight = null
@@ -256,7 +256,7 @@ export function useSettings() {
   }, [])
 
   return {
-    settings: parsed.data || { startingBalance: 0 },
+    settings: parsed.data || { startingBalance: 0, startingBalanceDate: "" },
     loading: isLoading,
     error: parsed.error,
     refetch,
