@@ -16,7 +16,7 @@ function formatDateDisplay(dateStr) {
   return `${parseInt(parts[2], 10)} ${monthName} ${parts[0]}`
 }
 
-export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, selectedMonth, selectedYear, filteredTransactions, monthlyData, onToast }) {
+export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, selectedMonth, selectedYear, filteredTransactions, monthlyData, onToast, onRefresh }) {
   const { settings, refetch: refetchSettings } = useSettings()
   const [editingSaldo, setEditingSaldo] = useState(false)
   const [rawSaldo, setRawSaldo] = useState("")
@@ -55,6 +55,7 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || "Gagal menyimpan")
       await refetchSettings()
+      if (onRefresh) onRefresh()
       setEditingSaldo(false)
       onToast("Saldo awal diperbarui ✓")
     } catch (err) {
