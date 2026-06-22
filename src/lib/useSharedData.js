@@ -178,6 +178,91 @@ export function useGoals() {
   }
 }
 
+// ─── Settings shared cache ─────────────────────────────────────────
+let settingsCache = null
+let settingsLoaded = false
+let settingsListeners = new Set()
+let settingsInFlight = null
+let settingsError = null
+
+function subscribeSettings(listener) {
+  settingsListeners.add(listener)
+  return () => settingsListeners.delete(listener)
+}
+
+function getSettingsSnapshot() {
+  return JSON.stringify({ data: settingsCache, loaded: settingsLoaded, error: settingsError })
+}
+
+function notifySettings() {
+  settingsListeners.forEach((fn) => fn())
+}
+
+async function fetchSettingsInternal() {
+  if (settingsLoaded && settingsCache !== null) return
+
+  if (settingsInFlight) {
+    await settingsInFlight
+    return
+  }
+
+  settingsError = null
+  notifySettings()
+
+  settingsInFlight = (async () => {
+    try {
+      const res = await fetch("/api/settings")
+      const data = await res.json()
+      if (res.ok) {
+        settingsCache = data.settings || { startingBalance: 0 }
+      } else {
+        settingsError = data.error || "Gagal memuat settings"
+        settingsCache = { startingBalance: 0 }
+      }
+      settingsLoaded = true
+    } catch (err) {
+      settingsError = err.message
+      settingsCache = { startingBalance: 0 }
+      settingsLoaded = true
+    } finally {
+      settingsInFlight = null
+      notifySettings()
+    }
+  })()
+
+  await settingsInFlight
+}
+
+/**
+ * Shared settings hook. Multiple components calling useSettings share a single
+ * fetch. Calling refetch() propagates the update to all subscribers.
+ *
+ * @returns {{ settings: Object, loading: boolean, error: string|null, refetch: () => Promise<void> }}
+ */
+export function useSettings() {
+  useEffect(() => {
+    fetchSettingsInternal()
+  }, [])
+
+  const snapshot = useSyncExternalStore(subscribeSettings, getSettingsSnapshot, getSettingsSnapshot)
+  const parsed = JSON.parse(snapshot)
+  const isLoading = !parsed.loaded && parsed.data === null && parsed.error === null
+
+  const refetch = useCallback(async () => {
+    settingsLoaded = false
+    settingsCache = null
+    settingsError = null
+    await fetchSettingsInternal()
+  }, [])
+
+  return {
+    settings: parsed.data || { startingBalance: 0 },
+    loading: isLoading,
+    error: parsed.error,
+    refetch,
+  }
+}
+
 // ─── Debts shared cache ─────────────────────────────────────────────
 let debtsCache = null
 let debtsLoaded = false

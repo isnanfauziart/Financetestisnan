@@ -21,6 +21,8 @@ import QuickAddSheet from "./_components/QuickAddSheet"
 import { readCache, writeCache, getLastSyncAgo } from "./_components/useDashboardCache"
 import GoalCelebration from "@/components/GoalCelebration"
 import WhatIfModal from "@/components/WhatIfModal"
+import SetupSaldoAwal from "@/components/SetupSaldoAwal"
+import { useSettings } from "@/lib/useSharedData"
 
 export default function Dashboard() {
   const { data: session, status } = useSession()
@@ -87,6 +89,9 @@ export default function Dashboard() {
   const [goalCelebration, setGoalCelebration] = useState(null)
   const [whatIfOpen, setWhatIfOpen] = useState(false)
   const prevGoalPctRef = useRef({})
+
+  // Settings
+  const { settings, refetch: refetchSettings } = useSettings()
 
   // Scroll Y for P8 parallax
   const [scrollY, setScrollY] = useState(0)
@@ -828,7 +833,7 @@ export default function Dashboard() {
           />
         )}
         {activeNav === "profile" && (
-          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} selectedMonth={selectedMonth} selectedYear={selectedYear} filteredTransactions={filteredTransactions} monthlyData={data?.monthlyData || []} />
+          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} selectedMonth={selectedMonth} selectedYear={selectedYear} filteredTransactions={filteredTransactions} monthlyData={data?.monthlyData || []} onToast={showToast} />
         )}
       </div>
 
@@ -921,6 +926,12 @@ export default function Dashboard() {
         open={whatIfOpen}
         onClose={() => setWhatIfOpen(false)}
         transactions={data?.transactions || []}
+      />
+
+      {/* Setup Saldo Awal (first-time flow) */}
+      <SetupSaldoAwal
+        settings={settings}
+        onSaved={() => { refetchSettings(); fetchData() }}
       />
 
       {/* Bottom Navigation */}

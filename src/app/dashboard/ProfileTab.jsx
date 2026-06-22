@@ -1,10 +1,42 @@
 "use client"
-import { LogOut } from "lucide-react"
+import { useState } from "react"
+import { LogOut, Wallet } from "lucide-react"
 import { THEME } from "./_components/constants"
+import { formatRpFull, formatInputRupiah } from "./_components/helpers"
+import { useSettings } from "@/lib/useSharedData"
 import YearInReviewButton from "@/components/YearInReviewButton"
 import MonthlyReportButton from "@/components/MonthlyReportButton"
 
-export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, selectedMonth, selectedYear, filteredTransactions, monthlyData }) {
+export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, selectedMonth, selectedYear, filteredTransactions, monthlyData, onToast }) {
+  const { settings, refetch: refetchSettings } = useSettings()
+  const [editingSaldo, setEditingSaldo] = useState(false)
+  const [rawSaldo, setRawSaldo] = useState("")
+  const [savingSaldo, setSavingSaldo] = useState(false)
+
+  const handleSaveSaldo = async () => {
+    const amount = parseFloat(String(rawSaldo).replace(/\./g, ""))
+    if (!amount || amount < 0) {
+      onToast("Masukkan jumlah yang valid", "error")
+      return
+    }
+    setSavingSaldo(true)
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "startingBalance", value: amount }),
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || "Gagal menyimpan")
+      await refetchSettings()
+      setEditingSaldo(false)
+      onToast("Saldo awal diperbarui ✓")
+    } catch (err) {
+      onToast(err.message, "error")
+    }
+    setSavingSaldo(false)
+  }
+
   return (
     <div className="px-5 pt-4 flex flex-col items-center animate-bento-in" key="profile-tab">
       <div className="relative mb-5">
@@ -27,6 +59,46 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
           <span className="text-sm font-medium text-earth-500">Total Transactions</span>
           <span className="text-sm font-bold text-earth-800">{data?.transactions?.length || 0}</span>
         </div>
+
+        {/* Saldo Awal */}
+        {editingSaldo ? (
+          <div className="border-b border-earth-100 pb-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-earth-500">Saldo Awal</span>
+              <button onClick={() => setEditingSaldo(false)} className="text-xs font-semibold text-earth-400">Batal</button>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder={String(settings.startingBalance)}
+                value={rawSaldo}
+                onChange={e => setRawSaldo(formatInputRupiah(e.target.value))}
+                className="flex-1 px-3 py-2 bg-earth-50 border border-earth-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+                autoFocus
+              />
+              <button
+                onClick={handleSaveSaldo}
+                disabled={savingSaldo}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+                style={{ background: savingSaldo ? "#ccc" : THEME.primary }}
+              >
+                {savingSaldo ? "..." : "Simpan"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-between items-center border-b border-earth-100 pb-3">
+            <span className="text-sm font-medium text-earth-500">Saldo Awal</span>
+            <button
+              onClick={() => { setRawSaldo(formatInputRupiah(String(settings.startingBalance))); setEditingSaldo(true) }}
+              className="text-sm font-bold text-earth-800 hover:text-violet-600 transition-colors flex items-center gap-1"
+            >
+              <Wallet size={12} />
+              {formatRpFull(settings.startingBalance)}
+            </button>
+          </div>
+        )}
         <div className="flex justify-between items-center border-b border-earth-100 pb-3">
           <span className="text-sm font-medium text-earth-500">Sound Effects</span>
           <button

@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
-import { getSheetData } from "@/lib/sheets"
+import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { pickAmount } from "@/lib/parseSheetRow"
 
 export const dynamic = 'force-dynamic'
@@ -136,7 +136,7 @@ export async function GET() {
       .slice(0, 7)
 
     // Compute net worth: cumulative (income - expense + savings) over time
-    // Net Worth = (Income − Expense) + Savings  (savings treated as accumulated wealth)
+    // Net Worth = startingBalance + (Income − Expense) + Savings  (savings treated as accumulated wealth)
     const yearMonthAmounts = {}
     for (const t of transactions) {
       const k = mkKey(t.month, t.year)
@@ -144,8 +144,23 @@ export async function GET() {
       yearMonthAmounts[k][t.type] += t.amount
     }
     const sortedKeys = Object.keys(yearMonthAmounts).sort()
+
+    // Read starting balance from Settings tab
+    let startingBalance = 0
+    try {
+      const settingsRows = await getSheetData(session.accessToken, "Settings!A:B")
+      for (const row of settingsRows) {
+        if (String(row?.[0] || "").trim() === "startingBalance") {
+          startingBalance = parseRupiah(row[1] || 0)
+          break
+        }
+      }
+    } catch (err) {
+      // Settings tab may not exist yet — default to 0
+    }
+
     const netWorthHistory = []
-    let cum = 0
+    let cum = startingBalance
     for (const k of sortedKeys) {
       const d = yearMonthAmounts[k]
       cum += (d.income - d.expense) + d.savings
@@ -171,6 +186,7 @@ export async function GET() {
       netWorth,
       netWorthMonthlyDelta,
       netWorthHistory,
+      startingBalance,
       serverTimestamp: new Date().toISOString(),
     })
   } catch (err) {

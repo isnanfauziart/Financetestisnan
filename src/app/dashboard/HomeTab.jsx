@@ -23,7 +23,7 @@ export default function HomeTab({
   selectedMonth, selectedYear, monthlyData,
   onCategoryClick, onWhatIfOpen,
 }) {
-  const animatedBalance = useCountUpOvershoot(data?.totalSavings || 0)
+  const animatedBalance = useCountUpOvershoot(data?.netWorth || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)
   const animatedExpense = useCountUp(data?.totalExpense || 0)
   const animatedSavings = useCountUp(data?.totalSavings || 0)
