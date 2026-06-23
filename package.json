@@ -15,6 +15,7 @@
     "@bubblewrap/core": "^1.24.1",
     "canvas-confetti": "^1.9.4",
     "googleapis": "^140.0.1",
+    "html2pdf.js": "^0.14.0",
     "lucide-react": "^0.460.0",
     "next": "14.2.5",
     "next-auth": "^4.24.7",

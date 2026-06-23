@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorAccent">#d4a853</color>
+    <color name="colorPrimary">#9f87ef</color>
+    <color name="colorPrimaryDark">#7c5fcf</color>
+    <color name="navigationBarColor">#fdf8f3</color>
+    <color name="splashScreenBackground">#fdf8f3</color>
+    <color name="statusBarColor">#9f87ef</color>
+    <string name="app_name">Artoku</string>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+</resources>

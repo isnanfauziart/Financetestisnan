@@ -63,6 +63,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast }) {
       size="md"
       maxHeight="80vh"
       closeOnBackdrop={!submitting}
+      position="center"
       header={
         <div className="flex items-center gap-2">
           {isUtang ? <ArrowUpRight size={18} color={accentColor} /> : <ArrowDownRight size={18} color={accentColor} />}

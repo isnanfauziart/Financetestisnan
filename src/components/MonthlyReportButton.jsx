@@ -1,5 +1,5 @@
 "use client"
-import { useMemo } from "react"
+import { useMemo, useCallback } from "react"
 import { FileText, Download } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
@@ -36,7 +36,7 @@ export default function MonthlyReportButton({
     return computeHealthScore({ transactions, monthlyData: monthFilteredData, budgets })
   }, [canReport, transactions, monthFilteredData, budgets])
 
-  const handleDownload = () => {
+  const handleDownload = useCallback(async () => {
     const html = generateReportHTML({
       month: selectedMonth,
       year: selectedYear,
@@ -47,16 +47,31 @@ export default function MonthlyReportButton({
       healthScore,
     })
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const win = window.open(url, "_blank")
-    if (win) {
-      win.addEventListener("load", () => {
-        setTimeout(() => { win.print() }, 300)
-      })
+    const html2pdf = (await import("html2pdf.js")).default
+
+    const container = document.createElement("div")
+    container.innerHTML = html
+    container.style.position = "fixed"
+    container.style.left = "-9999px"
+    container.style.top = "0"
+    container.style.width = "800px"
+    document.body.appendChild(container)
+
+    const opt = {
+      margin: [12, 12, 12, 12],
+      filename: `Laporan-Keuangan-${selectedMonth}-${selectedYear}.pdf`,
+      image: { type: "jpeg", quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
     }
-    setTimeout(() => URL.revokeObjectURL(url), 60000)
-  }
+
+    try {
+      await html2pdf().set(opt).from(container).save()
+    } finally {
+      document.body.removeChild(container)
+    }
+  }, [selectedMonth, selectedYear, transactions, budgets, allTransactions, monthlyData, healthScore])
 
   return (
     <button

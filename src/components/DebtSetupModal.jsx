@@ -61,6 +61,7 @@ export default function DebtSetupModal({ onClose, onSaved }) {
       size="md"
       maxHeight="90vh"
       closeOnBackdrop={!submitting}
+      position="center"
       header={
         <div className="flex items-center gap-2">
           <CreditCard size={18} color={accentColor} aria-hidden="true" />

@@ -1,0 +1,34 @@
+{
+  "packageId": "com.artoku.app",
+  "host": "financedashv1.vercel.app",
+  "name": "Artoku",
+  "launcherName": "Artoku",
+  "display": "standalone",
+  "orientation": "default",
+  "themeColor": "#9f87ef",
+  "backgroundColor": "#fdf8f3",
+  "startUrl": "/dashboard",
+  "iconUrl": "https://financedashv1.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://financedashv1.vercel.app/icons/icon-512.png",
+  "monochromeIconUrl": "https://financedashv1.vercel.app/icons/icon-512.png",
+  "appVersionCode": 1,
+  "appVersionName": "1.0.0",
+  "signingKey": {
+    "path": "C:\\TITIP\\financeapptesting\\artoku.keystore",
+    "alias": "key0"
+  },
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "enableNotifications": false,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://financedashv1.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "fingerprints": []
+}

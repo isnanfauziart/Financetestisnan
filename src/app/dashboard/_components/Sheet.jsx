@@ -37,6 +37,7 @@ export default function Sheet({
   footer,
   children,
   ariaLabel,
+  position = "bottom",
 }) {
   const backdropRef = useRef(null)
 
@@ -65,7 +66,7 @@ export default function Sheet({
   return (
     <div
       ref={backdropRef}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      className={`fixed inset-0 z-50 flex ${position === "center" ? "items-center" : "items-end sm:items-center"} justify-center`}
       style={{ background: "rgba(42,32,24,0.5)", backdropFilter: "blur(8px)" }}
       onClick={(e) => {
         if (closeOnBackdrop && e.target === backdropRef.current) onClose()

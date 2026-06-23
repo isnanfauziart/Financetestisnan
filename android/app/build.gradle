@@ -1,0 +1,54 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.artoku.app'
+    compileSdk 34
+
+    signingConfigs {
+        debug {
+            storeFile file("$rootDir/../artoku.keystore")
+            storePassword "artoku123"
+            keyAlias "key0"
+            keyPassword "artoku123"
+        }
+        release {
+            storeFile file("$rootDir/../artoku.keystore")
+            storePassword "artoku123"
+            keyAlias "key0"
+            keyPassword "artoku123"
+        }
+    }
+
+    defaultConfig {
+        applicationId "com.artoku.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'androidx.browser:browser:1.7.0'
+    implementation 'androidx.core:core:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

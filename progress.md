@@ -1063,3 +1063,17 @@ pm test — 135 passed, 2 skipped (+5 new auth tests, was 130 + 2)
 pm run build compiled successfully, /icon.svg route auto-registered. 135 tests pass.
 - **No layout.js changes needed** — Next.js App Router auto-generates <link rel="icon"> tags from special files in src/app/.
 
+
+### Sheet centering fix (June 23, 2026)
+- **Issue:** Financial Score formula sheet and Utang Piutang modals (DebtSetupModal, DebtPaymentModal) appeared at the bottom of the screen on mobile instead of centered. Root cause: Sheet.jsx:68 used items-end sm:items-center which anchors sheets to the bottom on mobile (< 640px).
+- **Fix:** Added position prop to Sheet component (bottom default | center). When position=center, uses items-center on all screen sizes instead of items-end sm:items-center.
+- **Files changed:**
+  - src/app/dashboard/_components/Sheet.jsx - added position prop + conditional className
+  - src/components/HealthScoreCard.jsx - added position=center to formula sheet
+  - src/components/DebtSetupModal.jsx - added position=center
+  - src/components/DebtPaymentModal.jsx - added position=center
+  - tests/components/Sheet.test.jsx - 2 new tests (center position class, default bottom position)
+- **Verification:**
+  - npm run build - Compiled successfully, all routes generated
+  - npx vitest run - 12 passed (was 10, +2 new position tests)
+- **Scope:** Only these 3 modals affected. All other Sheet usages (QuickAddSheet, EditTransactionModal, ConfirmSheet, BudgetSetupModal, GoalSetupModal, etc.) retain bottom-anchored mobile behavior.

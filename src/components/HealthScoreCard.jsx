@@ -175,6 +175,7 @@ export default function HealthScoreCard({
         subtitle="Penjelasan"
         size="md"
         maxHeight="85vh"
+        position="center"
       >
         <p className="text-xs text-earth-600 mb-4">
           Skor dihitung dari 5 komponen. Komponen tanpa data tidak ikut dihitung (bobot didistribusikan ke komponen aktif):
