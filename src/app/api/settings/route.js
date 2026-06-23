@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { getToken } from "next-auth/jwt"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -22,26 +21,28 @@ async function fetchSettings(accessToken) {
   return settings
 }
 
-export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+export async function GET(request) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
-    const settings = await fetchSettings(session.accessToken)
+    const settings = await fetchSettings(accessToken)
     return Response.json({ settings })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Settings]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function PUT(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -54,7 +55,7 @@ export async function PUT(request) {
     }
 
     // Read existing rows
-    const rows = await getSheetData(session.accessToken, RANGE).catch(() => [])
+    const rows = await getSheetData(accessToken, RANGE).catch(() => [])
     const existingKeys = {}
     for (let i = 0; i < rows.length; i++) {
       const key = String(rows[i]?.[0] || "").trim()
@@ -71,7 +72,7 @@ export async function PUT(request) {
         const res = await fetch(url, {
           method: "PUT",
           headers: {
-            Authorization: `Bearer ${session.accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ values: [[key, value]] }),
@@ -86,7 +87,7 @@ export async function PUT(request) {
         const res = await fetch(appendUrl, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${session.accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ values: [[key, value]] }),
@@ -102,7 +103,7 @@ export async function PUT(request) {
 
     return Response.json({ success: true, message: "Settings updated" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Settings]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }

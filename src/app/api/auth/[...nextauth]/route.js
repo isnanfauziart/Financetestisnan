@@ -32,7 +32,6 @@ export const authOptions = {
       return await refreshAccessToken(token)
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken
       if (token.error) session.error = token.error
       return session
     },

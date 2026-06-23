@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { getToken } from "next-auth/jwt"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -84,17 +83,18 @@ async function sheetsAppend(accessToken, range, values) {
 }
 
 export async function GET(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const { searchParams } = new URL(request.url)
     const month = searchParams.get("month")
     const year = searchParams.get("year")
 
-    const all = await fetchAllBudgets(session.accessToken)
+    const all = await fetchAllBudgets(accessToken)
     const filtered = all.filter(b => {
       if (month && month !== "Semua Bulan" && b.bulan !== month) return false
       if (year && year !== "Semua Tahun" && b.tahun !== String(year)) return false
@@ -102,16 +102,17 @@ export async function GET(request) {
     })
     return Response.json({ budgets: filtered })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Budgets]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function POST(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -120,7 +121,7 @@ export async function POST(request) {
       return Response.json({ error: errors.join("; ") }, { status: 400 })
     }
 
-    const all = await fetchAllBudgets(session.accessToken)
+    const all = await fetchAllBudgets(accessToken)
     const key = normalizeKey(body.kategori, body.bulan, body.tahun, body.akun || "")
     const existingIdx = findRowIndex(all, key)
     if (existingIdx) {
@@ -135,19 +136,20 @@ export async function POST(request) {
       body.akun || "",
       body.catatan || "",
     ]
-    await sheetsAppend(session.accessToken, RANGE, [row])
+    await sheetsAppend(accessToken, RANGE, [row])
     return Response.json({ success: true, message: "Budget created" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Budgets]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function PUT(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -159,7 +161,7 @@ export async function PUT(request) {
       return Response.json({ error: "originalKategori, originalBulan, originalTahun required to find existing budget" }, { status: 400 })
     }
 
-    const all = await fetchAllBudgets(session.accessToken)
+    const all = await fetchAllBudgets(accessToken)
     const originalKey = normalizeKey(body.originalKategori, body.originalBulan, body.originalTahun, body.originalAkun || "")
     const existingIdx = findRowIndex(all, originalKey)
     if (!existingIdx) {
@@ -174,19 +176,20 @@ export async function PUT(request) {
       body.akun || "",
       body.catatan || "",
     ]
-    await sheetsBatchUpdate(session.accessToken, `${SHEET_NAME}!A${existingIdx}:F${existingIdx}`, [row])
+    await sheetsBatchUpdate(accessToken, `${SHEET_NAME}!A${existingIdx}:F${existingIdx}`, [row])
     return Response.json({ success: true, message: "Budget updated" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Budgets]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function DELETE(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -194,17 +197,17 @@ export async function DELETE(request) {
       return Response.json({ error: "kategori, bulan, tahun required" }, { status: 400 })
     }
 
-    const all = await fetchAllBudgets(session.accessToken)
+    const all = await fetchAllBudgets(accessToken)
     const key = normalizeKey(body.kategori, body.bulan, String(body.tahun), body.akun || "")
     const existingIdx = findRowIndex(all, key)
     if (!existingIdx) {
       return Response.json({ error: "Budget not found" }, { status: 404 })
     }
 
-    await sheetsBatchUpdate(session.accessToken, `${SHEET_NAME}!A${existingIdx}:F${existingIdx}`, [[""]])
+    await sheetsBatchUpdate(accessToken, `${SHEET_NAME}!A${existingIdx}:F${existingIdx}`, [[""]])
     return Response.json({ success: true, message: "Budget deleted" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Budgets]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }

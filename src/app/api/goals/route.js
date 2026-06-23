@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { getToken } from "next-auth/jwt"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -76,26 +75,28 @@ async function sheetsUpdate(accessToken, range, values) {
   return res.json()
 }
 
-export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+export async function GET(request) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
-    const goals = await fetchAllGoals(session.accessToken)
+    const goals = await fetchAllGoals(accessToken)
     return Response.json({ goals })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Goals]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function POST(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -117,19 +118,20 @@ export async function POST(request) {
       createdAt,
       "open",
     ]
-    await sheetsAppend(session.accessToken, RANGE, [row])
+    await sheetsAppend(accessToken, RANGE, [row])
     return Response.json({ success: true, id, message: "Goal created" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Goals]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function PUT(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -137,7 +139,7 @@ export async function PUT(request) {
       return Response.json({ error: "id required to update goal" }, { status: 400 })
     }
 
-    const all = await fetchAllGoals(session.accessToken)
+    const all = await fetchAllGoals(accessToken)
     const existing = all.find(g => g.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Goal not found" }, { status: 404 })
@@ -156,7 +158,7 @@ export async function PUT(request) {
         existing.createdAt,
         body.status,
       ]
-      await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
+      await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
       return Response.json({ success: true, message: `Goal ${body.status}` })
     }
 
@@ -177,19 +179,20 @@ export async function PUT(request) {
       existing.createdAt,
       body.status || existing.status || "open",
     ]
-    await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
     return Response.json({ success: true, message: "Goal updated" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Goals]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function DELETE(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -197,16 +200,16 @@ export async function DELETE(request) {
       return Response.json({ error: "id required" }, { status: 400 })
     }
 
-    const all = await fetchAllGoals(session.accessToken)
+    const all = await fetchAllGoals(accessToken)
     const existing = all.find(g => g.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Goal not found" }, { status: 404 })
     }
 
-    await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]])
     return Response.json({ success: true, message: "Goal deleted" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Goals]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }

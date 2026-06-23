@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { getToken } from "next-auth/jwt"
 import { getSheetData } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
@@ -46,10 +45,11 @@ function getMonthName(dateStr) {
 }
 
 export async function POST(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -59,10 +59,30 @@ export async function POST(request) {
       return Response.json({ error: "Tanggal, kategori, dan jumlah wajib diisi" }, { status: 400 })
     }
 
+    const amount = parseFloat(String(jumlah).replace(/[^0-9.]/g, ""))
+    if (isNaN(amount) || amount <= 0 || amount > 999999999999) {
+      return Response.json({ error: "Jumlah harus antara 1 dan 999.999.999.999" }, { status: 400 })
+    }
+    if (keterangan && keterangan.length > 500) {
+      return Response.json({ error: "Keterangan maksimal 500 karakter" }, { status: 400 })
+    }
+    if (kategori && kategori.length > 100) {
+      return Response.json({ error: "Kategori maksimal 100 karakter" }, { status: 400 })
+    }
+    if (catatan && catatan.length > 1000) {
+      return Response.json({ error: "Catatan maksimal 1000 karakter" }, { status: 400 })
+    }
+    if (akunBank && akunBank.length > 100) {
+      return Response.json({ error: "Akun bank maksimal 100 karakter" }, { status: 400 })
+    }
+    const ALLOWED_TYPES = ["income", "expense", "savings"]
+    if (type && !ALLOWED_TYPES.includes(type)) {
+      return Response.json({ error: "Tipe transaksi tidak valid" }, { status: 400 })
+    }
+
     const formattedDate = formatDate(tanggal)
     const month = getMonthName(tanggal)
     const year = new Date(tanggal).getFullYear()
-    const amount = parseFloat(String(jumlah).replace(/[^0-9.]/g, ""))
     const sheetName = type === "income" ? "Pemasukan" : type === "savings" ? "Tabungan" : "Pengeluaran"
 
     // Format: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M | Y | Y2
@@ -82,12 +102,12 @@ export async function POST(request) {
       year,
     ]
 
-    const targetRow = await findNextEmptyRow(session.accessToken, sheetName)
-    await sheetsUpdate(session.accessToken, `${sheetName}!A${targetRow}:M${targetRow}`, [row])
+    const targetRow = await findNextEmptyRow(accessToken, sheetName)
+    await sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:M${targetRow}`, [row])
 
     return Response.json({ success: true, message: `Transaksi berhasil disimpan ke tab ${sheetName}`, rowIndex: targetRow })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Transaction]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }

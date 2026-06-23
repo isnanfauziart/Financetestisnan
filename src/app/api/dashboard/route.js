@@ -1,23 +1,23 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { getToken } from "next-auth/jwt"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { pickAmount } from "@/lib/parseSheetRow"
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+export async function GET(request) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     // Baca transaksi pemasukan (kolom: Tanggal, ID, Ket, Kategori, Jumlah, Pajak, Biaya, AkunBank, Net, Catatan, M, Y, Y2)
-    const incomeRows = await getSheetData(session.accessToken, "Pemasukan!A:M")
+    const incomeRows = await getSheetData(accessToken, "Pemasukan!A:M")
     // Baca transaksi pengeluaran
-    const expenseRows = await getSheetData(session.accessToken, "Pengeluaran!A:M")
+    const expenseRows = await getSheetData(accessToken, "Pengeluaran!A:M")
     // Baca transaksi tabungan
-    const savingsRows = await getSheetData(session.accessToken, "Tabungan!A:M").catch(() => [])
+    const savingsRows = await getSheetData(accessToken, "Tabungan!A:M").catch(() => [])
 
     const transactions = []
     const MONTH_ORDER = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, Mei: 5, Jun: 6, Jul: 7, Agu: 8, Sep: 9, Okt: 10, Nov: 11, Des: 12 }
@@ -149,7 +149,7 @@ export async function GET() {
     let startingBalance = 0
     let startingBalanceDate = ""
     try {
-      const settingsRows = await getSheetData(session.accessToken, "Settings!A:B")
+      const settingsRows = await getSheetData(accessToken, "Settings!A:B")
       for (const row of settingsRows) {
         const key = String(row?.[0] || "").trim()
         if (key === "startingBalance") {
@@ -211,7 +211,7 @@ export async function GET() {
       serverTimestamp: new Date().toISOString(),
     })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Dashboard]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }

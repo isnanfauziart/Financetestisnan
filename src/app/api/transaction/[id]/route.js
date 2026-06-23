@@ -1,8 +1,8 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "../../auth/[...nextauth]/route"
+import { getToken } from "next-auth/jwt"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID
+const ALLOWED_TABS = ["Pemasukan", "Pengeluaran", "Tabungan"]
 
 function formatDate(dateStr) {
   const d = new Date(dateStr)
@@ -20,16 +20,17 @@ function getMonthName(dateStr) {
 }
 
 export async function PUT(request, { params }) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
     const { tab, type, tanggal, keterangan, kategori, jumlah, akunBank, rowIndex } = body
 
-    if (!tab || !rowIndex || !tanggal || !kategori || !jumlah) {
+    if (!ALLOWED_TABS.includes(tab) || !rowIndex || !tanggal || !kategori || !jumlah) {
       return Response.json({ error: "Missing required fields" }, { status: 400 })
     }
 
@@ -62,7 +63,7 @@ export async function PUT(request, { params }) {
     const res = await fetch(url, {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${session.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ values: [row] }),
@@ -75,22 +76,23 @@ export async function PUT(request, { params }) {
 
     return Response.json({ success: true, message: "Transaksi diperbarui" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[TransactionId]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function DELETE(request, { params }) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
     const { tab, rowIndex } = body
 
-    if (!tab || !rowIndex) {
+    if (!ALLOWED_TABS.includes(tab) || !rowIndex) {
       return Response.json({ error: "Missing tab or rowIndex" }, { status: 400 })
     }
 
@@ -101,7 +103,7 @@ export async function DELETE(request, { params }) {
     const res = await fetch(url, {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${session.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ values: [[""]] }),
@@ -114,7 +116,7 @@ export async function DELETE(request, { params }) {
 
     return Response.json({ success: true, message: "Transaksi dihapus" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[TransactionId]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }

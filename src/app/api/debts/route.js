@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { getToken } from "next-auth/jwt"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -76,33 +75,35 @@ async function sheetsUpdate(accessToken, range, values) {
   return res.json()
 }
 
-export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+export async function GET(request) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
-    const debts = await fetchAllDebts(session.accessToken)
+    const debts = await fetchAllDebts(accessToken)
     return Response.json({ debts })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Debts]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function POST(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
 
     // Handle payment action
     if (body.action === "pay") {
-      return handlePayment(session.accessToken, body)
+      return handlePayment(accessToken, body)
     }
 
     const errors = validateDebt(body)
@@ -124,11 +125,11 @@ export async function POST(request) {
       body.catatan || "",
       createdAt,
     ]
-    await sheetsAppend(session.accessToken, RANGE, [row])
+    await sheetsAppend(accessToken, RANGE, [row])
     return Response.json({ success: true, id, message: "Debt created" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Debts]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
@@ -218,10 +219,11 @@ async function handlePayment(accessToken, body) {
 }
 
 export async function PUT(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -229,7 +231,7 @@ export async function PUT(request) {
       return Response.json({ error: "id required" }, { status: 400 })
     }
 
-    const all = await fetchAllDebts(session.accessToken)
+    const all = await fetchAllDebts(accessToken)
     const existing = all.find(d => d.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Debt not found" }, { status: 404 })
@@ -246,19 +248,20 @@ export async function PUT(request) {
       body.catatan !== undefined ? body.catatan : existing.catatan,
       existing.createdAt,
     ]
-    await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
     return Response.json({ success: true, message: "Debt updated" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Debts]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
 export async function DELETE(request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.accessToken) {
+  const token = await getToken({ req: request })
+  if (!token?.accessToken) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const accessToken = token.accessToken
 
   try {
     const body = await request.json()
@@ -266,16 +269,16 @@ export async function DELETE(request) {
       return Response.json({ error: "id required" }, { status: 400 })
     }
 
-    const all = await fetchAllDebts(session.accessToken)
+    const all = await fetchAllDebts(accessToken)
     const existing = all.find(d => d.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Debt not found" }, { status: 404 })
     }
 
-    await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]])
     return Response.json({ success: true, message: "Debt deleted" })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error("[Debts]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
