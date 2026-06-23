@@ -791,6 +791,7 @@ export default function Dashboard() {
             onToast={showToast}
             goalsRefreshTrigger={goalsRefreshTrigger}
             filteredTransactions={filteredTransactions}
+            allTransactions={data?.transactions || []}
             selectedMonth={selectedMonth} selectedYear={selectedYear}
             monthlyData={data?.monthlyData || []}
             onCategoryClick={handleAnomalyCategoryClick}

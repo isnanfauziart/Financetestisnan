@@ -1077,3 +1077,13 @@ pm run build compiled successfully, /icon.svg route auto-registered. 135 tests p
   - npm run build - Compiled successfully, all routes generated
   - npx vitest run - 12 passed (was 10, +2 new position tests)
 - **Scope:** Only these 3 modals affected. All other Sheet usages (QuickAddSheet, EditTransactionModal, ConfirmSheet, BudgetSetupModal, GoalSetupModal, etc.) retain bottom-anchored mobile behavior.
+
+### BudgetStatusCard month mismatch fix (June 23, 2026)
+- **Issue:** BudgetStatusCard on Home tab showed wrong spent amounts. When user filtered Stats tab to Mei and went back to Home, the card showed Mei transaction amounts against Juni budgets (month mismatch). Numbers appeared even with no Juni expense transactions.
+- **Root cause:** BudgetStatusCard used global filteredTransactions (filtered by Stats tab selection) but fetched budgets for the current month (Juni). Month mismatch = wrong spent computation.
+- **Fix:** BudgetStatusCard now receives allTransactions (unfiltered) and filters internally for current month + current year before computing spent.
+- **Files changed:**
+  - src/components/BudgetStatusCard.jsx - replaced filteredTransactions with allTransactions, added currentMonthExpenses useMemo filter
+  - src/app/dashboard/HomeTab.jsx - added allTransactions prop, forwarded to BudgetStatusCard
+  - src/app/dashboard/page.js - passes allTransactions={data?.transactions || []} to HomeTab
+- **Verification:** npm run build passes, dashboard 170 kB (+1 kB)

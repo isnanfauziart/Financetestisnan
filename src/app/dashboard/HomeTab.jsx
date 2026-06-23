@@ -19,7 +19,7 @@ export default function HomeTab({
   recent5,
   setActiveNav, openQuickAdd, setDrillDown,
   onToast, goalsRefreshTrigger,
-  filteredTransactions,
+  filteredTransactions, allTransactions,
   selectedMonth, selectedYear, monthlyData,
   onCategoryClick, onWhatIfOpen,
 }) {
@@ -152,7 +152,7 @@ export default function HomeTab({
 
       {/* Budget status (compact summary, hides if no budgets) */}
       <BudgetStatusCard
-        filteredTransactions={filteredTransactions}
+        allTransactions={allTransactions}
         setActiveNav={setActiveNav}
       />
 

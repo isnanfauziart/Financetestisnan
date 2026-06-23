@@ -19,20 +19,25 @@ function statusLabel(pct) {
   return "Sehat"
 }
 
-export default function BudgetStatusCard({ filteredTransactions, setActiveNav }) {
+export default function BudgetStatusCard({ allTransactions, setActiveNav }) {
   const currentMonth = AVAILABLE_MONTHS[new Date().getMonth()]
   const currentYear = String(new Date().getFullYear())
 
   const { budgets, loading } = useBudgets(currentMonth, currentYear)
 
+  const currentMonthExpenses = useMemo(() => {
+    return (allTransactions || []).filter(t =>
+      t.type === "expense" && t.month === currentMonth && t.year === currentYear
+    )
+  }, [allTransactions, currentMonth, currentYear])
+
   const spentByCategory = useMemo(() => {
     const map = {}
-    for (const t of (filteredTransactions || [])) {
-      if (t.type !== "expense") continue
+    for (const t of currentMonthExpenses) {
       map[t.category] = (map[t.category] || 0) + t.amount
     }
     return map
-  }, [filteredTransactions])
+  }, [currentMonthExpenses])
 
   const urgentBudgets = useMemo(() => {
     if (budgets.length === 0) return []
