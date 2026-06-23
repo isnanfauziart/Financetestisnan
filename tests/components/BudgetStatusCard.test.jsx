@@ -29,7 +29,7 @@ describe("BudgetStatusCard", () => {
   })
 
   it("fetches /api/budgets with current month and year on mount", async () => {
-    render(<BudgetStatusCard filteredTransactions={[]} setActiveNav={vi.fn()} />)
+    render(<BudgetStatusCard allTransactions={[]} setActiveNav={vi.fn()} />)
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(1)
     })
@@ -41,7 +41,7 @@ describe("BudgetStatusCard", () => {
 
   it("renders nothing when no budgets exist", async () => {
     mockBudgetsResponse([])
-    const { container } = render(<BudgetStatusCard filteredTransactions={[]} setActiveNav={vi.fn()} />)
+    const { container } = render(<BudgetStatusCard allTransactions={[]} setActiveNav={vi.fn()} />)
     await waitFor(() => {
       expect(container.firstChild).toBeNull()
     })
@@ -50,14 +50,14 @@ describe("BudgetStatusCard", () => {
   it("renders shimmer skeleton during loading", () => {
     let resolveFetch
     global.fetch = vi.fn(() => new Promise(r => { resolveFetch = r }))
-    const { container } = render(<BudgetStatusCard filteredTransactions={[]} setActiveNav={vi.fn()} />)
+    const { container } = render(<BudgetStatusCard allTransactions={[]} setActiveNav={vi.fn()} />)
     expect(container.querySelector(".shimmer-bg")).toBeInTheDocument()
     resolveFetch({ ok: true, json: () => Promise.resolve({ budgets: [] }) })
   })
 
   it("renders 'all healthy' message when budgets exist but none over 70%", async () => {
     mockBudgetsResponse([{ kategori: "Makanan", limit: 1000000, bulan: currentMonth, tahun: currentYear, akun: "" }])
-    render(<BudgetStatusCard filteredTransactions={[]} setActiveNav={vi.fn()} />)
+    render(<BudgetStatusCard allTransactions={[]} setActiveNav={vi.fn()} />)
     await waitFor(() => {
       expect(screen.getByText(/Semua budget sehat bulan ini/i)).toBeInTheDocument()
     })
@@ -67,9 +67,9 @@ describe("BudgetStatusCard", () => {
     const budgets = [
       { kategori: "Makanan", limit: 100000, bulan: currentMonth, tahun: currentYear, akun: "" },
     ]
-    const txns = [{ type: "expense", category: "Makanan", amount: 150000, account: "" }]
+    const txns = [{ type: "expense", category: "Makanan", amount: 150000, account: "", month: currentMonth, year: currentYear }]
     mockBudgetsResponse(budgets)
-    render(<BudgetStatusCard filteredTransactions={txns} setActiveNav={vi.fn()} />)
+    render(<BudgetStatusCard allTransactions={txns} setActiveNav={vi.fn()} />)
     await waitFor(() => {
       expect(screen.getByText("1 over")).toBeInTheDocument()
     })
@@ -79,9 +79,9 @@ describe("BudgetStatusCard", () => {
     const budgets = [
       { kategori: "Transport", limit: 100000, bulan: currentMonth, tahun: currentYear, akun: "" },
     ]
-    const txns = [{ type: "expense", category: "Transport", amount: 95000, account: "" }]
+    const txns = [{ type: "expense", category: "Transport", amount: 95000, account: "", month: currentMonth, year: currentYear }]
     mockBudgetsResponse(budgets)
-    render(<BudgetStatusCard filteredTransactions={txns} setActiveNav={vi.fn()} />)
+    render(<BudgetStatusCard allTransactions={txns} setActiveNav={vi.fn()} />)
     await waitFor(() => {
       expect(screen.getByText("1 hampir")).toBeInTheDocument()
     })
@@ -92,12 +92,12 @@ describe("BudgetStatusCard", () => {
       { kategori: "Makanan", limit: 100000, bulan: currentMonth, tahun: currentYear, akun: "" },
     ]
     const txns = [
-      { type: "expense", category: "Makanan", amount: 50000, account: "" },
-      { type: "expense", category: "Makanan", amount: 30000, account: "" },
-      { type: "income", category: "Makanan", amount: 99999, account: "" },
+      { type: "expense", category: "Makanan", amount: 50000, account: "", month: currentMonth, year: currentYear },
+      { type: "expense", category: "Makanan", amount: 30000, account: "", month: currentMonth, year: currentYear },
+      { type: "income", category: "Makanan", amount: 99999, account: "", month: currentMonth, year: currentYear },
     ]
     mockBudgetsResponse(budgets)
-    render(<BudgetStatusCard filteredTransactions={txns} setActiveNav={vi.fn()} />)
+    render(<BudgetStatusCard allTransactions={txns} setActiveNav={vi.fn()} />)
     await waitFor(() => {
       expect(screen.getByText(/80%/)).toBeInTheDocument()
     })
@@ -111,13 +111,13 @@ describe("BudgetStatusCard", () => {
       { kategori: "Belanja", limit: 100000, bulan: currentMonth, tahun: currentYear, akun: "" },
     ]
     const txns = [
-      { type: "expense", category: "Makanan", amount: 85000, account: "" },
-      { type: "expense", category: "Transport", amount: 100000, account: "" },
-      { type: "expense", category: "Hiburan", amount: 90000, account: "" },
-      { type: "expense", category: "Belanja", amount: 80000, account: "" },
+      { type: "expense", category: "Makanan", amount: 85000, account: "", month: currentMonth, year: currentYear },
+      { type: "expense", category: "Transport", amount: 100000, account: "", month: currentMonth, year: currentYear },
+      { type: "expense", category: "Hiburan", amount: 90000, account: "", month: currentMonth, year: currentYear },
+      { type: "expense", category: "Belanja", amount: 80000, account: "", month: currentMonth, year: currentYear },
     ]
     mockBudgetsResponse(budgets)
-    render(<BudgetStatusCard filteredTransactions={txns} setActiveNav={vi.fn()} />)
+    render(<BudgetStatusCard allTransactions={txns} setActiveNav={vi.fn()} />)
     await waitFor(() => {
       expect(screen.getByText("Transport")).toBeInTheDocument()
       expect(screen.getByText("Hiburan")).toBeInTheDocument()
@@ -131,9 +131,9 @@ describe("BudgetStatusCard", () => {
     const budgets = [
       { kategori: "Makanan", limit: 100000, bulan: currentMonth, tahun: currentYear, akun: "" },
     ]
-    const txns = [{ type: "expense", category: "Makanan", amount: 95000, account: "" }]
+    const txns = [{ type: "expense", category: "Makanan", amount: 95000, account: "", month: currentMonth, year: currentYear }]
     mockBudgetsResponse(budgets)
-    render(<BudgetStatusCard filteredTransactions={txns} setActiveNav={setActiveNav} />)
+    render(<BudgetStatusCard allTransactions={txns} setActiveNav={setActiveNav} />)
     await waitFor(() => {
       expect(screen.getByLabelText(/Open Makanan budget details/i)).toBeInTheDocument()
     })
@@ -146,9 +146,9 @@ describe("BudgetStatusCard", () => {
     const budgets = [
       { kategori: "Makanan", limit: 100000, bulan: currentMonth, tahun: currentYear, akun: "" },
     ]
-    const txns = [{ type: "expense", category: "Makanan", amount: 95000, account: "" }]
+    const txns = [{ type: "expense", category: "Makanan", amount: 95000, account: "", month: currentMonth, year: currentYear }]
     mockBudgetsResponse(budgets)
-    render(<BudgetStatusCard filteredTransactions={txns} setActiveNav={setActiveNav} />)
+    render(<BudgetStatusCard allTransactions={txns} setActiveNav={setActiveNav} />)
     await waitFor(() => {
       expect(screen.getByLabelText(/Open budget details in Statistics/i)).toBeInTheDocument()
     })
@@ -158,7 +158,7 @@ describe("BudgetStatusCard", () => {
 
   it("handles fetch error gracefully (renders nothing)", async () => {
     mockFailedResponse()
-    const { container } = render(<BudgetStatusCard filteredTransactions={[]} setActiveNav={vi.fn()} />)
+    const { container } = render(<BudgetStatusCard allTransactions={[]} setActiveNav={vi.fn()} />)
     await waitFor(() => {
       expect(container.firstChild).toBeNull()
     })

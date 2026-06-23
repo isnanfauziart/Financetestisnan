@@ -1,10 +1,12 @@
 "use client"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Target, TrendingUp, Clock, Zap, Info } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp, formatRpFull, useCountUp } from "@/app/dashboard/_components/helpers"
+import Sheet from "@/app/dashboard/_components/Sheet"
 
 export default function FITrackerCard({ netWorth, monthlyData }) {
+  const [formulaOpen, setFormulaOpen] = useState(false)
   const fi = useMemo(() => {
     if (!monthlyData || monthlyData.length < 2) return null
 
@@ -80,6 +82,9 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
           <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Financial Independence</p>
         </div>
         <p className="text-sm text-earth-500">Butuh minimal 2 bulan data untuk menghitung FI.</p>
+        <p className="text-[10px] text-earth-400 mt-3 flex items-center gap-1">
+          <Info size={10} aria-hidden="true" /> Berdasarkan aturan 4% (25× pengeluaran tahunan)
+        </p>
       </div>
     )
   }
@@ -87,7 +92,15 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
   const progressColor = fi.fiProgress >= 50 ? THEME.income : fi.fiProgress >= 20 ? THEME.savings : THEME.primary
 
   return (
-    <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+    <>
+      <div
+        className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in cursor-pointer active:scale-[0.99] transition-transform"
+        onClick={() => setFormulaOpen(true)}
+        role="button"
+        aria-label="Ketuk untuk melihat penjelasan rumus Financial Independence"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setFormulaOpen(true) }}
+      >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5">
@@ -189,8 +202,46 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
       )}
 
       <p className="text-[10px] text-earth-400 mt-3 flex items-center gap-1">
-        <Info size={10} aria-hidden="true" /> Berdasarkan aturan 4% (25× pengeluaran tahunan)
+        <Info size={10} aria-hidden="true" /> Ketuk untuk penjelasan rumus
       </p>
-    </div>
+      </div>
+
+      {/* Formula explanation sheet */}
+      <Sheet
+        open={formulaOpen}
+        onClose={() => setFormulaOpen(false)}
+        title="Rumus Financial Independence"
+        subtitle="Penjelasan"
+        size="md"
+        maxHeight="85vh"
+        position="center"
+      >
+        <p className="text-xs text-earth-600 mb-4">
+          Financial Independence (FI) dihitung berdasarkan aturan 4% — asumsi bahwa kamu bisa menarik 4% dari investasi per tahun tanpa kehabisan uang:
+        </p>
+        <div className="space-y-3">
+          {[
+            { label: "FI Number", weight: "25×", desc: "Rata-rata pengeluaran tahunan × 25. Ini adalah target total aset yang kamu butuhkan untuk pensiun dini." },
+            { label: "FI Progress", weight: "%", desc: "Net Worth saat ini ÷ FI Number × 100. Menunjukkan seberapa dekat kamu mencapai FI." },
+            { label: "Est. FI Date", weight: "Tanggal", desc: "Perkiraan kapan FI tercapai berdasarkan rata-rata tabungan per bulan saat ini." },
+            { label: "Sensitivity", weight: "+10/20/30%", desc: "Simulasi: jika tabungan bulanan naik 10/20/30%, berapa tahun lebih cepat FI tercapai." },
+          ].map((row, i) => (
+            <div key={i} className="rounded-2xl p-3" style={{ background: THEME.surfaceWarm }}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold text-earth-800">{i + 1}. {row.label}</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">{row.weight}</span>
+              </div>
+              <p className="text-[10px] text-earth-600 leading-relaxed">{row.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 rounded-2xl p-3 border border-earth-200">
+          <p className="text-[10px] font-bold text-earth-700 mb-1">Aturan 4% (Safe Withdrawal Rate):</p>
+          <p className="text-[10px] text-earth-600 leading-relaxed">
+            Penelitian Trinity Study (1998) menunjukkan bahwa menarik 4% dari portofolio per tahun (disesuaikan inflasi) memiliki peluang ~95% bertahan 30+ tahun. Karena itu, target FI = 25× pengeluaran tahunan.
+          </p>
+        </div>
+      </Sheet>
+    </>
   )
 }

@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 
 function DefaultHeader({ title, subtitle, onClose }) {
@@ -63,7 +64,7 @@ export default function Sheet({
 
   const sizeClass = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-2xl" }[size] || "max-w-md"
 
-  return (
+  return createPortal(
     <div
       ref={backdropRef}
       className={`fixed inset-0 z-50 flex ${position === "center" ? "items-center" : "items-end sm:items-center"} justify-center`}
@@ -90,6 +91,7 @@ export default function Sheet({
           <div className="mt-4 pt-4 border-t border-earth-100">{footer}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

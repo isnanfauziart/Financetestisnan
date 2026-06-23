@@ -1087,3 +1087,14 @@ pm run build compiled successfully, /icon.svg route auto-registered. 135 tests p
   - src/app/dashboard/HomeTab.jsx - added allTransactions prop, forwarded to BudgetStatusCard
   - src/app/dashboard/page.js - passes allTransactions={data?.transactions || []} to HomeTab
 - **Verification:** npm run build passes, dashboard 170 kB (+1 kB)
+
+### Sheet portal fix + FI formula sheet (June 23, 2026)
+- **Issue 1:** Sheet modals (Utang Piutang, HealthScoreCard formula, ConfirmSheet) were clipped by overflow:hidden on .bento-tile parent on mobile. Root cause: .bento-tile has overflow:hidden (for gradient border effect), and Sheet modals rendered inside bento-tiles were DOM children of the overflow container.
+- **Issue 2:** FITrackerCard had no formula popup — user expected to tap the card and see an explanation.
+- **Fix 1:** Sheet.jsx now uses createPortal(modal, document.body) to render at body level, escaping any overflow:hidden ancestor. All 13+ Sheet consumers benefit automatically.
+- **Fix 2:** FITrackerCard now has click-to-formula sheet (same pattern as HealthScoreCard) explaining FI Number (25x rule), progress, est. date, and sensitivity scenarios.
+- **Files changed:**
+  - src/app/dashboard/_components/Sheet.jsx - added createPortal import, wrapped return in portal
+  - src/components/FITrackerCard.jsx - added useState, Sheet import, click handler, formula sheet
+  - tests/components/BudgetStatusCard.test.jsx - updated prop name filteredTransactions -> allTransactions, added month/year fields to test data
+- **Verification:** npm run build passes (171 kB), 23/23 tests pass (Sheet 12 + BudgetStatusCard 11)
