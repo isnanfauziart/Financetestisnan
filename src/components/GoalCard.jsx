@@ -1,5 +1,5 @@
 "use client"
-import { Pencil, Trash2, Plus, Calendar } from "lucide-react"
+import { Pencil, Trash2, Plus, Calendar, Check } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import GoalProgressRing from "./GoalProgressRing"
@@ -29,20 +29,26 @@ function etaLabel(progress, target, createdAt) {
   return `${Math.ceil(etaDays / 30)} bulan lagi`
 }
 
-export default function GoalCard({ goal, progress, onContribute, onEdit, onDelete }) {
+export default function GoalCard({ goal, progress, onContribute, onEdit, onDelete, onSettle, isCompleted }) {
   const pct = goal.target > 0 ? (progress / goal.target) * 100 : 0
-  const completed = pct >= 100
-  const color = goal.color || THEME.savings
-  const eta = etaLabel(progress, goal.target, goal.createdAt)
+  const achieved = pct >= 100
+  const settled = goal.status === "settled"
+  const color = settled ? "#9c8978" : (goal.color || THEME.savings)
+  const eta = !settled ? etaLabel(progress, goal.target, goal.createdAt) : null
   const deadline = deadlineLabel(goal.deadline)
 
   return (
-    <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm transition-all hover:shadow-pop group">
+    <div className={`bento-tile bg-white border border-earth-100 p-4 shadow-warm transition-all hover:shadow-pop group ${settled ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-1">
             <h4 className="text-sm font-bold text-earth-800 truncate">{goal.nama}</h4>
-            {completed && (
+            {settled && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: THEME.incomeBg, color: THEME.income }}>
+                ✓ Terealisasi
+              </span>
+            )}
+            {!settled && achieved && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "#d4a85322", color: "#d4a853" }}>
                 ✓ Selesai
               </span>
@@ -61,7 +67,7 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
       </div>
 
       <div className="flex items-center gap-3">
-        <GoalProgressRing progress={pct} color={color} completed={completed} />
+        <GoalProgressRing progress={settled ? 100 : pct} color={color} completed={achieved || settled} />
         <div className="min-w-0 flex-1">
           <p className="text-[11px] text-earth-500">
             <span className="font-bold" style={{ color }}>{formatRp(progress)}</span>
@@ -72,15 +78,29 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
               <Calendar size={9} aria-hidden="true" /> by {deadline}
             </p>
           )}
-          {eta && !completed && (
+          {eta && (
             <p className="text-[10px] font-semibold mt-0.5" style={{ color }}>
               {eta}
             </p>
           )}
+          {settled && (
+            <p className="text-[10px] text-earth-400 mt-0.5">Goal tercapai dan terealisasi</p>
+          )}
         </div>
       </div>
 
-      {!completed && (
+      {/* Active goal at 100% — show Settle button */}
+      {!settled && achieved && onSettle && (
+        <button onClick={onSettle}
+          className="w-full mt-3 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+          style={{ background: THEME.incomeBg, color: THEME.income }}
+          aria-label={`Settle ${goal.nama}`}>
+          <Check size={12} strokeWidth={3} aria-hidden="true" /> Tandai Terealisasi
+        </button>
+      )}
+
+      {/* Active goal not yet 100% — show Contribute button */}
+      {!settled && !achieved && (
         <button onClick={onContribute}
           className="w-full mt-3 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
           style={{ background: color + "18", color }}

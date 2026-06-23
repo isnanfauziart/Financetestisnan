@@ -5,7 +5,7 @@ import { getSheetData, parseRupiah } from "@/lib/sheets"
 export const dynamic = 'force-dynamic'
 
 const SHEET_NAME = "Goals"
-const RANGE = `${SHEET_NAME}!A:H`
+const RANGE = `${SHEET_NAME}!A:I`
 
 function rowToGoal(row, rowIndex) {
   return {
@@ -18,6 +18,7 @@ function rowToGoal(row, rowIndex) {
     icon: String(row[5] || "").trim(),
     color: String(row[6] || "").trim(),
     createdAt: String(row[7] || "").trim(),
+    status: String(row[8] || "open").trim().toLowerCase(),
   }
 }
 
@@ -114,6 +115,7 @@ export async function POST(request) {
       body.icon || "",
       body.color || "",
       createdAt,
+      "open",
     ]
     await sheetsAppend(session.accessToken, RANGE, [row])
     return Response.json({ success: true, id, message: "Goal created" })
@@ -134,15 +136,34 @@ export async function PUT(request) {
     if (!body.id) {
       return Response.json({ error: "id required to update goal" }, { status: 400 })
     }
-    const errors = validateGoal(body)
-    if (errors.length) {
-      return Response.json({ error: errors.join("; ") }, { status: 400 })
-    }
 
     const all = await fetchAllGoals(session.accessToken)
     const existing = all.find(g => g.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Goal not found" }, { status: 404 })
+    }
+
+    // For status-only updates (settle), skip full validation
+    if (body.status && !body.nama) {
+      const row = [
+        existing.id,
+        existing.nama,
+        existing.target,
+        existing.deadline,
+        existing.kategori,
+        existing.icon,
+        existing.color,
+        existing.createdAt,
+        body.status,
+      ]
+      await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
+      return Response.json({ success: true, message: `Goal ${body.status}` })
+    }
+
+    // Full update
+    const errors = validateGoal(body)
+    if (errors.length) {
+      return Response.json({ error: errors.join("; ") }, { status: 400 })
     }
 
     const row = [
@@ -154,8 +175,9 @@ export async function PUT(request) {
       body.icon || "",
       body.color || "",
       existing.createdAt,
+      body.status || existing.status || "open",
     ]
-    await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:H${existing.rowIndex}`, [row])
+    await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
     return Response.json({ success: true, message: "Goal updated" })
   } catch (err) {
     console.error(err)
@@ -181,7 +203,7 @@ export async function DELETE(request) {
       return Response.json({ error: "Goal not found" }, { status: 404 })
     }
 
-    await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:H${existing.rowIndex}`, [[""]])
+    await sheetsUpdate(session.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]])
     return Response.json({ success: true, message: "Goal deleted" })
   } catch (err) {
     console.error(err)

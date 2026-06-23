@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useMemo } from "react"
-import { Plus, Target, Sparkles } from "lucide-react"
+import { Plus, Target, Sparkles, ChevronDown, ChevronRight } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import EmptyState from "@/app/dashboard/_components/EmptyState"
 import { computeAllGoalProgress } from "@/app/dashboard/_components/goalUtils"
@@ -8,12 +8,15 @@ import { useGoals } from "@/lib/useSharedData"
 import GoalCard from "./GoalCard"
 import GoalSetupModal from "./GoalSetupModal"
 import GoalContributeModal from "./GoalContributeModal"
+import GoalSettleModal from "./GoalSettleModal"
 
 export default function GoalsSection({ transactions, onToast, refreshTrigger }) {
   const { goals, loading, error, refetch } = useGoals()
   const [setupState, setSetupState] = useState(null)
   const [contributeGoal, setContributeGoal] = useState(null)
+  const [settleGoal, setSettleGoal] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [completedExpanded, setCompletedExpanded] = useState(false)
 
   // Re-fetch when parent signals a savings transaction was added
   useEffect(() => {
@@ -28,6 +31,14 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
   const progressByGoal = useMemo(() => {
     return computeAllGoalProgress(goals, transactions)
   }, [goals, transactions])
+
+  const activeGoals = useMemo(() => {
+    return goals.filter(g => g.status !== "settled")
+  }, [goals])
+
+  const completedGoals = useMemo(() => {
+    return goals.filter(g => g.status === "settled")
+  }, [goals])
 
   const handleDelete = async (goal) => {
     if (!confirmDelete || confirmDelete.id !== goal.id) {
@@ -50,6 +61,12 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
     }
   }
 
+  const handleSettled = () => {
+    setSettleGoal(null)
+    onToast && onToast("Goal ditandai terealisasi ✓", "success")
+    refetch()
+  }
+
   if (loading) {
     return (
       <div className="mt-6 animate-bento-in">
@@ -70,9 +87,9 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
         <div className="flex items-center gap-1.5">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
           <h3 className="text-sm font-bold font-display text-earth-800">Goals</h3>
-          {goals.length > 0 && (
+          {activeGoals.length > 0 && (
             <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">
-              {goals.length} aktif
+              {activeGoals.length} aktif
             </span>
           )}
         </div>
@@ -100,18 +117,55 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
           }
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {goals.map(goal => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              progress={progressByGoal[goal.id] || 0}
-              onContribute={() => setContributeGoal(goal)}
-              onEdit={() => setSetupState({ mode: "edit", goal })}
-              onDelete={() => handleDelete(goal)}
-            />
-          ))}
-        </div>
+        <>
+          {/* Active Goals */}
+          {activeGoals.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {activeGoals.map(goal => {
+                const progress = progressByGoal[goal.id] || 0
+                const pct = goal.target > 0 ? (progress / goal.target) * 100 : 0
+                return (
+                  <GoalCard
+                    key={goal.id}
+                    goal={goal}
+                    progress={progress}
+                    onContribute={() => setContributeGoal(goal)}
+                    onEdit={() => setSetupState({ mode: "edit", goal })}
+                    onDelete={() => handleDelete(goal)}
+                    onSettle={pct >= 100 ? () => setSettleGoal(goal) : undefined}
+                  />
+                )
+              })}
+            </div>
+          )}
+
+          {/* Completed Goals */}
+          {completedGoals.length > 0 && (
+            <div className="mt-4">
+              <button
+                onClick={() => setCompletedExpanded(!completedExpanded)}
+                className="flex items-center gap-1.5 text-[11px] font-bold text-earth-500 hover:text-earth-700 transition-colors mb-2"
+              >
+                {completedExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                Completed ({completedGoals.length})
+              </button>
+              {completedExpanded && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {completedGoals.map(goal => (
+                    <GoalCard
+                      key={goal.id}
+                      goal={goal}
+                      progress={progressByGoal[goal.id] || 0}
+                      onEdit={() => setSetupState({ mode: "edit", goal })}
+                      onDelete={() => handleDelete(goal)}
+                      isCompleted
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {confirmDelete && (
@@ -158,6 +212,15 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
             onToast && onToast("Kontribusi disimpan ✓", "success")
             refetch()
           }}
+        />
+      )}
+
+      {settleGoal && (
+        <GoalSettleModal
+          goal={settleGoal}
+          progress={progressByGoal[settleGoal.id] || 0}
+          onClose={() => setSettleGoal(null)}
+          onSettled={handleSettled}
         />
       )}
     </div>
