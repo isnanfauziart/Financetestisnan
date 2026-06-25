@@ -20,6 +20,7 @@ import Skeleton from "./_components/Skeleton"
 import QuickAddSheet from "./_components/QuickAddSheet"
 import { readCache, writeCache, getLastSyncAgo } from "./_components/useDashboardCache"
 import GoalCelebration from "@/components/GoalCelebration"
+import GoalPickerModal from "@/components/GoalPickerModal"
 import WhatIfModal from "@/components/WhatIfModal"
 import SetupSaldoAwal from "@/components/SetupSaldoAwal"
 import { useSettings } from "@/lib/useSharedData"
@@ -87,6 +88,7 @@ export default function Dashboard() {
   // Goals state
   const [goalsRefreshTrigger, setGoalsRefreshTrigger] = useState(0)
   const [goalCelebration, setGoalCelebration] = useState(null)
+  const [goalPickerOpen, setGoalPickerOpen] = useState(false)
   const [whatIfOpen, setWhatIfOpen] = useState(false)
   const prevGoalPctRef = useRef({})
 
@@ -457,6 +459,8 @@ export default function Dashboard() {
       setSubmitting(false)
     })
   }
+
+  const openGoalPicker = () => setGoalPickerOpen(true)
 
   const handleEditSave = () => {
     setEditingTx(null)
@@ -831,6 +835,7 @@ export default function Dashboard() {
           <WalletTab
             txType={txType} formData={formData} rawAmount={rawAmount} submitting={submitting}
             setTxType={setTxType} setFormData={setFormData} setRawAmount={setRawAmount} handleSubmit={handleWalletSubmit}
+            onGoalContribute={openGoalPicker}
           />
         )}
         {activeNav === "profile" && (
@@ -910,6 +915,7 @@ export default function Dashboard() {
         onClose={() => setQuickAddOpen(false)}
         initialType={txType}
         onSubmit={submitTransaction}
+        onGoalContribute={openGoalPicker}
       />
 
       {/* Goal celebration */}
@@ -921,6 +927,18 @@ export default function Dashboard() {
           onDone={() => setGoalCelebration(null)}
         />
       )}
+
+      {/* Goal picker modal */}
+      <GoalPickerModal
+        open={goalPickerOpen}
+        onClose={() => setGoalPickerOpen(false)}
+        transactions={data?.transactions || []}
+        onSaved={() => {
+          fetchData()
+          setGoalsRefreshTrigger(t => t + 1)
+          setTimeout(() => checkGoalCelebration(), 800)
+        }}
+      />
 
       {/* What-If Scenario Modal */}
       <WhatIfModal

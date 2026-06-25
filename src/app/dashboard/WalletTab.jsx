@@ -1,10 +1,10 @@
 "use client"
-import { Plus } from "lucide-react"
-import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, SAVINGS_CATEGORIES, BANK_ACCOUNTS } from "./_components/constants"
+import { Plus, Target } from "lucide-react"
+import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS } from "./_components/constants"
 import { formatInputRupiah } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
 
-export default function WalletTab({ txType, formData, rawAmount, submitting, setTxType, setFormData, setRawAmount, handleSubmit }) {
+export default function WalletTab({ txType, formData, rawAmount, submitting, setTxType, setFormData, setRawAmount, handleSubmit, onGoalContribute }) {
   return (
     <div className="px-5 pt-4 animate-bento-in" key="wallet-tab">
       <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
@@ -17,15 +17,11 @@ export default function WalletTab({ txType, formData, rawAmount, submitting, set
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${txType === "income" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
             Income
           </button>
-          <button onClick={() => { setTxType("savings"); setFormData(f => ({ ...f, kategori: "" })) }} aria-label="Switch to savings form" aria-pressed={txType === "savings"}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${txType === "savings" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
-            Tabungan
-          </button>
         </div>
 
         <div className="text-center mb-6 mt-2">
           <p className="text-[10px] font-bold text-earth-500 uppercase tracking-wider mb-2">Amount</p>
-          <h2 className="text-4xl font-display font-bold" style={{ color: txType === "expense" ? THEME.textPrimary : txType === "savings" ? THEME.savings : THEME.income }}>
+          <h2 className="text-4xl font-display font-bold" style={{ color: txType === "expense" ? THEME.textPrimary : THEME.income }}>
             {rawAmount ? `Rp ${rawAmount}` : "Rp 0"}
           </h2>
         </div>
@@ -44,7 +40,7 @@ export default function WalletTab({ txType, formData, rawAmount, submitting, set
             </div>
           </div>
           <SelectField label="Category" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
-            options={txType === "expense" ? EXPENSE_CATEGORIES : txType === "savings" ? SAVINGS_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
+            options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
           <SelectField label="Bank Account" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
             options={BANK_ACCOUNTS} placeholder="Select Bank" />
           <div>
@@ -56,6 +52,11 @@ export default function WalletTab({ txType, formData, rawAmount, submitting, set
             className="w-full py-4 mt-2 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
             style={{ background: submitting ? "#ccc" : "linear-gradient(135deg, #4a3d33, #7c5fcf)" }}>
             {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Plus size={18} aria-hidden="true" /> Save Transaction</>}
+          </button>
+          <button type="button" onClick={onGoalContribute} aria-label="Contribute to goal"
+            className="w-full py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.97]"
+            style={{ background: THEME.savingsBg, color: THEME.savings }}>
+            <Target size={16} aria-hidden="true" /> Kontribusi ke Goal
           </button>
         </form>
       </div>

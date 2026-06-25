@@ -83,6 +83,11 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
               {eta}
             </p>
           )}
+          {!settled && achieved && (
+            <p className="text-[10px] font-semibold mt-0.5" style={{ color: "#d4a853" }}>
+              Goal tercapai
+            </p>
+          )}
           {settled && (
             <p className="text-[10px] text-earth-400 mt-0.5">Goal tercapai dan terealisasi</p>
           )}

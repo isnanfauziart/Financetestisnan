@@ -1,12 +1,12 @@
 "use client"
 import { useState } from "react"
-import { Plus } from "lucide-react"
-import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, SAVINGS_CATEGORIES, BANK_ACCOUNTS } from "./constants"
+import { Plus, Target } from "lucide-react"
+import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS } from "./constants"
 import { formatInputRupiah } from "./helpers"
 import SelectField from "./SelectField"
 import Sheet from "./Sheet"
 
-export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit }) {
+export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute }) {
   const [txType, setTxType] = useState(initialType)
   const [formData, setFormData] = useState({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "" })
   const [rawAmount, setRawAmount] = useState("")
@@ -54,15 +54,11 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${txType === "income" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
             Income
           </button>
-          <button onClick={() => handleTypeChange("savings")} aria-label="Switch to savings" aria-pressed={txType === "savings"}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${txType === "savings" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
-            Tabungan
-          </button>
         </div>
 
         <div className="text-center">
           <p className="text-[10px] font-bold text-earth-500 uppercase tracking-wider mb-1.5">Amount</p>
-          <h3 className="text-3xl font-display font-bold leading-none" style={{ color: txType === "expense" ? THEME.textPrimary : txType === "savings" ? THEME.savings : THEME.income }}>
+          <h3 className="text-3xl font-display font-bold leading-none" style={{ color: txType === "expense" ? THEME.textPrimary : THEME.income }}>
             {rawAmount ? `Rp ${rawAmount}` : "Rp 0"}
           </h3>
         </div>
@@ -74,13 +70,18 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
               className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200 transition-shadow" />
           </div>
           <SelectField label="Category" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
-            options={txType === "expense" ? EXPENSE_CATEGORIES : txType === "savings" ? SAVINGS_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
+            options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
           <SelectField label="Bank Account" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
             options={BANK_ACCOUNTS} placeholder="Select Bank" />
           <button type="submit" disabled={submitting} aria-label="Save transaction"
             className="w-full py-3.5 mt-1 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
             style={{ background: submitting ? "#ccc" : "linear-gradient(135deg, #4a3d33, #7c5fcf)" }}>
             {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Plus size={16} aria-hidden="true" /> Save</>}
+          </button>
+          <button type="button" onClick={() => { onClose(); onGoalContribute?.() }} aria-label="Contribute to goal"
+            className="w-full py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+            style={{ background: THEME.savingsBg, color: THEME.savings }}>
+            <Target size={14} aria-hidden="true" /> Kontribusi ke Goal
           </button>
         </form>
       </div>
