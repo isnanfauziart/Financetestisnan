@@ -10,11 +10,11 @@ async function fetchSettings(accessToken, spreadsheetId) {
   const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
   const settings = { startingBalance: 0, startingBalanceDate: "" }
   for (let i = 0; i < rows.length; i++) {
-    const key = String(rows[i]?.[0] || "").trim()
+    const key = String(rows[i]?.[0] || "").trim().toLowerCase()
     const val = rows[i]?.[1]
-    if (key === "startingBalance") {
+    if (key === "startingbalance") {
       settings.startingBalance = parseRupiah(val || 0)
-    } else if (key === "startingBalanceDate") {
+    } else if (key === "startingbalancedate") {
       settings.startingBalanceDate = String(val || "").trim()
     }
   }
@@ -59,12 +59,12 @@ export async function PUT(request) {
     const existingKeys = {}
     for (let i = 0; i < rows.length; i++) {
       const key = String(rows[i]?.[0] || "").trim()
-      if (key) existingKeys[key] = i + 1 // 1-indexed row
+      if (key) existingKeys[key.toLowerCase()] = i + 1 // 1-indexed row
     }
 
     for (const [key, value] of entries) {
       if (!key) continue
-      const targetRow = existingKeys[key]
+      const targetRow = existingKeys[key.toLowerCase()]
 
       if (targetRow) {
         // Update existing row

@@ -6,6 +6,35 @@ export const dynamic = 'force-dynamic'
 
 const SHARED_SPREADSHEET_ID = process.env.SPREADSHEET_ID
 
+export async function GET(request) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { user } = auth
+
+  // Update user's spreadsheet_id to the shared sheet
+  const { error } = await supabaseAdmin
+    .from("users")
+    .update({
+      spreadsheet_id: SHARED_SPREADSHEET_ID,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id)
+
+  if (error) {
+    console.error("[Migrate] Gagal update spreadsheet_id:", error)
+    return Response.json({ error: "Gagal mengupdate spreadsheet_id" }, { status: 500 })
+  }
+
+  return Response.json({
+    success: true,
+    message: "Berhasil mengarahkan ke sheet bersama",
+    spreadsheetId: SHARED_SPREADSHEET_ID,
+  })
+}
+
 const TABS = [
   { name: "Pemasukan", range: "A:M" },
   { name: "Pengeluaran", range: "A:M" },
