@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -32,8 +32,8 @@ function validateBudget(body) {
   return errors
 }
 
-async function fetchAllBudgets(accessToken) {
-  const rows = await getSheetData(accessToken, RANGE).catch(() => [])
+async function fetchAllBudgets(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
   const out = []
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -48,8 +48,8 @@ function findRowIndex(budgets, key) {
   return match ? match.rowIndex : null
 }
 
-async function sheetsBatchUpdate(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
+async function sheetsBatchUpdate(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
   const res = await fetch(url, {
     method: "PUT",
     headers: {
@@ -65,8 +65,8 @@ async function sheetsBatchUpdate(accessToken, range, values) {
   return res.json()
 }
 
-async function sheetsAppend(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+async function sheetsAppend(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -83,18 +83,18 @@ async function sheetsAppend(accessToken, range, values) {
 }
 
 export async function GET(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const { searchParams } = new URL(request.url)
     const month = searchParams.get("month")
     const year = searchParams.get("year")
 
-    const all = await fetchAllBudgets(accessToken)
+    const all = await fetchAllBudgets(accessToken, spreadsheetId)
     const filtered = all.filter(b => {
       if (month && month !== "Semua Bulan" && b.bulan !== month) return false
       if (year && year !== "Semua Tahun" && b.tahun !== String(year)) return false
@@ -108,11 +108,11 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -121,7 +121,7 @@ export async function POST(request) {
       return Response.json({ error: errors.join("; ") }, { status: 400 })
     }
 
-    const all = await fetchAllBudgets(accessToken)
+    const all = await fetchAllBudgets(accessToken, spreadsheetId)
     const key = normalizeKey(body.kategori, body.bulan, body.tahun, body.akun || "")
     const existingIdx = findRowIndex(all, key)
     if (existingIdx) {
@@ -136,7 +136,7 @@ export async function POST(request) {
       body.akun || "",
       body.catatan || "",
     ]
-    await sheetsAppend(accessToken, RANGE, [row])
+    await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
     return Response.json({ success: true, message: "Budget created" })
   } catch (err) {
     console.error("[Budgets]", err)
@@ -145,11 +145,11 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -161,7 +161,7 @@ export async function PUT(request) {
       return Response.json({ error: "originalKategori, originalBulan, originalTahun required to find existing budget" }, { status: 400 })
     }
 
-    const all = await fetchAllBudgets(accessToken)
+    const all = await fetchAllBudgets(accessToken, spreadsheetId)
     const originalKey = normalizeKey(body.originalKategori, body.originalBulan, body.originalTahun, body.originalAkun || "")
     const existingIdx = findRowIndex(all, originalKey)
     if (!existingIdx) {
@@ -176,7 +176,7 @@ export async function PUT(request) {
       body.akun || "",
       body.catatan || "",
     ]
-    await sheetsBatchUpdate(accessToken, `${SHEET_NAME}!A${existingIdx}:F${existingIdx}`, [row])
+    await sheetsBatchUpdate(accessToken, `${SHEET_NAME}!A${existingIdx}:F${existingIdx}`, [row], spreadsheetId)
     return Response.json({ success: true, message: "Budget updated" })
   } catch (err) {
     console.error("[Budgets]", err)
@@ -185,11 +185,11 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -197,14 +197,14 @@ export async function DELETE(request) {
       return Response.json({ error: "kategori, bulan, tahun required" }, { status: 400 })
     }
 
-    const all = await fetchAllBudgets(accessToken)
+    const all = await fetchAllBudgets(accessToken, spreadsheetId)
     const key = normalizeKey(body.kategori, body.bulan, String(body.tahun), body.akun || "")
     const existingIdx = findRowIndex(all, key)
     if (!existingIdx) {
       return Response.json({ error: "Budget not found" }, { status: 404 })
     }
 
-    await sheetsBatchUpdate(accessToken, `${SHEET_NAME}!A${existingIdx}:F${existingIdx}`, [[""]])
+    await sheetsBatchUpdate(accessToken, `${SHEET_NAME}!A${existingIdx}:F${existingIdx}`, [[""]], spreadsheetId)
     return Response.json({ success: true, message: "Budget deleted" })
   } catch (err) {
     console.error("[Budgets]", err)

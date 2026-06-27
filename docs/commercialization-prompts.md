@@ -5,7 +5,9 @@ Each prompt includes all context needed — no prior session memory required.
 
 ---
 
-## PHASE 0: SECURITY FIXES (do first, standalone)
+## PHASE 0: SECURITY FIXES (do first, standalone) ✅ DONE
+
+> **Status: COMPLETED.** All 5 vulnerabilities have been fixed. Phase 0 is documented here for reference only — do NOT re-implement.
 
 ### CONTEXT
 
@@ -248,18 +250,50 @@ After implementing all fixes:
 
 ### CONTEXT
 
-You are working on **Artoku Finance Dashboard**, a Next.js 14 App Router finance app. It currently uses a single shared Google Sheet (from `SPREADSHEET_ID` env var) for all data. We need to make it multi-tenant so each user gets their own Google Sheet.
+You are working on **Artoku Finance Dashboard**, a Next.js 14 App Router finance app. Phase 0 (security fixes) is complete — all API routes use `getToken()` from `next-auth/jwt`, error messages are generic, and security headers are in place.
 
-**Current architecture**:
-- NextAuth v4 with Google OAuth (stores `accessToken` in JWT, not session — fixed in Phase 0)
-- 6 API routes all read `process.env.SPREADSHEET_ID` directly
+The app currently uses a single shared Google Sheet (from `SPREADSHEET_ID` env var) for all data. We need to make it multi-tenant so each user gets their own Google Sheet.
+
+**Current architecture** (after Phase 0):
+- NextAuth v4 with Google OAuth (stores `accessToken` in JWT, not session)
+- **15 API routes** all read `process.env.SPREADSHEET_ID` directly via `src/lib/sheets.js`
 - `src/lib/sheets.js` has `getSheetData(accessToken, range)` that hardcodes spreadsheetId from env
-- Data tabs: `Pemasukan`, `Pengeluaran`, `Tabungan`, `Budgets`, `Goals`
+- **10 Google Sheets tabs**: `Pemasukan`, `Pengeluaran`, `Tabungan`, `Budgets`, `Goals`, `Utang`, `Momental`, `EventBudgets`, `Tagihan`, `Settings`
+
+**Current API routes** (all use `getToken()` pattern):
+1. `src/app/api/dashboard/route.js` — Main dashboard aggregation (GET)
+2. `src/app/api/transaction/route.js` — Transaction CRUD (GET, POST)
+3. `src/app/api/transaction/[id]/route.js` — Transaction edit/delete (PUT, DELETE)
+4. `src/app/api/budgets/route.js` — Budgets CRUD (GET, POST, PUT, DELETE)
+5. `src/app/api/goals/route.js` — Goals CRUD (GET, POST, PUT, DELETE)
+6. `src/app/api/debts/route.js` — Debts CRUD (GET, POST, PUT, DELETE) + payment action
+7. `src/app/api/momental/route.js` — Event/milestone planning (GET, POST, PUT, DELETE)
+8. `src/app/api/momental/[id]/route.js` — Single event detail + update/delete (GET, PUT, DELETE)
+9. `src/app/api/momental/summary/route.js` — Active event summary (GET)
+10. `src/app/api/bills/route.js` — Bill reminders CRUD (GET, POST)
+11. `src/app/api/bills/[id]/route.js` — Single bill update/delete (PUT, DELETE)
+12. `src/app/api/bills/pay/route.js` — Pay bill → auto-create transaction (POST)
+13. `src/app/api/bills/summary/route.js` — Bill summary for notifications (GET)
+14. `src/app/api/settings/route.js` — User settings (GET, PUT)
+15. `src/app/api/auth/[...nextauth]/route.js` — NextAuth config (GET, POST)
+
+**Current lib files**:
+- `src/lib/sheets.js` — `getSheetData(accessToken, range)`, `parseRupiah()`, `formatRupiah()`
+- `src/lib/auth.js` — Token refresh helper (`refreshAccessToken`)
+- `src/lib/eventTemplates.js` — Event templates for Momental feature
+- `src/lib/notifications.js` — Service worker registration + notification helpers
+- `src/lib/report.js` — PDF report generation
+- `src/lib/forecast.js` — Cash flow forecasting
+- `src/lib/healthScore.js` — Financial health score
+- `src/lib/financialHealthScore.js` — Alternative health score
+- `src/lib/theme.js` — Theme configuration
+- `src/lib/parseSheetRow.js` — Sheet row parsing
+- `src/lib/useSharedData.js` — Client-side data caching hook
 
 **Target architecture**:
 - Supabase (PostgreSQL) stores user accounts, tier info, usage tracking
 - Each user gets their own Google Sheet created via Sheets API on first login
-- All API routes read the user's spreadsheetId from Supabase instead of env var
+- All 14 data API routes read the user's spreadsheetId from Supabase instead of env var
 - The env var `SPREADSHEET_ID` becomes the "legacy/admin" sheet only
 
 ### YOUR TASK
@@ -374,8 +408,12 @@ CREATE INDEX IF NOT EXISTS idx_usage_user_feature ON usage(user_id, feature);
 INSERT INTO feature_flags (key, enabled, description) VALUES
   ('budgets_enabled', true, 'Budget tracking feature'),
   ('goals_enabled', true, 'Savings goals feature'),
+  ('momental_enabled', true, 'Event/milestone budget planning'),
+  ('bills_enabled', true, 'Bill reminders and auto-pay'),
   ('smart_insights', true, 'AI-powered spending insights'),
-  ('pdf_reports', true, 'PDF report generation')
+  ('pdf_reports', true, 'PDF report generation'),
+  ('health_score', true, 'Financial health score'),
+  ('forecast', true, 'Cash flow forecasting')
 ON CONFLICT (key) DO NOTHING;
 ```
 
@@ -393,16 +431,47 @@ scope: "openid email profile https://www.googleapis.com/auth/spreadsheets https:
 ### STEP 5: Create Sheet Manager
 
 **Create `src/lib/sheetManager.js`**:
+
+This must create ALL 10 tabs that the app uses. The current codebase has these tabs:
+- `Pemasukan` (income) — columns A-M: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M(bulan) | Y(tahun) | Y2
+- `Pengeluaran` (expenses) — columns A-M: same layout
+- `Tabungan` (savings) — columns A-M: same layout
+- `Budgets` — columns A-F: Kategori | Bulan | Tahun | Limit | Akun | Catatan
+- `Goals` — columns A-H: ID | Nama | Target | Deadline | Kategori | Icon | Color | CreatedAt
+- `Utang` (debts) — columns A-I: ID | NamaOrang | Jumlah | Arah | JatuhTempo | Status | SisaSaldo | Catatan | CreatedAt
+- `Momental` (events) — columns A-K: ID | Nama | Tipe | TanggalMulai | TanggalSelesai | TotalBudget | Mode | Status | DanaTHR | Catatan | CreatedAt
+- `EventBudgets` — columns A-F: EventID | SubKategori | Limit | Icon | Color | Catatan
+- `Tagihan` (bills) — columns A-M: ID | Nama | Jumlah | Tipe | KategoriBill | KategoriTransaksi | Frekuensi | TanggalJatuhTempo | AkunBank | Aktif | TerakhirDibayar | Catatan | CreatedAt
+- `Settings` — columns A-B: Key | Value
+
 ```js
-const TEMPLATE_TABS = ["Pemasukan", "Pengeluaran", "Tabungan"]
-const TEMPLATE_HEADERS = [
-  ["Tanggal", "ID", "Keterangan", "Kategori", "Jumlah", "Pajak", "Biaya", "AkunBank", "Net", "Catatan", "M", "Y", "Y2"],
+const TX_HEADERS = [["Tanggal", "ID", "Keterangan", "Kategori", "Jumlah", "Pajak", "Biaya", "AkunBank", "Net", "Catatan", "M", "Y", "Y2"]]
+
+const ALL_TABS = [
+  // Transaction tabs (A-M, 13 columns)
+  { name: "Pemasukan", headers: TX_HEADERS, cols: 13 },
+  { name: "Pengeluaran", headers: TX_HEADERS, cols: 13 },
+  { name: "Tabungan", headers: TX_HEADERS, cols: 13 },
+  // Budgets (A-F, 6 columns)
+  { name: "Budgets", headers: [["Kategori", "Bulan", "Tahun", "Limit", "Akun", "Catatan"]], cols: 6 },
+  // Goals (A-H, 8 columns)
+  { name: "Goals", headers: [["ID", "Nama", "Target", "Deadline", "Kategori", "Icon", "Color", "CreatedAt"]], cols: 8 },
+  // Debts (A-I, 9 columns)
+  { name: "Utang", headers: [["ID", "NamaOrang", "Jumlah", "Arah", "JatuhTempo", "Status", "SisaSaldo", "Catatan", "CreatedAt"]], cols: 9 },
+  // Events (A-K, 11 columns)
+  { name: "Momental", headers: [["ID", "Nama", "Tipe", "TanggalMulai", "TanggalSelesai", "TotalBudget", "Mode", "Status", "DanaTHR", "Catatan", "CreatedAt"]], cols: 11 },
+  // Event sub-budgets (A-F, 6 columns)
+  { name: "EventBudgets", headers: [["EventID", "SubKategori", "Limit", "Icon", "Color", "Catatan"]], cols: 6 },
+  // Bills (A-M, 13 columns)
+  { name: "Tagihan", headers: [["ID", "Nama", "Jumlah", "Tipe", "KategoriBill", "KategoriTransaksi", "Frekuensi", "TanggalJatuhTempo", "AkunBank", "Aktif", "TerakhirDibayar", "Catatan", "CreatedAt"]], cols: 13 },
+  // Settings (A-B, 2 columns)
+  { name: "Settings", headers: [["Key", "Value"]], cols: 2 },
 ]
 
 export async function createUserSheet(accessToken, userName) {
   const title = `Artoku Finance - ${userName || "User"} - ${new Date().toISOString().split("T")[0]}`
 
-  // 1. Create the spreadsheet
+  // 1. Create the spreadsheet with the first 3 transaction tabs
   const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
     method: "POST",
     headers: {
@@ -411,10 +480,10 @@ export async function createUserSheet(accessToken, userName) {
     },
     body: JSON.stringify({
       properties: { title },
-      sheets: TEMPLATE_TABS.map(name => ({
+      sheets: ALL_TABS.slice(0, 3).map(t => ({
         properties: {
-          title: name,
-          gridProperties: { rowCount: 1000, columnCount: 13 },
+          title: t.name,
+          gridProperties: { rowCount: 1000, columnCount: t.cols },
         },
       })),
     }),
@@ -428,31 +497,25 @@ export async function createUserSheet(accessToken, userName) {
   const spreadsheet = await createRes.json()
   const spreadsheetId = spreadsheet.spreadsheetId
 
-  // 2. Write headers to each tab
-  for (const tab of TEMPLATE_TABS) {
-    const headerRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab + "!A1:M1")}?valueInputOption=USER_ENTERED`,
+  // 2. Write headers to the initial 3 tabs
+  for (let i = 0; i < 3; i++) {
+    const tab = ALL_TABS[i]
+    const lastCol = String.fromCharCode(64 + tab.cols) // A=65, so 13 cols → M
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab.name + "!A1:" + lastCol + "1")}?valueInputOption=USER_ENTERED`,
       {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ values: TEMPLATE_HEADERS }),
+        body: JSON.stringify({ values: tab.headers }),
       }
     )
-    if (!headerRes.ok) {
-      console.error(`Failed to write headers to ${tab}:`, await headerRes.text())
-    }
   }
 
-  // 3. Create Budgets and Goals tabs
-  const extraTabs = [
-    { name: "Budgets", headers: [["Kategori", "Bulan", "Tahun", "Limit", "Akun", "Catatan"]] },
-    { name: "Goals", headers: [["ID", "Nama", "Target", "Deadline", "Kategori", "Icon", "Color", "CreatedAt"]] },
-  ]
-
-  // Use batchUpdate to add new sheets
+  // 3. Add remaining tabs via batchUpdate
+  const extraTabs = ALL_TABS.slice(3)
   const addSheetsRes = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
     {
@@ -466,7 +529,7 @@ export async function createUserSheet(accessToken, userName) {
           addSheet: {
             properties: {
               title: t.name,
-              gridProperties: { rowCount: 1000, columnCount: 8 },
+              gridProperties: { rowCount: 1000, columnCount: t.cols },
             },
           },
         })),
@@ -478,10 +541,11 @@ export async function createUserSheet(accessToken, userName) {
     console.error("Failed to add extra tabs:", await addSheetsRes.text())
   }
 
-  // Write headers for extra tabs
+  // 4. Write headers for extra tabs
   for (const tab of extraTabs) {
+    const lastCol = String.fromCharCode(64 + tab.cols)
     await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab.name + "!A1:H1")}?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab.name + "!A1:" + lastCol + "1")}?valueInputOption=USER_ENTERED`,
       {
         method: "PUT",
         headers: {
@@ -617,59 +681,121 @@ export async function getSheetData(accessToken, range, spreadsheetId) {
   const data = await res.json()
   return data.values || []
 }
+
+export function parseRupiah(value) {
+  if (!value) return 0
+  const cleaned = String(value).replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", ".")
+  return parseFloat(cleaned) || 0
+}
+
+export function formatRupiah(amount) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
 ```
 
-### STEP 9: Update ALL 6 API Routes
+### STEP 9: Update ALL 15 API Routes
 
-Every API route must be updated to use `getAuthContext` instead of `getServerSession` + hardcoded `SPREADSHEET_ID`.
+Every API route must be updated to use `getAuthContext` instead of `getToken` + hardcoded `SPREADSHEET_ID`. This is the most critical step.
 
 **Pattern for each route**:
 
 ```js
 // BEFORE:
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { getToken } from "next-auth/jwt"
+import { getSheetData } from "@/lib/sheets"
 // ...
-const session = await getServerSession(authOptions)
-if (!session?.accessToken) { ... }
-const data = await getSheetData(session.accessToken, "Pemasukan!A:M")
+const token = await getToken({ req: request })
+if (!token?.accessToken) { ... }
+const data = await getSheetData(token.accessToken, "Pemasukan!A:M")
+// And inline sheets calls use process.env.SPREADSHEET_ID:
+const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/...`
 
 // AFTER:
 import { getAuthContext } from "@/lib/apiAuth"
+import { getSheetData } from "@/lib/sheets"
 // ...
 const auth = await getAuthContext(request)
 if (!auth) { ... }
 const { accessToken, spreadsheetId } = auth
 const data = await getSheetData(accessToken, "Pemasukan!A:M", spreadsheetId)
+// And inline sheets calls use spreadsheetId:
+const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/...`
 ```
 
 **Files to update (with specific changes)**:
 
 1. **`src/app/api/dashboard/route.js`**:
-   - Replace `getServerSession` import with `getAuthContext`
-   - Add `request` parameter to `GET(request)`
-   - Pass `spreadsheetId` to all `getSheetData` calls (lines 16, 18, 20)
+   - Replace `getToken` import with `getAuthContext`
+   - Replace `const token = await getToken({ req: request })` with `const auth = await getAuthContext(request)`
+   - Pass `spreadsheetId` to all `getSheetData` calls
 
 2. **`src/app/api/transaction/route.js`**:
-   - Replace `getServerSession` import with `getAuthContext`
-   - Replace `const SPREADSHEET_ID = process.env.SPREADSHEET_ID` with spreadsheetId from auth
-   - Pass `spreadsheetId` to `getSheetData` in `findNextEmptyRow`
-   - Update `sheetsUpdate` to use `spreadsheetId` parameter instead of `SPREADSHEET_ID`
-   - Replace `session.accessToken` with `auth.accessToken`
+   - Replace `getToken` import with `getAuthContext`
+   - Replace `process.env.SPREADSHEET_ID` in `findNextEmptyRow` and `sheetsUpdate` with `spreadsheetId` from auth
+   - Pass `spreadsheetId` to `getSheetData`
 
 3. **`src/app/api/transaction/[id]/route.js`**:
-   - Replace `getServerSession` import with `getAuthContext`
-   - Replace `const SPREADSHEET_ID = process.env.SPREADSHEET_ID` with spreadsheetId from auth
-   - Update both PUT and DELETE handlers to use per-user spreadsheetId
+   - Replace `getToken` import with `getAuthContext`
+   - Replace `process.env.SPREADSHEET_ID` in `sheetsUpdate` with `spreadsheetId` from auth
+   - Pass `spreadsheetId` to `getSheetData`
 
 4. **`src/app/api/budgets/route.js`**:
-   - Replace `getServerSession` import with `getAuthContext`
+   - Replace `getToken` import with `getAuthContext`
    - Replace all `process.env.SPREADSHEET_ID` references
-   - Pass `spreadsheetId` to `getSheetData` and sheet update functions
-   - Update all 4 handlers (GET, POST, PUT, DELETE)
+   - Pass `spreadsheetId` to `getSheetData` and inline sheets calls
 
 5. **`src/app/api/goals/route.js`**:
-   - Same pattern as budgets — replace all hardcoded spreadsheetId references
+   - Same pattern as budgets
+
+6. **`src/app/api/debts/route.js`**:
+   - Replace `getToken` import with `getAuthContext`
+   - Replace `process.env.SPREADSHEET_ID` in `sheetsAppend`, `sheetsUpdate`, and `handlePayment` with `spreadsheetId` from auth
+   - Pass `spreadsheetId` to `getSheetData`
+
+7. **`src/app/api/momental/route.js`**:
+   - Replace `getToken` import with `getAuthContext`
+   - Replace `process.env.SPREADSHEET_ID` in `sheetsAppend` and `sheetsUpdate` with `spreadsheetId` from auth
+   - Pass `spreadsheetId` to `getSheetData` in `fetchAllEvents`, `fetchAllSubCategories`, and `computeProgress`
+
+8. **`src/app/api/momental/[id]/route.js`**:
+   - Replace `getToken` import with `getAuthContext`
+   - Replace `process.env.SPREADSHEET_ID` in `sheetsUpdate` with `spreadsheetId` from auth
+   - Pass `spreadsheetId` to `getSheetData`
+
+9. **`src/app/api/momental/summary/route.js`**:
+   - Replace `getToken` import with `getAuthContext`
+   - Pass `spreadsheetId` to `getSheetData`
+
+10. **`src/app/api/bills/route.js`**:
+    - Replace `getToken` import with `getAuthContext`
+    - Replace `process.env.SPREADSHEET_ID` in `sheetsAppend` with `spreadsheetId` from auth
+    - Pass `spreadsheetId` to `getSheetData`
+
+11. **`src/app/api/bills/[id]/route.js`**:
+    - Replace `getToken` import with `getAuthContext`
+    - Replace `process.env.SPREADSHEET_ID` in `sheetsUpdate` with `spreadsheetId` from auth
+    - Pass `spreadsheetId` to `getSheetData`
+
+12. **`src/app/api/bills/pay/route.js`**:
+    - Replace `getToken` import with `getAuthContext`
+    - Replace `process.env.SPREADSHEET_ID` in `sheetsUpdate` and `findNextEmptyRow` with `spreadsheetId` from auth
+    - Pass `spreadsheetId` to `getSheetData`
+
+13. **`src/app/api/bills/summary/route.js`**:
+    - Replace `getToken` import with `getAuthContext`
+    - Pass `spreadsheetId` to `getSheetData`
+
+14. **`src/app/api/settings/route.js`**:
+    - Replace `getToken` import with `getAuthContext`
+    - Replace `process.env.SPREADSHEET_ID` in inline sheets calls with `spreadsheetId` from auth
+    - Pass `spreadsheetId` to `getSheetData`
+
+**IMPORTANT**: Every route has inline `fetch()` calls to the Sheets API that use `process.env.SPREADSHEET_ID` in the URL. ALL of these must be changed to use `spreadsheetId` from the auth context. Search for `process.env.SPREADSHEET_ID` in each file and replace every occurrence.
 
 ### STEP 10: Migration Script
 
@@ -718,11 +844,11 @@ async function main() {
   console.log("")
   console.log("To migrate data:")
   console.log("1. Open the legacy sheet in Google Sheets")
-  console.log("2. Copy each tab (Pemasukan, Pengeluaran, Tabungan, Budgets, Goals)")
-  console.log("3. Paste into the user's personal sheet")
+  console.log("2. Copy each tab (Pemasukan, Pengeluaran, Tabungan, Budgets, Goals, Utang, Momental, EventBudgets, Tagihan, Settings)")
+  console.log("3. Paste into the user's personal sheet (values only to preserve headers)")
   console.log("")
   console.log("Or use the Google Sheets API to copy data programmatically.")
-  console.log("The user's personal sheet already has the correct headers.")
+  console.log("The user's personal sheet already has the correct headers for all 10 tabs.")
 }
 
 main().catch(console.error)
@@ -754,15 +880,32 @@ The Google OAuth app is currently in "testing" mode. To go production:
 - Keep `process.env.SPREADSHEET_ID` as fallback in `getSheetData` for backward compatibility
 - Do NOT modify any UI components — this is infrastructure-only
 - The `getToken` import should be from `next-auth/jwt` (already set up in Phase 0)
+- Preserve all existing lib files (`eventTemplates.js`, `notifications.js`, `report.js`, `forecast.js`, `healthScore.js`, `financialHealthScore.js`, `theme.js`, `parseSheetRow.js`, `useSharedData.js`) — do not delete or rename them
 
 ### VERIFICATION
 
 1. **Build check**: `npm run build` succeeds
 2. **Login flow**: Log in with Google → check Supabase `users` table → new row created with your email
-3. **Sheet creation**: After first login, check Supabase `users` table → `spreadsheet_id` should be populated. Open that URL in browser → should have 5 tabs with headers.
+3. **Sheet creation**: After first login, check Supabase `users` table → `spreadsheet_id` should be populated. Open that URL in browser → should have 10 tabs with headers.
 4. **Data isolation**: Log in with a different Google account → should get a DIFFERENT spreadsheet_id → data from user 1 should not appear
-5. **Existing functionality**: Create a transaction → should appear in the user's personal sheet (not the shared one)
-6. **Migration**: Run `node scripts/migrate-user.js your@email.com` → should print migration instructions
+5. **Existing functionality**: Create a transaction, budget, goal, debt, event, bill, and setting → each should appear in the user's personal sheet (not the shared one)
+6. **All 15 routes work**: Test each API endpoint:
+   - `GET /api/dashboard` — returns aggregated data
+   - `POST /api/transaction` — creates transaction
+   - `PUT /api/transaction/[id]` — updates transaction
+   - `DELETE /api/transaction/[id]` — deletes transaction
+   - `GET/POST/PUT/DELETE /api/budgets` — budget CRUD
+   - `GET/POST/PUT/DELETE /api/goals` — goals CRUD
+   - `GET/POST/PUT/DELETE /api/debts` — debts CRUD
+   - `GET/POST/PUT/DELETE /api/momental` — events CRUD
+   - `GET/PUT/DELETE /api/momental/[id]` — single event
+   - `GET /api/momental/summary` — event summary
+   - `GET/POST /api/bills` — bills CRUD
+   - `PUT/DELETE /api/bills/[id]` — single bill
+   - `POST /api/bills/pay` — pay bill
+   - `GET /api/bills/summary` — bill summary
+   - `GET/PUT /api/settings` — settings CRUD
+7. **Migration**: Run `node scripts/migrate-user.js your@email.com` → should print migration instructions
 
 ---
 
@@ -770,7 +913,7 @@ The Google OAuth app is currently in "testing" mode. To go production:
 
 ### CONTEXT
 
-You are working on **Artoku Finance Dashboard**. Phase 1 is complete: Supabase is set up with `users`, `payments`, `usage`, `feature_flags`, `admins` tables. Each user gets their own Google Sheet. The `getAuthContext(request)` helper returns `{user, accessToken, spreadsheetId, tier}`.
+You are working on **Artoku Finance Dashboard**. Phase 1 is complete: Supabase is set up with `users`, `payments`, `usage`, `feature_flags`, `admins` tables. Each user gets their own Google Sheet with all 10 tabs. The `getAuthContext(request)` helper returns `{user, accessToken, spreadsheetId, tier}`.
 
 Now we need a payment system so users can upgrade from free to paid tier, and an admin dashboard to review payments.
 
@@ -804,12 +947,27 @@ export async function isAdmin(email) {
 ```
 
 #### 2. `src/lib/tier.js` — Tier limits and helpers
+
+When defining tier limits, consider ALL features in the current codebase:
+- Transactions (income/expense/savings)
+- Budgets
+- Goals
+- Debts
+- Momental (event planning)
+- Bills (bill reminders)
+- Insights (smart spending insights)
+- Smart features (healthScore, forecast, anomaly detection)
+- PDF reports
+
 ```js
 export const TIER_LIMITS = {
   free: {
     maxTransactionsPerMonth: 75,
     maxBudgets: 3,
     maxGoals: 1,
+    maxDebts: 3,
+    maxMomentalEvents: 1,
+    maxBills: 3,
     maxInsightsPerWeek: 3,
     smartFeatures: false, // healthScore, forecast, anomaly
     pdfWatermark: true,
@@ -818,6 +976,9 @@ export const TIER_LIMITS = {
     maxTransactionsPerMonth: Infinity,
     maxBudgets: Infinity,
     maxGoals: Infinity,
+    maxDebts: Infinity,
+    maxMomentalEvents: Infinity,
+    maxBills: Infinity,
     maxInsightsPerWeek: Infinity,
     smartFeatures: true,
     pdfWatermark: false,
@@ -1284,6 +1445,7 @@ You are working on **Artoku Finance Dashboard**. Phases 1-2 are complete. The ap
 - `src/lib/tier.js` with `TIER_LIMITS`, `getTierLimits`, `isPaid`
 - `src/lib/usage.js` with `getUsage`, `incrementUsage`, `checkLimit`
 - Payment flow that upgrades `users.tier` from "free" to "paid"
+- **15 API routes** all using `getAuthContext(request)` which returns `{user, accessToken, spreadsheetId, tier}`
 
 Now we need to gate features behind the free/paid tiers.
 
@@ -1299,8 +1461,11 @@ Implement feature gating across the app.
 4. `src/app/api/transaction/route.js` — Transaction creation (needs gating)
 5. `src/app/api/budgets/route.js` — Budget CRUD (needs gating)
 6. `src/app/api/goals/route.js` — Goals CRUD (needs gating)
-7. `src/app/api/dashboard/route.js` — Dashboard data (needs smart feature gating)
-8. `src/app/dashboard/page.js` — Main dashboard UI
+7. `src/app/api/debts/route.js` — Debts CRUD (needs gating)
+8. `src/app/api/momental/route.js` — Events CRUD (needs gating)
+9. `src/app/api/bills/route.js` — Bills CRUD (needs gating)
+10. `src/app/api/dashboard/route.js` — Dashboard data (needs smart feature gating)
+11. `src/app/dashboard/page.js` — Main dashboard UI
 
 ### FILES TO CREATE
 
@@ -1356,6 +1521,48 @@ export async function canUseFeature(userId, tier, feature) {
       return { allowed: true }
     }
 
+    case "debt": {
+      const usage = await getUsage(userId, "debts_created")
+      if (usage >= limits.maxDebts) {
+        return {
+          allowed: false,
+          reason: `Batas utang/piutang tercapai (${usage}/${limits.maxDebts})`,
+          upgrade: true,
+          current: usage,
+          limit: limits.maxDebts,
+        }
+      }
+      return { allowed: true }
+    }
+
+    case "momental": {
+      const usage = await getUsage(userId, "momental_created")
+      if (usage >= limits.maxMomentalEvents) {
+        return {
+          allowed: false,
+          reason: `Batas event tercapai (${usage}/${limits.maxMomentalEvents})`,
+          upgrade: true,
+          current: usage,
+          limit: limits.maxMomentalEvents,
+        }
+      }
+      return { allowed: true }
+    }
+
+    case "bill": {
+      const usage = await getUsage(userId, "bills_created")
+      if (usage >= limits.maxBills) {
+        return {
+          allowed: false,
+          reason: `Batas tagihan tercapai (${usage}/${limits.maxBills})`,
+          upgrade: true,
+          current: usage,
+          limit: limits.maxBills,
+        }
+      }
+      return { allowed: true }
+    }
+
     case "insights": {
       const allowed = await checkLimit(userId, "insights", limits.maxInsightsPerWeek)
       if (!allowed) {
@@ -1385,6 +1592,9 @@ export function getUpgradeReason(feature) {
     transaction: "Upgrade ke Pro untuk transaksi tanpa batas",
     budget: "Upgrade ke Pro untuk budget tanpa batas",
     goal: "Upgrade ke Pro untuk tujuan tanpa batas",
+    debt: "Upgrade ke Pro untuk utang/piutang tanpa batas",
+    momental: "Upgrade ke Pro untuk event budget tanpa batas",
+    bill: "Upgrade ke Pro untuk tagihan tanpa batas",
     insights: "Upgrade ke Pro untuk insight tanpa batas",
     smart_features: "Upgrade ke Pro untuk fitur pintar (skor kesehatan, prediksi, anomali)",
   }
@@ -1409,6 +1619,9 @@ export async function GET(request) {
     const txUsage = await getUsage(auth.user.id, "transactions")
     const budgetUsage = await getUsage(auth.user.id, "budgets_created")
     const goalUsage = await getUsage(auth.user.id, "goals_created")
+    const debtUsage = await getUsage(auth.user.id, "debts_created")
+    const momentalUsage = await getUsage(auth.user.id, "momental_created")
+    const billUsage = await getUsage(auth.user.id, "bills_created")
     const insightUsage = await getUsage(auth.user.id, "insights")
 
     return Response.json({
@@ -1423,6 +1636,9 @@ export async function GET(request) {
         transactions: { current: txUsage, limit: limits.maxTransactionsPerMonth },
         budgets: { current: budgetUsage, limit: limits.maxBudgets },
         goals: { current: goalUsage, limit: limits.maxGoals },
+        debts: { current: debtUsage, limit: limits.maxDebts },
+        momental: { current: momentalUsage, limit: limits.maxMomentalEvents },
+        bills: { current: billUsage, limit: limits.maxBills },
         insights: { current: insightUsage, limit: limits.maxInsightsPerWeek },
       },
       features: {
@@ -1458,6 +1674,9 @@ export async function GET(request) {
         "Transaksi tanpa batas per bulan",
         "Budget tanpa batas",
         "Tujuan tabungan tanpa batas",
+        "Utang/piutang tanpa batas",
+        "Event budget tanpa batas",
+        "Tagihan tanpa batas",
         "Insight mingguan tanpa batas",
         "Fitur pintar (skor kesehatan, prediksi, anomali)",
         "Laporan PDF tanpa watermark",
@@ -1539,7 +1758,64 @@ if (!gate.allowed) {
 await incrementUsage(auth.user.id, "goals_created")
 ```
 
-#### 7. Gate Smart Features in Dashboard — `src/app/api/dashboard/route.js`
+#### 7. Gate Debt POST — `src/app/api/debts/route.js`
+
+```js
+import { canUseFeature } from "@/lib/featureGate"
+import { incrementUsage } from "@/lib/usage"
+
+// Inside POST handler, after getting auth, BEFORE the action === "pay" check:
+const gate = await canUseFeature(auth.user.id, auth.tier, "debt")
+if (!gate.allowed) {
+  return Response.json(
+    { error: gate.reason, upgrade: true, current: gate.current, limit: gate.limit },
+    { status: 403 }
+  )
+}
+
+// After successful debt creation (not for payment actions):
+await incrementUsage(auth.user.id, "debts_created")
+```
+
+#### 8. Gate Momental POST — `src/app/api/momental/route.js`
+
+```js
+import { canUseFeature } from "@/lib/featureGate"
+import { incrementUsage } from "@/lib/usage"
+
+// Inside POST handler, after getting auth:
+const gate = await canUseFeature(auth.user.id, auth.tier, "momental")
+if (!gate.allowed) {
+  return Response.json(
+    { error: gate.reason, upgrade: true, current: gate.current, limit: gate.limit },
+    { status: 403 }
+  )
+}
+
+// After successful event creation:
+await incrementUsage(auth.user.id, "momental_created")
+```
+
+#### 9. Gate Bills POST — `src/app/api/bills/route.js`
+
+```js
+import { canUseFeature } from "@/lib/featureGate"
+import { incrementUsage } from "@/lib/usage"
+
+// Inside POST handler, after getting auth:
+const gate = await canUseFeature(auth.user.id, auth.tier, "bill")
+if (!gate.allowed) {
+  return Response.json(
+    { error: gate.reason, upgrade: true, current: gate.current, limit: gate.limit },
+    { status: 403 }
+  )
+}
+
+// After successful bill creation:
+await incrementUsage(auth.user.id, "bills_created")
+```
+
+#### 10. Gate Smart Features in Dashboard — `src/app/api/dashboard/route.js`
 
 Add at the end of the dashboard response, before `return Response.json(...)`:
 ```js
@@ -1563,9 +1839,9 @@ return Response.json({
 })
 ```
 
-Note: If `computeHealthScore`, `computeForecast`, `detectAnomalies` don't exist yet, just set them to `null` and add a TODO comment. The gate itself is what matters.
+Note: If `computeHealthScore`, `computeForecast`, `detectAnomalies` don't exist yet, just set them to `null` and add a TODO comment. The gate itself is what matters. The app already has `src/lib/healthScore.js`, `src/lib/financialHealthScore.js`, and `src/lib/forecast.js` — use those if they export usable functions.
 
-#### 8. Gate Insights — track usage when insights are fetched
+#### 11. Gate Insights — track usage when insights are fetched
 
 In the dashboard route, after generating insights:
 ```js
@@ -1592,6 +1868,7 @@ if (insightsGate.allowed) {
 - 403 responses must include `{error, upgrade: true}` so the client can show an upgrade prompt
 - Do NOT break existing paid-tier behavior — paid users should see no change
 - Track usage AFTER successful creation, not before (don't count failed attempts)
+- Do NOT modify or delete existing lib files (`healthScore.js`, `forecast.js`, etc.) — only import from them
 
 ### VERIFICATION
 
@@ -1600,9 +1877,12 @@ if (insightsGate.allowed) {
    - Create 75 transactions → 76th should return 403 with upgrade flag
    - Create 3 budgets → 4th should return 403
    - Create 1 goal → 2nd should return 403
+   - Create 3 debts → 4th should return 403
+   - Create 1 event → 2nd should return 403
+   - Create 3 bills → 4th should return 403
 3. **Paid tier unlimited**: Set `users.tier = 'paid'` in Supabase → all limits should be bypassed
 4. **Smart features**: Dashboard response for free user should have `healthScore: null, forecast: null, anomaly: null`. Paid user should get actual values (or nulls if not implemented yet).
-5. **`/api/me`**: Returns user profile with current usage counts and limits
+5. **`/api/me`**: Returns user profile with current usage counts and limits for all 7 features
 6. **`/api/me/upgrade`**: Returns product info, QRIS details, and `isPaid: false` for free users
 
 ---
@@ -1619,7 +1899,7 @@ Add production hardening across the app.
 
 ### FILES TO READ FIRST
 
-1. All API routes in `src/app/api/` (6 routes)
+1. All 15 API routes in `src/app/api/`
 2. `next.config.js`
 3. `package.json`
 4. `src/lib/` — all lib files
@@ -1788,6 +2068,86 @@ export function validateGoal(body) {
   return errors
 }
 
+export function validateDebt(body) {
+  const errors = []
+  if (!body.namaOrang || typeof body.namaOrang !== "string") {
+    errors.push("Nama orang wajib diisi")
+  } else if (body.namaOrang.length > 200) {
+    errors.push("Nama orang maksimal 200 karakter")
+  }
+  if (!body.jumlah || isNaN(parseFloat(body.jumlah))) {
+    errors.push("Jumlah harus berupa angka")
+  } else {
+    const amt = parseFloat(body.jumlah)
+    if (amt <= 0) errors.push("Jumlah harus lebih dari 0")
+    else if (amt > 999999999999) errors.push("Jumlah terlalu besar")
+  }
+  if (!body.arah || !["utang", "piutang"].includes(body.arah)) {
+    errors.push("Arah harus 'utang' atau 'piutang'")
+  }
+  if (!body.jatuhTempo) {
+    errors.push("Jatuh tempo wajib diisi")
+  }
+  return errors
+}
+
+export function validateEvent(body) {
+  const errors = []
+  if (!body.nama || typeof body.nama !== "string") {
+    errors.push("Nama event wajib diisi")
+  } else if (body.nama.length > 200) {
+    errors.push("Nama event maksimal 200 karakter")
+  }
+  if (!body.tanggalMulai) errors.push("Tanggal mulai wajib diisi")
+  if (!body.tanggalSelesai) errors.push("Tanggal selesai wajib diisi")
+  if (!body.totalBudget || isNaN(parseFloat(body.totalBudget))) {
+    errors.push("Total budget harus berupa angka")
+  } else {
+    const amt = parseFloat(body.totalBudget)
+    if (amt <= 0) errors.push("Total budget harus lebih dari 0")
+    else if (amt > 999999999999) errors.push("Total budget terlalu besar")
+  }
+  return errors
+}
+
+export function validateBill(body) {
+  const errors = []
+  if (!body.nama || typeof body.nama !== "string") {
+    errors.push("Nama tagihan wajib diisi")
+  } else if (body.nama.length > 200) {
+    errors.push("Nama tagihan maksimal 200 karakter")
+  }
+  if (!body.jumlah || isNaN(parseFloat(body.jumlah))) {
+    errors.push("Jumlah harus berupa angka")
+  } else {
+    const amt = parseFloat(body.jumlah)
+    if (amt <= 0) errors.push("Jumlah harus lebih dari 0")
+    else if (amt > 999999999999) errors.push("Jumlah terlalu besar")
+  }
+  if (!body.tipe || !["expense", "income"].includes(body.tipe)) {
+    errors.push("Tipe harus 'expense' atau 'income'")
+  }
+  if (!body.kategoriBill) errors.push("Kategori bill wajib diisi")
+  if (!body.kategoriTransaksi) errors.push("Kategori transaksi wajib diisi")
+  if (!body.frekuensi) errors.push("Frekuensi wajib diisi")
+  if (!body.tanggalJatuhTempo || isNaN(parseInt(body.tanggalJatuhTempo))) {
+    errors.push("Tanggal jatuh tempo harus berupa angka")
+  }
+  return errors
+}
+
+export function validateSetting(body) {
+  const errors = []
+  if (body.updates) {
+    if (!Array.isArray(body.updates)) {
+      errors.push("updates harus berupa array")
+    }
+  } else if (!body.key) {
+    errors.push("key wajib diisi")
+  }
+  return errors
+}
+
 export function errorResponse(message, status = 400, extra = {}) {
   return Response.json({ error: true, message, ...extra }, { status })
 }
@@ -1861,7 +2221,7 @@ export const logger = {
 
 ### FILES TO MODIFY
 
-#### 5. Add rate limiting to all API routes
+#### 5. Add rate limiting to ALL 15 API routes
 
 In each API route handler, add rate limiting at the top:
 
@@ -1889,10 +2249,19 @@ Apply to all handlers in:
 - `src/app/api/transaction/[id]/route.js`
 - `src/app/api/budgets/route.js`
 - `src/app/api/goals/route.js`
-- `src/app/api/payments/route.js`
-- `src/app/api/admin/payments/route.js`
-- `src/app/api/me/route.js`
-- `src/app/api/me/upgrade/route.js`
+- `src/app/api/debts/route.js`
+- `src/app/api/momental/route.js`
+- `src/app/api/momental/[id]/route.js`
+- `src/app/api/momental/summary/route.js`
+- `src/app/api/bills/route.js`
+- `src/app/api/bills/[id]/route.js`
+- `src/app/api/bills/pay/route.js`
+- `src/app/api/bills/summary/route.js`
+- `src/app/api/settings/route.js`
+- `src/app/api/payments/route.js` (from Phase 2)
+- `src/app/api/admin/payments/route.js` (from Phase 2)
+- `src/app/api/me/route.js` (from Phase 3)
+- `src/app/api/me/upgrade/route.js` (from Phase 3)
 
 #### 6. Update all mutation endpoints to use standardized validation
 
@@ -1907,6 +2276,15 @@ if (errors.length) {
   return errorResponse(errors.join("; "))
 }
 ```
+
+Apply to:
+- `src/app/api/transaction/route.js` → `validateTransaction`
+- `src/app/api/budgets/route.js` → `validateBudget`
+- `src/app/api/goals/route.js` → `validateGoal`
+- `src/app/api/debts/route.js` → `validateDebt`
+- `src/app/api/momental/route.js` → `validateEvent`
+- `src/app/api/bills/route.js` → `validateBill`
+- `src/app/api/settings/route.js` → `validateSetting`
 
 #### 7. Add security headers middleware — `src/middleware.js`
 
@@ -2344,7 +2722,7 @@ describe("Rate Limiter", () => {
 #### 4. `__tests__/api/validation.test.js` — Input validation unit tests
 ```js
 import { describe, it, expect } from "vitest"
-import { validateTransaction, validateBudget, validateGoal } from "@/lib/validate"
+import { validateTransaction, validateBudget, validateGoal, validateDebt, validateEvent, validateBill } from "@/lib/validate"
 
 describe("validateTransaction", () => {
   it("accepts valid transaction", () => {
@@ -2422,6 +2800,77 @@ describe("validateGoal", () => {
     expect(errors.some(e => e.includes("Nama"))).toBe(true)
   })
 })
+
+describe("validateDebt", () => {
+  it("accepts valid debt", () => {
+    const errors = validateDebt({
+      namaOrang: "Budi",
+      jumlah: 1000000,
+      arah: "utang",
+      jatuhTempo: "2026-06-30",
+    })
+    expect(errors).toHaveLength(0)
+  })
+
+  it("rejects invalid arah", () => {
+    const errors = validateDebt({
+      namaOrang: "Budi",
+      jumlah: 1000000,
+      arah: "invalid",
+      jatuhTempo: "2026-06-30",
+    })
+    expect(errors.some(e => e.includes("utang") || e.includes("piutang"))).toBe(true)
+  })
+})
+
+describe("validateEvent", () => {
+  it("accepts valid event", () => {
+    const errors = validateEvent({
+      nama: "Lebaran",
+      tanggalMulai: "2026-03-01",
+      tanggalSelesai: "2026-04-01",
+      totalBudget: 5000000,
+    })
+    expect(errors).toHaveLength(0)
+  })
+
+  it("rejects missing tanggalMulai", () => {
+    const errors = validateEvent({
+      nama: "Lebaran",
+      tanggalSelesai: "2026-04-01",
+      totalBudget: 5000000,
+    })
+    expect(errors.some(e => e.includes("mulai"))).toBe(true)
+  })
+})
+
+describe("validateBill", () => {
+  it("accepts valid bill", () => {
+    const errors = validateBill({
+      nama: "Listrik",
+      jumlah: 500000,
+      tipe: "expense",
+      kategoriBill: "Listrik",
+      kategoriTransaksi: "Utilitas",
+      frekuensi: "monthly",
+      tanggalJatuhTempo: 15,
+    })
+    expect(errors).toHaveLength(0)
+  })
+
+  it("rejects invalid tipe", () => {
+    const errors = validateBill({
+      nama: "Listrik",
+      jumlah: 500000,
+      tipe: "invalid",
+      kategoriBill: "Listrik",
+      kategoriTransaksi: "Utilitas",
+      frekuensi: "monthly",
+      tanggalJatuhTempo: 15,
+    })
+    expect(errors.some(e => e.includes("expense") || e.includes("income"))).toBe(true)
+  })
+})
 ```
 
 #### 5. `__tests__/api/security-headers.test.js` — Security headers verification
@@ -2459,7 +2908,83 @@ describe("Security Headers", () => {
 })
 ```
 
-#### 6. `vitest.config.js` — Vitest configuration (if not already present)
+#### 6. `__tests__/api/feature-gate.test.js` — Feature gate unit tests
+```js
+import { describe, it, expect, vi, beforeEach } from "vitest"
+
+vi.mock("@/lib/supabaseAdmin", () => ({
+  supabaseAdmin: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+            })),
+          })),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({ data: { count: 1 }, error: null })),
+        })),
+      })),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ error: null })),
+      })),
+    })),
+  },
+}))
+
+import { canUseFeature, getUpgradeReason } from "@/lib/featureGate"
+
+describe("canUseFeature", () => {
+  it("allows transaction for paid user", async () => {
+    const result = await canUseFeature("user-1", "paid", "transaction")
+    expect(result.allowed).toBe(true)
+  })
+
+  it("allows smart_features for paid user", async () => {
+    const result = await canUseFeature("user-1", "paid", "smart_features")
+    expect(result.allowed).toBe(true)
+  })
+
+  it("blocks smart_features for free user", async () => {
+    const result = await canUseFeature("user-1", "free", "smart_features")
+    expect(result.allowed).toBe(false)
+    expect(result.upgrade).toBe(true)
+  })
+
+  it("returns upgrade flag on block", async () => {
+    const result = await canUseFeature("user-1", "free", "smart_features")
+    expect(result.upgrade).toBe(true)
+  })
+})
+
+describe("getUpgradeReason", () => {
+  it("returns reason for transaction", () => {
+    const reason = getUpgradeReason("transaction")
+    expect(reason).toContain("transaksi")
+  })
+
+  it("returns reason for momental", () => {
+    const reason = getUpgradeReason("momental")
+    expect(reason).toContain("event")
+  })
+
+  it("returns reason for bill", () => {
+    const reason = getUpgradeReason("bill")
+    expect(reason).toContain("tagihan")
+  })
+
+  it("returns generic reason for unknown feature", () => {
+    const reason = getUpgradeReason("unknown_feature")
+    expect(reason).toBeTruthy()
+  })
+})
+```
+
+#### 7. `vitest.config.js` — Vitest configuration (if not already present)
 ```js
 import { defineConfig } from "vitest/config"
 import path from "path"
@@ -2511,6 +3036,11 @@ for i in $(seq 1 61); do curl -s -o /dev/null -w "%{http_code}\n" http://localho
 
 # 8. Feature gating (free tier)
 # Create 75 transactions → 76th should fail with 403 + upgrade flag
+# Create 3 budgets → 4th should fail
+# Create 1 goal → 2nd should fail
+# Create 3 debts → 4th should fail
+# Create 1 event → 2nd should fail
+# Create 3 bills → 4th should fail
 
 # 9. Payment flow
 # Upload payment proof → check Supabase payments table + storage bucket
@@ -2521,7 +3051,18 @@ for i in $(seq 1 61); do curl -s -o /dev/null -w "%{http_code}\n" http://localho
 # Each should see only their own data
 # Each should have a different spreadsheet_id
 
-# 11. Error messages
+# 11. All API routes respond correctly
+# GET /api/dashboard — aggregated data
+# GET /api/bills — bill list
+# GET /api/bills/summary — bill summary
+# POST /api/bills/pay — pay a bill
+# GET /api/momental — event list
+# GET /api/momental/summary — event summary
+# GET /api/settings — user settings
+# GET /api/me — user profile + usage
+# GET /api/me/upgrade — upgrade info
+
+# 12. Error messages
 # Break something temporarily (invalid SPREADSHEET_ID)
 # Check that error response says "Terjadi kesalahan internal", NOT the raw API error
 ```
@@ -2545,4 +3086,18 @@ After completing all 6 phases:
 4. **Test on production** — run through the verification checklist on the deployed URL
 5. **Monitor** — check Vercel function logs for any errors in the first 24 hours
 
-The `SPREADSHEET_ID` env var is now only used as a fallback in `getSheetData` for backward compatibility. All new data goes to per-user sheets. Existing users will need to log in once to get their personal sheet created, then you can migrate their data using the migration script.
+The `SPREADSHEET_ID` env var is now only used as a fallback in `getSheetData` for backward compatibility. All new data goes to per-user sheets. Existing users will need to log in once to get their personal sheet created (with all 10 tabs), then you can migrate their data using the migration script.
+
+**Google Sheets tabs created per user** (10 total):
+| Tab | Columns | Purpose |
+|-----|---------|---------|
+| Pemasukan | A-M (13) | Income transactions |
+| Pengeluaran | A-M (13) | Expense transactions |
+| Tabungan | A-M (13) | Savings transactions |
+| Budgets | A-F (6) | Per-category monthly limits |
+| Goals | A-H (8) | Savings goals |
+| Utang | A-I (9) | Debts and receivables |
+| Momental | A-K (11) | Event/milestone budgets |
+| EventBudgets | A-F (6) | Event sub-category budgets |
+| Tagihan | A-M (13) | Bill reminders |
+| Settings | A-B (2) | User settings (key-value) |

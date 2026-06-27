@@ -1,17 +1,17 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
-    const rows = await getSheetData(accessToken, "Momental!A:K").catch(() => [])
+    const rows = await getSheetData(accessToken, "Momental!A:K", spreadsheetId).catch(() => [])
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 

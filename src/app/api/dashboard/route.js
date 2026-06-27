@@ -1,23 +1,23 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { pickAmount } from "@/lib/parseSheetRow"
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     // Baca transaksi pemasukan (kolom: Tanggal, ID, Ket, Kategori, Jumlah, Pajak, Biaya, AkunBank, Net, Catatan, M, Y, Y2, EventID, EventSubKategori)
-    const incomeRows = await getSheetData(accessToken, "Pemasukan!A:O")
+    const incomeRows = await getSheetData(accessToken, "Pemasukan!A:O", spreadsheetId)
     // Baca transaksi pengeluaran
-    const expenseRows = await getSheetData(accessToken, "Pengeluaran!A:O")
+    const expenseRows = await getSheetData(accessToken, "Pengeluaran!A:O", spreadsheetId)
     // Baca transaksi tabungan
-    const savingsRows = await getSheetData(accessToken, "Tabungan!A:O").catch(() => [])
+    const savingsRows = await getSheetData(accessToken, "Tabungan!A:O", spreadsheetId).catch(() => [])
 
     const transactions = []
     const MONTH_ORDER = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, Mei: 5, Jun: 6, Jul: 7, Agu: 8, Sep: 9, Okt: 10, Nov: 11, Des: 12 }
@@ -155,7 +155,7 @@ export async function GET(request) {
     let startingBalance = 0
     let startingBalanceDate = ""
     try {
-      const settingsRows = await getSheetData(accessToken, "Settings!A:B")
+      const settingsRows = await getSheetData(accessToken, "Settings!A:B", spreadsheetId)
       for (const row of settingsRows) {
         const key = String(row?.[0] || "").trim()
         if (key === "startingBalance") {
@@ -204,7 +204,7 @@ export async function GET(request) {
     // Bills summary (graceful fallback if Tagihan tab doesn't exist)
     let billsSummary = { upcoming: [], overdue: [], totalUpcoming: 0, totalOverdue: 0, overdueCount: 0 }
     try {
-      const billsRows = await getSheetData(accessToken, "Tagihan!A:M")
+      const billsRows = await getSheetData(accessToken, "Tagihan!A:M", spreadsheetId)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const upcoming = []

@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
@@ -26,8 +26,8 @@ function rowToBill(row, rowIndex) {
   }
 }
 
-async function fetchAllBills(accessToken) {
-  const rows = await getSheetData(accessToken, RANGE).catch(() => [])
+async function fetchAllBills(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
   const out = []
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -37,8 +37,8 @@ async function fetchAllBills(accessToken) {
   return out
 }
 
-async function sheetsUpdate(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
+async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
   const res = await fetch(url, {
     method: "PUT",
     headers: {
@@ -54,8 +54,8 @@ async function sheetsUpdate(accessToken, range, values) {
   return res.json()
 }
 
-async function findNextEmptyRow(accessToken, sheetName) {
-  const colA = await getSheetData(accessToken, `${sheetName}!A1:A9998`)
+async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
+  const colA = await getSheetData(accessToken, `${sheetName}!A1:A9998`, spreadsheetId)
   for (let i = 1; i < colA.length; i++) {
     if (!colA[i] || !colA[i][0] || String(colA[i][0]).trim() === "") {
       return i + 1
@@ -65,11 +65,11 @@ async function findNextEmptyRow(accessToken, sheetName) {
 }
 
 export async function POST(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -78,7 +78,7 @@ export async function POST(request) {
     }
 
     // 1. Fetch the bill
-    const all = await fetchAllBills(accessToken)
+    const all = await fetchAllBills(accessToken, spreadsheetId)
     const bill = all.find(b => b.id === String(body.billId))
     if (!bill) {
       return Response.json({ error: "Tagihan tidak ditemukan" }, { status: 404 })
@@ -97,7 +97,7 @@ export async function POST(request) {
     const catatan = bill.catatan || ""
 
     const targetSheet = bill.tipe === "income" ? "Pemasukan" : "Pengeluaran"
-    const targetRow = await findNextEmptyRow(accessToken, targetSheet)
+    const targetRow = await findNextEmptyRow(accessToken, targetSheet, spreadsheetId)
 
     const txRow = [
       formattedDate,
@@ -115,7 +115,7 @@ export async function POST(request) {
       year,
     ]
 
-    await sheetsUpdate(accessToken, `${targetSheet}!A${targetRow}:M${targetRow}`, [txRow])
+    await sheetsUpdate(accessToken, `${targetSheet}!A${targetRow}:M${targetRow}`, [txRow], spreadsheetId)
 
     // 3. Update TerakhirDibayar on the bill
     const todayISO = tanggal
@@ -134,7 +134,7 @@ export async function POST(request) {
       bill.catatan,
       bill.createdAt,
     ]
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, [updatedRow])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, [updatedRow], spreadsheetId)
 
     return Response.json({
       success: true,

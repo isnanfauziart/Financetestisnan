@@ -1,7 +1,6 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID
 const ALLOWED_TABS = ["Pemasukan", "Pengeluaran", "Tabungan"]
 
 function formatDate(dateStr) {
@@ -20,11 +19,11 @@ function getMonthName(dateStr) {
 }
 
 export async function PUT(request, { params }) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -60,7 +59,7 @@ export async function PUT(request, { params }) {
 
     // Update row at specific index: A{rowIndex}:O{rowIndex}
     const range = `${tab}!A${rowIndex}:O${rowIndex}`
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
 
     const res = await fetch(url, {
       method: "PUT",
@@ -84,11 +83,11 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -100,7 +99,7 @@ export async function DELETE(request, { params }) {
 
     // Clear row contents: write 15 empty strings (A through O)
     const range = `${tab}!A${rowIndex}:O${rowIndex}`
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
 
     const res = await fetch(url, {
       method: "PUT",

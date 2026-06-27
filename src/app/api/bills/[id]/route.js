@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -25,8 +25,8 @@ function rowToBill(row, rowIndex) {
   }
 }
 
-async function fetchAllBills(accessToken) {
-  const rows = await getSheetData(accessToken, RANGE).catch(() => [])
+async function fetchAllBills(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
   const out = []
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -36,8 +36,8 @@ async function fetchAllBills(accessToken) {
   return out
 }
 
-async function sheetsUpdate(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
+async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
   const res = await fetch(url, {
     method: "PUT",
     headers: {
@@ -54,16 +54,18 @@ async function sheetsUpdate(accessToken, range, values) {
 }
 
 export async function PUT(request, { params }) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const { id } = params
     const body = await request.json()
 
-    const all = await fetchAllBills(token.accessToken)
+    const all = await fetchAllBills(accessToken, spreadsheetId)
     const existing = all.find(b => b.id === id)
     if (!existing) {
       return Response.json({ error: "Tagihan tidak ditemukan" }, { status: 404 })
@@ -84,7 +86,7 @@ export async function PUT(request, { params }) {
       body.catatan !== undefined ? body.catatan : existing.catatan,
       existing.createdAt,
     ]
-    await sheetsUpdate(token.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:M${existing.rowIndex}`, [row])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:M${existing.rowIndex}`, [row], spreadsheetId)
     return Response.json({ success: true, message: "Tagihan diperbarui" })
   } catch (err) {
     console.error("[Bills PUT]", err)
@@ -93,20 +95,22 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const { accessToken, spreadsheetId } = auth
+
   try {
     const { id } = params
-    const all = await fetchAllBills(token.accessToken)
+    const all = await fetchAllBills(accessToken, spreadsheetId)
     const existing = all.find(b => b.id === id)
     if (!existing) {
       return Response.json({ error: "Tagihan tidak ditemukan" }, { status: 404 })
     }
 
-    await sheetsUpdate(token.accessToken, `${SHEET_NAME}!A${existing.rowIndex}:M${existing.rowIndex}`, [[""]])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:M${existing.rowIndex}`, [[""]], spreadsheetId)
     return Response.json({ success: true, message: "Tagihan dihapus" })
   } catch (err) {
     console.error("[Bills DELETE]", err)

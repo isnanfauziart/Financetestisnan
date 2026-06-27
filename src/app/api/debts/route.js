@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -30,8 +30,8 @@ function validateDebt(body) {
   return errors
 }
 
-async function fetchAllDebts(accessToken) {
-  const rows = await getSheetData(accessToken, RANGE).catch(() => [])
+async function fetchAllDebts(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
   const out = []
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -41,8 +41,8 @@ async function fetchAllDebts(accessToken) {
   return out
 }
 
-async function sheetsAppend(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+async function sheetsAppend(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -58,8 +58,8 @@ async function sheetsAppend(accessToken, range, values) {
   return res.json()
 }
 
-async function sheetsUpdate(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
+async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
   const res = await fetch(url, {
     method: "PUT",
     headers: {
@@ -76,14 +76,14 @@ async function sheetsUpdate(accessToken, range, values) {
 }
 
 export async function GET(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
-    const debts = await fetchAllDebts(accessToken)
+    const debts = await fetchAllDebts(accessToken, spreadsheetId)
     return Response.json({ debts })
   } catch (err) {
     console.error("[Debts]", err)
@@ -92,18 +92,18 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
 
     // Handle payment action
     if (body.action === "pay") {
-      return handlePayment(accessToken, body)
+      return handlePayment(accessToken, body, spreadsheetId)
     }
 
     const errors = validateDebt(body)
@@ -125,7 +125,7 @@ export async function POST(request) {
       body.catatan || "",
       createdAt,
     ]
-    await sheetsAppend(accessToken, RANGE, [row])
+    await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
     return Response.json({ success: true, id, message: "Debt created" })
   } catch (err) {
     console.error("[Debts]", err)
@@ -133,12 +133,12 @@ export async function POST(request) {
   }
 }
 
-async function handlePayment(accessToken, body) {
+async function handlePayment(accessToken, body, spreadsheetId) {
   if (!body.id || !body.amount || body.amount <= 0) {
     return Response.json({ error: "id and positive amount required for payment" }, { status: 400 })
   }
 
-  const all = await fetchAllDebts(accessToken)
+  const all = await fetchAllDebts(accessToken, spreadsheetId)
   const existing = all.find(d => d.id === String(body.id))
   if (!existing) {
     return Response.json({ error: "Debt not found" }, { status: 404 })
@@ -164,7 +164,7 @@ async function handlePayment(accessToken, body) {
       existing.catatan,
       existing.createdAt,
     ],
-  ])
+  ], spreadsheetId)
 
   // Create a transaction for the payment
   const txType = "expense"
@@ -175,7 +175,7 @@ async function handlePayment(accessToken, body) {
 
   // Find next empty row in transaction sheet
   const txRange = `${txSheet}!A:M`
-  const txRows = await getSheetData(accessToken, txRange).catch(() => [])
+  const txRows = await getSheetData(accessToken, txRange, spreadsheetId).catch(() => [])
   const nextRow = txRows.length + 1
   const month = new Date().toLocaleString("id-ID", { month: "short" }).replace(".", "")
   const year = String(new Date().getFullYear())
@@ -199,7 +199,7 @@ async function handlePayment(accessToken, body) {
     year,
   ]
 
-  const txUrl = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(txRange)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+  const txUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(txRange)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
   await fetch(txUrl, {
     method: "POST",
     headers: {
@@ -219,11 +219,11 @@ async function handlePayment(accessToken, body) {
 }
 
 export async function PUT(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -231,7 +231,7 @@ export async function PUT(request) {
       return Response.json({ error: "id required" }, { status: 400 })
     }
 
-    const all = await fetchAllDebts(accessToken)
+    const all = await fetchAllDebts(accessToken, spreadsheetId)
     const existing = all.find(d => d.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Debt not found" }, { status: 404 })
@@ -248,7 +248,7 @@ export async function PUT(request) {
       body.catatan !== undefined ? body.catatan : existing.catatan,
       existing.createdAt,
     ]
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row], spreadsheetId)
     return Response.json({ success: true, message: "Debt updated" })
   } catch (err) {
     console.error("[Debts]", err)
@@ -257,11 +257,11 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -269,13 +269,13 @@ export async function DELETE(request) {
       return Response.json({ error: "id required" }, { status: 400 })
     }
 
-    const all = await fetchAllDebts(accessToken)
+    const all = await fetchAllDebts(accessToken, spreadsheetId)
     const existing = all.find(d => d.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Debt not found" }, { status: 404 })
     }
 
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]], spreadsheetId)
     return Response.json({ success: true, message: "Debt deleted" })
   } catch (err) {
     console.error("[Debts]", err)

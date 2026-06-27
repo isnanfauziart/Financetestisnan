@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -30,8 +30,8 @@ function validateGoal(body) {
   return errors
 }
 
-async function fetchAllGoals(accessToken) {
-  const rows = await getSheetData(accessToken, RANGE).catch(() => [])
+async function fetchAllGoals(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
   const out = []
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -41,8 +41,8 @@ async function fetchAllGoals(accessToken) {
   return out
 }
 
-async function sheetsAppend(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+async function sheetsAppend(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -58,8 +58,8 @@ async function sheetsAppend(accessToken, range, values) {
   return res.json()
 }
 
-async function sheetsUpdate(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
+async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
   const res = await fetch(url, {
     method: "PUT",
     headers: {
@@ -76,14 +76,14 @@ async function sheetsUpdate(accessToken, range, values) {
 }
 
 export async function GET(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
-    const goals = await fetchAllGoals(accessToken)
+    const goals = await fetchAllGoals(accessToken, spreadsheetId)
     return Response.json({ goals })
   } catch (err) {
     console.error("[Goals]", err)
@@ -92,11 +92,11 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -118,7 +118,7 @@ export async function POST(request) {
       createdAt,
       "open",
     ]
-    await sheetsAppend(accessToken, RANGE, [row])
+    await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
     return Response.json({ success: true, id, message: "Goal created" })
   } catch (err) {
     console.error("[Goals]", err)
@@ -127,11 +127,11 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -139,7 +139,7 @@ export async function PUT(request) {
       return Response.json({ error: "id required to update goal" }, { status: 400 })
     }
 
-    const all = await fetchAllGoals(accessToken)
+    const all = await fetchAllGoals(accessToken, spreadsheetId)
     const existing = all.find(g => g.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Goal not found" }, { status: 404 })
@@ -158,7 +158,7 @@ export async function PUT(request) {
         existing.createdAt,
         body.status,
       ]
-      await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
+      await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row], spreadsheetId)
       return Response.json({ success: true, message: `Goal ${body.status}` })
     }
 
@@ -179,7 +179,7 @@ export async function PUT(request) {
       existing.createdAt,
       body.status || existing.status || "open",
     ]
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [row], spreadsheetId)
     return Response.json({ success: true, message: "Goal updated" })
   } catch (err) {
     console.error("[Goals]", err)
@@ -188,11 +188,11 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -200,13 +200,13 @@ export async function DELETE(request) {
       return Response.json({ error: "id required" }, { status: 400 })
     }
 
-    const all = await fetchAllGoals(accessToken)
+    const all = await fetchAllGoals(accessToken, spreadsheetId)
     const existing = all.find(g => g.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Goal not found" }, { status: 404 })
     }
 
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]], spreadsheetId)
     return Response.json({ success: true, message: "Goal deleted" })
   } catch (err) {
     console.error("[Goals]", err)

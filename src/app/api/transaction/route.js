@@ -1,11 +1,9 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID
-
-async function sheetsUpdate(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
+async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
   const res = await fetch(url, {
     method: "PUT",
     headers: {
@@ -21,8 +19,8 @@ async function sheetsUpdate(accessToken, range, values) {
   return res.json()
 }
 
-async function findNextEmptyRow(accessToken, sheetName) {
-  const colA = await getSheetData(accessToken, `${sheetName}!A1:A9998`)
+async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
+  const colA = await getSheetData(accessToken, `${sheetName}!A1:A9998`, spreadsheetId)
   for (let i = 1; i < colA.length; i++) {
     const cell = colA[i] && colA[i][0]
     if (!cell || String(cell).trim().length === 0) {
@@ -45,11 +43,11 @@ function getMonthName(dateStr) {
 }
 
 export async function POST(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -104,8 +102,8 @@ export async function POST(request) {
       eventSubKategori || "",
     ]
 
-    const targetRow = await findNextEmptyRow(accessToken, sheetName)
-    await sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:O${targetRow}`, [row])
+    const targetRow = await findNextEmptyRow(accessToken, sheetName, spreadsheetId)
+    await sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:O${targetRow}`, [row], spreadsheetId)
 
     return Response.json({ success: true, message: `Transaksi berhasil disimpan ke tab ${sheetName}`, rowIndex: targetRow })
   } catch (err) {

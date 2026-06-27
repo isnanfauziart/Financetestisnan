@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 const SHEET_NAME = "Settings"
 const RANGE = `${SHEET_NAME}!A:B`
 
-async function fetchSettings(accessToken) {
-  const rows = await getSheetData(accessToken, RANGE).catch(() => [])
+async function fetchSettings(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
   const settings = { startingBalance: 0, startingBalanceDate: "" }
   for (let i = 0; i < rows.length; i++) {
     const key = String(rows[i]?.[0] || "").trim()
@@ -22,14 +22,14 @@ async function fetchSettings(accessToken) {
 }
 
 export async function GET(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
-    const settings = await fetchSettings(accessToken)
+    const settings = await fetchSettings(accessToken, spreadsheetId)
     return Response.json({ settings })
   } catch (err) {
     console.error("[Settings]", err)
@@ -38,11 +38,11 @@ export async function GET(request) {
 }
 
 export async function PUT(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -55,7 +55,7 @@ export async function PUT(request) {
     }
 
     // Read existing rows
-    const rows = await getSheetData(accessToken, RANGE).catch(() => [])
+    const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
     const existingKeys = {}
     for (let i = 0; i < rows.length; i++) {
       const key = String(rows[i]?.[0] || "").trim()
@@ -68,7 +68,7 @@ export async function PUT(request) {
 
       if (targetRow) {
         // Update existing row
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(`${SHEET_NAME}!A${targetRow}:B${targetRow}`)}?valueInputOption=USER_ENTERED`
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${SHEET_NAME}!A${targetRow}:B${targetRow}`)}?valueInputOption=USER_ENTERED`
         const res = await fetch(url, {
           method: "PUT",
           headers: {
@@ -83,7 +83,7 @@ export async function PUT(request) {
         }
       } else {
         // Append new row
-        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(RANGE)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(RANGE)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
         const res = await fetch(appendUrl, {
           method: "POST",
           headers: {

@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { getDefaultSubCategories } from "@/lib/eventTemplates"
 
@@ -51,8 +51,8 @@ function computeEventStatus(event) {
   return "active"
 }
 
-async function fetchAllEvents(accessToken) {
-  const rows = await getSheetData(accessToken, RANGE).catch(() => [])
+async function fetchAllEvents(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
   const out = []
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -62,8 +62,8 @@ async function fetchAllEvents(accessToken) {
   return out
 }
 
-async function fetchAllSubCategories(accessToken) {
-  const rows = await getSheetData(accessToken, SUB_RANGE).catch(() => [])
+async function fetchAllSubCategories(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, SUB_RANGE, spreadsheetId).catch(() => [])
   const out = []
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -73,8 +73,8 @@ async function fetchAllSubCategories(accessToken) {
   return out
 }
 
-async function sheetsAppend(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+async function sheetsAppend(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
   const res = await fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -87,8 +87,8 @@ async function sheetsAppend(accessToken, range, values) {
   return res.json()
 }
 
-async function sheetsUpdate(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
+async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
   const res = await fetch(url, {
     method: "PUT",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -101,14 +101,14 @@ async function sheetsUpdate(accessToken, range, values) {
   return res.json()
 }
 
-async function computeProgress(accessToken, events) {
+async function computeProgress(accessToken, spreadsheetId, events) {
   if (events.length === 0) return {}
 
   // Read transaction sheets to find tagged transactions
   const [incomeRows, expenseRows, savingsRows] = await Promise.all([
-    getSheetData(accessToken, "Pemasukan!A:O").catch(() => []),
-    getSheetData(accessToken, "Pengeluaran!A:O").catch(() => []),
-    getSheetData(accessToken, "Tabungan!A:O").catch(() => []),
+    getSheetData(accessToken, "Pemasukan!A:O", spreadsheetId).catch(() => []),
+    getSheetData(accessToken, "Pengeluaran!A:O", spreadsheetId).catch(() => []),
+    getSheetData(accessToken, "Tabungan!A:O", spreadsheetId).catch(() => []),
   ])
 
   const eventMap = {}
@@ -150,19 +150,19 @@ function validateEvent(body) {
 }
 
 export async function GET(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const { searchParams } = new URL(request.url)
     const withProgress = searchParams.get("progress") === "true"
     const statusFilter = searchParams.get("status")
 
-    const events = await fetchAllEvents(accessToken)
-    const subCategories = await fetchAllSubCategories(accessToken)
+    const events = await fetchAllEvents(accessToken, spreadsheetId)
+    const subCategories = await fetchAllSubCategories(accessToken, spreadsheetId)
 
     // Attach sub-categories to events
     for (const evt of events) {
@@ -180,7 +180,7 @@ export async function GET(request) {
 
     // Compute progress if requested
     if (withProgress) {
-      const progressMap = await computeProgress(accessToken, events)
+      const progressMap = await computeProgress(accessToken, spreadsheetId, events)
       for (const evt of filtered) {
         const prog = progressMap[evt.id] || { total: 0, bySubKategori: {} }
         evt.spent = prog.total
@@ -201,11 +201,11 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -231,7 +231,7 @@ export async function POST(request) {
       body.catatan || "",
       createdAt,
     ]
-    await sheetsAppend(accessToken, RANGE, [eventRow])
+    await sheetsAppend(accessToken, RANGE, [eventRow], spreadsheetId)
 
     // Write sub-category rows
     let subCats = body.subCategories || []
@@ -250,7 +250,7 @@ export async function POST(request) {
       ])
       // Write all sub-category rows at once
       for (const row of subRows) {
-        await sheetsAppend(accessToken, SUB_RANGE, [row])
+        await sheetsAppend(accessToken, SUB_RANGE, [row], spreadsheetId)
       }
     }
 
@@ -262,11 +262,11 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -274,7 +274,7 @@ export async function PUT(request) {
       return Response.json({ error: "id required" }, { status: 400 })
     }
 
-    const events = await fetchAllEvents(accessToken)
+    const events = await fetchAllEvents(accessToken, spreadsheetId)
     const existing = events.find(e => e.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Event tidak ditemukan" }, { status: 404 })
@@ -293,14 +293,14 @@ export async function PUT(request) {
       body.catatan !== undefined ? body.catatan : existing.catatan,
       existing.createdAt,
     ]
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:K${existing.rowIndex}`, [eventRow])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:K${existing.rowIndex}`, [eventRow], spreadsheetId)
 
     // If sub-categories provided, clear old ones and write new
     if (body.subCategories) {
-      const allSubs = await fetchAllSubCategories(accessToken)
+      const allSubs = await fetchAllSubCategories(accessToken, spreadsheetId)
       const oldSubs = allSubs.filter(s => s.eventId === existing.id)
       for (const sub of oldSubs) {
-        await sheetsUpdate(accessToken, `${SUB_SHEET}!A${sub.rowIndex}:F${sub.rowIndex}`, [[""]])
+        await sheetsUpdate(accessToken, `${SUB_SHEET}!A${sub.rowIndex}:F${sub.rowIndex}`, [[""]], spreadsheetId)
       }
       for (const s of body.subCategories) {
         await sheetsAppend(accessToken, SUB_RANGE, [
@@ -310,7 +310,7 @@ export async function PUT(request) {
           s.icon || "",
           s.color || "",
           s.catatan || "",
-        ])
+        ], spreadsheetId)
       }
     }
 
@@ -322,11 +322,11 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const accessToken = token.accessToken
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -334,20 +334,20 @@ export async function DELETE(request) {
       return Response.json({ error: "id required" }, { status: 400 })
     }
 
-    const events = await fetchAllEvents(accessToken)
+    const events = await fetchAllEvents(accessToken, spreadsheetId)
     const existing = events.find(e => e.id === String(body.id))
     if (!existing) {
       return Response.json({ error: "Event tidak ditemukan" }, { status: 404 })
     }
 
     // Clear event row
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:K${existing.rowIndex}`, [[""]])
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:K${existing.rowIndex}`, [[""]], spreadsheetId)
 
     // Clear sub-category rows
-    const allSubs = await fetchAllSubCategories(accessToken)
+    const allSubs = await fetchAllSubCategories(accessToken, spreadsheetId)
     const subs = allSubs.filter(s => s.eventId === existing.id)
     for (const sub of subs) {
-      await sheetsUpdate(accessToken, `${SUB_SHEET}!A${sub.rowIndex}:F${sub.rowIndex}`, [[""]])
+      await sheetsUpdate(accessToken, `${SUB_SHEET}!A${sub.rowIndex}:F${sub.rowIndex}`, [[""]], spreadsheetId)
     }
 
     return Response.json({ success: true, message: "Event dihapus" })

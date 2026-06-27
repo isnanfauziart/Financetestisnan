@@ -1,6 +1,6 @@
-export async function getSheetData(accessToken, range) {
-  const spreadsheetId = process.env.SPREADSHEET_ID
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`
+export async function getSheetData(accessToken, range, spreadsheetId) {
+  const sid = spreadsheetId || process.env.SPREADSHEET_ID
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(range)}`
 
   const res = await fetch(url, {
     headers: {

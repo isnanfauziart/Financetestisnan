@@ -5,6 +5,56 @@
 - Tailwind CSS 3.4, Recharts 2.12, NextAuth v4 (Google OAuth)
 - Data lives entirely in Google Sheets — no database
 
+## Commercialization — Active
+
+**Current Phase:** Phase 1 — Supabase + Multi-Tenancy [PHASE-STATUS]
+
+Artoku is being commercialized as a one-time-payment personal finance app for the Indonesian market. Target: Play Store launch via React Native/Expo.
+
+### Business Model
+- **Pricing:** Rp 49,000 one-time lifetime (NOT subscription)
+- **Free tier:** 75 txn/month, 4 months history, 3 budgets, 1 goal, 3 insights/week
+- **Paid tier:** Unlimited everything + smart features (Health Score, Cash Flow Forecast, Anomaly Alerts)
+- **Payment:** Manual QRIS → user uploads proof → admin approves in `/admin` dashboard
+- **Break-even:** ~7 paying users covers infra (Supabase Pro + Vercel Pro)
+
+### Target Market
+- Indonesia only, Indonesian-first UI (categories: Sedekah, Kondangan, Jajan, Arisan; banks: BCA, BRI, Mandiri, OVO, DANA)
+- Segments: Young professionals (25-35), freelancers, students, young families
+- USPs: Data lives in user's Google Sheets, one-time payment (not subscription), privacy-first (no bank linking), no ads
+
+### Phase Tracker
+- [x] **Phase 0: Security Fixes** ✅ — Token leak fix, tab whitelist, input validation, generic errors, security headers
+- [ ] **Phase 1: Supabase + Multi-Tenancy** ← CURRENT — Supabase setup, per-user Google Sheets, update all 15 API routes
+- [ ] **Phase 2: Payments + Admin** — Payment API (upload proof), admin dashboard (approve/reject), Supabase Storage
+- [ ] **Phase 3: Feature Gating** — Tier limits (75 txn/month wall, budget/goal/insight caps), `/api/me` endpoint
+- [ ] **Phase 4: Polish + Hardening** — Rate limiting, zod validation, health check, feature flags, env validation
+- [ ] **Phase 5: Testing + Verification** — API tests, data isolation, rate limiting, security headers, manual checklist
+
+Full implementation prompts: `docs/commercialization-prompts.md`
+Business plan details: `docs/commercialization-plan.md`
+System flow documentation: `docs/Flow-system.md`
+
+### Play Store Launch Plan (React Native/Expo)
+Planned after commercialization phases 1-5 are complete. See `docs/roadmap.md` for details.
+
+| Phase | Duration | Focus |
+|---|---|---|
+| 2A: Foundation | 3 weeks | Expo project, NativeWind setup, auth flow, routing skeleton |
+| 2B: Home + Stats | 3 weeks | Hero card, bento grid, Victory Native charts, pull-to-refresh |
+| 2C: Wallet + Transactions | 2 weeks | Add/edit/delete forms, Quick-Add bottom sheet, Undo snack |
+| 2D: Budgets + Goals | 2 weeks | Budget status, goal progress rings, celebration haptics |
+| 2E: Polish + Ship | 2 weeks | Performance audit, Play Store prep, dark mode, edge cases |
+
+Code sharing strategy: `src/lib/*.js` shared pure JS modules (import in both web + RN), API routes shared (same backend), NativeWind theme matches Tailwind config.
+
+### Required for Play Store Submission
+- Privacy Policy (Kebijakan Privasi) — PDP compliant, Bahasa Indonesia
+- Terms of Service (Syarat & Ketentuan) — Bahasa Indonesia
+- PSE Registration at pse.kominfo.go.id (mandatory for Indonesian apps)
+- Trademark registration for "Artoku" at DJKI
+- App icons, screenshots, store listing in Bahasa Indonesia
+
 ## Commands
 - `npm run dev` — start dev server at localhost:3000
 - `npm run build` — production build
@@ -20,6 +70,11 @@ All 5 vars required at runtime:
 - `NEXTAUTH_URL` — base URL (local or deployed)
 - `NEXTAUTH_SECRET` — random 32+ char string (generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
 - `SPREADSHEET_ID` — target Google Sheets spreadsheet ID
+
+**Additional vars after Phase 1 (Supabase):**
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase public anon key
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase server-side service role key (secret, never expose to client)
 
 ## Google Sheets structure
 Three required tabs with columns A–M (transaction data):
@@ -117,6 +172,7 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
   - Auto-categorization: `BILL_TO_EXPENSE_MAP` / `BILL_TO_INCOME_MAP` maps bill categories → transaction categories
   - 15 bill categories: Listrik, Air (PDAM), Internet/WiFi, Pulsa & Data, BPJS Kesehatan, BPJS Ketenagakerjaan, Asuransi, Sewa Rumah, Cicilan/Kredit, Netflix, Spotify, YouTube Premium, Gym, Arisan, Other
 - **`pickAmount` hardening** — Replaced `isErr` check (only caught `#`-prefixed strings) with strict `isNumeric` regex `/^-?[\d.,]+$/`. Now also rejects date strings (`"7 Jun 2026"`), text, and any non-numeric value in column I, falling through to column E.
+- **Phase 0: Security Fixes** (commercialization) — 5 production-blocking vulnerabilities fixed: token leak → `getToken()` pattern across all 6 API routes, tab whitelist, input validation on transactions, generic error messages, security headers in `next.config.js`. Full details in `docs/commercialization-prompts.md`.
 
 ## Relevant Files
 - `src/app/dashboard/page.js` — Main dashboard orchestrator (~820 lines): state, filters, modals, pull-to-refresh
@@ -139,6 +195,10 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 - `docs/sheets-budgets.md` — Budgets tab schema
 - `docs/sheets-goals.md` — Goals tab schema
 - `docs/sheets-tagihan.md` — Bills tab schema
+- `docs/commercialization-plan.md` — Business model, pricing, go-to-market, legal
+- `docs/commercialization-prompts.md` — Phase 0-5 implementation prompts (self-contained)
+- `docs/Flow-system.md` — User journey, payment flow, feature gating, admin tasks
+- `docs/roadmap.md` — PR refactor plan + Android/Expo port phases
 
 ## Agent Workflow Rules
 
@@ -213,4 +273,22 @@ These rules are persistent and apply to every chat session.
 - Append new session entries at the BOTTOM (chronological, oldest first)
 - Update progress.md at the end of each task/milestone (not after every line edit)
 - Each session entry includes: date, tasks completed, files changed, decisions, blockers
+
+### Commercialization Phase Tracking
+These rules ensure AGENTS.md stays current as commercialization progresses.
+
+**After completing a commercialization phase (0-5):**
+1. Update the phase tracker in the `## Commercialization — Active` section above:
+   - Mark the completed phase: `- [ ]` → `- [x]` with `✅` suffix
+   - Update `[PHASE-STATUS]` to reflect the new current phase
+   - Move the `← CURRENT` arrow to the next phase
+2. Add a brief entry under `## Recent Work` noting phase completion
+3. If new files were created (e.g., `src/lib/supabase.js`), add them to `## Relevant Files`
+4. If new environment variables were added, update `## Environment`
+
+**When starting a new commercialization session:**
+1. Check the `## Commercialization — Active` section for current phase status
+2. Read `docs/commercialization-prompts.md` for the full task breakdown of the current phase
+3. Follow the step-by-step prompts in order (each is self-contained with context)
+4. The `[PHASE-STATUS]` marker in the phase tracker is grep-able for quick status checks
 

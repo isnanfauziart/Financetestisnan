@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt"
+import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -101,8 +101,8 @@ function computeBillStatus(bill) {
   }
 }
 
-async function fetchAllBills(accessToken) {
-  const rows = await getSheetData(accessToken, RANGE).catch(() => [])
+async function fetchAllBills(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
   const out = []
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -126,8 +126,8 @@ function validateBill(body) {
   return errors
 }
 
-async function sheetsAppend(accessToken, range, values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+async function sheetsAppend(accessToken, range, values, spreadsheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -144,17 +144,19 @@ async function sheetsAppend(accessToken, range, values) {
 }
 
 export async function GET(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const { searchParams } = new URL(request.url)
     const typeFilter = searchParams.get("type")
     const statusFilter = searchParams.get("status")
 
-    let bills = await fetchAllBills(token.accessToken)
+    let bills = await fetchAllBills(accessToken, spreadsheetId)
 
     // Filter by aktif by default
     const showInactive = searchParams.get("all") === "true"
@@ -180,10 +182,12 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const token = await getToken({ req: request })
-  if (!token?.accessToken) {
+  const auth = await getAuthContext(request)
+  if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -209,7 +213,7 @@ export async function POST(request) {
       body.catatan || "",
       createdAt,
     ]
-    await sheetsAppend(token.accessToken, RANGE, [row])
+    await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
     return Response.json({ success: true, id, message: "Tagihan dibuat" })
   } catch (err) {
     console.error("[Bills POST]", err)
