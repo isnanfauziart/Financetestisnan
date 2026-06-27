@@ -6,9 +6,16 @@
  * Script ini digunakan untuk menyalin data dari sheet bersama (shared) 
  * ke sheet personal user.
  * 
- * Usage: node scripts/migrate-user.js <email>
+ * Usage: node scripts/migrate-user.js <email> <access_token>
  * 
- * Contoh: node scripts/migrate-user.js isnanfauzi08@gmail.com
+ * Contoh: node scripts/migrate-user.js isnanfauzi08@gmail.com ya29.a0AfH6SMBx...
+ * 
+ * Cara mendapatkan access_token:
+ * 1. Login ke app di browser
+ * 2. Buka Developer Tools (F12)
+ * 3. Tab Application → Cookies
+ * 4. Cari cookie 'next-auth.session-token'
+ * 5. Copy nilai token tersebut
  */
 
 const { createClient } = require("@supabase/supabase-js")
@@ -99,10 +106,19 @@ async function writeSheetData(accessToken, spreadsheetId, range, values) {
 
 async function main() {
   const email = process.argv[2]
-  if (!email) {
-    console.error("❌ Usage: node scripts/migrate-user.js <email>")
+  const accessToken = process.argv[3]
+  
+  if (!email || !accessToken) {
+    console.error("❌ Usage: node scripts/migrate-user.js <email> <access_token>")
     console.error("")
-    console.error("Contoh: node scripts/migrate-user.js isnanfauzi08@gmail.com")
+    console.error("Contoh: node scripts/migrate-user.js isnanfauzi08@gmail.com ya29.a0AfH6SMBx...")
+    console.error("")
+    console.error("Cara mendapatkan access_token:")
+    console.error("1. Login ke app di browser")
+    console.error("2. Buka Developer Tools (F12)")
+    console.error("3. Tab Application → Cookies")
+    console.error("4. Cari cookie 'next-auth.session-token'")
+    console.error("5. Copy nilai token tersebut")
     process.exit(1)
   }
 
@@ -173,7 +189,7 @@ async function main() {
       console.log(`📋 Memproses tab: ${tabName}`)
 
       // Read data from shared sheet
-      const rows = await getSheetData(null, sharedSpreadsheetId, range)
+      const rows = await getSheetData(accessToken, sharedSpreadsheetId, range)
       
       if (rows.length === 0) {
         console.log(`   ⚠️  Tab ${tabName} kosong di sheet bersama, dilewati`)
@@ -182,7 +198,7 @@ async function main() {
       }
 
       // Write data to personal sheet
-      await writeSheetData(null, user.spreadsheet_id, range, rows)
+      await writeSheetData(accessToken, user.spreadsheet_id, range, rows)
 
       console.log(`   ✅ Berhasil: ${rows.length} baris disalin`)
       successCount++
