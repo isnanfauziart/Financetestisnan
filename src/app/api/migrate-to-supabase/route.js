@@ -44,9 +44,24 @@ async function migrateTransactions(accessToken, spreadsheetId, userId) {
 
   let totalMigrated = 0
 
+  const debugInfo = {}
+
   for (const tab of tabs) {
-    const rows = await getSheetData(accessToken, `${tab.name}!A:O`, spreadsheetId).catch(() => [])
+    const rows = await getSheetData(accessToken, `${tab.name}!A:O`, spreadsheetId).catch((err) => {
+      console.error(`[Migrate] Error reading ${tab.name}:`, err.message)
+      return []
+    })
     const transactions = []
+
+    // Debug: log first few rows
+    debugInfo[tab.name] = {
+      totalRows: rows.length,
+      firstDataRow: rows[1] ? rows[1].slice(0, 15) : null,
+      columnA: rows[1]?.[0],
+      columnK: rows[1]?.[10],
+      parsedDate: parseDateLoose(rows[1]?.[0]),
+      parsedAmount: pickAmount(rows[1] || []),
+    }
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i]
@@ -110,7 +125,7 @@ async function migrateTransactions(accessToken, spreadsheetId, userId) {
     }
   }
 
-  return totalMigrated
+  return { totalMigrated, debugInfo }
 }
 
 async function migrateBudgets(accessToken, spreadsheetId, userId) {
@@ -257,7 +272,9 @@ export async function POST(request) {
     const results = {}
 
     // Migrate transactions (Pemasukan, Pengeluaran, Tabungan)
-    results.transactions = await migrateTransactions(accessToken, spreadsheetId, user.id)
+    const txResult = await migrateTransactions(accessToken, spreadsheetId, user.id)
+    results.transactions = txResult.totalMigrated
+    results.debug = txResult.debugInfo
 
     // Migrate budgets
     results.budgets = await migrateBudgets(accessToken, spreadsheetId, user.id)
