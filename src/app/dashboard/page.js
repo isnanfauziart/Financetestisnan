@@ -843,13 +843,18 @@ export default function Dashboard() {
               {activeNav === "profile" && "Profile"}
             </h1>
             {activeNav === "home" && lastSyncAt && (
-              <p className="text-[10px] font-bold text-earth-500 mt-1 tracking-wide">
+              <button
+                onClick={() => fetchData()}
+                disabled={refreshing}
+                className="text-[10px] font-bold text-earth-500 mt-1 tracking-wide active:opacity-60 transition-opacity"
+                aria-label="Refresh data"
+              >
                 {!isOnline
                   ? `Offline · ${getLastSyncAgo(lastSyncAt, syncNow)}`
                   : refreshing
                     ? "Memperbarui..."
-                    : `Synced ${getLastSyncAgo(lastSyncAt, syncNow)}`}
-              </p>
+                    : `Synced ${getLastSyncAgo(lastSyncAt, syncNow)} · Tap to refresh`}
+              </button>
             )}
           </div>
           {activeNav === "home" && (
