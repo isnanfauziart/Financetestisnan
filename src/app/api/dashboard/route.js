@@ -20,10 +20,15 @@ export async function GET(request) {
       .from("transactions")
       .select("*")
       .eq("user_id", user.id)
-      .order("tanggal", { ascending: false })
 
     if (txError) {
       console.error("[Dashboard] Error reading transactions:", txError.message)
+      return Response.json({ 
+        error: "Gagal mengambil data transaksi", 
+        detail: txError.message,
+        code: txError.code,
+        userId: user.id
+      }, { status: 500 })
     }
 
     const transactions = []
