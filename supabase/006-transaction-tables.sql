@@ -14,14 +14,14 @@ CREATE TABLE IF NOT EXISTS transactions (
   jumlah NUMERIC NOT NULL DEFAULT 0,
   pajak NUMERIC DEFAULT 0,
   biaya NUMERIC DEFAULT 0,
-  akun_bank TEXT,
+  akun_bank TEXT DEFAULT '',
   net NUMERIC DEFAULT 0,
-  catatan TEXT,
+  catatan TEXT DEFAULT '',
   bulan TEXT NOT NULL,
   tahun TEXT NOT NULL,
   tipe TEXT NOT NULL CHECK (tipe IN ('income', 'expense', 'savings')),
-  event_id TEXT,
-  event_sub_kategori TEXT,
+  event_id TEXT DEFAULT '',
+  event_sub_kategori TEXT DEFAULT '',
   row_index INTEGER,
   source TEXT DEFAULT 'web' CHECK (source IN ('web', 'apk', 'import')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -36,13 +36,13 @@ CREATE TABLE IF NOT EXISTS budgets (
   bulan TEXT NOT NULL,
   tahun TEXT NOT NULL,
   "limit" NUMERIC NOT NULL DEFAULT 0,
-  akun TEXT,
-  catatan TEXT,
+  akun TEXT DEFAULT '',
+  catatan TEXT DEFAULT '',
   row_index INTEGER,
   source TEXT DEFAULT 'web' CHECK (source IN ('web', 'apk', 'import')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(user_id, kategori, bulan, tahun, COALESCE(akun, ''))
+  UNIQUE(user_id, kategori, bulan, tahun, akun)
 );
 
 -- Goals table
@@ -52,9 +52,9 @@ CREATE TABLE IF NOT EXISTS goals (
   nama TEXT NOT NULL,
   target NUMERIC NOT NULL DEFAULT 0,
   deadline DATE,
-  kategori TEXT,
-  icon TEXT,
-  color TEXT,
+  kategori TEXT DEFAULT '',
+  icon TEXT DEFAULT '',
+  color TEXT DEFAULT '',
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'completed', 'cancelled')),
   row_index INTEGER,
   source TEXT DEFAULT 'web' CHECK (source IN ('web', 'apk', 'import')),
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS debts (
   jatuh_tempo DATE,
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'settled', 'cancelled')),
   sisa_saldo NUMERIC DEFAULT 0,
-  catatan TEXT,
+  catatan TEXT DEFAULT '',
   row_index INTEGER,
   source TEXT DEFAULT 'web' CHECK (source IN ('web', 'apk', 'import')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS events (
   mode TEXT DEFAULT 'independent',
   status TEXT DEFAULT 'planning' CHECK (status IN ('planning', 'active', 'completed', 'archived')),
   dana_thr NUMERIC DEFAULT 0,
-  catatan TEXT,
+  catatan TEXT DEFAULT '',
   row_index INTEGER,
   source TEXT DEFAULT 'web' CHECK (source IN ('web', 'apk', 'import')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -104,9 +104,9 @@ CREATE TABLE IF NOT EXISTS event_budgets (
   event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   sub_kategori TEXT NOT NULL,
   "limit" NUMERIC DEFAULT 0,
-  icon TEXT,
-  color TEXT,
-  catatan TEXT,
+  icon TEXT DEFAULT '',
+  color TEXT DEFAULT '',
+  catatan TEXT DEFAULT '',
   row_index INTEGER,
   source TEXT DEFAULT 'web' CHECK (source IN ('web', 'apk', 'import')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -119,14 +119,14 @@ CREATE TABLE IF NOT EXISTS bills (
   nama TEXT NOT NULL,
   jumlah NUMERIC NOT NULL DEFAULT 0,
   tipe TEXT DEFAULT 'expense' CHECK (tipe IN ('expense', 'income')),
-  kategori_bill TEXT,
-  kategori_transaksi TEXT,
+  kategori_bill TEXT DEFAULT '',
+  kategori_transaksi TEXT DEFAULT '',
   frekuensi TEXT DEFAULT 'monthly',
   tanggal_jatuh_tempo INTEGER DEFAULT 1,
-  akun_bank TEXT,
+  akun_bank TEXT DEFAULT '',
   aktif BOOLEAN DEFAULT true,
   terakhir_dibayar DATE,
-  catatan TEXT,
+  catatan TEXT DEFAULT '',
   row_index INTEGER,
   source TEXT DEFAULT 'web' CHECK (source IN ('web', 'apk', 'import')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   key TEXT NOT NULL,
-  value TEXT,
+  value TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(user_id, key)
@@ -159,7 +159,6 @@ CREATE TABLE IF NOT EXISTS sync_metadata (
 -- INDEXES
 -- =============================================================================
 
--- Transactions indexes
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_tipe ON transactions(tipe);
 CREATE INDEX IF NOT EXISTS idx_transactions_bulan_tahun ON transactions(bulan, tahun);
@@ -167,32 +166,16 @@ CREATE INDEX IF NOT EXISTS idx_transactions_kategori ON transactions(kategori);
 CREATE INDEX IF NOT EXISTS idx_transactions_tanggal ON transactions(tanggal);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_tipe_bulan ON transactions(user_id, tipe, bulan, tahun);
 CREATE INDEX IF NOT EXISTS idx_transactions_source ON transactions(source);
-
--- Budgets indexes
 CREATE INDEX IF NOT EXISTS idx_budgets_user_id ON budgets(user_id);
 CREATE INDEX IF NOT EXISTS idx_budgets_user_bulan ON budgets(user_id, bulan, tahun);
-
--- Goals indexes
 CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id);
-
--- Debts indexes
 CREATE INDEX IF NOT EXISTS idx_debts_user_id ON debts(user_id);
-
--- Events indexes
 CREATE INDEX IF NOT EXISTS idx_events_user_id ON events(user_id);
-
--- Event budgets indexes
 CREATE INDEX IF NOT EXISTS idx_event_budgets_event_id ON event_budgets(event_id);
-
--- Bills indexes
 CREATE INDEX IF NOT EXISTS idx_bills_user_id ON bills(user_id);
 CREATE INDEX IF NOT EXISTS idx_bills_aktif ON bills(user_id, aktif);
-
--- User settings indexes
 CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON user_settings(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_settings_key ON user_settings(user_id, key);
-
--- Sync metadata indexes
 CREATE INDEX IF NOT EXISTS idx_sync_metadata_user_sheet ON sync_metadata(user_id, sheet_name);
 
 -- =============================================================================
@@ -209,7 +192,6 @@ ALTER TABLE bills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_metadata ENABLE ROW LEVEL SECURITY;
 
--- Service role policies (backend access)
 CREATE POLICY "Service role full access on transactions" ON transactions FOR ALL USING (auth.role() = 'service_role');
 CREATE POLICY "Service role full access on budgets" ON budgets FOR ALL USING (auth.role() = 'service_role');
 CREATE POLICY "Service role full access on goals" ON goals FOR ALL USING (auth.role() = 'service_role');
@@ -245,6 +227,4 @@ COMMENT ON TABLE event_budgets IS 'Sub-category budgets for events';
 COMMENT ON TABLE bills IS 'Bill reminders with auto-transaction creation';
 COMMENT ON TABLE user_settings IS 'Key-value user settings (startingBalance, etc.)';
 COMMENT ON TABLE sync_metadata IS 'Tracks last sync timestamp for each Google Sheets tab';
-
 COMMENT ON COLUMN transactions.source IS 'Data source: web (API), apk (mobile app), import (migration)';
-COMMENT ON COLUMN transactions.row_index IS 'Row index in Google Sheets for backward compatibility';
