@@ -62,7 +62,7 @@ export async function POST(request) {
 
     try {
       // Read data from shared sheet
-      const rows = await getSheetData(accessToken, SHARED_SPREADSHEET_ID, range)
+      const rows = await getSheetData(accessToken, range, SHARED_SPREADSHEET_ID)
 
       if (rows.length === 0) {
         results.push({ tab: tabName, status: "skipped", message: "Tab kosong di sheet bersama" })
