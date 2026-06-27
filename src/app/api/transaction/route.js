@@ -53,7 +53,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json()
-    const { type, tanggal, keterangan, kategori, jumlah, akunBank, catatan } = body
+    const { type, tanggal, keterangan, kategori, jumlah, akunBank, catatan, eventId, eventSubKategori } = body
 
     if (!tanggal || !kategori || !jumlah) {
       return Response.json({ error: "Tanggal, kategori, dan jumlah wajib diisi" }, { status: 400 })
@@ -85,7 +85,7 @@ export async function POST(request) {
     const year = new Date(tanggal).getFullYear()
     const sheetName = type === "income" ? "Pemasukan" : type === "savings" ? "Tabungan" : "Pengeluaran"
 
-    // Format: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M | Y | Y2
+    // Format: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M | Y | Y2 | EventID | EventSubKategori
     const row = [
       formattedDate,
       "",
@@ -100,10 +100,12 @@ export async function POST(request) {
       month,
       year,
       year,
+      eventId || "",
+      eventSubKategori || "",
     ]
 
     const targetRow = await findNextEmptyRow(accessToken, sheetName)
-    await sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:M${targetRow}`, [row])
+    await sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:O${targetRow}`, [row])
 
     return Response.json({ success: true, message: `Transaksi berhasil disimpan ke tab ${sheetName}`, rowIndex: targetRow })
   } catch (err) {

@@ -28,7 +28,7 @@ export async function PUT(request, { params }) {
 
   try {
     const body = await request.json()
-    const { tab, type, tanggal, keterangan, kategori, jumlah, akunBank, rowIndex } = body
+    const { tab, type, tanggal, keterangan, kategori, jumlah, akunBank, rowIndex, eventId, eventSubKategori } = body
 
     if (!ALLOWED_TABS.includes(tab) || !rowIndex || !tanggal || !kategori || !jumlah) {
       return Response.json({ error: "Missing required fields" }, { status: 400 })
@@ -39,7 +39,7 @@ export async function PUT(request, { params }) {
     const year = new Date(tanggal).getFullYear()
     const amount = parseFloat(String(jumlah).replace(/[^0-9.]/g, ""))
 
-    // Format: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M | Y | Y2
+    // Format: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M | Y | Y2 | EventID | EventSubKategori
     const row = [
       formattedDate,
       "",
@@ -54,10 +54,12 @@ export async function PUT(request, { params }) {
       month,
       year,
       year,
+      eventId || "",
+      eventSubKategori || "",
     ]
 
-    // Update row at specific index: A{rowIndex}:M{rowIndex}
-    const range = `${tab}!A${rowIndex}:M${rowIndex}`
+    // Update row at specific index: A{rowIndex}:O{rowIndex}
+    const range = `${tab}!A${rowIndex}:O${rowIndex}`
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
 
     const res = await fetch(url, {
@@ -96,8 +98,8 @@ export async function DELETE(request, { params }) {
       return Response.json({ error: "Missing tab or rowIndex" }, { status: 400 })
     }
 
-    // Clear row contents: write 13 empty strings
-    const range = `${tab}!A${rowIndex}:M${rowIndex}`
+    // Clear row contents: write 15 empty strings (A through O)
+    const range = `${tab}!A${rowIndex}:O${rowIndex}`
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
 
     const res = await fetch(url, {

@@ -365,3 +365,88 @@ export function _resetGoalsCache() {
   goalsInFlight = null
   notifyGoals()
 }
+
+// ─── Events shared cache ────────────────────────────────────────────
+let eventsCache = null
+let eventsLoaded = false
+let eventsListeners = new Set()
+let eventsInFlight = null
+let eventsError = null
+
+function subscribeEvents(listener) {
+  eventsListeners.add(listener)
+  return () => eventsListeners.delete(listener)
+}
+
+function getEventsSnapshot() {
+  return JSON.stringify({ data: eventsCache, loaded: eventsLoaded, error: eventsError })
+}
+
+function notifyEvents() {
+  eventsListeners.forEach((fn) => fn())
+}
+
+async function fetchEventsInternal() {
+  if (eventsLoaded && eventsCache !== null) return
+
+  if (eventsInFlight) {
+    await eventsInFlight
+    return
+  }
+
+  eventsError = null
+  notifyEvents()
+
+  eventsInFlight = (async () => {
+    try {
+      const res = await fetch("/api/momental?progress=true")
+      const data = await res.json()
+      if (res.ok) {
+        eventsCache = data.events || []
+      } else {
+        eventsError = data.error || "Gagal memuat event"
+        eventsCache = []
+      }
+      eventsLoaded = true
+    } catch (err) {
+      eventsError = err.message
+      eventsCache = []
+      eventsLoaded = true
+    } finally {
+      eventsInFlight = null
+      notifyEvents()
+    }
+  })()
+
+  await eventsInFlight
+}
+
+/**
+ * Shared events hook. Multiple components calling useEvents share a single
+ * fetch. Calling refetch() propagates the update to all subscribers.
+ *
+ * @returns {{ events: Array, loading: boolean, error: string|null, refetch: () => Promise<void> }}
+ */
+export function useEvents() {
+  useEffect(() => {
+    fetchEventsInternal()
+  }, [])
+
+  const snapshot = useSyncExternalStore(subscribeEvents, getEventsSnapshot, getEventsSnapshot)
+  const parsed = JSON.parse(snapshot)
+  const isLoading = !parsed.loaded && parsed.data === null && parsed.error === null
+
+  const refetch = useCallback(async () => {
+    eventsLoaded = false
+    eventsCache = null
+    eventsError = null
+    await fetchEventsInternal()
+  }, [])
+
+  return {
+    events: parsed.data || [],
+    loading: isLoading,
+    error: parsed.error,
+    refetch,
+  }
+}

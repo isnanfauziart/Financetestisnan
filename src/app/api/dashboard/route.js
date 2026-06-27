@@ -12,12 +12,12 @@ export async function GET(request) {
   const accessToken = token.accessToken
 
   try {
-    // Baca transaksi pemasukan (kolom: Tanggal, ID, Ket, Kategori, Jumlah, Pajak, Biaya, AkunBank, Net, Catatan, M, Y, Y2)
-    const incomeRows = await getSheetData(accessToken, "Pemasukan!A:M")
+    // Baca transaksi pemasukan (kolom: Tanggal, ID, Ket, Kategori, Jumlah, Pajak, Biaya, AkunBank, Net, Catatan, M, Y, Y2, EventID, EventSubKategori)
+    const incomeRows = await getSheetData(accessToken, "Pemasukan!A:O")
     // Baca transaksi pengeluaran
-    const expenseRows = await getSheetData(accessToken, "Pengeluaran!A:M")
+    const expenseRows = await getSheetData(accessToken, "Pengeluaran!A:O")
     // Baca transaksi tabungan
-    const savingsRows = await getSheetData(accessToken, "Tabungan!A:M").catch(() => [])
+    const savingsRows = await getSheetData(accessToken, "Tabungan!A:O").catch(() => [])
 
     const transactions = []
     const MONTH_ORDER = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, Mei: 5, Jun: 6, Jul: 7, Agu: 8, Sep: 9, Okt: 10, Nov: 11, Des: 12 }
@@ -44,7 +44,9 @@ export async function GET(request) {
           type: "income",
           month: month,
           year: year,
-          account: String(row[7] || "").trim()
+          account: String(row[7] || "").trim(),
+          eventId: String(row[13] || "").trim() || null,
+          eventSubKategori: String(row[14] || "").trim() || null,
         })
       }
     }
@@ -73,7 +75,9 @@ export async function GET(request) {
           type: "expense",
           month: month,
           year: year,
-          account: String(row[7] || "").trim()
+          account: String(row[7] || "").trim(),
+          eventId: String(row[13] || "").trim() || null,
+          eventSubKategori: String(row[14] || "").trim() || null,
         })
       }
     }
@@ -100,7 +104,9 @@ export async function GET(request) {
           type: "savings",
           month: month,
           year: year,
-          account: String(row[7] || "").trim()
+          account: String(row[7] || "").trim(),
+          eventId: String(row[13] || "").trim() || null,
+          eventSubKategori: String(row[14] || "").trim() || null,
         })
       }
     }

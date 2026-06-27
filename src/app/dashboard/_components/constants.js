@@ -75,3 +75,15 @@ export const BILL_TO_INCOME_MAP = {
   "Reimbursement": "Reimbursement",
   "Other": "Pemberian",
 }
+
+export const EVENT_TYPES = ["anak-sekolah", "lebaran-thr", "custom"]
+
+export const EVENT_MODES = ["independent", "exempt"]
+
+export const EVENT_STATUSES = ["planning", "active", "completed", "archived"]
+
+export const EVENT_COLORS = {
+  "anak-sekolah": "#5069cc",
+  "lebaran-thr": "#d4a853",
+  "custom": "#7c5fcf",
+}
