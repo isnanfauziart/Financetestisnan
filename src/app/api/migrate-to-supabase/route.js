@@ -53,22 +53,32 @@ async function migrateTransactions(accessToken, spreadsheetId, userId) {
     })
     const transactions = []
 
-    // Debug: log first few rows
-    debugInfo[tab.name] = {
-      totalRows: rows.length,
-      firstDataRow: rows[1] ? rows[1].slice(0, 15) : null,
-      columnA: rows[1]?.[0],
-      columnK: rows[1]?.[10],
-      parsedDate: parseDateLoose(rows[1]?.[0]),
-      parsedAmount: pickAmount(rows[1] || []),
-    }
+    // Debug counters
+    let emptyRowCount = 0
+    let invalidDateCount = 0
+    let zeroAmountCount = 0
+    let invalidMonthCount = 0
+    let validCount = 0
+    const sampleSkipped = { emptyRow: [], invalidDate: [], zeroAmount: [], invalidMonth: [] }
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i]
-      if (!row || !row[0]) continue
+
+      // Check 1: Empty row or empty column A
+      if (!row || !row[0]) {
+        emptyRowCount++
+        if (sampleSkipped.emptyRow.length < 3) sampleSkipped.emptyRow.push({ index: i, row: row?.slice(0, 15) })
+        continue
+      }
 
       const tanggal = parseDateLoose(row[0])
-      if (!tanggal) continue
+
+      // Check 2: Invalid date
+      if (!tanggal) {
+        invalidDateCount++
+        if (sampleSkipped.invalidDate.length < 3) sampleSkipped.invalidDate.push({ index: i, columnA: row[0] })
+        continue
+      }
 
       const keterangan = String(row[2] || "").trim()
       const kategori = String(row[3] || "Lainnya").trim()
@@ -83,9 +93,21 @@ async function migrateTransactions(accessToken, spreadsheetId, userId) {
       const eventId = String(row[13] || "").trim() || null
       const eventSubKategori = String(row[14] || "").trim() || null
 
-      if (jumlah <= 0) continue
-      if (!bulan || !MONTHS.includes(bulan)) continue
+      // Check 3: Zero amount
+      if (jumlah <= 0) {
+        zeroAmountCount++
+        if (sampleSkipped.zeroAmount.length < 3) sampleSkipped.zeroAmount.push({ index: i, columnE: row[4], columnI: row[8], parsedAmount: jumlah })
+        continue
+      }
 
+      // Check 4: Invalid month
+      if (!bulan || !MONTHS.includes(bulan)) {
+        invalidMonthCount++
+        if (sampleSkipped.invalidMonth.length < 3) sampleSkipped.invalidMonth.push({ index: i, columnK: row[10], parsedMonth: bulan })
+        continue
+      }
+
+      validCount++
       transactions.push({
         user_id: userId,
         tanggal,
@@ -105,6 +127,17 @@ async function migrateTransactions(accessToken, spreadsheetId, userId) {
         row_index: i + 1,
         source: "import",
       })
+    }
+
+    // Debug: log summary
+    debugInfo[tab.name] = {
+      totalRows: rows.length,
+      emptyRowCount,
+      invalidDateCount,
+      zeroAmountCount,
+      invalidMonthCount,
+      validCount,
+      sampleSkipped,
     }
 
     // Batch insert (Supabase handles up to 1000 rows per call)
