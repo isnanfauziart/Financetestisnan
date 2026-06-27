@@ -31,7 +31,9 @@ function parseDateLoose(dateStr) {
     const day = parseInt(parts[0], 10)
     const monthStr = normalizeMonth(parts[1])
     const monthIdx = MONTHS.indexOf(monthStr)
-    const year = parseInt(parts[2], 10)
+    let year = parseInt(parts[2], 10)
+    // Handle 2-digit years
+    if (year < 100) year += 2000
     if (!isNaN(day) && monthIdx >= 0 && !isNaN(year)) {
       return `${year}-${String(monthIdx + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
     }
