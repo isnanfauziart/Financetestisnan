@@ -114,7 +114,7 @@ async function migrateTransactions(accessToken, spreadsheetId, userId) {
         const batch = transactions.slice(i, i + batchSize)
         const { error } = await supabaseAdmin
           .from("transactions")
-          .upsert(batch, { onConflict: "user_id,tanggal,kategori,jumlah,tipe", ignoreDuplicates: true })
+          .insert(batch)
 
         if (error) {
           console.error(`[Migrate] Error inserting ${tab.name} batch:`, error.message)
@@ -152,7 +152,7 @@ async function migrateBudgets(accessToken, spreadsheetId, userId) {
   if (budgets.length > 0) {
     const { error } = await supabaseAdmin
       .from("budgets")
-      .upsert(budgets, { onConflict: "user_id,kategori,bulan,tahun,akun", ignoreDuplicates: true })
+      .insert(budgets)
 
     if (error) console.error("[Migrate] Error inserting budgets:", error.message)
   }
@@ -189,7 +189,7 @@ async function migrateGoals(accessToken, spreadsheetId, userId) {
   if (goals.length > 0) {
     const { error } = await supabaseAdmin
       .from("goals")
-      .upsert(goals, { onConflict: "id", ignoreDuplicates: true })
+      .insert(goals)
 
     if (error) console.error("[Migrate] Error inserting goals:", error.message)
   }
@@ -226,7 +226,7 @@ async function migrateDebts(accessToken, spreadsheetId, userId) {
   if (debts.length > 0) {
     const { error } = await supabaseAdmin
       .from("debts")
-      .upsert(debts, { onConflict: "id", ignoreDuplicates: true })
+      .insert(debts)
 
     if (error) console.error("[Migrate] Error inserting debts:", error.message)
   }
@@ -252,7 +252,7 @@ async function migrateSettings(accessToken, spreadsheetId, userId) {
   if (settings.length > 0) {
     const { error } = await supabaseAdmin
       .from("user_settings")
-      .upsert(settings, { onConflict: "user_id,key", ignoreDuplicates: true })
+      .upsert(settings, { onConflict: "user_id,key" })
 
     if (error) console.error("[Migrate] Error inserting settings:", error.message)
   }
