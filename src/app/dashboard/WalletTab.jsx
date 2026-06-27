@@ -3,6 +3,7 @@ import { Plus, Target } from "lucide-react"
 import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS } from "./_components/constants"
 import { formatInputRupiah } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
+import EventTagPicker from "@/components/EventTagPicker"
 
 export default function WalletTab({ txType, formData, rawAmount, submitting, setTxType, setFormData, setRawAmount, handleSubmit, onGoalContribute }) {
   return (
@@ -41,6 +42,7 @@ export default function WalletTab({ txType, formData, rawAmount, submitting, set
           </div>
           <SelectField label="Category" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
             options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
+          <EventTagPicker value={formData.eventId || ""} onChange={v => setFormData(f => ({ ...f, eventId: v }))} />
           <SelectField label="Bank Account" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
             options={BANK_ACCOUNTS} placeholder="Select Bank" />
           <div>

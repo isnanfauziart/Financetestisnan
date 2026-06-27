@@ -12,6 +12,7 @@ import SavingsRateTrend from "@/components/SavingsRateTrend"
 import FITrackerCard from "@/components/FITrackerCard"
 import DebtsSection from "@/components/DebtsSection"
 import BillsCard from "@/components/BillsCard"
+import EventBudgetsCard from "@/components/EventBudgetsCard"
 
 export default function HomeTab({
   data, session,
@@ -195,6 +196,9 @@ export default function HomeTab({
         onPay={onBillPay}
         onViewAll={onViewBills}
       />
+
+      {/* Event Budgets */}
+      <EventBudgetsCard setActiveNav={setActiveNav} />
 
       {/* Recent transactions */}
       <div className="mt-6 animate-bento-in stagger-9">

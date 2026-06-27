@@ -56,7 +56,7 @@ export default function Dashboard() {
 
   // Form state
   const [txType, setTxType] = useState("expense")
-  const [formData, setFormData] = useState({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "" })
+  const [formData, setFormData] = useState({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "", eventId: "" })
   const [rawAmount, setRawAmount] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
@@ -99,6 +99,7 @@ export default function Dashboard() {
   const [billsRefreshTrigger, setBillsRefreshTrigger] = useState(0)
   const [billPayTarget, setBillPayTarget] = useState(null)
   const [billEditTarget, setBillEditTarget] = useState(null)
+  const [eventsRefreshTrigger, setEventsRefreshTrigger] = useState(0)
 
   // Settings
   const { settings, refetch: refetchSettings } = useSettings()
@@ -905,6 +906,7 @@ export default function Dashboard() {
             hapticsEnabled={hapticsEnabled}
             monthlyData={data?.monthlyData || []}
             allTransactions={data?.transactions || []}
+            eventsRefreshTrigger={eventsRefreshTrigger}
           />
         )}
         {activeNav === "wallet" && (

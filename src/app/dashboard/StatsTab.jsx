@@ -9,6 +9,7 @@ import CustomTooltip from "./_components/CustomTooltip"
 import EmptyState from "./_components/EmptyState"
 import RecapSection from "./_components/RecapSection"
 import BudgetsSection from "@/components/BudgetsSection"
+import EventBudgetsSection from "@/components/EventBudgetsSection"
 import MonthlyReportButton from "@/components/MonthlyReportButton"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
@@ -42,6 +43,7 @@ export default function StatsTab({
   hapticsEnabled,
   monthlyData,
   allTransactions,
+  eventsRefreshTrigger,
 }) {
   const [showDateRange, setShowDateRange] = useState(false)
   const hasDateRange = dateFrom || dateTo
@@ -185,6 +187,13 @@ export default function StatsTab({
           onToast={onToast}
         />
       )}
+
+      {/* Event Budgets section */}
+      <EventBudgetsSection
+        filteredTransactions={filteredTransactions}
+        onToast={onToast}
+        refreshTrigger={eventsRefreshTrigger || 0}
+      />
 
       {/* Monthly trend */}
       {isAllMonths && (

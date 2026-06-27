@@ -4,6 +4,7 @@ import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, SAVINGS_CATEGORIES, BANK_
 import { formatInputRupiah } from "./helpers"
 import SelectField from "./SelectField"
 import Sheet from "./Sheet"
+import EventTagPicker from "@/components/EventTagPicker"
 
 const SHEET_FOR_TYPE = { income: "Pemasukan", expense: "Pengeluaran", savings: "Tabungan" }
 
@@ -14,6 +15,7 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
   const [rawAmount, setRawAmount] = useState(transaction.amount ? formatInputRupiah(String(Math.round(transaction.amount))) : "")
   const [akunBank, setAkunBank] = useState(transaction.account || "")
   const [keterangan, setKeterangan] = useState(transaction.desc || "")
+  const [eventId, setEventId] = useState(transaction.eventId || "")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
@@ -38,6 +40,7 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
           jumlah: rawAmount.replace(/\./g, ""),
           akunBank,
           rowIndex: transaction.rowIndex,
+          eventId: eventId || "",
         }),
       })
       const result = await res.json()
@@ -75,6 +78,7 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
           </div>
         </div>
         <SelectField label="Category" value={kategori} onChange={setKategori} options={catOptions} placeholder="Select Category" />
+        <EventTagPicker value={eventId} onChange={setEventId} />
         <SelectField label="Bank Account" value={akunBank} onChange={setAkunBank} options={BANK_ACCOUNTS} placeholder="Select Bank" />
         <div>
           <label htmlFor="edit-note" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Note</label>
