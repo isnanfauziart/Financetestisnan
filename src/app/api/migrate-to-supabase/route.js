@@ -6,6 +6,22 @@ export const dynamic = 'force-dynamic'
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
 
+// Map Indonesian month variants to short form
+const MONTH_MAP = {
+  "januari": "Jan", "februari": "Feb", "maret": "Mar", "april": "Apr",
+  "mei": "Mei", "juni": "Jun", "juli": "Jul", "agustus": "Agu",
+  "september": "Sep", "oktober": "Okt", "november": "Nov", "desember": "Des",
+  "jan": "Jan", "feb": "Feb", "mar": "Mar", "apr": "Apr",
+  "mei": "Mei", "jun": "Jun", "jul": "Jul", "agu": "Agu",
+  "sep": "Sep", "okt": "Okt", "nov": "Nov", "des": "Des",
+}
+
+function normalizeMonth(s) {
+  if (!s) return ""
+  const lower = String(s).trim().toLowerCase()
+  return MONTH_MAP[lower] || String(s).trim()
+}
+
 function parseDateLoose(dateStr) {
   if (!dateStr) return null
   const s = String(dateStr).trim()
@@ -13,7 +29,8 @@ function parseDateLoose(dateStr) {
   const parts = s.split(" ")
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10)
-    const monthIdx = MONTHS.indexOf(parts[1])
+    const monthStr = normalizeMonth(parts[1])
+    const monthIdx = MONTHS.indexOf(monthStr)
     const year = parseInt(parts[2], 10)
     if (!isNaN(day) && monthIdx >= 0 && !isNaN(year)) {
       return `${year}-${String(monthIdx + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
@@ -88,7 +105,7 @@ async function migrateTransactions(accessToken, spreadsheetId, userId) {
       const akunBank = String(row[7] || "").trim()
       const net = parseRupiah(row[8] || 0) || jumlah
       const catatan = String(row[9] || "").trim()
-      const bulan = String(row[10] || "").trim()
+      const bulan = normalizeMonth(String(row[10] || "").trim())
       const tahun = String(row[11] || new Date().getFullYear()).trim()
       const eventId = String(row[13] || "").trim() || null
       const eventSubKategori = String(row[14] || "").trim() || null
@@ -151,6 +168,10 @@ async function migrateTransactions(accessToken, spreadsheetId, userId) {
 
         if (error) {
           console.error(`[Migrate] Error inserting ${tab.name} batch:`, error.message)
+          debugInfo[tab.name].insertError = error.message
+          debugInfo[tab.name].insertErrorCode = error.code
+          debugInfo[tab.name].failedBatchSize = batch.length
+          debugInfo[tab.name].failedBatchSample = batch.slice(0, 3)
         } else {
           totalMigrated += batch.length
         }
