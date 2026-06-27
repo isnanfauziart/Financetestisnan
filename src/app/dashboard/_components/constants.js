@@ -32,7 +32,7 @@ export const EXPENSE_CATEGORIES = [
   "Skincare","Belanja","Laundry","Ilmu","Pakaian", "Tabungan Cash"
 ]
 
-export const INCOME_CATEGORIES = ["Monthly Salary","Insentif","Reimbursement","Pemberian"]
+export const INCOME_CATEGORIES = ["Monthly Salary","Insentif","Reimbursement","Pemberian","THR"]
 
 export const SAVINGS_CATEGORIES = ["Tabungan Cash","Emas","Saham"]
 

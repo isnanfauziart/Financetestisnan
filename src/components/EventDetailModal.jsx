@@ -42,6 +42,27 @@ export default function EventDetailModal({ event, transactions, onClose }) {
           </div>
         </div>
 
+        {/* THR Utilization (for Lebaran events) */}
+        {event.danaTHR > 0 && (
+          <div className="rounded-2xl p-3" style={{ background: THEME.warningBg, border: `1px solid ${THEME.warning}33` }}>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Utilisasi THR</span>
+              <span className="text-[11px] font-bold" style={{ color: THEME.warning }}>
+                {event.totalBudget > 0 ? Math.min(100, Math.round(((event.spent || 0) / event.danaTHR) * 100)) : 0}%
+              </span>
+            </div>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-earth-600">THR diterima</span>
+              <span className="font-bold text-earth-800">{formatRpFull(event.danaTHR)}</span>
+            </div>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-earth-600">Terpakai</span>
+              <span className="font-bold" style={{ color: (event.spent || 0) > event.danaTHR ? THEME.danger : THEME.savings }}>{formatRpFull(event.spent || 0)}</span>
+            </div>
+            <BudgetProgressBar spent={event.spent || 0} limit={event.danaTHR} height={6} />
+          </div>
+        )}
+
         {/* Sub-kategori breakdown */}
         {event.subCategories && event.subCategories.length > 0 && (
           <div>

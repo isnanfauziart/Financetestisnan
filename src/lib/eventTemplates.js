@@ -60,3 +60,18 @@ export function getDefaultSubCategories(templateKey) {
   const t = EVENT_TEMPLATES[templateKey]
   return t ? t.subCategories : []
 }
+
+export function getCategoryHints(templateKey) {
+  const t = EVENT_TEMPLATES[templateKey]
+  return t?.categoryHints || {}
+}
+
+export function getCategorySuggestion(kategori, activeEvents) {
+  for (const evt of activeEvents) {
+    const hints = getCategoryHints(evt.tipe)
+    if (hints[kategori]) {
+      return { event: evt, subKategori: hints[kategori] }
+    }
+  }
+  return null
+}

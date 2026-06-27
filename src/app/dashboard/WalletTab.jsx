@@ -4,6 +4,7 @@ import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS } from "./_
 import { formatInputRupiah } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
 import EventTagPicker from "@/components/EventTagPicker"
+import EventSuggestionChip from "@/components/EventSuggestionChip"
 
 export default function WalletTab({ txType, formData, rawAmount, submitting, setTxType, setFormData, setRawAmount, handleSubmit, onGoalContribute }) {
   return (
@@ -42,6 +43,9 @@ export default function WalletTab({ txType, formData, rawAmount, submitting, set
           </div>
           <SelectField label="Category" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
             options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
+          {formData.kategori && !formData.eventId && (
+            <EventSuggestionChip kategori={formData.kategori} eventId={formData.eventId} onSelect={v => setFormData(f => ({ ...f, eventId: v }))} />
+          )}
           <EventTagPicker value={formData.eventId || ""} onChange={v => setFormData(f => ({ ...f, eventId: v }))} />
           <SelectField label="Bank Account" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
             options={BANK_ACCOUNTS} placeholder="Select Bank" />

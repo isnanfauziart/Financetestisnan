@@ -25,6 +25,7 @@ import WhatIfModal from "@/components/WhatIfModal"
 import SetupSaldoAwal from "@/components/SetupSaldoAwal"
 import BillPayModal from "@/components/BillPayModal"
 import BillSetupModal from "@/components/BillSetupModal"
+import EventCelebration from "@/components/EventCelebration"
 import { useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
 
@@ -100,6 +101,8 @@ export default function Dashboard() {
   const [billPayTarget, setBillPayTarget] = useState(null)
   const [billEditTarget, setBillEditTarget] = useState(null)
   const [eventsRefreshTrigger, setEventsRefreshTrigger] = useState(0)
+  const [eventCelebration, setEventCelebration] = useState(null)
+  const prevEventPctRef = useRef({})
 
   // Settings
   const { settings, refetch: refetchSettings } = useSettings()
@@ -203,6 +206,26 @@ export default function Dashboard() {
       }
     } catch {}
   }, [data])
+
+  const checkEventCelebration = useCallback(async () => {
+    try {
+      const res = await fetch("/api/momental?progress=true")
+      if (!res.ok) return
+      const d = await res.json()
+      const events = d.events || []
+      const prev = prevEventPctRef.current
+      for (const evt of events) {
+        const pct = evt.pct || 0
+        const prevPct = prev[evt.id] || 0
+        if (prevPct < 100 && pct >= 100) {
+          setEventCelebration(evt)
+          prev[evt.id] = pct
+          break
+        }
+        prev[evt.id] = pct
+      }
+    } catch {}
+  }, [])
 
   // P8: Parallax scroll listener
   useEffect(() => {
@@ -488,9 +511,11 @@ export default function Dashboard() {
         showToast(`Transaksi berhasil disimpan! ✓${rowNote}`)
         fetchData()
         setGoalsRefreshTrigger(t => t + 1)
+        setEventsRefreshTrigger(t => t + 1)
         if (txType === "savings") {
           setTimeout(() => checkGoalCelebration(), 800)
         }
+        setTimeout(() => checkEventCelebration(), 800)
         return true
       } else {
         showToast(result.error || "Gagal menyimpan", "error")
@@ -1006,6 +1031,16 @@ export default function Dashboard() {
         />
       )}
 
+      {/* Event celebration */}
+      {eventCelebration && (
+        <EventCelebration
+          event={eventCelebration}
+          haptics={haptics}
+          hapticsEnabled={hapticsEnabled}
+          onDone={() => setEventCelebration(null)}
+        />
+      )}
+
       {/* Goal picker modal */}
       <GoalPickerModal
         open={goalPickerOpen}
@@ -1014,7 +1049,9 @@ export default function Dashboard() {
         onSaved={() => {
           fetchData()
           setGoalsRefreshTrigger(t => t + 1)
+          setEventsRefreshTrigger(t => t + 1)
           setTimeout(() => checkGoalCelebration(), 800)
+          setTimeout(() => checkEventCelebration(), 800)
         }}
       />
 

@@ -1,6 +1,6 @@
 "use client"
 import { useMemo } from "react"
-import { GraduationCap, Moon, CalendarDays, Pencil, Trash2, ChevronRight } from "lucide-react"
+import { GraduationCap, Moon, CalendarDays, Pencil, Trash2, ChevronRight, AlertTriangle } from "lucide-react"
 import { THEME, EVENT_COLORS } from "@/app/dashboard/_components/constants"
 import { formatRp, formatRpFull } from "@/app/dashboard/_components/helpers"
 import GoalProgressRing from "./GoalProgressRing"
@@ -33,6 +33,8 @@ export default function EventCard({ event, onDetail, onEdit, onDelete }) {
   const statusColor = STATUS_COLORS[effectiveStatus] || THEME.textTertiary
   const statusLabel = STATUS_LABELS[effectiveStatus] || effectiveStatus
   const pct = event.pct || 0
+  const isOverBudget = pct > 100
+  const isWarning = pct >= 80 && pct <= 100
 
   const topSubs = useMemo(() => {
     return (event.subCategories || []).slice(0, 3)
@@ -64,6 +66,16 @@ export default function EventCard({ event, onDetail, onEdit, onDelete }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isOverBudget && (
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5" style={{ background: THEME.dangerBg, color: THEME.danger }}>
+              <AlertTriangle size={9} /> Over
+            </span>
+          )}
+          {isWarning && !isOverBudget && (
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
+              Hampir
+            </span>
+          )}
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: statusColor + "18", color: statusColor }}>
             {statusLabel}
           </span>
@@ -84,6 +96,11 @@ export default function EventCard({ event, onDetail, onEdit, onDelete }) {
         <div className="flex-1 min-w-0">
           <p className="text-lg font-display font-bold" style={{ color: eventColor }}>{formatRpFull(event.spent || 0)}</p>
           <p className="text-[11px] text-earth-500">dari {formatRpFull(event.totalBudget)}</p>
+          {isOverBudget && (
+            <p className="text-[10px] font-bold mt-0.5" style={{ color: THEME.danger }}>
+              Over budget {formatRpFull((event.spent || 0) - event.totalBudget)}
+            </p>
+          )}
           {daysRemaining !== null && (
             <p className="text-[10px] text-earth-400 mt-0.5">
               {daysRemaining > 0 ? `${daysRemaining} hari lagi` : daysRemaining === 0 ? "Berakhir hari ini" : "Sudah berakhir"}

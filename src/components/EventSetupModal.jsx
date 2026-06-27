@@ -30,6 +30,8 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
   const [tanggalMulai, setTanggalMulai] = useState(event?.tanggalMulai || "")
   const [tanggalSelesai, setTanggalSelesai] = useState(event?.tanggalSelesai || "")
   const [mode, setMode] = useState(event?.mode || "independent")
+  const [danaTHR, setDanaTHR] = useState(event?.danaTHR ? String(event.danaTHR) : "")
+  const [rawDanaTHR, setRawDanaTHR] = useState(event?.danaTHR ? formatInputRupiah(String(event.danaTHR)) : "")
   const [catatan, setCatatan] = useState(event?.catatan || "")
   const [subCategories, setSubCategories] = useState(event?.subCategories || [])
   const [saving, setSaving] = useState(false)
@@ -91,6 +93,7 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
           tanggalMulai,
           tanggalSelesai,
           mode,
+          danaTHR: danaTHR ? parseFloat(danaTHR) : null,
           catatan,
           subCategories: subCategories.filter(s => s.kategori && s.limit > 0),
         }),
@@ -184,6 +187,16 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
               className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200" />
           </div>
         </div>
+
+        {/* Dana THR (only for Lebaran) */}
+        {selectedTemplate === "lebaran-thr" && (
+          <div>
+            <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Estimasi Dana THR (Rp)</label>
+            <input type="text" inputMode="numeric" value={rawDanaTHR} onChange={e => { setRawDanaTHR(formatInputRupiah(e.target.value)); setDanaTHR(e.target.value.replace(/\./g, "")) }} placeholder="0 (opsional)"
+              className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200 font-semibold" />
+            <p className="text-[10px] text-earth-400 mt-1">Digunakan untuk menghitung utilisasi THR</p>
+          </div>
+        )}
 
         {/* Mode */}
         <SelectField
