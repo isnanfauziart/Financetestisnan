@@ -224,25 +224,31 @@ export default function Dashboard() {
   const [pullRefreshing, setPullRefreshing] = useState(false)
   const pullStartY = useRef(0)
   const pullDistRef = useRef(0)
+  const pullLocked = useRef(false)
   const contentRef = useRef(null)
 
   const handleTouchStart = useCallback((e) => {
     if (contentRef.current && contentRef.current.scrollTop <= 0) {
       pullStartY.current = e.touches[0].clientY
+      pullLocked.current = false
     }
   }, [])
 
   const handleTouchMove = useCallback((e) => {
     if (pullStartY.current === 0) return
     const dy = e.touches[0].clientY - pullStartY.current
-    if (dy <= 0) { setPullDistance(0); pullDistRef.current = 0; return }
-    const d = Math.min(dy * 0.5, 120)
+    if (dy <= 0) { setPullDistance(0); pullDistRef.current = 0; pullLocked.current = false; return }
+    if (!pullLocked.current) {
+      if (dy < 20) return
+      pullLocked.current = true
+    }
+    const d = Math.min((dy - 20) * 0.5, 120)
     setPullDistance(d)
     pullDistRef.current = d
   }, [])
 
   const handleTouchEnd = useCallback(() => {
-    if (pullDistRef.current >= 60) {
+    if (pullDistRef.current >= 80) {
       setPullRefreshing(true)
       fetchData()
       setTimeout(() => setPullRefreshing(false), 1200)
@@ -250,6 +256,7 @@ export default function Dashboard() {
     setPullDistance(0)
     pullDistRef.current = 0
     pullStartY.current = 0
+    pullLocked.current = false
   }, [fetchData])
 
   // --- Hooks that must run on every render (before any early return) ---
@@ -833,8 +840,8 @@ export default function Dashboard() {
       {/* Pull-to-refresh indicator */}
       {(pullDistance > 0 || pullRefreshing) && (
         <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-center transition-all duration-300 overflow-hidden"
-          style={{ height: pullRefreshing ? 48 : pullDistance, background: pullDistance >= 60 ? THEME.surfaceWarm : "transparent" }} aria-hidden="true">
-          <div className={`flex items-center gap-2 text-xs font-bold text-earth-500 transition-all duration-300 ${pullRefreshing ? "opacity-100" : pullDistance >= 60 ? "opacity-100" : "opacity-0"}`}>
+          style={{ height: pullRefreshing ? 48 : pullDistance, background: pullDistance >= 80 ? THEME.surfaceWarm : "transparent" }} aria-hidden="true">
+          <div className={`flex items-center gap-2 text-xs font-bold text-earth-500 transition-all duration-300 ${pullRefreshing ? "opacity-100" : pullDistance >= 80 ? "opacity-100" : "opacity-0"}`}>
             {pullRefreshing ? (
               <><div className="w-4 h-4 border-2 border-earth-400 border-t-transparent rounded-full animate-spin" /> Memperbarui...</>
             ) : (
