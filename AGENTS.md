@@ -35,7 +35,10 @@ One optional tab for the Budgets feature (Phase A):
 One optional tab for the Goals feature (Phase B):
 - `Goals` — savings goals. Schema in `docs/sheets-goals.md`. Columns A–H: ID | Nama | Target | Deadline | Kategori | Icon | Color | CreatedAt.
 
-If tab names in sheets differ, update `src/app/api/dashboard/route.js` (and the budgets/goals routes for those tabs).
+One optional tab for the Bills feature (Phase C):
+- `Tagihan` — bill reminders with auto-transaction creation. Schema in `docs/sheets-tagihan.md`. Columns A–M: ID | Nama | Jumlah | Tipe | KategoriBill | KategoriTransaksi | Frekuensi | TanggalJatuhTempo | AkunBank | Aktif | TerakhirDibayar | Catatan | CreatedAt.
+
+If tab names in sheets differ, update `src/app/api/dashboard/route.js` (and the budgets/goals/bills routes for those tabs).
 
 ## OAuth scope
 Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `src/app/api/auth/[...nextauth]/route.js`).
@@ -47,6 +50,10 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 - `src/app/api/transaction/[id]/route.js` — update (PUT) and clear (DELETE) transaction rows
 - `src/app/api/budgets/route.js` — CRUD on the Budgets tab (`GET ?month&year`, `POST`, `PUT`, `DELETE`)
 - `src/app/api/goals/route.js` — CRUD on the Goals tab (`GET`, `POST`, `PUT`, `DELETE`); auto-generates ID (`Date.now()`) and `CreatedAt` on POST
+- `src/app/api/bills/route.js` — CRUD on the Tagihan tab (`GET`, `POST`); returns bills with computed `daysUntilDue` and `status`
+- `src/app/api/bills/[id]/route.js` — update (PUT) and delete (DELETE) bill rows
+- `src/app/api/bills/pay/route.js` — pay a bill: auto-creates transaction in Pemasukan/Pengeluaran + updates `TerakhirDibayar`
+- `src/app/api/bills/summary/route.js` — lightweight bill summary for notification checks (upcoming + overdue)
 - `src/lib/sheets.js` — `getSheetData()`, `parseRupiah()`, `formatRupiah()`, `MONTHS` helpers
 
 ## Notes
@@ -95,6 +102,20 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
   - `canvas-confetti` added as dependency
 - **`#REF!` parsing fix** — `pickAmount(row, netIdx, grossIdx)` helper in `src/app/api/dashboard/route.js` detects Google Sheets error values (`#REF!`, `#VALUE!`, `#DIV/0!`, etc.) in column I (Net) and falls through to column E (Jumlah). Prevents silent row drops when sheet has broken formulas. Replaces fragile `parseRupiah(row[8] || row[4] || 0)` pattern at all 3 parser sites (income/expense/savings).
 - **POST `/api/transaction` find-empty + update** — Rewrote to use `findNextEmptyRow(accessToken, sheetName)` + `sheetsUpdate` instead of `:append`. Avoids Google Sheets' table-end detection issue (writes to row 9996+ when sheet has formatted empty rows). Now writes to the row immediately after the last data row. Response includes `rowIndex` for the success toast.
+- **Phase C: Bills & Push Notifications** — Bill reminders with auto-transaction creation
+  - New `docs/sheets-tagihan.md` schema doc
+  - New `src/app/api/bills/route.js` (GET + POST) with computed `daysUntilDue` and `status`
+  - New `src/app/api/bills/[id]/route.js` (PUT + DELETE) for update/delete
+  - New `src/app/api/bills/pay/route.js` — pay bill → auto-creates transaction in Pemasukan/Pengeluaran + updates `TerakhirDibayar`
+  - New `src/app/api/bills/summary/route.js` — lightweight summary for notification checks
+  - New `src/components/`: `BillSetupModal`, `BillPayModal`, `BillsSection`, `BillsCard`
+  - New `src/lib/notifications.js` — service worker registration + notification permission helpers
+  - New `public/sw.js` — service worker for notification click handling
+  - `BillsSection` on PROFILE tab (like GoalsSection); full CRUD with active/inactive toggle
+  - `BillsCard` on HOME tab below GoalsSection; shows next 5 upcoming bills with urgency colors
+  - Notification check: `setInterval` in `page.js` checks `/api/bills/summary` every 30 min while app is open; fires browser notifications for overdue/due-today bills
+  - Auto-categorization: `BILL_TO_EXPENSE_MAP` / `BILL_TO_INCOME_MAP` maps bill categories → transaction categories
+  - 15 bill categories: Listrik, Air (PDAM), Internet/WiFi, Pulsa & Data, BPJS Kesehatan, BPJS Ketenagakerjaan, Asuransi, Sewa Rumah, Cicilan/Kredit, Netflix, Spotify, YouTube Premium, Gym, Arisan, Other
 - **`pickAmount` hardening** — Replaced `isErr` check (only caught `#`-prefixed strings) with strict `isNumeric` regex `/^-?[\d.,]+$/`. Now also rejects date strings (`"7 Jun 2026"`), text, and any non-numeric value in column I, falling through to column E.
 
 ## Relevant Files
@@ -104,13 +125,20 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 - `src/app/dashboard/WalletTab.jsx` — Add-transaction form
 - `src/app/dashboard/ProfileTab.jsx` — Profile tab
 - `src/app/dashboard/_components/` — Shared components and constants (THEME, categories, banks, helpers, SelectField, modals, goalUtils)
-- `src/components/` — New feature components (NetWorthCard, BudgetCard, BudgetProgressBar, BudgetSetupModal, BudgetDetailModal, BudgetsSection, GoalProgressRing, GoalSetupModal, GoalContributeModal, GoalCelebration, GoalCard)
-- `src/app/api/dashboard/route.js` — Google Sheets aggregation (with netWorth, netWorthMonthlyDelta, netWorthHistory)
+- `src/components/` — New feature components (NetWorthCard, BudgetCard, BudgetProgressBar, BudgetSetupModal, BudgetDetailModal, BudgetsSection, GoalProgressRing, GoalSetupModal, GoalContributeModal, GoalCelebration, GoalCard, BillsSection, BillsCard, BillSetupModal, BillPayModal)
+- `src/app/api/dashboard/route.js` — Google Sheets aggregation (with netWorth, netWorthMonthlyDelta, netWorthHistory, billsSummary)
 - `src/app/api/budgets/route.js` — Budgets CRUD
 - `src/app/api/goals/route.js` — Goals CRUD
+- `src/app/api/bills/route.js` — Bills CRUD
+- `src/app/api/bills/[id]/route.js` — Bill update/delete
+- `src/app/api/bills/pay/route.js` — Pay bill → auto-create transaction
+- `src/app/api/bills/summary/route.js` — Lightweight bill summary for notifications
 - `src/lib/sheets.js` — Sheet helpers
+- `src/lib/notifications.js` — Service worker registration + notification helpers
+- `public/sw.js` — Service worker for notification click handling
 - `docs/sheets-budgets.md` — Budgets tab schema
 - `docs/sheets-goals.md` — Goals tab schema
+- `docs/sheets-tagihan.md` — Bills tab schema
 
 ## Agent Workflow Rules
 

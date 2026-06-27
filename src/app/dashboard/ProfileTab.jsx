@@ -6,6 +6,7 @@ import { formatRpFull, formatInputRupiah } from "./_components/helpers"
 import { useSettings } from "@/lib/useSharedData"
 import YearInReviewButton from "@/components/YearInReviewButton"
 import MonthlyReportButton from "@/components/MonthlyReportButton"
+import BillsSection from "@/components/BillsSection"
 
 function formatDateDisplay(dateStr) {
   if (!dateStr) return "—"
@@ -16,7 +17,7 @@ function formatDateDisplay(dateStr) {
   return `${parseInt(parts[2], 10)} ${monthName} ${parts[0]}`
 }
 
-export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, selectedMonth, selectedYear, filteredTransactions, monthlyData, onToast, onRefresh }) {
+export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, selectedMonth, selectedYear, filteredTransactions, monthlyData, onToast, onRefresh, billsRefreshTrigger }) {
   const { settings, refetch: refetchSettings } = useSettings()
   const [editingSaldo, setEditingSaldo] = useState(false)
   const [rawSaldo, setRawSaldo] = useState("")
@@ -181,6 +182,11 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
           <span className="text-sm font-bold text-rose-500 group-hover:opacity-80 transition-opacity">Log Out</span>
           <LogOut size={16} color={THEME.danger} aria-hidden="true" className="group-hover:translate-x-1 transition-transform" />
         </button>
+      </div>
+
+      {/* Bills */}
+      <div className="w-full mt-4">
+        <BillsSection onToast={onToast} refreshTrigger={billsRefreshTrigger || 0} />
       </div>
 
       {/* Reports */}

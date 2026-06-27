@@ -41,3 +41,37 @@ export const BANK_ACCOUNTS = ["Cash","Bank BCA","Bank BNI","Bank BRI","Bank Mand
 export const AVAILABLE_MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
 
 export const MONTHS_MAP = { Jan:0, Feb:1, Mar:2, Apr:3, Mei:4, Jun:5, Jul:6, Agu:7, Ags:7, Sep:8, Okt:9, Nov:10, Des:11 }
+
+export const BILL_CATEGORIES = [
+  "Listrik", "Air (PDAM)", "Internet/WiFi", "Pulsa & Data",
+  "BPJS Kesehatan", "BPJS Ketenagakerjaan", "Asuransi",
+  "Sewa Rumah", "Cicilan/Kredit", "Netflix", "Spotify",
+  "YouTube Premium", "Gym", "Arisan", "Other"
+]
+
+export const BILL_FREQUENCIES = ["weekly", "biweekly", "monthly", "quarterly", "yearly"]
+
+export const BILL_TO_EXPENSE_MAP = {
+  "Listrik": "Tagihan",
+  "Air (PDAM)": "Tagihan",
+  "Internet/WiFi": "Tagihan",
+  "Pulsa & Data": "Tagihan",
+  "BPJS Kesehatan": "Healthcare",
+  "BPJS Ketenagakerjaan": "Healthcare",
+  "Asuransi": "Healthcare",
+  "Sewa Rumah": "Tagihan",
+  "Cicilan/Kredit": "Utang",
+  "Netflix": "Hiburan",
+  "Spotify": "Hiburan",
+  "YouTube Premium": "Hiburan",
+  "Gym": "Healthcare",
+  "Arisan": "Tabungan Cash",
+  "Other": "Tagihan",
+}
+
+export const BILL_TO_INCOME_MAP = {
+  "Monthly Salary": "Monthly Salary",
+  "Insentif": "Insentif",
+  "Reimbursement": "Reimbursement",
+  "Other": "Pemberian",
+}

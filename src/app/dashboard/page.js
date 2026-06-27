@@ -23,7 +23,10 @@ import GoalCelebration from "@/components/GoalCelebration"
 import GoalPickerModal from "@/components/GoalPickerModal"
 import WhatIfModal from "@/components/WhatIfModal"
 import SetupSaldoAwal from "@/components/SetupSaldoAwal"
+import BillPayModal from "@/components/BillPayModal"
+import BillSetupModal from "@/components/BillSetupModal"
 import { useSettings } from "@/lib/useSharedData"
+import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
 
 export default function Dashboard() {
   const { data: session, status } = useSession()
@@ -92,6 +95,11 @@ export default function Dashboard() {
   const [whatIfOpen, setWhatIfOpen] = useState(false)
   const prevGoalPctRef = useRef({})
 
+  // Bills state
+  const [billsRefreshTrigger, setBillsRefreshTrigger] = useState(0)
+  const [billPayTarget, setBillPayTarget] = useState(null)
+  const [billEditTarget, setBillEditTarget] = useState(null)
+
   // Settings
   const { settings, refetch: refetchSettings } = useSettings()
 
@@ -131,10 +139,47 @@ export default function Dashboard() {
     }
   }, [])
 
+  // Register service worker for notifications
+  useEffect(() => {
+    registerServiceWorker()
+  }, [])
+
   useEffect(() => {
     const id = setInterval(() => setSyncNow(Date.now()), 30000)
     return () => clearInterval(id)
   }, [])
+
+  // Bill notification check (while app is open)
+  useEffect(() => {
+    if (!session) return
+    const checkBills = async () => {
+      try {
+        const res = await fetch("/api/bills/summary")
+        if (!res.ok) return
+        const summary = await res.json()
+        const all = [...(summary.overdue || []), ...(summary.upcoming || [])]
+        for (const bill of all) {
+          if (bill.daysUntilDue <= 0 && "Notification" in window && Notification.permission === "granted") {
+            new Notification(`Tagihan ${bill.nama} terlambat!`, {
+              body: `${formatRp(bill.jumlah)} · Jatuh tempo ${Math.abs(bill.daysUntilDue)} hari lalu`,
+              icon: "/icons/icon-192.png",
+              tag: `bill-${bill.id}`,
+            })
+          } else if (bill.daysUntilDue <= 1 && "Notification" in window && Notification.permission === "granted") {
+            new Notification(`Tagihan ${bill.nama} jatuh tempo besok`, {
+              body: `${formatRp(bill.jumlah)} · ${bill.akunBank || ""}`,
+              icon: "/icons/icon-192.png",
+              tag: `bill-${bill.id}`,
+            })
+          }
+        }
+      } catch {}
+    }
+    // Check once after 5s, then every 30 minutes
+    const timeout = setTimeout(checkBills, 5000)
+    const interval = setInterval(checkBills, 30 * 60 * 1000)
+    return () => { clearTimeout(timeout); clearInterval(interval) }
+  }, [session])
 
   const checkGoalCelebration = useCallback(async () => {
     try {
@@ -701,6 +746,28 @@ export default function Dashboard() {
     setActiveNav("stats")
   }
 
+  // Bill handlers
+  const handleBillPay = (bill) => setBillPayTarget(bill)
+  const handleViewBills = () => setActiveNav("profile")
+  const handleBillPaid = (result) => {
+    setBillPayTarget(null)
+    if (hapticsEnabled) haptics.success()
+    if (soundEnabled) playSuccessSound()
+    showToast(`Tagihan dibayar! ${result.transaction?.kategori} · ${formatRp(result.transaction?.jumlah)} ✓`)
+    fetchData()
+    setBillsRefreshTrigger(t => t + 1)
+  }
+  const handleBillEditFromPay = (bill) => {
+    setBillPayTarget(null)
+    setBillEditTarget(bill)
+  }
+  const handleBillEditSaved = () => {
+    setBillEditTarget(null)
+    showToast("Tagihan diperbarui ✓")
+    fetchData()
+    setBillsRefreshTrigger(t => t + 1)
+  }
+
   const topCategory = expenseCategories[0] || { name: "—", value: 0 }
   const topCategoryPct = statExpense > 0 ? (topCategory.value / statExpense) * 100 : 0
 
@@ -800,6 +867,8 @@ export default function Dashboard() {
             monthlyData={data?.monthlyData || []}
             onCategoryClick={handleAnomalyCategoryClick}
             onWhatIfOpen={() => setWhatIfOpen(true)}
+            onBillPay={handleBillPay}
+            onViewBills={handleViewBills}
           />
         )}
         {activeNav === "stats" && (
@@ -839,7 +908,7 @@ export default function Dashboard() {
           />
         )}
         {activeNav === "profile" && (
-          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} selectedMonth={selectedMonth} selectedYear={selectedYear} filteredTransactions={filteredTransactions} monthlyData={data?.monthlyData || []} onToast={showToast} onRefresh={fetchData} />
+          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} selectedMonth={selectedMonth} selectedYear={selectedYear} filteredTransactions={filteredTransactions} monthlyData={data?.monthlyData || []} onToast={showToast} onRefresh={fetchData} billsRefreshTrigger={billsRefreshTrigger} />
         )}
       </div>
 
@@ -946,6 +1015,25 @@ export default function Dashboard() {
         onClose={() => setWhatIfOpen(false)}
         transactions={data?.transactions || []}
       />
+
+      {/* Bill Pay Modal */}
+      {billPayTarget && (
+        <BillPayModal
+          bill={billPayTarget}
+          onClose={() => setBillPayTarget(null)}
+          onPaid={handleBillPaid}
+          onEdit={handleBillEditFromPay}
+        />
+      )}
+
+      {/* Bill Edit Modal */}
+      {billEditTarget && (
+        <BillSetupModal
+          bill={billEditTarget}
+          onClose={() => setBillEditTarget(null)}
+          onSaved={handleBillEditSaved}
+        />
+      )}
 
       {/* Setup Saldo Awal (first-time flow) */}
       <SetupSaldoAwal

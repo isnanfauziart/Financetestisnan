@@ -11,6 +11,7 @@ import AnomalyAlerts from "@/components/AnomalyAlerts"
 import SavingsRateTrend from "@/components/SavingsRateTrend"
 import FITrackerCard from "@/components/FITrackerCard"
 import DebtsSection from "@/components/DebtsSection"
+import BillsCard from "@/components/BillsCard"
 
 export default function HomeTab({
   data, session,
@@ -22,6 +23,7 @@ export default function HomeTab({
   filteredTransactions, allTransactions,
   selectedMonth, selectedYear, monthlyData,
   onCategoryClick, onWhatIfOpen,
+  onBillPay, onViewBills,
 }) {
   const animatedBalance = useCountUpOvershoot(data?.netWorth || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)
@@ -186,6 +188,12 @@ export default function HomeTab({
         transactions={data?.transactions}
         onToast={onToast}
         refreshTrigger={goalsRefreshTrigger}
+      />
+
+      {/* Bills */}
+      <BillsCard
+        onPay={onBillPay}
+        onViewAll={onViewBills}
       />
 
       {/* Recent transactions */}
