@@ -1036,18 +1036,18 @@ Behavior preserved: WalletTab's full form still works identically (submit, spinn
 ### Hotfix: Google OAuth token refresh (June 19, 2026)
 - **Issue:** Production dashboard crashed with UNAUTHENTICATED 401 from Google Sheets API. Google OAuth access tokens expire after ~1 hour; the previous NextAuth config stored ccess_token on sign-in but never refreshed it. After expiry, every /api/dashboard (and other Sheets calls) returned 401 and the dashboard rendered an error state.
 - **Fix:**
-  1. **New src/lib/auth.js** � extracted efreshAccessToken(token) that POSTs to https://oauth2.googleapis.com/token with grant_type=refresh_token, returns updated token or { error: "RefreshAccessTokenError" } on failure. Keeps existing efresh_token if Google doesn't rotate it.
-  2. **src/app/api/auth/[...nextauth]/route.js** � jwt callback now:
+  1. **New src/lib/auth.js** � extracted efreshAccessToken(token) that POSTs to https://oauth2.googleapis.com/token with grant_type=refresh_token, returns updated token or { error: "RefreshAccessTokenError" } on failure. Keeps existing efresh_token if Google doesn't rotate it.
+  2. **src/app/api/auth/[...nextauth]/route.js** � jwt callback now:
      - Stores efreshToken and ccessTokenExpires (using ccount.expires_at if provided, else Date.now() + 60 min) on initial sign-in
      - Returns existing token if not yet expired
      - Calls efreshAccessToken when expired
-  3. **Session callback** � surfaces 	oken.error to session.error so UI can show "session expired, sign in again" if refresh fails
-  4. **src/app/dashboard/HomeTab.jsx:169** � fixed prop name: efreshTrigger={onGoalsRefresh} ? efreshTrigger={goalsRefreshTrigger}. The destructured prop is goalsRefreshTrigger (line 17), so onGoalsRefresh was always undefined, meaning GoalsSection never auto-refreshed on new transactions. Functional bug, not a crash.
+  3. **Session callback** � surfaces 	oken.error to session.error so UI can show "session expired, sign in again" if refresh fails
+  4. **src/app/dashboard/HomeTab.jsx:169** � fixed prop name: efreshTrigger={onGoalsRefresh} ? efreshTrigger={goalsRefreshTrigger}. The destructured prop is goalsRefreshTrigger (line 17), so onGoalsRefresh was always undefined, meaning GoalsSection never auto-refreshed on new transactions. Functional bug, not a crash.
 - **Verification:**
   - 
-pm run build � Compiled successfully, dashboard 143 kB (unchanged), all 6 routes
+pm run build � Compiled successfully, dashboard 143 kB (unchanged), all 6 routes
   - 
-pm test � 135 passed, 2 skipped (+5 new auth tests, was 130 + 2)
+pm test � 135 passed, 2 skipped (+5 new auth tests, was 130 + 2)
   - New 	ests/lib/auth.test.js covers: happy path, refresh token rotation, no-rotation keep, non-OK response, network error, expiry math
 - **User action required:** Sign out and sign back in once to seed the new efreshToken in the JWT (existing sessions may not have efresh_token stored because the old config didn't capture it). Subsequent token refreshes will work automatically.
 - **Why PR 9 specifically:** PR 9 added BudgetStatusCard which makes its own /api/budgets call. This doubled Sheets API traffic on the home tab and accelerated token-expiry error reproduction. The root cause (no refresh logic) predates PR 9, but PR 9 made the failure user-visible.
@@ -1057,11 +1057,11 @@ pm test � 135 passed, 2 skipped (+5 new auth tests, was 130 + 2)
 ### Favicon fix (June 20, 2026)
 - **Issue:** Browser console showed GET /favicon.ico 404 (Not Found) on every page load. No favicon file existed anywhere in the project.
 - **Fix:**
-  1. **src/app/favicon.ico** (new, 1118 bytes) � 16x16 violet gradient circle, generated via Node.js script. Served automatically by Next.js App Router at /favicon.ico.
-  2. **src/app/icon.svg** (new, 706 bytes) � SVG favicon with violet gradient rounded rect + white chart line + gold accent stroke. Served at /icon.svg via Next.js file convention. Modern browsers use this as primary icon.
+  1. **src/app/favicon.ico** (new, 1118 bytes) � 16x16 violet gradient circle, generated via Node.js script. Served automatically by Next.js App Router at /favicon.ico.
+  2. **src/app/icon.svg** (new, 706 bytes) � SVG favicon with violet gradient rounded rect + white chart line + gold accent stroke. Served at /icon.svg via Next.js file convention. Modern browsers use this as primary icon.
 - **Verification:** 
 pm run build compiled successfully, /icon.svg route auto-registered. 135 tests pass.
-- **No layout.js changes needed** � Next.js App Router auto-generates <link rel="icon"> tags from special files in src/app/.
+- **No layout.js changes needed** � Next.js App Router auto-generates <link rel="icon"> tags from special files in src/app/.
 
 
 ### Sheet centering fix (June 23, 2026)
@@ -1090,7 +1090,7 @@ pm run build compiled successfully, /icon.svg route auto-registered. 135 tests p
 
 ### Sheet portal fix + FI formula sheet (June 23, 2026)
 - **Issue 1:** Sheet modals (Utang Piutang, HealthScoreCard formula, ConfirmSheet) were clipped by overflow:hidden on .bento-tile parent on mobile. Root cause: .bento-tile has overflow:hidden (for gradient border effect), and Sheet modals rendered inside bento-tiles were DOM children of the overflow container.
-- **Issue 2:** FITrackerCard had no formula popup � user expected to tap the card and see an explanation.
+- **Issue 2:** FITrackerCard had no formula popup � user expected to tap the card and see an explanation.
 - **Fix 1:** Sheet.jsx now uses createPortal(modal, document.body) to render at body level, escaping any overflow:hidden ancestor. All 13+ Sheet consumers benefit automatically.
 - **Fix 2:** FITrackerCard now has click-to-formula sheet (same pattern as HealthScoreCard) explaining FI Number (25x rule), progress, est. date, and sensitivity scenarios.
 - **Files changed:**
@@ -1098,3 +1098,200 @@ pm run build compiled successfully, /icon.svg route auto-registered. 135 tests p
   - src/components/FITrackerCard.jsx - added useState, Sheet import, click handler, formula sheet
   - tests/components/BudgetStatusCard.test.jsx - updated prop name filteredTransactions -> allTransactions, added month/year fields to test data
 - **Verification:** npm run build passes (171 kB), 23/23 tests pass (Sheet 12 + BudgetStatusCard 11)
+
+## Session: June 23, 2026 — Security Audit (5 Known + 12 New Vulnerabilities)
+
+### Task
+Comprehensive security audit of the Artoku Finance Dashboard ahead of commercialization. User requested fixes for 5 known production-blocking vulnerabilities; audit uncovered 12 additional findings.
+
+### 5 Known Vulnerabilities (User-Specified, Implementation Pending)
+1. **Access Token Leaked to Client Session** — `session.accessToken = token.accessToken` in `auth/[...nextauth]/route.js:35` exposes Google OAuth token to browser. Fix: remove from session callback, use `getToken()` from `next-auth/jwt` in all API routes.
+2. **User-Controlled `tab` Parameter (Sheets Injection)** — `transaction/[id]/route.js` uses `tab` from request body directly in Sheets API range. Fix: `ALLOWED_TABS` whitelist.
+3. **No Input Validation on Transaction Creation** — `transaction/route.js` has no amount bounds, no string length limits, no type validation. Fix: add validation block after body parsing.
+4. **Error Messages Leak Internal Details** — All 8 API routes return `err.message` in catch blocks. Fix: generic `"Terjadi kesalahan internal"` + `console.error`.
+5. **No Security Headers** — `next.config.js` is empty. Fix: add X-Frame-Options, HSTS, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection, Permissions-Policy.
+
+### 12 New Vulnerabilities Found (Security Architect Audit)
+| # | Severity | Finding | File |
+|---|----------|---------|------|
+| 1 | High | Settings API allows arbitrary key injection — no whitelist | `settings/route.js:48-101` |
+| 2 | High | Debts PUT allows business logic bypass — status/sisaSaldo unvalidated | `debts/route.js:221-256` |
+| 3 | High | Transaction PUT missing amount validation (NaN, negative, huge) | `transaction/[id]/route.js:30-57` |
+| 4 | High | Bills PUT skips all input validation | `bills/[id]/route.js:56-92` |
+| 5 | Medium | Debts payment error swallowed — tx append response unchecked | `debts/route.js:196-210` |
+| 6 | Medium | Goals status field not validated (accepts any string) | `goals/route.js:129-183` |
+| 7 | Medium | No rate limiting on any endpoint | All API routes |
+| 8 | Medium | Token refresh failure returns stale token | `auth.js:1-26` |
+| 9 | Low | Predictable IDs via Date.now() | goals, bills, debts routes |
+| 10 | Low | No Content-Security-Policy header | `next.config.js` |
+| 11 | Low | Missing env var validation at startup | auth, dashboard, sheets |
+| 12 | Info | Google OAuth scope exceeds minimum required | `auth/[...nextauth]/route.js:12` |
+
+### Files Requiring Changes (9 total)
+- `src/app/api/auth/[...nextauth]/route.js` — remove `session.accessToken`
+- `src/app/api/dashboard/route.js` — `getToken()` + error sanitization
+- `src/app/api/transaction/route.js` — `getToken()` + input validation + error sanitization
+- `src/app/api/transaction/[id]/route.js` — `getToken()` + tab whitelist + error sanitization
+- `src/app/api/budgets/route.js` — `getToken()` + error sanitization
+- `src/app/api/goals/route.js` — `getToken()` + error sanitization
+- `src/app/api/settings/route.js` — `getToken()` + error sanitization (extra file found via grep)
+- `src/app/api/debts/route.js` — `getToken()` + error sanitization (extra file found via grep)
+- `next.config.js` — security headers
+
+### Implementation Status
+- [ ] All 5 known vulnerabilities — implementation pending
+- [ ] High #1-4 (input validation gaps) — implementation pending
+- [ ] Medium #5-8 — implementation pending
+- [ ] Low #9-12 — backlog
+
+### Decisions
+- Patch all 8 API routes (not just the 6 user listed) — settings and debts have same vulnerabilities
+- Skip CSP for now (requires nonce setup for Next.js inline scripts) — add in later hardening phase
+- Use `getToken()` from `next-auth/jwt` (reads JWT from cookies automatically, no secret needed)
+- Keep `getServerSession` import in files that need it for other purposes, but use `getToken` for access token
+
+### Next: Implement all 5 known vulnerability fixes, then address High #1-4
+
+## Session: June 25, 2026 — Bills & Push Notifications (Phase C)
+
+### Updates Made
+- **Phase C: Bills & Push Notifications** — Bill reminders with auto-transaction creation
+
+### New Files (10)
+- `docs/sheets-tagihan.md` — Schema doc for Tagihan Google Sheets tab
+- `src/app/api/bills/route.js` — GET (list bills with computed `daysUntilDue` and `status`) + POST (create)
+- `src/app/api/bills/[id]/route.js` — PUT (update) + DELETE (clear row)
+- `src/app/api/bills/pay/route.js` — Pay bill → auto-creates transaction in Pemasukan/Pengeluaran + updates `TerakhirDibayar`
+- `src/app/api/bills/summary/route.js` — Lightweight summary for notification checks (upcoming + overdue)
+- `src/components/BillSetupModal.jsx` — Add/edit bill form with auto-categorization
+- `src/components/BillPayModal.jsx` — Pay/edit modal with status badges
+- `src/components/BillsSection.jsx` — Bills management list on Profile tab (full CRUD, active/inactive toggle)
+- `src/components/BillsCard.jsx` — Home tab card showing next 5 upcoming bills with urgency colors
+- `src/lib/notifications.js` — Service worker registration + notification permission helpers
+- `public/sw.js` — Service worker for notification click handling
+
+### Modified Files (6)
+- `src/app/dashboard/_components/constants.js` — Added `BILL_CATEGORIES`, `BILL_FREQUENCIES`, `BILL_TO_EXPENSE_MAP`, `BILL_TO_INCOME_MAP`
+- `src/app/api/dashboard/route.js` — Added `billsSummary` to response (graceful fallback if no Tagihan tab)
+- `src/app/dashboard/HomeTab.jsx` — Added `BillsCard` between GoalsSection and Recent
+- `src/app/dashboard/ProfileTab.jsx` — Added `BillsSection` before Reports
+- `src/app/dashboard/page.js` — Bill state/handlers, SW registration, notification interval (30min check)
+- `AGENTS.md` — Documented the bills feature
+
+### Key Decisions
+- Bills have their own 15 categories (Listrik, Air, WiFi, Pulsa, BPJS×2, Asuransi, Sewa, Cicilan, Netflix, Spotify, YouTube, Gym, Arisan, Other)
+- Auto-categorization: `BILL_TO_EXPENSE_MAP` / `BILL_TO_INCOME_MAP` maps bill categories → transaction categories
+- Notifications: browser push only (no backend), check while app is open via `setInterval` every 30 min
+- BillsCard on Home tab (like GoalsSection) — full-width section below bento grid
+- Bill pay auto-creates transaction in Pengeluaran/Pemasukan with mapped category
+
+### Verification
+- `npm run build` passes, dashboard 177 kB
+- 17 files changed, 1696 insertions
+
+### Commits
+- `e38117c` — feat: Bills & Push Notifications (Phase C)
+
+---
+
+## Session: June 27, 2026 — Event Budgeting "Momental" (Phase 1: Schema + API)
+
+### Updates Made
+- **Event Budgeting Phase 1** — Schema, templates, API routes, transaction extension
+
+### New Files (5)
+- `docs/sheets-momental.md` — Schema for Momental (events) + EventBudgets (sub-categories) tabs + transaction sheet extensions (columns N/O)
+- `src/lib/eventTemplates.js` — Pre-defined templates: Anak Masuk Sekolah (6 sub-categories) + Lebaran/THR (7 sub-categories) + custom
+- `src/app/api/momental/route.js` — Event CRUD (GET/POST/PUT/DELETE) with progress computation from tagged transactions
+- `src/app/api/momental/[id]/route.js` — Single event detail with full transaction list
+- `src/app/api/momental/summary/route.js` — Lightweight summary for Home card (active events only)
+
+### Modified Files (5)
+- `src/app/dashboard/_components/constants.js` — Added `EVENT_TYPES`, `EVENT_MODES`, `EVENT_STATUSES`, `EVENT_COLORS`
+- `src/app/api/transaction/route.js` — Accepts `eventId` + `eventSubKategori`, writes to columns N/O (A:O range)
+- `src/app/api/transaction/[id]/route.js` — Preserves/updates `eventId` + `eventSubKategori` on edit, clears A:O on delete
+- `src/app/api/dashboard/route.js` — Reads A:O (was A:M), parses `eventId`/`eventSubKategori` on all transactions
+- `src/lib/useSharedData.js` — Added `useEvents()` shared cache hook (same pattern as useBudgets/useGoals)
+
+### Key Decisions
+- Two new tabs: `Momental` (events A-K) + `EventBudgets` (sub-categories A-F)
+- Transaction tagging: columns N (EventID) + O (EventSubKategori) on Pemasukan/Pengeluaran/Tabungan
+- Progress computed client-side from `filteredTransactions` (same pattern as BudgetsSection)
+- Templates hardcoded in JS (not in Sheets) — extensible for future events
+- Dual-counting model: event transactions ALSO count toward monthly budgets (default "independent" mode)
+- "Exempt" mode available for large one-time expenses (excluded from monthly budget calculations)
+
+### Verification
+- `npm run build` passes, all 3 new routes registered
+- 10 files changed, 939 insertions
+
+### Commits
+- `6e3566f` — feat: Event Budgeting Phase 1 - Schema + API (Momental)
+
+---
+
+## Session: June 27, 2026 — Event Budgeting (Phase 2: UI Components)
+
+### Updates Made
+- **Event Budgeting Phase 2** — All UI components, Stats/Home/Wallet integration
+
+### New Files (6)
+- `src/components/EventCard.jsx` — Event card with progress ring (reuses GoalProgressRing), sub-category bars (reuses BudgetProgressBar), status badge, edit/delete
+- `src/components/EventSetupModal.jsx` — Template picker (3 options: Anak Masuk Sekolah / Lebaran / Custom) → form with name, budget, dates, mode, sub-category editor
+- `src/components/EventDetailModal.jsx` — Drill-down: overall progress ring, sub-category breakdown, transaction list
+- `src/components/EventBudgetsSection.jsx` — Stats tab container with CRUD, delete confirmation, active/completed grouping
+- `src/components/EventBudgetsCard.jsx` — Home tab compact card showing active events with days remaining
+- `src/components/EventTagPicker.jsx` — Dropdown to tag transactions to active events (reuses SelectField, uses useEvents hook)
+
+### Modified Files (6)
+- `src/app/dashboard/HomeTab.jsx` — Added EventBudgetsCard between BillsCard and Recent
+- `src/app/dashboard/StatsTab.jsx` — Added EventBudgetsSection below BudgetsSection, added eventsRefreshTrigger prop
+- `src/app/dashboard/page.js` — Added eventsRefreshTrigger state, eventId in formData, event handlers
+- `src/app/dashboard/WalletTab.jsx` — Added EventTagPicker between Category and Bank Account
+- `src/app/dashboard/_components/QuickAddSheet.jsx` — Added EventTagPicker + eventId in formData
+- `src/app/dashboard/_components/EditTransactionModal.jsx` — Added EventTagPicker + eventId in PUT body
+
+### Verification
+- `npm run build` passes, dashboard 182 kB (+5 kB)
+- 12 files changed, 791 insertions
+
+### Commits
+- `1ed9aea` — feat: Event Budgeting Phase 2 - UI Components
+
+---
+
+## Session: June 27, 2026 — Event Budgeting (Phase 3: THR, Auto-suggest, Celebration, Warnings)
+
+### Updates Made
+- **Event Budgeting Phase 3** — Polish features
+
+### New Files (2)
+- `src/components/EventCelebration.jsx` — Confetti + toast when event budget hits 100% (reuses GoalCelebration pattern with event-specific colors)
+- `src/components/EventSuggestionChip.jsx` — Auto-suggests event tag when transaction category matches active event's category hints
+
+### Modified Files (8)
+- `src/app/dashboard/_components/constants.js` — Added "THR" to INCOME_CATEGORIES
+- `src/lib/eventTemplates.js` — Added `getCategoryHints()` and `getCategorySuggestion()` helpers
+- `src/components/EventCard.jsx` — Added over-budget warning badge (red "Over" at >100%), Hampir badge (amber at ≥80%), over-budget amount display
+- `src/components/EventSetupModal.jsx` — Added DanaTHR field for Lebaran events, danaTHR state
+- `src/components/EventDetailModal.jsx` — Added THR utilization bar for Lebaran events (spent vs THR received)
+- `src/app/dashboard/page.js` — Added EventCelebration import/state, checkEventCelebration function, event celebration trigger after tx submit
+- `src/app/dashboard/WalletTab.jsx` — Added EventSuggestionChip after Category selection
+- `src/app/dashboard/_components/QuickAddSheet.jsx` — Added EventSuggestionChip after Category selection
+
+### Key Decisions
+- Auto-suggest mapping: Pakaian→Seragam, Ilmu→Buku, Transportasi→Transportasi Sekolah/Mudik, Sedekah→Zakat, etc.
+- THR integration: DanaTHR field on Lebaran events, THR utilization bar in detail modal
+- Celebration fires on `<100% → >=100%` crossing (same as goals)
+- Over-budget: red "Over" badge + amount; 80-99%: amber "Hampir" badge
+
+### Verification
+- `npm run build` passes, dashboard 183 kB (+1 kB)
+- 10 files changed, 222 insertions
+
+### Commits
+- `94a6d20` — feat: Event Budgeting Phase 3 - THR, Auto-suggest, Celebration, Warnings
+
+### Event Budgeting Feature Complete
+- Total: 32 files, ~1,950 insertions across 3 phases
+- Google Sheets tabs needed: `Momental` (A-K) + `EventBudgets` (A-F) + columns N/O on Pemasukan/Pengeluaran/Tabungan
