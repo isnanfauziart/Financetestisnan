@@ -1,78 +1,110 @@
 import { getAuthContext } from "@/lib/apiAuth"
-import { supabaseAdmin } from "@/lib/supabaseAdmin"
-import { parseRupiah } from "@/lib/sheets"
+import { getSheetData, parseRupiah } from "@/lib/sheets"
+import { pickAmount } from "@/lib/parseSheetRow"
 
 export const dynamic = 'force-dynamic'
-
-const MONTH_ORDER = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, Mei: 5, Jun: 6, Jul: 7, Agu: 8, Sep: 9, Okt: 10, Nov: 11, Des: 12 }
-const mkKey = (m, y) => `${y}-${String(MONTH_ORDER[m] || 0).padStart(2, "0")}`
 
 export async function GET(request) {
   const auth = await getAuthContext(request)
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const { user } = auth
+  const { accessToken, spreadsheetId } = auth
 
   try {
-    // Read all transactions from Supabase
-    const { data: allTransactions, error: txError } = await supabaseAdmin
-      .from("transactions")
-      .select("*")
-      .eq("user_id", user.id)
-
-    if (txError) {
-      console.error("[Dashboard] Error reading transactions:", txError.message)
-      return Response.json({ 
-        error: "Gagal mengambil data transaksi", 
-        detail: txError.message,
-        code: txError.code,
-        userId: user.id
-      }, { status: 500 })
-    }
+    const incomeRows = await getSheetData(accessToken, "Pemasukan!A:O", spreadsheetId)
+    const expenseRows = await getSheetData(accessToken, "Pengeluaran!A:O", spreadsheetId)
+    const savingsRows = await getSheetData(accessToken, "Tabungan!A:O", spreadsheetId).catch(() => [])
 
     const transactions = []
+    const MONTH_ORDER = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, Mei: 5, Jun: 6, Jul: 7, Agu: 8, Sep: 9, Okt: 10, Nov: 11, Des: 12 }
+    const mkKey = (m, y) => `${y}-${String(MONTH_ORDER[m] || 0).padStart(2, "0")}`
+
     const monthlyIncome = {}
-    const monthlyExpense = {}
-    const monthlySavings = {}
-    const categoryMap = {}
-
-    for (const tx of allTransactions || []) {
-      const month = tx.bulan
-      const year = tx.tahun
-      const amount = parseFloat(tx.jumlah) || 0
-
-      if (amount <= 0) continue
-
-      const key = `${month} ${year}`
-
-      if (tx.tipe === "income") {
+    for (let i = 1; i < incomeRows.length; i++) {
+      const row = incomeRows[i]
+      if (!row || !row[10]) continue
+      const month = String(row[10]).trim()
+      const year = String(row[11] || new Date().getFullYear()).trim()
+      const amount = pickAmount(row)
+      if (amount > 0) {
+        const key = `${month} ${year}`
         monthlyIncome[key] = (monthlyIncome[key] || 0) + amount
-      } else if (tx.tipe === "expense") {
-        monthlyExpense[key] = (monthlyExpense[key] || 0) + amount
-        const cat = tx.kategori || "Lainnya"
-        categoryMap[cat] = (categoryMap[cat] || 0) + amount
-      } else if (tx.tipe === "savings") {
-        monthlySavings[key] = (monthlySavings[key] || 0) + amount
+        transactions.push({
+          id: row[1] || `in-${i}`,
+          rowIndex: i + 1,
+          date: row[0],
+          desc: row[2] || "",
+          category: row[3] || "Lainnya",
+          amount: amount,
+          type: "income",
+          month: month,
+          year: year,
+          account: String(row[7] || "").trim(),
+          eventId: String(row[13] || "").trim() || null,
+          eventSubKategori: String(row[14] || "").trim() || null,
+        })
       }
-
-      transactions.push({
-        id: tx.id,
-        rowIndex: tx.row_index,
-        date: tx.tanggal,
-        desc: tx.keterangan || "",
-        category: tx.kategori || "Lainnya",
-        amount,
-        type: tx.tipe,
-        month,
-        year,
-        account: tx.akun_bank || "",
-        eventId: tx.event_id,
-        eventSubKategori: tx.event_sub_kategori,
-      })
     }
 
-    // Combine monthly data
+    const monthlyExpense = {}
+    const categoryMap = {}
+    for (let i = 1; i < expenseRows.length; i++) {
+      const row = expenseRows[i]
+      if (!row || !row[10]) continue
+      const month = String(row[10]).trim()
+      const year = String(row[11] || new Date().getFullYear()).trim()
+      const cat = String(row[3] || "Lainnya").trim()
+      const amount = pickAmount(row)
+      if (amount > 0) {
+        const key = `${month} ${year}`
+        monthlyExpense[key] = (monthlyExpense[key] || 0) + amount
+        categoryMap[cat] = (categoryMap[cat] || 0) + amount
+        transactions.push({
+          id: row[1] || `ex-${i}`,
+          rowIndex: i + 1,
+          date: row[0],
+          desc: row[2] || "",
+          category: cat,
+          amount: amount,
+          type: "expense",
+          month: month,
+          year: year,
+          account: String(row[7] || "").trim(),
+          eventId: String(row[13] || "").trim() || null,
+          eventSubKategori: String(row[14] || "").trim() || null,
+        })
+      }
+    }
+
+    const monthlySavings = {}
+    for (let i = 1; i < savingsRows.length; i++) {
+      const row = savingsRows[i]
+      if (!row || !row[10]) continue
+      const month = String(row[10]).trim()
+      const year = String(row[11] || new Date().getFullYear()).trim()
+      const cat = String(row[3] || "Tabungan").trim()
+      const amount = pickAmount(row)
+      if (amount > 0) {
+        const key = `${month} ${year}`
+        monthlySavings[key] = (monthlySavings[key] || 0) + amount
+        transactions.push({
+          id: row[1] || `sv-${i}`,
+          rowIndex: i + 1,
+          date: row[0],
+          desc: row[2] || "",
+          category: cat,
+          amount: amount,
+          type: "savings",
+          month: month,
+          year: year,
+          account: String(row[7] || "").trim(),
+          eventId: String(row[13] || "").trim() || null,
+          eventSubKategori: String(row[14] || "").trim() || null,
+        })
+      }
+    }
+
     const allKeys = new Set([...Object.keys(monthlyIncome), ...Object.keys(monthlyExpense), ...Object.keys(monthlySavings)])
     const monthlyData = Array.from(allKeys)
       .map(k => {
@@ -102,7 +134,6 @@ export async function GET(request) {
       .sort((a, b) => b.value - a.value)
       .slice(0, 7)
 
-    // Net worth calculation
     const yearMonthAmounts = {}
     for (const t of transactions) {
       const k = mkKey(t.month, t.year)
@@ -111,32 +142,29 @@ export async function GET(request) {
     }
     const sortedKeys = Object.keys(yearMonthAmounts).sort()
 
-    // Read starting balance from Supabase
     let startingBalance = 0
     let startingBalanceDate = ""
-    const { data: settingsData } = await supabaseAdmin
-      .from("user_settings")
-      .select("key, value")
-      .eq("user_id", user.id)
-      .in("key", ["startingBalance", "startingBalanceDate", "startingbalance", "startingbalancedate"])
-
-    for (const s of settingsData || []) {
-      const key = s.key.toLowerCase()
-      if (key === "startingbalance") {
-        startingBalance = parseRupiah(s.value || 0)
-      } else if (key === "startingbalancedate") {
-        startingBalanceDate = s.value || ""
+    try {
+      const settingsRows = await getSheetData(accessToken, "Settings!A:B", spreadsheetId)
+      for (const row of settingsRows) {
+        const key = String(row?.[0] || "").trim().toLowerCase()
+        if (key === "startingbalance") {
+          startingBalance = parseRupiah(row[1] || 0)
+        } else if (key === "startingbalancedate") {
+          startingBalanceDate = String(row[1] || "").trim()
+        }
       }
+    } catch (err) {
+      // Settings tab may not exist yet
     }
 
-    // Parse starting balance month/year
     let startMonth = null
     let startYear = null
     if (startingBalanceDate) {
       const parts = startingBalanceDate.split("-")
       if (parts.length === 3) {
         const monthIdx = parseInt(parts[1], 10) - 1
-        startMonth = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"][monthIdx]
+        startMonth = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][monthIdx]
         startYear = parts[0]
       }
     }
@@ -158,22 +186,29 @@ export async function GET(request) {
       ? netWorthHistory[netWorthHistory.length - 1].value - netWorthHistory[netWorthHistory.length - 2].value
       : 0
 
-    // Bills summary from Supabase
+    transactions.reverse()
+
     let billsSummary = { upcoming: [], overdue: [], totalUpcoming: 0, totalOverdue: 0, overdueCount: 0 }
     try {
-      const { data: billsData } = await supabaseAdmin
-        .from("bills")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("aktif", true)
-
+      const billsRows = await getSheetData(accessToken, "Tagihan!A:M", spreadsheetId)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const upcoming = []
       const overdue = []
+      for (let i = 1; i < billsRows.length; i++) {
+        const r = billsRows[i]
+        if (!r || !r[0] || !r[1]) continue
+        const aktif = String(r[9] || "TRUE").trim().toUpperCase() === "TRUE"
+        if (!aktif) continue
+        const nama = String(r[1] || "").trim()
+        const jumlah = parseRupiah(r[2] || 0)
+        const tipe = String(r[3] || "expense").trim().toLowerCase()
+        const kategoriBill = String(r[4] || "").trim()
+        const frekuensi = String(r[6] || "monthly").trim().toLowerCase()
+        const tanggalJatuhTempo = parseInt(r[7], 10) || 1
+        const akunBank = String(r[8] || "").trim()
+        const id = String(r[0] || "").trim()
 
-      for (const bill of billsData || []) {
-        const tanggalJatuhTempo = bill.tanggal_jatuh_tempo || 1
         let nextDue = new Date(today.getFullYear(), today.getMonth(), tanggalJatuhTempo)
         if (nextDue < today) {
           nextDue = new Date(today.getFullYear(), today.getMonth() + 1, tanggalJatuhTempo)
@@ -185,24 +220,10 @@ export async function GET(request) {
         else if (daysUntilDue === 0) status = "due_today"
         else if (daysUntilDue <= 1) status = "due_soon"
 
-        const billData = {
-          id: bill.id,
-          nama: bill.nama,
-          jumlah: parseFloat(bill.jumlah) || 0,
-          tipe: bill.tipe,
-          kategoriBill: bill.kategori_bill,
-          frekuensi: bill.frekuensi,
-          tanggalJatuhTempo,
-          akunBank: bill.akun_bank,
-          daysUntilDue,
-          status,
-          nextDueDate: nextDue.toISOString().split("T")[0],
-        }
-
-        if (status === "overdue") overdue.push(billData)
-        else upcoming.push(billData)
+        const bill = { id, nama, jumlah, tipe, kategoriBill, frekuensi, tanggalJatuhTempo, akunBank, daysUntilDue, status, nextDueDate: nextDue.toISOString().split("T")[0] }
+        if (status === "overdue") overdue.push(bill)
+        else upcoming.push(bill)
       }
-
       upcoming.sort((a, b) => a.daysUntilDue - b.daysUntilDue)
       overdue.sort((a, b) => a.daysUntilDue - b.daysUntilDue)
       billsSummary = {
@@ -213,7 +234,7 @@ export async function GET(request) {
         overdueCount: overdue.length,
       }
     } catch {
-      // Bills table may not have data
+      // Tagihan tab doesn't exist yet
     }
 
     return Response.json({

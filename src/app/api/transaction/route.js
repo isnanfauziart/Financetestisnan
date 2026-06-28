@@ -1,6 +1,5 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData } from "@/lib/sheets"
-import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
 async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
@@ -48,7 +47,7 @@ export async function POST(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const { accessToken, spreadsheetId, user } = auth
+  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
@@ -83,68 +82,29 @@ export async function POST(request) {
     const month = getMonthName(tanggal)
     const year = new Date(tanggal).getFullYear()
     const sheetName = type === "income" ? "Pemasukan" : type === "savings" ? "Tabungan" : "Pengeluaran"
-    const tanggalISO = new Date(tanggal).toISOString().split("T")[0]
 
-    // 1. Write to Supabase (primary)
-    const { data: txData, error: txError } = await supabaseAdmin
-      .from("transactions")
-      .insert({
-        user_id: user.id,
-        tanggal: tanggalISO,
-        keterangan: keterangan || "",
-        kategori,
-        jumlah: amount,
-        pajak: 0,
-        biaya: 0,
-        akun_bank: akunBank || "",
-        net: amount,
-        catatan: catatan || "",
-        bulan: month,
-        tahun: String(year),
-        tipe: type || "expense",
-        event_id: eventId || null,
-        event_sub_kategori: eventSubKategori || null,
-        source: "web",
-      })
-      .select()
-      .single()
+    const row = [
+      formattedDate,
+      "",
+      keterangan || "",
+      kategori,
+      amount,
+      "",
+      "",
+      akunBank || "",
+      amount,
+      catatan || "",
+      month,
+      year,
+      year,
+      eventId || "",
+      eventSubKategori || "",
+    ]
 
-    if (txError) {
-      console.error("[Transaction] Supabase error:", txError.message)
-      return Response.json({ error: "Gagal menyimpan ke database", detail: txError.message }, { status: 500 })
-    }
+    const targetRow = await findNextEmptyRow(accessToken, sheetName, spreadsheetId)
+    await sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:O${targetRow}`, [row], spreadsheetId)
 
-    // 2. Write to Google Sheets (backup/sync) - non-blocking
-    try {
-      const row = [
-        formattedDate,
-        "",
-        keterangan || "",
-        kategori,
-        amount,
-        "",
-        "",
-        akunBank || "",
-        amount,
-        catatan || "",
-        month,
-        year,
-        year,
-        eventId || "",
-        eventSubKategori || "",
-      ]
-
-      const targetRow = await findNextEmptyRow(accessToken, sheetName, spreadsheetId)
-      await sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:O${targetRow}`, [row], spreadsheetId)
-    } catch (sheetErr) {
-      console.error("[Transaction] Google Sheets write failed (non-critical):", sheetErr.message)
-    }
-
-    return Response.json({
-      success: true,
-      message: `Transaksi berhasil disimpan ke tab ${sheetName}`,
-      id: txData?.id,
-    })
+    return Response.json({ success: true, message: `Transaksi berhasil disimpan ke tab ${sheetName}`, rowIndex: targetRow })
   } catch (err) {
     console.error("[Transaction]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
