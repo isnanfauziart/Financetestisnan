@@ -107,24 +107,14 @@ export function generateReportHTML({
     max-width: 800px;
     margin: 0 auto;
   }
-
-  /* Header stripe */
   .header-stripe {
     height: 5pt;
     background: linear-gradient(135deg, #7c5fcf 0%, #5b8c7a 50%, #7c8c5a 100%);
   }
   .header-area {
-    position: relative;
     text-align: center;
     padding: 28pt 24pt 18pt;
-    background:
-      repeating-linear-gradient(
-        135deg,
-        transparent,
-        transparent 18pt,
-        rgba(124,95,207,0.03) 18pt,
-        rgba(124,95,207,0.03) 19pt
-      );
+    background: #f8f4ee;
   }
   .header-area h1 {
     font-size: 20pt;
@@ -140,41 +130,33 @@ export function generateReportHTML({
   }
   .header-divider {
     height: 1.5pt;
-    background: linear-gradient(90deg, transparent 0%, #ede0d0 20%, #ede0d0 80%, transparent 100%);
+    background: #ede0d0;
     margin: 0 24pt;
   }
-
   .content { padding: 18pt 24pt 24pt; }
-
-  h2 {
+  .section-title {
     font-size: 11pt;
     font-weight: 700;
     color: #4a3d33;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    display: flex;
-    align-items: center;
-    gap: 6pt;
     margin-top: 20pt;
     margin-bottom: 10pt;
   }
-  h2::before {
-    content: '';
+  .section-title-bar {
     display: inline-block;
     width: 3pt;
     height: 14pt;
-    border-radius: 2pt;
-    background: linear-gradient(180deg, #7c5fcf, #5b8c7a);
-    flex-shrink: 0;
+    background: #7c5fcf;
+    vertical-align: middle;
+    margin-right: 8pt;
   }
-  h2::after {
-    content: '';
-    flex: 1;
+  .section-hr {
+    border: none;
     height: 1pt;
-    background: linear-gradient(90deg, #ede0d0 0%, transparent 100%);
-    margin-left: 6pt;
+    background: #ede0d0;
+    margin: 0 0 10pt 0;
   }
-
   table {
     width: 100%;
     border-collapse: collapse;
@@ -196,31 +178,25 @@ export function generateReportHTML({
     color: #4a3d33;
     border-bottom: 0.5pt solid #f6efe5;
   }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.num { text-align: right; }
   th.num { text-align: right; }
   .positive { color: #5b8c7a; }
   .negative { color: #c47d5a; }
   .danger { color: #c44545; }
-
-  /* Health Score Badge */
   .health-section {
     text-align: center;
     margin: 14pt 0 6pt;
   }
   .health-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-block;
     width: 52pt;
     height: 52pt;
-    border-radius: 50%;
-    border: 3.5pt solid;
-    position: relative;
-  }
-  .health-badge .grade-letter {
+    line-height: 52pt;
+    text-align: center;
+    border: 3.5pt solid #6b5b4f;
     font-size: 22pt;
     font-weight: 800;
-    line-height: 1;
+    color: #2a2018;
   }
   .health-meta {
     margin-top: 4pt;
@@ -231,122 +207,85 @@ export function generateReportHTML({
     font-weight: 700;
     margin-left: 3pt;
   }
-
-  /* Summary Cards */
-  .summary-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8pt;
-    margin-bottom: 14pt;
+  .summary-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8pt;
+    margin-bottom: 6pt;
   }
-  .summary-item {
+  .summary-card {
     border: 1pt solid #ede0d0;
     border-radius: 8pt;
     padding: 10pt 12pt;
-    display: flex;
-    align-items: flex-start;
-    gap: 10pt;
+    vertical-align: top;
   }
-  .summary-icon {
-    width: 28pt;
-    height: 28pt;
-    border-radius: 7pt;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+  .summary-emoji {
+    font-size: 18pt;
+    line-height: 1;
+    margin-bottom: 4pt;
   }
-  .summary-text { flex: 1; min-width: 0; }
   .summary-label {
     font-size: 7.5pt;
     font-weight: 700;
     color: #9c8978;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    margin-bottom: 1pt;
+    margin-bottom: 2pt;
   }
   .summary-value {
     font-size: 14pt;
     font-weight: 700;
     color: #2a2018;
-    font-variant-numeric: tabular-nums;
     line-height: 1.2;
   }
-
-  /* Bar Chart */
-  .bar-chart { margin-bottom: 14pt; }
-  .bar-row {
-    display: flex;
-    align-items: center;
-    gap: 8pt;
-    margin-bottom: 5pt;
+  .bar-chart-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 14pt;
   }
-  .bar-label {
-    font-size: 8.5pt;
-    color: #4a3d33;
+  .bar-chart-table td {
+    padding: 3pt 4pt;
+    border: none;
+    vertical-align: middle;
+  }
+  .bar-label-cell {
     width: 110pt;
     text-align: right;
-    flex-shrink: 0;
+    font-size: 8.5pt;
+    color: #4a3d33;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+  }
+  .bar-track-cell {
+    width: auto;
   }
   .bar-track {
-    flex: 1;
     height: 14pt;
     background: #f6efe5;
     border-radius: 3pt;
     overflow: hidden;
-    position: relative;
   }
   .bar-fill {
-    height: 100%;
+    height: 14pt;
     border-radius: 3pt;
-    min-width: 2pt;
-    transition: width 0.3s;
   }
-  .bar-amount {
+  .bar-amount-cell {
+    width: 80pt;
+    text-align: right;
     font-size: 8pt;
     color: #6b5b4f;
-    width: 70pt;
-    text-align: right;
-    flex-shrink: 0;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Budget Progress */
-  .budget-progress-cell {
-    width: 80pt;
-    padding: 4pt 6pt;
   }
   .budget-bar-track {
     height: 7pt;
     background: #f6efe5;
     border-radius: 3pt;
     overflow: hidden;
+    width: 80pt;
   }
   .budget-bar-fill {
-    height: 100%;
+    height: 7pt;
     border-radius: 3pt;
-    min-width: 2pt;
   }
-
-  /* Comparison Bars */
-  .compare-bars {
-    display: flex;
-    gap: 2pt;
-    align-items: flex-end;
-    height: 18pt;
-    width: 60pt;
-    flex-shrink: 0;
-  }
-  .compare-bar {
-    flex: 1;
-    border-radius: 2pt 2pt 0 0;
-    min-height: 2pt;
-  }
-
-  /* Badges */
   .badge {
     display: inline-block;
     font-size: 7.5pt;
@@ -359,41 +298,69 @@ export function generateReportHTML({
   .badge-sehat { background: #ebf3f0; color: #5b8c7a; }
   .badge-warning { background: #fdf7e8; color: #d4a853; }
   .badge-over { background: #fbecec; color: #c44545; }
-
-  /* Footer */
+  .compare-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8pt;
+    margin-bottom: 6pt;
+  }
+  .compare-card {
+    border: 1pt solid #ede0d0;
+    border-radius: 8pt;
+    padding: 10pt 12pt;
+    vertical-align: top;
+  }
+  .compare-bar-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .compare-bar-table td {
+    padding: 0;
+    border: none;
+    vertical-align: bottom;
+    text-align: center;
+  }
+  .compare-bar {
+    display: block;
+    width: 100%;
+    min-height: 2pt;
+    border-radius: 2pt 2pt 0 0;
+  }
+  .compare-label {
+    font-size: 7pt;
+    color: #9c8978;
+    margin-bottom: 2pt;
+  }
+  .compare-value {
+    font-size: 7pt;
+    color: #6b5b4f;
+    margin-top: 2pt;
+  }
   .footer {
     margin-top: 20pt;
     padding: 10pt 24pt 14pt;
-    border-top: none;
     font-size: 8pt;
     color: #9c8978;
     text-align: center;
-    position: relative;
   }
-  .footer::before {
-    content: '';
-    display: block;
+  .footer-hr {
+    border: none;
     height: 1.5pt;
-    background: linear-gradient(90deg, transparent 0%, #ede0d0 20%, #ede0d0 80%, transparent 100%);
-    margin-bottom: 10pt;
+    background: #ede0d0;
+    margin: 0 0 10pt 0;
   }
   .footer-stripe {
     height: 3pt;
     background: linear-gradient(135deg, #7c5fcf 0%, #5b8c7a 50%, #7c8c5a 100%);
     margin-top: 10pt;
-    border-radius: 0 0 2pt 2pt;
   }
   .delta-positive { color: #5b8c7a; font-size: 9pt; font-weight: 600; }
   .delta-negative { color: #c47d5a; font-size: 9pt; font-weight: 600; }
-
   @media print {
     body { padding: 0; }
     .no-print { display: none !important; }
-    .summary-item { page-break-inside: avoid; }
-    table { page-break-inside: auto; }
     tr { page-break-inside: avoid; }
-    .header-stripe { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .bar-fill, .budget-bar-fill, .compare-bar, .summary-icon, .health-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .header-stripe, .footer-stripe, .bar-fill, .budget-bar-fill, .compare-bar, .health-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
@@ -409,89 +376,83 @@ export function generateReportHTML({
 
 ${healthScore ? `
 <div class="health-section">
-  <div class="health-badge" style="border-color:${esc(healthScore.gradeColor || '#6b5b4f')};">
-    <span class="grade-letter" style="color:${esc(healthScore.gradeColor || '#2a2018')};">${esc(healthScore.grade)}</span>
-  </div>
+  <div class="health-badge" style="border-color:${esc(healthScore.gradeColor || '#6b5b4f')}; color:${esc(healthScore.gradeColor || '#2a2018')};">${esc(healthScore.grade)}</div>
   <div class="health-meta">Skor Kesehatan Keuangan: <span class="score-num">${healthScore.score}</span></div>
 </div>
 ` : ""}
 
-<h2>Ringkasan</h2>
-<div class="summary-grid">
-  <div class="summary-item" style="border-left:3pt solid #7c8c5a; background:linear-gradient(135deg, #f4f6ec 0%, #ffffff 100%);">
-    <div class="summary-icon" style="background:#f4f6ec;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c8c5a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    </div>
-    <div class="summary-text">
-      <div class="summary-label">Total Pemasukan</div>
-      <div class="summary-value positive">${formatRpFull(income)}</div>
-    </div>
-  </div>
-  <div class="summary-item" style="border-left:3pt solid #c47d5a; background:linear-gradient(135deg, #fbf0e9 0%, #ffffff 100%);">
-    <div class="summary-icon" style="background:#fbf0e9;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c47d5a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
-    </div>
-    <div class="summary-text">
-      <div class="summary-label">Total Pengeluaran</div>
-      <div class="summary-value negative">${formatRpFull(expense)}</div>
-    </div>
-  </div>
-  <div class="summary-item" style="border-left:3pt solid #5b8c7a; background:linear-gradient(135deg, #ebf3f0 0%, #ffffff 100%);">
-    <div class="summary-icon" style="background:#ebf3f0;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5b8c7a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-0.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/></svg>
-    </div>
-    <div class="summary-text">
-      <div class="summary-label">Total Tabungan</div>
-      <div class="summary-value">${formatRpFull(savings)}</div>
-    </div>
-  </div>
-  <div class="summary-item" style="border-left:3pt solid ${surplus >= 0 ? '#5b8c7a' : '#c47d5a'}; background:linear-gradient(135deg, ${surplus >= 0 ? '#ebf3f0' : '#fbf0e9'} 0%, #ffffff 100%);">
-    <div class="summary-icon" style="background:${surplus >= 0 ? '#ebf3f0' : '#fbf0e9'};">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${surplus >= 0 ? '#5b8c7a' : '#c47d5a'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8M5 12H2l10-10 10 10h-3"/></svg>
-    </div>
-    <div class="summary-text">
-      <div class="summary-label">Surplus</div>
-      <div class="summary-value ${surplus >= 0 ? 'positive' : 'negative'}">${formatRpFull(surplus)}</div>
-    </div>
-  </div>
-  <div class="summary-item" style="border-left:3pt solid #7c5fcf; background:linear-gradient(135deg, #f3effc 0%, #ffffff 100%);">
-    <div class="summary-icon" style="background:#f3effc;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c5fcf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-    </div>
-    <div class="summary-text">
-      <div class="summary-label">Savings Rate</div>
-      <div class="summary-value">${savingsRate.toFixed(1)}%</div>
-    </div>
-  </div>
-  <div class="summary-item" style="border-left:3pt solid #9c8978; background:linear-gradient(135deg, #f6efe5 0%, #ffffff 100%);">
-    <div class="summary-icon" style="background:#f6efe5;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9c8978" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8M12 17v4"/></svg>
-    </div>
-    <div class="summary-text">
-      <div class="summary-label">Jumlah Transaksi</div>
-      <div class="summary-value">${transactions.length}</div>
-    </div>
-  </div>
-</div>
+<h2 class="section-title"><span class="section-title-bar"></span>Ringkasan</h2>
+<hr class="section-hr">
+<table class="summary-table">
+  <tr>
+    <td width="50%" style="padding-right:4pt;">
+      <div class="summary-card" style="border-left:3pt solid #7c8c5a; background:#f4f6ec;">
+        <div class="summary-emoji">💰</div>
+        <div class="summary-label">Total Pemasukan</div>
+        <div class="summary-value positive">${formatRpFull(income)}</div>
+      </div>
+    </td>
+    <td width="50%" style="padding-left:4pt;">
+      <div class="summary-card" style="border-left:3pt solid #c47d5a; background:#fbf0e9;">
+        <div class="summary-emoji">📉</div>
+        <div class="summary-label">Total Pengeluaran</div>
+        <div class="summary-value negative">${formatRpFull(expense)}</div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" style="padding-right:4pt;">
+      <div class="summary-card" style="border-left:3pt solid #5b8c7a; background:#ebf3f0;">
+        <div class="summary-emoji">🐷</div>
+        <div class="summary-label">Total Tabungan</div>
+        <div class="summary-value">${formatRpFull(savings)}</div>
+      </div>
+    </td>
+    <td width="50%" style="padding-left:4pt;">
+      <div class="summary-card" style="border-left:3pt solid ${surplus >= 0 ? '#5b8c7a' : '#c47d5a'}; background:${surplus >= 0 ? '#ebf3f0' : '#fbf0e9'};">
+        <div class="summary-emoji">📊</div>
+        <div class="summary-label">Surplus</div>
+        <div class="summary-value ${surplus >= 0 ? 'positive' : 'negative'}">${formatRpFull(surplus)}</div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" style="padding-right:4pt;">
+      <div class="summary-card" style="border-left:3pt solid #7c5fcf; background:#f3effc;">
+        <div class="summary-emoji">🔖</div>
+        <div class="summary-label">Savings Rate</div>
+        <div class="summary-value">${savingsRate.toFixed(1)}%</div>
+      </div>
+    </td>
+    <td width="50%" style="padding-left:4pt;">
+      <div class="summary-card" style="border-left:3pt solid #9c8978; background:#f6efe5;">
+        <div class="summary-emoji">📋</div>
+        <div class="summary-label">Jumlah Transaksi</div>
+        <div class="summary-value">${transactions.length}</div>
+      </div>
+    </td>
+  </tr>
+</table>
 
 ${sortedCategories.length > 0 ? `
-<h2>Pengeluaran per Kategori</h2>
-<div class="bar-chart">
+<h2 class="section-title"><span class="section-title-bar"></span>Pengeluaran per Kategori</h2>
+<hr class="section-hr">
+<table class="bar-chart-table">
   ${sortedCategories.slice(0, 8).map(([cat, val], i) => {
     const maxVal = sortedCategories[0][1]
     const barPct = maxVal > 0 ? (val / maxVal) * 100 : 0
     const colors = ["#7c8c5a","#c47d5a","#5b8c7a","#9f87ef","#d4a853","#5069cc","#c44545","#7aab9a"]
     const color = colors[i % colors.length]
     return `
-  <div class="bar-row">
-    <div class="bar-label">${esc(cat)}</div>
-    <div class="bar-track">
-      <div class="bar-fill" style="width:${barPct}%; background:${color};"></div>
-    </div>
-    <div class="bar-amount">${formatRpFull(val)}</div>
-  </div>`
+  <tr>
+    <td class="bar-label-cell">${esc(cat)}</td>
+    <td class="bar-track-cell">
+      <div class="bar-track"><div class="bar-fill" style="width:${barPct}%; background:${color};"></div></div>
+    </td>
+    <td class="bar-amount-cell">${formatRpFull(val)}</td>
+  </tr>`
   }).join("")}
-</div>
+</table>
 <table>
   <thead>
     <tr>
@@ -512,7 +473,8 @@ ${sortedCategories.length > 0 ? `
 ` : ""}
 
 ${budgetRows.length > 0 ? `
-<h2>Anggaran vs Realisasi</h2>
+<h2 class="section-title"><span class="section-title-bar"></span>Anggaran vs Realisasi</h2>
+<hr class="section-hr">
 <table>
   <thead>
     <tr>
@@ -548,7 +510,8 @@ ${budgetRows.length > 0 ? `
 ` : ""}
 
 ${top10.length > 0 ? `
-<h2>Top 10 Transaksi Terbesar</h2>
+<h2 class="section-title"><span class="section-title-bar"></span>Top 10 Transaksi Terbesar</h2>
+<hr class="section-hr">
 <table>
   <thead>
     <tr>
@@ -573,66 +536,75 @@ ${top10.length > 0 ? `
 ` : ""}
 
 ${prevTx ? `
-<h2>Perbandingan Bulan Lalu (${esc(prev.month)})</h2>
-<div class="summary-grid" style="margin-bottom:10pt;">
+<h2 class="section-title"><span class="section-title-bar"></span>Perbandingan Bulan Lalu (${esc(prev.month)})</h2>
+<hr class="section-hr">
+<table class="compare-table">
   ${(() => {
     const maxInc = Math.max(income, prevIncome) || 1
     const maxExp = Math.max(expense, prevExpense) || 1
     const maxSur = Math.max(Math.abs(surplus), Math.abs(prevSurplus)) || 1
     return `
-  <div class="summary-item" style="border-left:3pt solid #7c8c5a;">
-    <div class="summary-text">
-      <div class="summary-label">Pemasukan</div>
-      <div style="display:flex;align-items:flex-end;gap:4pt;margin-top:3pt;">
-        <div style="flex:1;">
-          <div style="font-size:7pt;color:#9c8978;margin-bottom:1pt;">${esc(prev.month)}</div>
-          <div style="height:${(prevIncome / maxInc) * 28}pt;background:#7c8c5a33;border-radius:2pt;min-height:2pt;"></div>
-          <div style="font-size:7pt;color:#6b5b4f;margin-top:1pt;">${formatRpFull(prevIncome)}</div>
-        </div>
-        <div style="flex:1;">
-          <div style="font-size:7pt;color:#9c8978;margin-bottom:1pt;">${esc(month)}</div>
-          <div style="height:${(income / maxInc) * 28}pt;background:#7c8c5a;border-radius:2pt;min-height:2pt;"></div>
-          <div style="font-size:7pt;color:#6b5b4f;margin-top:1pt;">${formatRpFull(income)}</div>
-        </div>
+  <tr>
+    <td width="33%" style="padding-right:4pt;">
+      <div class="compare-card" style="border-left:3pt solid #7c8c5a;">
+        <div class="summary-label">Pemasukan</div>
+        <table class="compare-bar-table" style="margin-top:6pt;">
+          <tr>
+            <td width="50%">
+              <div class="compare-label">${esc(prev.month)}</div>
+              <div class="compare-bar" style="height:${(prevIncome / maxInc) * 28}pt; background:#d5ddc8;"></div>
+              <div class="compare-value">${formatRpFull(prevIncome)}</div>
+            </td>
+            <td width="50%">
+              <div class="compare-label">${esc(month)}</div>
+              <div class="compare-bar" style="height:${(income / maxInc) * 28}pt; background:#7c8c5a;"></div>
+              <div class="compare-value">${formatRpFull(income)}</div>
+            </td>
+          </tr>
+        </table>
       </div>
-    </div>
-  </div>
-  <div class="summary-item" style="border-left:3pt solid #c47d5a;">
-    <div class="summary-text">
-      <div class="summary-label">Pengeluaran</div>
-      <div style="display:flex;align-items:flex-end;gap:4pt;margin-top:3pt;">
-        <div style="flex:1;">
-          <div style="font-size:7pt;color:#9c8978;margin-bottom:1pt;">${esc(prev.month)}</div>
-          <div style="height:${(prevExpense / maxExp) * 28}pt;background:#c47d5a33;border-radius:2pt;min-height:2pt;"></div>
-          <div style="font-size:7pt;color:#6b5b4f;margin-top:1pt;">${formatRpFull(prevExpense)}</div>
-        </div>
-        <div style="flex:1;">
-          <div style="font-size:7pt;color:#9c8978;margin-bottom:1pt;">${esc(month)}</div>
-          <div style="height:${(expense / maxExp) * 28}pt;background:#c47d5a;border-radius:2pt;min-height:2pt;"></div>
-          <div style="font-size:7pt;color:#6b5b4f;margin-top:1pt;">${formatRpFull(expense)}</div>
-        </div>
+    </td>
+    <td width="33%" style="padding-left:4pt; padding-right:4pt;">
+      <div class="compare-card" style="border-left:3pt solid #c47d5a;">
+        <div class="summary-label">Pengeluaran</div>
+        <table class="compare-bar-table" style="margin-top:6pt;">
+          <tr>
+            <td width="50%">
+              <div class="compare-label">${esc(prev.month)}</div>
+              <div class="compare-bar" style="height:${(prevExpense / maxExp) * 28}pt; background:#e0c5b5;"></div>
+              <div class="compare-value">${formatRpFull(prevExpense)}</div>
+            </td>
+            <td width="50%">
+              <div class="compare-label">${esc(month)}</div>
+              <div class="compare-bar" style="height:${(expense / maxExp) * 28}pt; background:#c47d5a;"></div>
+              <div class="compare-value">${formatRpFull(expense)}</div>
+            </td>
+          </tr>
+        </table>
       </div>
-    </div>
-  </div>
-  <div class="summary-item" style="border-left:3pt solid ${surplus >= 0 ? '#5b8c7a' : '#c47d5a'};">
-    <div class="summary-text">
-      <div class="summary-label">Surplus</div>
-      <div style="display:flex;align-items:flex-end;gap:4pt;margin-top:3pt;">
-        <div style="flex:1;">
-          <div style="font-size:7pt;color:#9c8978;margin-bottom:1pt;">${esc(prev.month)}</div>
-          <div style="height:${(Math.abs(prevSurplus) / maxSur) * 28}pt;background:${prevSurplus >= 0 ? '#5b8c7a33' : '#c47d5a33'};border-radius:2pt;min-height:2pt;"></div>
-          <div style="font-size:7pt;color:#6b5b4f;margin-top:1pt;">${formatRpFull(prevSurplus)}</div>
-        </div>
-        <div style="flex:1;">
-          <div style="font-size:7pt;color:#9c8978;margin-bottom:1pt;">${esc(month)}</div>
-          <div style="height:${(Math.abs(surplus) / maxSur) * 28}pt;background:${surplus >= 0 ? '#5b8c7a' : '#c47d5a'};border-radius:2pt;min-height:2pt;"></div>
-          <div style="font-size:7pt;color:#6b5b4f;margin-top:1pt;">${formatRpFull(surplus)}</div>
-        </div>
+    </td>
+    <td width="33%" style="padding-left:4pt;">
+      <div class="compare-card" style="border-left:3pt solid ${surplus >= 0 ? '#5b8c7a' : '#c47d5a'};">
+        <div class="summary-label">Surplus</div>
+        <table class="compare-bar-table" style="margin-top:6pt;">
+          <tr>
+            <td width="50%">
+              <div class="compare-label">${esc(prev.month)}</div>
+              <div class="compare-bar" style="height:${(Math.abs(prevSurplus) / maxSur) * 28}pt; background:${prevSurplus >= 0 ? '#c0d4c8' : '#e0c5b5'};"></div>
+              <div class="compare-value">${formatRpFull(prevSurplus)}</div>
+            </td>
+            <td width="50%">
+              <div class="compare-label">${esc(month)}</div>
+              <div class="compare-bar" style="height:${(Math.abs(surplus) / maxSur) * 28}pt; background:${surplus >= 0 ? '#5b8c7a' : '#c47d5a'};"></div>
+              <div class="compare-value">${formatRpFull(surplus)}</div>
+            </td>
+          </tr>
+        </table>
       </div>
-    </div>
-  </div>`
+    </td>
+  </tr>`
   })()}
-</div>
+</table>
 <table>
   <thead>
     <tr>
@@ -665,6 +637,7 @@ ${prevTx ? `
 </table>
 ` : ""}
 
+<hr class="footer-hr">
 <div class="footer">
   Dibuat otomatis oleh Artoku &mdash; ${timestamp}
 </div>
@@ -789,43 +762,35 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData }) {
   .hero {
     text-align: center;
     padding: 32pt 24pt 24pt;
-    background: linear-gradient(135deg, #4a3d33 0%, #6b5b4f 100%);
+    background: #4a3d33;
     color: white;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero::before {
-    content: '';
-    position: absolute;
-    top: -40pt;
-    right: -40pt;
-    width: 120pt;
-    height: 120pt;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(159,135,239,0.3) 0%, transparent 70%);
   }
   .hero h1 { font-size: 28pt; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 4pt; }
   .hero .year { font-size: 48pt; font-weight: 800; opacity: 0.9; }
   .hero .subtitle { font-size: 11pt; opacity: 0.7; margin-top: 6pt; }
   .content { padding: 18pt 24pt 24pt; }
-  h2 {
+  .section-title {
     font-size: 11pt; font-weight: 700; color: #4a3d33;
     text-transform: uppercase; letter-spacing: 0.08em;
-    display: flex; align-items: center; gap: 6pt;
     margin-top: 24pt; margin-bottom: 12pt;
   }
-  h2::before {
-    content: ''; display: inline-block; width: 3pt; height: 14pt;
-    border-radius: 2pt; background: linear-gradient(180deg, #7c5fcf, #5b8c7a); flex-shrink: 0;
+  .section-title-bar {
+    display: inline-block; width: 3pt; height: 14pt;
+    background: #7c5fcf; vertical-align: middle; margin-right: 8pt;
   }
-  h2::after { content: ''; flex: 1; height: 1pt; background: linear-gradient(90deg, #ede0d0 0%, transparent 100%); margin-left: 6pt; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; margin-bottom: 14pt; }
+  .section-hr { border: none; height: 1pt; background: #ede0d0; margin: 0 0 12pt 0; }
+  .grid-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10pt;
+    margin-bottom: 6pt;
+  }
   .card {
     border: 1pt solid #ede0d0; border-radius: 10pt; padding: 14pt;
     text-align: center;
   }
   .card .label { font-size: 8pt; font-weight: 700; color: #9c8978; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4pt; }
-  .card .value { font-size: 18pt; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .card .value { font-size: 18pt; font-weight: 700; line-height: 1.2; }
   .card .sub { font-size: 8pt; color: #9c8978; margin-top: 2pt; }
   .highlight-card {
     border: 2pt solid; border-radius: 10pt; padding: 14pt;
@@ -834,20 +799,22 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData }) {
   .highlight-card .label { font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4pt; }
   .highlight-card .value { font-size: 14pt; font-weight: 700; }
   .highlight-card .detail { font-size: 9pt; margin-top: 3pt; }
-  .bar-chart { margin-bottom: 14pt; }
-  .bar-row { display: flex; align-items: center; gap: 8pt; margin-bottom: 5pt; }
-  .bar-label { font-size: 8.5pt; color: #4a3d33; width: 100pt; text-align: right; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bar-track { flex: 1; height: 14pt; background: #f6efe5; border-radius: 3pt; overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 3pt; min-width: 2pt; }
-  .bar-amount { font-size: 8pt; color: #6b5b4f; width: 70pt; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
-  .monthly-chart { display: flex; align-items: flex-end; gap: 4pt; height: 60pt; margin-bottom: 6pt; }
-  .monthly-bar { flex: 1; border-radius: 3pt 3pt 0 0; min-height: 2pt; position: relative; }
-  .monthly-labels { display: flex; gap: 4pt; }
-  .monthly-label { flex: 1; text-align: center; font-size: 7pt; color: #9c8978; }
+  .bar-chart-table {
+    width: 100%; border-collapse: collapse; margin-bottom: 14pt;
+  }
+  .bar-chart-table td { padding: 3pt 4pt; border: none; vertical-align: middle; }
+  .bar-label-cell { width: 100pt; text-align: right; font-size: 8.5pt; color: #4a3d33; white-space: nowrap; overflow: hidden; }
+  .bar-track { height: 14pt; background: #f6efe5; border-radius: 3pt; overflow: hidden; }
+  .bar-fill { height: 14pt; border-radius: 3pt; }
+  .bar-amount-cell { width: 70pt; text-align: right; font-size: 8pt; color: #6b5b4f; }
+  .monthly-chart-table { width: 100%; border-collapse: collapse; }
+  .monthly-chart-table td { padding: 0 2pt; border: none; vertical-align: bottom; text-align: center; }
+  .monthly-bar { display: block; width: 100%; min-height: 2pt; border-radius: 3pt 3pt 0 0; }
+  .monthly-label { font-size: 7pt; color: #9c8978; padding-top: 3pt; }
   .positive { color: #5b8c7a; }
   .negative { color: #c47d5a; }
   .footer { margin-top: 24pt; padding: 10pt 24pt 14pt; font-size: 8pt; color: #9c8978; text-align: center; }
-  .footer::before { content: ''; display: block; height: 1.5pt; background: linear-gradient(90deg, transparent 0%, #ede0d0 20%, #ede0d0 80%, transparent 100%); margin-bottom: 10pt; }
+  .footer-hr { border: none; height: 1.5pt; background: #ede0d0; margin: 0 0 10pt 0; }
   .footer-stripe { height: 4pt; background: linear-gradient(135deg, #7c5fcf 0%, #9f87ef 30%, #5b8c7a 60%, #7c8c5a 100%); }
   @media print {
     body { padding: 0; }
@@ -865,107 +832,137 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData }) {
 </div>
 <div class="content">
 
-<h2>Ringkasan Tahunan</h2>
-<div class="grid">
-  <div class="card" style="border-left:3pt solid #7c8c5a; background:linear-gradient(135deg, #f4f6ec 0%, #fff 100%);">
-    <div class="label">Total Pemasukan</div>
-    <div class="value positive">${formatRpFull(income)}</div>
-    <div class="sub">${yearTx.filter(t => t.type === "income").length} transaksi</div>
-  </div>
-  <div class="card" style="border-left:3pt solid #c47d5a; background:linear-gradient(135deg, #fbf0e9 0%, #fff 100%);">
-    <div class="label">Total Pengeluaran</div>
-    <div class="value negative">${formatRpFull(expense)}</div>
-    <div class="sub">${yearTx.filter(t => t.type === "expense").length} transaksi</div>
-  </div>
-  <div class="card" style="border-left:3pt solid #5b8c7a; background:linear-gradient(135deg, #ebf3f0 0%, #fff 100%);">
-    <div class="label">Total Tabungan</div>
-    <div class="value" style="color:#5b8c7a">${formatRpFull(savings)}</div>
-    <div class="sub">${yearTx.filter(t => t.type === "savings").length} transaksi</div>
-  </div>
-  <div class="card" style="border-left:3pt solid ${surplus >= 0 ? '#5b8c7a' : '#c47d5a'}; background:linear-gradient(135deg, ${surplus >= 0 ? '#ebf3f0' : '#fbf0e9'} 0%, #fff 100%);">
-    <div class="label">Surplus</div>
-    <div class="value ${surplus >= 0 ? 'positive' : 'negative'}">${formatRpFull(surplus)}</div>
-    <div class="sub">Savings Rate: ${savingsRate.toFixed(1)}%</div>
-  </div>
-</div>
+<h2 class="section-title"><span class="section-title-bar"></span>Ringkasan Tahunan</h2>
+<hr class="section-hr">
+<table class="grid-table">
+  <tr>
+    <td width="50%" style="padding-right:5pt;">
+      <div class="card" style="border-left:3pt solid #7c8c5a; background:#f4f6ec;">
+        <div class="label">Total Pemasukan</div>
+        <div class="value positive">${formatRpFull(income)}</div>
+        <div class="sub">${yearTx.filter(t => t.type === "income").length} transaksi</div>
+      </div>
+    </td>
+    <td width="50%" style="padding-left:5pt;">
+      <div class="card" style="border-left:3pt solid #c47d5a; background:#fbf0e9;">
+        <div class="label">Total Pengeluaran</div>
+        <div class="value negative">${formatRpFull(expense)}</div>
+        <div class="sub">${yearTx.filter(t => t.type === "expense").length} transaksi</div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" style="padding-right:5pt;">
+      <div class="card" style="border-left:3pt solid #5b8c7a; background:#ebf3f0;">
+        <div class="label">Total Tabungan</div>
+        <div class="value" style="color:#5b8c7a">${formatRpFull(savings)}</div>
+        <div class="sub">${yearTx.filter(t => t.type === "savings").length} transaksi</div>
+      </div>
+    </td>
+    <td width="50%" style="padding-left:5pt;">
+      <div class="card" style="border-left:3pt solid ${surplus >= 0 ? '#5b8c7a' : '#c47d5a'}; background:${surplus >= 0 ? '#ebf3f0' : '#fbf0e9'};">
+        <div class="label">Surplus</div>
+        <div class="value ${surplus >= 0 ? 'positive' : 'negative'}">${formatRpFull(surplus)}</div>
+        <div class="sub">Savings Rate: ${savingsRate.toFixed(1)}%</div>
+      </div>
+    </td>
+  </tr>
+</table>
 
-<h2>Highlights</h2>
+<h2 class="section-title"><span class="section-title-bar"></span>Highlights</h2>
+<hr class="section-hr">
 ${biggestTx ? `
-<div class="highlight-card" style="border-color:#c47d5a; background:linear-gradient(135deg, #fbf0e9 0%, #fff 100%);">
+<div class="highlight-card" style="border-color:#c47d5a; background:#fbf0e9;">
   <div class="label" style="color:#c47d5a;">Pengeluaran Terbesar</div>
   <div class="value negative">${formatRpFull(biggestTx.amount)}</div>
   <div class="detail" style="color:#6b5b4f;">${esc(biggestTx.category)} — ${esc(biggestTx.desc || "—")} · ${esc(biggestTx.date || "")}</div>
 </div>` : ""}
 ${worstMonth ? `
-<div class="highlight-card" style="border-color:#d4a853; background:linear-gradient(135deg, #fdf7e8 0%, #fff 100%);">
+<div class="highlight-card" style="border-color:#d4a853; background:#fdf7e8;">
   <div class="label" style="color:#d4a853;">Bulan Terboros</div>
   <div class="value" style="color:#c47d5a">${formatRpFull(worstMonth[1])}</div>
   <div class="detail" style="color:#6b5b4f;">${esc(worstMonth[0])}</div>
 </div>` : ""}
 ${bestSavingsMonth ? `
-<div class="highlight-card" style="border-color:#5b8c7a; background:linear-gradient(135deg, #ebf3f0 0%, #fff 100%);">
+<div class="highlight-card" style="border-color:#5b8c7a; background:#ebf3f0;">
   <div class="label" style="color:#5b8c7a;">Savings Rate Terbaik</div>
   <div class="value positive">${bestSavingsMonth[1].toFixed(1)}%</div>
   <div class="detail" style="color:#6b5b4f;">${esc(bestSavingsMonth[0])}</div>
 </div>` : ""}
 ${worstDay ? `
-<div class="highlight-card" style="border-color:#9f87ef; background:linear-gradient(135deg, #f3effc 0%, #fff 100%);">
+<div class="highlight-card" style="border-color:#9f87ef; background:#f3effc;">
   <div class="label" style="color:#9f87ef;">Hari Paling Boros</div>
   <div class="value" style="color:#c47d5a">${formatRpFull(worstDay[1])}</div>
   <div class="detail" style="color:#6b5b4f;">${esc(worstDay[0])}</div>
 </div>` : ""}
 
-<h2>Savings Rate per Bulan</h2>
-<div class="monthly-chart">
-  ${monthlyRates.map(r => {
-    const h = Math.max(2, Math.abs(r.rate) / maxRate * 50)
-    const color = r.rate >= 20 ? '#5b8c7a' : r.rate >= 10 ? '#d4a853' : '#c47d5a'
-    return `<div class="monthly-bar" style="height:${h}pt;background:${color};"></div>`
-  }).join("")}
-</div>
-<div class="monthly-labels">
-  ${monthlyRates.map(r => `<div class="monthly-label">${esc(r.month)}</div>`).join("")}
-</div>
+<h2 class="section-title"><span class="section-title-bar"></span>Savings Rate per Bulan</h2>
+<hr class="section-hr">
+<table class="monthly-chart-table" style="height:60pt;">
+  <tr>
+    ${monthlyRates.map(r => {
+      const h = Math.max(2, Math.abs(r.rate) / maxRate * 50)
+      const color = r.rate >= 20 ? '#5b8c7a' : r.rate >= 10 ? '#d4a853' : '#c47d5a'
+      return `<td style="vertical-align:bottom;"><div class="monthly-bar" style="height:${h}pt;background:${color};"></div></td>`
+    }).join("")}
+  </tr>
+  <tr>
+    ${monthlyRates.map(r => `<td class="monthly-label">${esc(r.month)}</td>`).join("")}
+  </tr>
+</table>
 
 ${sortedCategories.length > 0 ? `
-<h2>Pengeluaran per Kategori</h2>
-<div class="bar-chart">
+<h2 class="section-title"><span class="section-title-bar"></span>Pengeluaran per Kategori</h2>
+<hr class="section-hr">
+<table class="bar-chart-table">
   ${sortedCategories.slice(0, 8).map(([cat, val], i) => {
     const maxVal = sortedCategories[0][1]
     const barPct = maxVal > 0 ? (val / maxVal) * 100 : 0
     const colors = ["#7c8c5a","#c47d5a","#5b8c7a","#9f87ef","#d4a853","#5069cc","#c44545","#7aab9a"]
     const color = colors[i % colors.length]
     return `
-  <div class="bar-row">
-    <div class="bar-label">${esc(cat)}</div>
-    <div class="bar-track">
-      <div class="bar-fill" style="width:${barPct}%; background:${color};"></div>
-    </div>
-    <div class="bar-amount">${formatRpFull(val)}</div>
-  </div>`
+  <tr>
+    <td class="bar-label-cell">${esc(cat)}</td>
+    <td style="width:auto;"><div class="bar-track"><div class="bar-fill" style="width:${barPct}%; background:${color};"></div></div></td>
+    <td class="bar-amount-cell">${formatRpFull(val)}</td>
+  </tr>`
   }).join("")}
-</div>` : ""}
+</table>` : ""}
 
-<h2>Fun Stats</h2>
-<div class="grid">
-  <div class="card">
-    <div class="label">Rata-rata Harian</div>
-    <div class="value" style="font-size:14pt;">${formatRpFull(avgDaily)}</div>
-  </div>
-  <div class="card">
-    <div class="label">Total Transaksi</div>
-    <div class="value" style="font-size:14pt;">${yearTx.length}</div>
-  </div>
-  <div class="card">
-    <div class="label">Kategori Terbanyak</div>
-    <div class="value" style="font-size:11pt;">${sortedCategories.length > 0 ? esc(sortedCategories[0][0]) : "—"}</div>
-  </div>
-  <div class="card">
-    <div class="label">Bulan Aktif</div>
-    <div class="value" style="font-size:14pt;">${yearMonthly.length}</div>
-  </div>
-</div>
+<h2 class="section-title"><span class="section-title-bar"></span>Fun Stats</h2>
+<hr class="section-hr">
+<table class="grid-table">
+  <tr>
+    <td width="50%" style="padding-right:5pt;">
+      <div class="card">
+        <div class="label">Rata-rata Harian</div>
+        <div class="value" style="font-size:14pt;">${formatRpFull(avgDaily)}</div>
+      </div>
+    </td>
+    <td width="50%" style="padding-left:5pt;">
+      <div class="card">
+        <div class="label">Total Transaksi</div>
+        <div class="value" style="font-size:14pt;">${yearTx.length}</div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" style="padding-right:5pt;">
+      <div class="card">
+        <div class="label">Kategori Terbanyak</div>
+        <div class="value" style="font-size:11pt;">${sortedCategories.length > 0 ? esc(sortedCategories[0][0]) : "—"}</div>
+      </div>
+    </td>
+    <td width="50%" style="padding-left:5pt;">
+      <div class="card">
+        <div class="label">Bulan Aktif</div>
+        <div class="value" style="font-size:14pt;">${yearMonthly.length}</div>
+      </div>
+    </td>
+  </tr>
+</table>
 
+<hr class="footer-hr">
 <div class="footer">
   Dibuat otomatis oleh Artoku &mdash; ${timestamp}
 </div>
