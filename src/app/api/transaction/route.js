@@ -21,13 +21,16 @@ async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
 
 async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
   const colA = await getSheetData(accessToken, `${sheetName}!A1:A9998`, spreadsheetId)
-  for (let i = 1; i < colA.length; i++) {
+  // Scan from bottom to find last non-empty row
+  let lastNonEmpty = 0
+  for (let i = colA.length - 1; i >= 0; i--) {
     const cell = colA[i] && colA[i][0]
-    if (!cell || String(cell).trim().length === 0) {
-      return i + 1
+    if (cell && String(cell).trim().length > 0) {
+      lastNonEmpty = i
+      break
     }
   }
-  return colA.length + 1
+  return lastNonEmpty + 2 // +1 for 1-indexed, +1 for next row
 }
 
 function formatDate(dateStr) {
