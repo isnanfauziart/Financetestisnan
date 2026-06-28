@@ -1295,3 +1295,8 @@ Comprehensive security audit of the Artoku Finance Dashboard ahead of commercial
 ### Event Budgeting Feature Complete
 - Total: 32 files, ~1,950 insertions across 3 phases
 - Google Sheets tabs needed: `Momental` (A-K) + `EventBudgets` (A-F) + columns N/O on Pemasukan/Pengeluaran/Tabungan
+### Transaction date sort fix + App rename (June 23, 2026)
+- **Issue 1:** New transactions appeared at the bottom of their month group in RecapSection. Root cause: sheetsUpdate used valueInputOption=USER_ENTERED which caused Google Sheets to convert the date string to a serial number. parseTxDate couldn't parse it, returned 0, sorted to bottom.
+- **Fix 1:** Changed valueInputOption from USER_ENTERED to RAW in transaction/route.js. Date string now written as plain text.
+- **Issue 2:** Login page still showed Keuangan Isnan instead of Artami.
+- **Fix 2:** Changed app name to Artami in login page, dashboard header, and layout title.

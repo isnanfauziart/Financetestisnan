@@ -836,7 +836,7 @@ export default function Dashboard() {
               {activeNav === "home" ? "Overview" : activeNav === "stats" ? "Statistics" : activeNav === "wallet" ? "New Transaction" : "Profile"}
             </p>
             <h1 className="text-2xl font-display font-bold text-earth-900 tracking-tight leading-tight mt-0.5">
-              {activeNav === "home" && (data?.transactions?.[0] ? "Halo 👋" : "Keuangan")}
+              {activeNav === "home" && (data?.transactions?.[0] ? "Halo 👋" : "Artami")}
               {activeNav === "home" && session?.user?.name?.split(" ")[0] ? `, ${session.user.name.split(" ")[0]}` : ""}
               {activeNav === "stats" && "Statistics"}
               {activeNav === "wallet" && "Add Transaction"}

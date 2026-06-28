@@ -13,7 +13,7 @@ const dmSans = DM_Sans({
 })
 
 export const metadata = {
-  title: "Artoku",
+  title: "Artami",
   description: "Dashboard keuangan pribadi",
   manifest: "/manifest.json",
 }

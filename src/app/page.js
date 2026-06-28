@@ -32,8 +32,7 @@ export default function Home() {
             <span className="text-white text-2xl font-display font-bold">₹</span>
           </div>
           <h1 className="font-display text-3xl font-bold text-gray-800 leading-tight">
-            Keuangan<br />
-            <span style={{ color: "#9f87ef" }}>Isnan</span>
+            <span style={{ color: "#9f87ef" }}>Artami</span>
           </h1>
           <p className="text-gray-500 text-sm mt-2">Dashboard Keuangan Pribadi</p>
         </div>
