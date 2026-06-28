@@ -1300,3 +1300,26 @@ Comprehensive security audit of the Artami Finance Dashboard ahead of commercial
 - **Fix 1:** Changed valueInputOption from USER_ENTERED to RAW in transaction/route.js. Date string now written as plain text.
 - **Issue 2:** Login page still showed Keuangan Isnan instead of Artami.
 - **Fix 2:** Changed app name to Artami in login page, dashboard header, and layout title.
+
+## Session: June 28, 2026 — Full Codebase Rename: Artoku → Artami
+
+### Task
+Rename all occurrences of "Artoku" to "Artami" across the entire codebase (source code, docs, SQL, Android config).
+
+### Changes Applied
+- **33 source files edited** with `replaceAll: true` — uppercase "Artoku" → "Artami" and lowercase "artoku" → "artami"
+- **Android package ID**: `com.artoku.app` → `com.artami.app` (build.gradle, MainActivity.java, assetlinks.json)
+- **Directory moved**: `android/app/src/main/java/com/artoku/` → `com/artami/`
+- **Keystore renamed**: `artoku.keystore` → `artami.keystore`
+- **Build artifacts deleted**: `android/app/build/` (stale `com.artoku.app` references, ~430 files)
+- **Files touched**: manifests (public/manifest.json, twa-manifest.json), reports (reportPdf.js, report.js), legal (privacy/page.js, terms/page.js), scripts (create-android-project.js, generate-twa.js, migrate-user.js), icons (generate.html), docs (AGENTS.md, README.md, progress.md, commercialization-prompts.md, Flow-system.md, commercialization-plan.md, BUILD_INSTRUCTIONS.md, supabase/README.md), SQL (001-006), Android config (build.gradle, settings.gradle, AndroidManifest.xml, strings.xml), public/.well-known/assetlinks.json
+
+### Verification
+- `grep -r "Artoku"` → 0 results ✅
+- `grep -r "artoku"` → 0 results ✅
+- `npm run build` → Compiled successfully ✅
+- Android directory structure verified ✅
+- Keystore file verified ✅
+
+### Commit
+- `2b63f59` — rename: Artoku -> Artami across entire codebase (464 files changed, 90 insertions, 27,921 deletions)

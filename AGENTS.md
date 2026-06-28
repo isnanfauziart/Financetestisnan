@@ -125,6 +125,7 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` and `ht
 - **Touch event ordering**: `touchstart` fires before `click` on mobile. If a document-level `touchstart` listener closes a dropdown before `click` fires on a child option, the tap is lost. Fix: use `mousedown` instead of `touchstart` for outside-click handlers, or check a dropdown ref in the handler.
 
 ## Recent Work (June 2026)
+- **Full codebase rename: Artoku → Artami** — 33 files, ~100 replacements across source code, docs, SQL, Android config. Android package ID `com.artoku.app` → `com.artami.app`, keystore renamed, build artifacts cleaned. Zero remaining references, build passes.
 - **Bento grid UI revamp** — Mixed-size tiles, hero card, glassmorphism, mesh gradients
 - **Smart Insights panel** — Auto-generated spending patterns with glow icons
 - **Click-to-filter** — Pie chart taps set category filter chip
