@@ -111,6 +111,7 @@ export async function POST(request) {
 
     if (txError) {
       console.error("[Transaction] Supabase error:", txError.message)
+      return Response.json({ error: "Gagal menyimpan ke database", detail: txError.message }, { status: 500 })
     }
 
     // 2. Write to Google Sheets (backup/sync) - non-blocking
