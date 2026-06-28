@@ -49,13 +49,19 @@ export default function MonthlyReportButton({
 
     const html2pdf = (await import("html2pdf.js")).default
 
-    const container = document.createElement("div")
-    container.innerHTML = html
-    container.style.position = "fixed"
-    container.style.left = "-9999px"
-    container.style.top = "0"
-    container.style.width = "800px"
-    document.body.appendChild(container)
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.left = "-9999px"
+    iframe.style.width = "800px"
+    iframe.style.height = "1200px"
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentDocument
+    doc.open()
+    doc.write(html)
+    doc.close()
+
+    await new Promise((r) => setTimeout(r, 500))
 
     const opt = {
       margin: [12, 12, 12, 12],
@@ -67,9 +73,9 @@ export default function MonthlyReportButton({
     }
 
     try {
-      await html2pdf().set(opt).from(container).save()
+      await html2pdf().set(opt).from(doc.body).save()
     } finally {
-      document.body.removeChild(container)
+      document.body.removeChild(iframe)
     }
   }, [selectedMonth, selectedYear, transactions, budgets, allTransactions, monthlyData, healthScore])
 
