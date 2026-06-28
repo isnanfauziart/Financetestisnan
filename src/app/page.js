@@ -2,6 +2,7 @@
 import { signIn, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { Wallet, BarChart3, Target, Bell, TrendingUp, Shield, ArrowRight, Download, ChevronRight } from "lucide-react"
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -19,52 +20,177 @@ export default function Home() {
     )
   }
 
+  if (session) return null
+
+  const features = [
+    { icon: Wallet, title: "Lacak Transaksi", desc: "Catat pemasukan dan pengeluaran harian dengan mudah" },
+    { icon: BarChart3, title: "Kelola Anggaran", desc: "Atur batas pengeluaran per kategori dan pantau real-time" },
+    { icon: Target, title: "Tujuan Tabungan", desc: "Tetapkan target tabungan dan pantau progress" },
+    { icon: Bell, title: "Pengingat Tagihan", desc: "Jangan lewatkan pembayaran bulanan" },
+    { icon: TrendingUp, title: "Laporan Keuangan", desc: "Analisis pola pengeluaran dengan grafik interaktif" },
+    { icon: Shield, title: "Data Aman", desc: "Semua data tersimpan di Google Sheets Anda sendiri" },
+  ]
+
+  const steps = [
+    { num: "1", title: "Masuk dengan Google", desc: "Autentikasi aman dengan akun Google Anda" },
+    { num: "2", title: "Data di Google Sheets", desc: "Keuangan Anda tersimpan di sheet pribadi" },
+    { num: "3", title: "Akses dari Mana Saja", desc: "Buka dari browser atau aplikasi Android" },
+  ]
+
+  const audience = [
+    { title: "Profesional Muda", desc: "Kelola gaji bulanan dengan mudah" },
+    { title: "Freelancer", desc: "Lacak pemasukan tidak tetap" },
+    { title: "Mahasiswa", desc: "Belajar mengelola keuangan" },
+    { title: "Keluarga Muda", desc: "Rencanakan anggaran rumah tangga" },
+  ]
+
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-cream-50 px-6">
-      {/* Background decoration */}
-      <div className="fixed top-0 right-0 w-96 h-96 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #c4b5f4, transparent 70%)" }} />
-      <div className="fixed bottom-0 left-0 w-80 h-80 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #f5c4a1, transparent 70%)" }} />
-
-      <div className="relative z-10 w-full max-w-sm">
-        {/* Logo / Brand */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style={{ background: "linear-gradient(135deg, #c4b5f4, #9f87ef)" }}>
-            <span className="text-white text-2xl font-display font-bold">₹</span>
+    <main className="min-h-screen bg-cream-50">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-cream-100">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #c4b5f4, #9f87ef)" }}>
+              <span className="text-white text-sm font-display font-bold">A</span>
+            </div>
+            <span className="font-display font-bold text-earth-800">Artami</span>
           </div>
-          <h1 className="font-display text-3xl font-bold text-gray-800 leading-tight">
-            <span style={{ color: "#9f87ef" }}>Artami</span>
-          </h1>
-          <p className="text-gray-500 text-sm mt-2">Dashboard Keuangan Pribadi</p>
-        </div>
-
-        {/* Card */}
-        <div className="bg-white rounded-3xl p-8 shadow-sm border border-cream-100">
-          <h2 className="font-display text-xl font-semibold text-gray-700 mb-1">Selamat Datang</h2>
-          <p className="text-sm text-gray-400 mb-6">Masuk untuk melihat ringkasan keuangan kamu</p>
-
           <button
             onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-            className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl font-medium text-sm transition-all duration-200 hover:opacity-90 active:scale-95"
-            style={{ background: "linear-gradient(135deg, #9f87ef, #c4b5f4)", color: "white" }}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 active:scale-95"
+            style={{ background: "linear-gradient(135deg, #9f87ef, #c4b5f4)" }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="white" opacity="0.9"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="white" opacity="0.7"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="white" opacity="0.5"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="white" opacity="0.6"/>
-            </svg>
-            Masuk dengan Google
+            Masuk
           </button>
         </div>
+      </header>
 
-        <p className="text-center text-xs text-gray-400 mt-6">Data tersimpan aman di Google Sheets kamu</p>
-        <p className="text-center text-xs text-gray-400 mt-3">
-          Dengan masuk, Anda setuju dengan{" "}
-          <a href="/terms" className="underline hover:text-gray-600">Syarat & Ketentuan</a>
-          {" "}dan{" "}
-          <a href="/privacy" className="underline hover:text-gray-600">Kebijakan Privasi</a>
-        </p>
-      </div>
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #c4b5f4, transparent 70%)" }} />
+        <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #f5c4a1, transparent 70%)" }} />
+        <div className="relative max-w-5xl mx-auto px-4 py-20 text-center">
+          <h1 className="font-display text-5xl md:text-6xl font-bold text-earth-900 mb-4">
+            <span style={{ color: "#9f87ef" }}>Artami</span>
+          </h1>
+          <p className="text-xl md:text-2xl text-earth-600 mb-6 font-medium">
+            Dashboard Keuangan Pribadi untuk Indonesia
+          </p>
+          <p className="text-earth-500 max-w-lg mx-auto mb-8 leading-relaxed">
+            Kelola keuangan pribadi Anda dengan mudah. Lacak pemasukan, pengeluaran, anggaran, dan tujuan tabungan dalam satu tempat. Data tersimpan aman di Google Sheets Anda.
+          </p>
+          <button
+            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold text-white transition-all hover:opacity-90 active:scale-95 shadow-lg"
+            style={{ background: "linear-gradient(135deg, #9f87ef, #c4b5f4)" }}
+          >
+            Mulai Sekarang
+            <ArrowRight size={20} />
+          </button>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="max-w-5xl mx-auto px-4 py-16">
+        <h2 className="font-display text-3xl font-bold text-center text-earth-900 mb-12">Fitur Unggulan</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((f, i) => (
+            <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-cream-100 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center mb-4">
+                <f.icon size={24} className="text-violet-500" />
+              </div>
+              <h3 className="font-display font-bold text-earth-800 mb-2">{f.title}</h3>
+              <p className="text-sm text-earth-500 leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="bg-white py-16">
+        <div className="max-w-5xl mx-auto px-4">
+          <h2 className="font-display text-3xl font-bold text-center text-earth-900 mb-12">Cara Kerja</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {steps.map((s, i) => (
+              <div key={i} className="text-center">
+                <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl font-display font-bold text-white" style={{ background: "linear-gradient(135deg, #9f87ef, #c4b5f4)" }}>
+                  {s.num}
+                </div>
+                <h3 className="font-display font-bold text-earth-800 mb-2">{s.title}</h3>
+                <p className="text-sm text-earth-500">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Target Audience */}
+      <section className="max-w-5xl mx-auto px-4 py-16">
+        <h2 className="font-display text-3xl font-bold text-center text-earth-900 mb-12">Untuk Siapa?</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {audience.map((a, i) => (
+            <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-cream-100 text-center">
+              <h3 className="font-display font-bold text-earth-800 mb-2">{a.title}</h3>
+              <p className="text-sm text-earth-500">{a.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Download APK */}
+      <section className="bg-white py-16">
+        <div className="max-w-lg mx-auto px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-moss-50">
+            <Download size={32} className="text-moss-600" />
+          </div>
+          <h2 className="font-display text-2xl font-bold text-earth-900 mb-3">Download untuk Android</h2>
+          <p className="text-earth-500 mb-6">Akses Artami dari perangkat Android Anda</p>
+          <a
+            href="/api/download-apk"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+            style={{ background: "linear-gradient(135deg, #6b8a6b, #8aad8a)" }}
+          >
+            <Download size={20} />
+            Download APK
+          </a>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="max-w-5xl mx-auto px-4 py-16 text-center">
+        <div className="bg-gradient-to-br from-violet-50 to-cream-50 rounded-3xl p-12">
+          <h2 className="font-display text-3xl font-bold text-earth-900 mb-4">Mulai Kelola Keuangan Anda</h2>
+          <p className="text-earth-500 mb-8">Gratis untuk memulai. Tidak perlu kartu kredit.</p>
+          <button
+            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-lg font-semibold text-white transition-all hover:opacity-90 active:scale-95 shadow-lg"
+            style={{ background: "linear-gradient(135deg, #9f87ef, #c4b5f4)" }}
+          >
+            Masuk dengan Google
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-cream-100 py-8">
+        <div className="max-w-5xl mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #c4b5f4, #9f87ef)" }}>
+              <span className="text-white text-xs font-display font-bold">A</span>
+            </div>
+            <span className="font-display font-bold text-earth-800">Artami</span>
+          </div>
+          <div className="flex items-center justify-center gap-4 text-sm text-earth-500 mb-4">
+            <a href="/privacy" className="hover:text-earth-700 transition-colors">Kebijakan Privasi</a>
+            <span>·</span>
+            <a href="/terms" className="hover:text-earth-700 transition-colors">Syarat & Ketentuan</a>
+          </div>
+          <p className="text-xs text-earth-400">
+            © 2026 Artami · isnanfauzi08@gmail.com
+          </p>
+        </div>
+      </footer>
     </main>
   )
 }
