@@ -59,6 +59,12 @@ export default function Home() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">Data tersimpan aman di Google Sheets kamu</p>
+        <p className="text-center text-xs text-gray-400 mt-3">
+          Dengan masuk, Anda setuju dengan{" "}
+          <a href="/terms" className="underline hover:text-gray-600">Syarat & Ketentuan</a>
+          {" "}dan{" "}
+          <a href="/privacy" className="underline hover:text-gray-600">Kebijakan Privasi</a>
+        </p>
       </div>
     </main>
   )

@@ -4,7 +4,7 @@ import { FileText, Download } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import { useBudgets } from "@/lib/useSharedData"
-import { generateReportHTML } from "@/lib/report"
+import { generateReportPDF } from "@/lib/reportPdf"
 import { computeHealthScore } from "@/lib/healthScore"
 
 export default function MonthlyReportButton({
@@ -23,7 +23,6 @@ export default function MonthlyReportButton({
     canReport ? selectedYear : ""
   )
 
-  // Filter monthlyData to the selected month/year for month-specific health score
   const monthFilteredData = useMemo(() => {
     if (!canReport || !monthlyData) return []
     return monthlyData.filter(
@@ -36,8 +35,8 @@ export default function MonthlyReportButton({
     return computeHealthScore({ transactions, monthlyData: monthFilteredData, budgets })
   }, [canReport, transactions, monthFilteredData, budgets])
 
-  const handleDownload = useCallback(async () => {
-    const html = generateReportHTML({
+  const handleDownload = useCallback(() => {
+    generateReportPDF({
       month: selectedMonth,
       year: selectedYear,
       transactions: transactions || [],
@@ -46,37 +45,6 @@ export default function MonthlyReportButton({
       monthlyData: monthlyData || [],
       healthScore,
     })
-
-    const html2pdf = (await import("html2pdf.js")).default
-
-    const iframe = document.createElement("iframe")
-    iframe.style.position = "fixed"
-    iframe.style.left = "-9999px"
-    iframe.style.width = "800px"
-    iframe.style.height = "1200px"
-    document.body.appendChild(iframe)
-
-    const doc = iframe.contentDocument
-    doc.open()
-    doc.write(html)
-    doc.close()
-
-    await new Promise((r) => setTimeout(r, 500))
-
-    const opt = {
-      margin: [12, 12, 12, 12],
-      filename: `Laporan-Keuangan-${selectedMonth}-${selectedYear}.pdf`,
-      image: { type: "jpeg", quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-      jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-    }
-
-    try {
-      await html2pdf().set(opt).from(doc.body).save()
-    } finally {
-      document.body.removeChild(iframe)
-    }
   }, [selectedMonth, selectedYear, transactions, budgets, allTransactions, monthlyData, healthScore])
 
   return (
