@@ -16,6 +16,9 @@ export const metadata = {
   title: "Artami",
   description: "Dashboard keuangan pribadi",
   manifest: "/manifest.json",
+  verification: {
+    google: "EENTmrs3OGsfR6aEzMTj2GUSpNsXLVF54oeN_mQp32Q",
+  },
 }
 
 export const viewport = {
