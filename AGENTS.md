@@ -3,11 +3,12 @@
 ## Stack
 - Next.js 14.2.5 (App Router), React 18, JavaScript only (no TypeScript)
 - Tailwind CSS 3.4, Recharts 2.12, NextAuth v4 (Google OAuth)
-- Data lives entirely in Google Sheets — no database
+- Data lives in per-user Google Sheets (multi-tenancy)
+- Supabase for user management, tiers, payments, and feature flags
 
 ## Commercialization — Active
 
-**Current Phase:** Phase 1 — Supabase + Multi-Tenancy [PHASE-STATUS]
+**Current Phase:** Phase 2 — Payments + Admin [PHASE-STATUS]
 
 Artoku is being commercialized as a one-time-payment personal finance app for the Indonesian market. Target: Play Store launch via React Native/Expo.
 
@@ -25,8 +26,8 @@ Artoku is being commercialized as a one-time-payment personal finance app for th
 
 ### Phase Tracker
 - [x] **Phase 0: Security Fixes** ✅ — Token leak fix, tab whitelist, input validation, generic errors, security headers
-- [ ] **Phase 1: Supabase + Multi-Tenancy** ← CURRENT — Supabase setup, per-user Google Sheets, update all 15 API routes
-- [ ] **Phase 2: Payments + Admin** — Payment API (upload proof), admin dashboard (approve/reject), Supabase Storage
+- [x] **Phase 1: Supabase + Multi-Tenancy** ✅ — Supabase setup, per-user Google Sheets, update all 15 API routes
+- [ ] **Phase 2: Payments + Admin** ← CURRENT — Payment API (upload proof), admin dashboard (approve/reject), Supabase Storage
 - [ ] **Phase 3: Feature Gating** — Tier limits (75 txn/month wall, budget/goal/insight caps), `/api/me` endpoint
 - [ ] **Phase 4: Polish + Hardening** — Rate limiting, zod validation, health check, feature flags, env validation
 - [ ] **Phase 5: Testing + Verification** — API tests, data isolation, rate limiting, security headers, manual checklist
@@ -96,7 +97,7 @@ One optional tab for the Bills feature (Phase C):
 If tab names in sheets differ, update `src/app/api/dashboard/route.js` (and the budgets/goals/bills routes for those tabs).
 
 ## OAuth scope
-Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `src/app/api/auth/[...nextauth]/route.js`).
+Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` and `https://www.googleapis.com/auth/drive.file` (see `src/app/api/auth/[...nextauth]/route.js`).
 
 ## Data flow
 - `src/app/api/auth/[...nextauth]/route.js` — NextAuth config, stores `accessToken` in session
@@ -173,6 +174,19 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
   - 15 bill categories: Listrik, Air (PDAM), Internet/WiFi, Pulsa & Data, BPJS Kesehatan, BPJS Ketenagakerjaan, Asuransi, Sewa Rumah, Cicilan/Kredit, Netflix, Spotify, YouTube Premium, Gym, Arisan, Other
 - **`pickAmount` hardening** — Replaced `isErr` check (only caught `#`-prefixed strings) with strict `isNumeric` regex `/^-?[\d.,]+$/`. Now also rejects date strings (`"7 Jun 2026"`), text, and any non-numeric value in column I, falling through to column E.
 - **Phase 0: Security Fixes** (commercialization) — 5 production-blocking vulnerabilities fixed: token leak → `getToken()` pattern across all 6 API routes, tab whitelist, input validation on transactions, generic error messages, security headers in `next.config.js`. Full details in `docs/commercialization-prompts.md`.
+- **Phase 1: Supabase + Multi-Tenancy** (commercialization) — Each user gets their own Google Sheet. Supabase manages user accounts, tiers, payments, and feature flags.
+  - New `src/lib/supabase.js` — Browser Supabase client
+  - New `src/lib/supabaseAdmin.js` — Server-side admin client
+  - New `src/lib/sheetManager.js` — Creates Google Sheet with 10 tabs for new users
+  - New `src/lib/user.js` — `getOrCreateUser()` helper for Supabase user management
+  - New `src/lib/apiAuth.js` — `getAuthContext()` helper replacing `getToken()` pattern
+  - Updated all 14 data API routes to use `getAuthContext()` and per-user `spreadsheetId`
+  - Updated `src/lib/sheets.js` — `getSheetData()` now accepts optional `spreadsheetId` parameter
+  - Updated OAuth scope to include `drive.file` for creating Google Sheets
+  - New `supabase/` folder with SQL schema files (001-006)
+  - New `scripts/migrate-user.js` — Interactive migration script for moving data from shared sheet to personal sheet
+  - **Architecture decision:** Data stays in Google Sheets (not Supabase) for reliability. Supabase used only for user management.
+  - **Bugs fixed:** `findNextEmptyRow` now scans top-to-bottom, delete endpoint clears all 15 columns, settings key case-insensitive comparison
 
 ## Relevant Files
 - `src/app/dashboard/page.js` — Main dashboard orchestrator (~820 lines): state, filters, modals, pull-to-refresh
@@ -191,6 +205,11 @@ Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` (see `s
 - `src/app/api/bills/summary/route.js` — Lightweight bill summary for notifications
 - `src/lib/sheets.js` — Sheet helpers
 - `src/lib/notifications.js` — Service worker registration + notification helpers
+- `src/lib/supabase.js` — Browser Supabase client
+- `src/lib/supabaseAdmin.js` — Server-side admin client
+- `src/lib/sheetManager.js` — Creates Google Sheet with 10 tabs for new users
+- `src/lib/user.js` — getOrCreateUser() helper for Supabase user management
+- `src/lib/apiAuth.js` — getAuthContext() helper replacing getToken() pattern
 - `public/sw.js` — Service worker for notification click handling
 - `docs/sheets-budgets.md` — Budgets tab schema
 - `docs/sheets-goals.md` — Goals tab schema

@@ -296,6 +296,13 @@ The app currently uses a single shared Google Sheet (from `SPREADSHEET_ID` env v
 - All 14 data API routes read the user's spreadsheetId from Supabase instead of env var
 - The env var `SPREADSHEET_ID` becomes the "legacy/admin" sheet only
 
+**Architecture decision (after implementation):**
+- Data stays in Google Sheets (not Supabase) for reliability and APK compatibility
+- Supabase used only for user management (accounts, tiers, payments, feature flags)
+- This approach avoids data sync issues between Google Sheets and Supabase
+- APK (TWA) writes to Google Sheets directly, web app reads from same sheets
+- No data migration needed — existing data stays in place
+
 ### YOUR TASK
 
 Build the Supabase foundation and multi-tenancy system. This is the biggest phase — follow the steps in order.
