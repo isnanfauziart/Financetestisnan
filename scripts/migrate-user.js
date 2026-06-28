@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Migration Script - Artoku Finance Dashboard
+ * Migration Script - Artami Finance Dashboard
  * 
  * Script ini digunakan untuk menyalin data dari sheet bersama (shared) 
  * ke sheet personal user.
@@ -123,7 +123,7 @@ async function main() {
   }
 
   console.log("")
-  console.log("🔄 Artoku Finance Dashboard - Data Migration Tool")
+  console.log("🔄 Artami Finance Dashboard - Data Migration Tool")
   console.log("=" .repeat(50))
   console.log("")
 

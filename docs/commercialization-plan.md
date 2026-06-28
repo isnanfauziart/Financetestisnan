@@ -1,4 +1,4 @@
-# Artoku Finance Dashboard — Commercialization Plan
+# Artami Finance Dashboard — Commercialization Plan
 
 **Date:** June 27, 2026
 **Status:** Active — Ready for Execution
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-Artoku is a personal finance dashboard for Indonesian users built on Next.js + Google Sheets. It has a polished UI (bento grid, glassmorphism, smart insights), full CRUD for income/expense/savings, budgets, goals with celebrations, net worth tracking, events/milestones (Momental), bill reminders, and mobile-first UX.
+Artami is a personal finance dashboard for Indonesian users built on Next.js + Google Sheets. It has a polished UI (bento grid, glassmorphism, smart insights), full CRUD for income/expense/savings, budgets, goals with celebrations, net worth tracking, events/milestones (Momental), bill reminders, and mobile-first UX.
 
 **Recommendation:** One-time payment model (Rp 49,000 lifetime). Users own their data in Google Sheets. No subscription, no recurring charges. Manual QRIS payment verification for MVP.
 
@@ -99,7 +99,7 @@ User.tier = 'paid' → Instant unlock
 | **Money Lover** | Freemium | $4.99/mo | Partial | ❌ | Subscription, Western |
 | **Pengelola Keuangan** | Free + ads | Free | Yes | ❌ | Ad-heavy, dated UI |
 | **Finku** | Freemium | Unknown | Yes | ❌ | Data collection concerns |
-| **Artoku** | One-time | Rp 49K lifetime | Yes | ✅ | New, unproven |
+| **Artami** | One-time | Rp 49K lifetime | Yes | ✅ | New, unproven |
 
 ### 2.4 Unique Selling Points
 
@@ -293,7 +293,7 @@ POST-PURCHASE: "Worth it!" → tells friends → word of mouth
 | NIB | Register via OSS |
 | Domain | .id domain for SEO + trust |
 | PSE Registration | Kominfo (mandatory) |
-| Trademark | Register "Artoku" at DJKI |
+| Trademark | Register "Artami" at DJKI |
 
 ### 6.3 Required Documents
 

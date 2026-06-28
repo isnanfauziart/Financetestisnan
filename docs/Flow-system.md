@@ -1,4 +1,4 @@
-# Artoku Finance Dashboard — System Flow
+# Artami Finance Dashboard — System Flow
 
 **Date:** June 27, 2026
 **Purpose:** Complete flow documentation for how the app works — user journey, payments, admin tasks, feature gating, and data flow.
@@ -42,7 +42,7 @@
 ### 2.1 How User Signs Up
 
 ```
-User visits artoku.app
+User visits artami.app
         ↓
 Clicks "Masuk" or "Daftar"
         ↓
@@ -85,7 +85,7 @@ When a NEW user signs up for the first time:
 2. App calls Google Sheets API to create spreadsheet:
    POST https://sheets.googleapis.com/v4/spreadsheets
    {
-     title: "Artoku Finance - User Name - 2026-06-27",
+     title: "Artami Finance - User Name - 2026-06-27",
      sheets: [
        { title: "Pemasukan" },
        { title: "Pengeluaran" },
@@ -210,7 +210,7 @@ App shows upgrade modal/bottom sheet:
 │                                                              │
 │  🎯 Kamu sudah mencapai batas!                              │
 │                                                              │
-│  Upgrade ke Artoku Pro untuk:                                │
+│  Upgrade ke Artami Pro untuk:                                │
 │  ✅ Transaksi tanpa batas                                    │
 │  ✅ Budget tanpa batas                                       │
 │  ✅ Tujuan tabungan tanpa batas                              │
@@ -234,7 +234,7 @@ User taps "Upgrade Sekarang"
 App navigates to /upgrade or shows payment modal:
 ┌─────────────────────────────────────────────────────────────┐
 │                                                              │
-│  Pembayaran — Artoku Pro                                     │
+│  Pembayaran — Artami Pro                                     │
 │                                                              │
 │  Harga: Rp 49.000                                            │
 │                                                              │
@@ -340,7 +340,7 @@ All limits removed:
   - Smart Features: Unlocked
   - PDF: No watermark
         ↓
-User sees: "Selamat! Kamu sekarang Artoku Pro member 🎉"
+User sees: "Selamat! Kamu sekarang Artami Pro member 🎉"
 ```
 
 ### 4.6 What Happens When Rejected
@@ -379,7 +379,7 @@ WEEKLY (15-30 minutes):
 ### 5.2 How to Access Admin Dashboard
 
 ```
-1. Go to artoku.app/admin
+1. Go to artami.app/admin
 2. Sign in with your Google account (the one in `admins` table)
 3. See pending payments
 4. Click "Lihat Bukti" to view screenshot
@@ -491,7 +491,7 @@ Show upgrade modal/bottom sheet:
 │                                                              │
 │  USER'S GOOGLE DRIVE                                         │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  📊 Artoku Finance - User Name - 2026-06-27         │    │
+│  │  📊 Artami Finance - User Name - 2026-06-27         │    │
 │  │  ├── Pemasukan (income transactions)                │    │
 │  │  ├── Pengeluaran (expense transactions)             │    │
 │  │  ├── Tabungan (savings transactions)                │    │
@@ -584,7 +584,7 @@ Client shows success toast + refreshes dashboard
 
 ```
 USER CAN:
-├── Open "📊 Artoku Finance" in Google Drive
+├── Open "📊 Artami Finance" in Google Drive
 ├── Edit transactions directly in Sheets
 ├── Add rows manually
 ├── Delete rows
@@ -817,4 +817,4 @@ src/
 
 ---
 
-*This document describes the complete system flow for Artoku Finance Dashboard. Update as features evolve.*
+*This document describes the complete system flow for Artami Finance Dashboard. Update as features evolve.*

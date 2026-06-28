@@ -1,4 +1,4 @@
-# AGENTS.md — Artoku Finance Dashboard
+# AGENTS.md — Artami Finance Dashboard
 
 ## Stack
 - Next.js 14.2.5 (App Router), React 18, JavaScript only (no TypeScript)
@@ -10,7 +10,7 @@
 
 **Current Phase:** Phase 2 — Payments + Admin [PHASE-STATUS]
 
-Artoku is being commercialized as a one-time-payment personal finance app for the Indonesian market. Target: Play Store launch via React Native/Expo.
+Artami is being commercialized as a one-time-payment personal finance app for the Indonesian market. Target: Play Store launch via React Native/Expo.
 
 ### Business Model
 - **Pricing:** Rp 49,000 one-time lifetime (NOT subscription)
@@ -53,7 +53,7 @@ Code sharing strategy: `src/lib/*.js` shared pure JS modules (import in both web
 - Privacy Policy (Kebijakan Privasi) — PDP compliant, Bahasa Indonesia
 - Terms of Service (Syarat & Ketentuan) — Bahasa Indonesia
 - PSE Registration at pse.kominfo.go.id (mandatory for Indonesian apps)
-- Trademark registration for "Artoku" at DJKI
+- Trademark registration for "Artami" at DJKI
 - App icons, screenshots, store listing in Bahasa Indonesia
 
 ## Commands

@@ -309,7 +309,7 @@ class PdfBuilder {
     this.y += 4
     this.line(this.y, C.border, 0.3)
     this.y += 5
-    this.text("Dibuat otomatis oleh Artoku \u2014 " + timestamp, PW / 2, this.y, {
+    this.text("Dibuat otomatis oleh Artami \u2014 " + timestamp, PW / 2, this.y, {
       size: 7, color: C.light, align: "center"
     })
     this.y += 4
@@ -361,7 +361,7 @@ export function generateReportPDF({
   b.y += 6
   b.text("LAPORAN KEUANGAN BULANAN", PW / 2, b.y, { size: 18, color: C.dark, style: "bold", align: "center" })
   b.y += 7
-  b.text(month + " " + year + " \u2014 Artoku", PW / 2, b.y, { size: 10, color: C.medium, align: "center" })
+  b.text(month + " " + year + " \u2014 Artami", PW / 2, b.y, { size: 10, color: C.medium, align: "center" })
   b.y += 5
   b.line(b.y, C.border, 0.4)
   b.y += 2

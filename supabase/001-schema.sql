@@ -1,5 +1,5 @@
 -- =============================================================================
--- Artoku Finance Dashboard - Database Schema
+-- Artami Finance Dashboard - Database Schema
 -- Phase 1: Supabase + Multi-Tenancy
 -- =============================================================================
 -- Run this file first in Supabase SQL Editor

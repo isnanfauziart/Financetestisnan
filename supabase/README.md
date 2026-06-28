@@ -1,8 +1,8 @@
-# Artoku Finance Dashboard - Supabase Setup
+# Artami Finance Dashboard - Supabase Setup
 
 ## Overview
 
-This folder contains the database schema and setup scripts for Artoku Finance Dashboard's multi-tenancy system. The app uses Supabase (PostgreSQL) to store user accounts, tier information, usage tracking, and feature flags.
+This folder contains the database schema and setup scripts for Artami Finance Dashboard's multi-tenancy system. The app uses Supabase (PostgreSQL) to store user accounts, tier information, usage tracking, and feature flags.
 
 ## Database Schema
 
@@ -34,7 +34,7 @@ This folder contains the database schema and setup scripts for Artoku Finance Da
 1. Go to [supabase.com](https://supabase.com) and sign in
 2. Click "New Project"
 3. Fill in:
-   - **Name:** `artoku-finance` (or your preferred name)
+   - **Name:** `artami-finance` (or your preferred name)
    - **Database Password:** Generate a strong password (save it securely)
    - **Region:** Choose closest to your users (e.g., Southeast Asia)
 4. Click "Create new project"

@@ -22,7 +22,7 @@ const ALL_TABS = [
 ]
 
 export async function createUserSheet(accessToken, userName) {
-  const title = `Artoku Finance - ${userName || "User"} - ${new Date().toISOString().split("T")[0]}`
+  const title = `Artami Finance - ${userName || "User"} - ${new Date().toISOString().split("T")[0]}`
 
   // 1. Create the spreadsheet with the first 3 transaction tabs
   const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {

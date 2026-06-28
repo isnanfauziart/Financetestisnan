@@ -1,5 +1,5 @@
 -- =============================================================================
--- Artoku Finance Dashboard - Row Level Security (RLS) Policies
+-- Artami Finance Dashboard - Row Level Security (RLS) Policies
 -- Run this file after 001-schema.sql
 -- =============================================================================
 

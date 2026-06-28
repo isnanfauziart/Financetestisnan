@@ -36,14 +36,14 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-lg font-bold text-earth-900 mb-3">1. Penerimaan Syarat</h2>
             <p className="text-earth-700 leading-relaxed">
-              Dengan mengakses atau menggunakan Artoku Finance Dashboard (&ldquo;Layanan&rdquo;), Anda setuju untuk terikat oleh Syarat & Ketentuan ini. Jika Anda tidak setuju dengan syarat ini, mohon untuk tidak menggunakan Layanan kami.
+              Dengan mengakses atau menggunakan Artami Finance Dashboard (&ldquo;Layanan&rdquo;), Anda setuju untuk terikat oleh Syarat & Ketentuan ini. Jika Anda tidak setuju dengan syarat ini, mohon untuk tidak menggunakan Layanan kami.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-bold text-earth-900 mb-3">2. Deskripsi Layanan</h2>
             <p className="text-earth-700 leading-relaxed mb-3">
-              Artoku adalah dashboard keuangan pribadi yang membantu Anda melacak:
+              Artami adalah dashboard keuangan pribadi yang membantu Anda melacak:
             </p>
             <ul className="list-disc list-inside space-y-2 text-earth-700">
               <li>Pemasukan dan pengeluaran</li>
@@ -74,7 +74,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-lg font-bold text-earth-900 mb-3">4. Ketentuan Pembayaran</h2>
             <p className="text-earth-700 leading-relaxed mb-3">
-              Artoku menggunakan model pembayaran satu kali:
+              Artami menggunakan model pembayaran satu kali:
             </p>
             <ul className="list-disc list-inside space-y-2 text-earth-700">
               <li><strong>Harga:</strong> Rp 49.000 untuk akses seumur hidup</li>
@@ -88,7 +88,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-lg font-bold text-earth-900 mb-3">5. Batasan Tanggung Jawab</h2>
             <p className="text-earth-700 leading-relaxed mb-3">
-              Artoku tidak bertanggung jawab atas:
+              Artami tidak bertanggung jawab atas:
             </p>
             <ul className="list-disc list-inside space-y-2 text-earth-700">
               <li>Keputusan keuangan yang dibuat berdasarkan Layanan</li>
@@ -97,7 +97,7 @@ export default function TermsOfService() {
               <li>Gangguan layanan atau downtime</li>
             </ul>
             <p className="text-earth-700 leading-relaxed mt-3">
-              <strong>Pernyataan Penting:</strong> Artoku adalah alat pelacak keuangan, bukan penasihat keuangan. Kami tidak memberikan saran keuangan. Gunakan Layanan dengan risiko Anda sendiri.
+              <strong>Pernyataan Penting:</strong> Artami adalah alat pelacak keuangan, bukan penasihat keuangan. Kami tidak memberikan saran keuangan. Gunakan Layanan dengan risiko Anda sendiri.
             </p>
           </section>
 

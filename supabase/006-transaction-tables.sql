@@ -1,5 +1,5 @@
 -- =============================================================================
--- Artoku Finance Dashboard - Transaction Data Tables
+-- Artami Finance Dashboard - Transaction Data Tables
 -- Phase 2: Supabase for Data Storage
 -- =============================================================================
 -- Run this file AFTER 005-seed.sql

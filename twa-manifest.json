@@ -1,8 +1,8 @@
 {
-  "packageId": "com.artoku.app",
+  "packageId": "com.artami.app",
   "host": "financedashv1.vercel.app",
-  "name": "Artoku",
-  "launcherName": "Artoku",
+  "name": "Artami",
+  "launcherName": "Artami",
   "display": "standalone",
   "orientation": "default",
   "themeColor": "#9f87ef",
@@ -14,7 +14,7 @@
   "appVersionCode": 1,
   "appVersionName": "1.0.0",
   "signingKey": {
-    "path": "C:\\TITIP\\financeapptesting\\artoku.keystore",
+    "path": "C:\\TITIP\\financeapptesting\\artami.keystore",
     "alias": "key0"
   },
   "features": {

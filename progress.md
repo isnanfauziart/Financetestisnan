@@ -1102,7 +1102,7 @@ pm run build compiled successfully, /icon.svg route auto-registered. 135 tests p
 ## Session: June 23, 2026 — Security Audit (5 Known + 12 New Vulnerabilities)
 
 ### Task
-Comprehensive security audit of the Artoku Finance Dashboard ahead of commercialization. User requested fixes for 5 known production-blocking vulnerabilities; audit uncovered 12 additional findings.
+Comprehensive security audit of the Artami Finance Dashboard ahead of commercialization. User requested fixes for 5 known production-blocking vulnerabilities; audit uncovered 12 additional findings.
 
 ### 5 Known Vulnerabilities (User-Specified, Implementation Pending)
 1. **Access Token Leaked to Client Session** — `session.accessToken = token.accessToken` in `auth/[...nextauth]/route.js:35` exposes Google OAuth token to browser. Fix: remove from session callback, use `getToken()` from `next-auth/jwt` in all API routes.

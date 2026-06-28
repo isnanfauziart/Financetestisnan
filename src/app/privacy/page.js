@@ -36,7 +36,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-lg font-bold text-earth-900 mb-3">1. Pendahuluan</h2>
             <p className="text-earth-700 leading-relaxed">
-              Kebijakan Privasi ini menjelaskan bagaimana Artoku (&ldquo;kami&rdquo;, &ldquo;kita&rdquo;) mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda saat Anda menggunakan layanan kami. Dengan menggunakan Artoku, Anda setuju dengan pengumpulan dan penggunaan informasi sesuai dengan kebijakan ini.
+              Kebijakan Privasi ini menjelaskan bagaimana Artami (&ldquo;kami&rdquo;, &ldquo;kita&rdquo;) mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda saat Anda menggunakan layanan kami. Dengan menggunakan Artami, Anda setuju dengan pengumpulan dan penggunaan informasi sesuai dengan kebijakan ini.
             </p>
           </section>
 

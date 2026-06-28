@@ -1,5 +1,5 @@
 -- =============================================================================
--- Artoku Finance Dashboard - Seed Data
+-- Artami Finance Dashboard - Seed Data
 -- Run this file after 004-views.sql
 -- =============================================================================
 

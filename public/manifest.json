@@ -1,6 +1,6 @@
 {
-  "name": "Artoku",
-  "short_name": "Artoku",
+  "name": "Artami",
+  "short_name": "Artami",
   "description": "Dashboard keuangan pribadi — lacak pemasukan, pengeluaran, tabungan, dan budget.",
   "start_url": "/dashboard",
   "scope": "/",

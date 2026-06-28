@@ -1,4 +1,4 @@
-# Artoku Finance Dashboard — Commercialization Prompts
+# Artami Finance Dashboard — Commercialization Prompts
 
 6 self-contained prompts for separate opencode sessions. Run them in order (0→5).
 Each prompt includes all context needed — no prior session memory required.
@@ -11,7 +11,7 @@ Each prompt includes all context needed — no prior session memory required.
 
 ### CONTEXT
 
-You are working on **Artoku Finance Dashboard**, a Next.js 14 App Router finance app deployed on Vercel. It uses:
+You are working on **Artami Finance Dashboard**, a Next.js 14 App Router finance app deployed on Vercel. It uses:
 - **NextAuth v4** with Google OAuth for authentication
 - **Google Sheets API** as the database (user's own spreadsheet)
 - **JavaScript only** (no TypeScript)
@@ -250,7 +250,7 @@ After implementing all fixes:
 
 ### CONTEXT
 
-You are working on **Artoku Finance Dashboard**, a Next.js 14 App Router finance app. Phase 0 (security fixes) is complete — all API routes use `getToken()` from `next-auth/jwt`, error messages are generic, and security headers are in place.
+You are working on **Artami Finance Dashboard**, a Next.js 14 App Router finance app. Phase 0 (security fixes) is complete — all API routes use `getToken()` from `next-auth/jwt`, error messages are generic, and security headers are in place.
 
 The app currently uses a single shared Google Sheet (from `SPREADSHEET_ID` env var) for all data. We need to make it multi-tenant so each user gets their own Google Sheet.
 
@@ -476,7 +476,7 @@ const ALL_TABS = [
 ]
 
 export async function createUserSheet(accessToken, userName) {
-  const title = `Artoku Finance - ${userName || "User"} - ${new Date().toISOString().split("T")[0]}`
+  const title = `Artami Finance - ${userName || "User"} - ${new Date().toISOString().split("T")[0]}`
 
   // 1. Create the spreadsheet with the first 3 transaction tabs
   const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
@@ -920,7 +920,7 @@ The Google OAuth app is currently in "testing" mode. To go production:
 
 ### CONTEXT
 
-You are working on **Artoku Finance Dashboard**. Phase 1 is complete: Supabase is set up with `users`, `payments`, `usage`, `feature_flags`, `admins` tables. Each user gets their own Google Sheet with all 10 tabs. The `getAuthContext(request)` helper returns `{user, accessToken, spreadsheetId, tier}`.
+You are working on **Artami Finance Dashboard**. Phase 1 is complete: Supabase is set up with `users`, `payments`, `usage`, `feature_flags`, `admins` tables. Each user gets their own Google Sheet with all 10 tabs. The `getAuthContext(request)` helper returns `{user, accessToken, spreadsheetId, tier}`.
 
 Now we need a payment system so users can upgrade from free to paid tier, and an admin dashboard to review payments.
 
@@ -1447,7 +1447,7 @@ ON CONFLICT (email) DO NOTHING;
 
 ### CONTEXT
 
-You are working on **Artoku Finance Dashboard**. Phases 1-2 are complete. The app has:
+You are working on **Artami Finance Dashboard**. Phases 1-2 are complete. The app has:
 - Supabase with `users` (tier: free/paid), `usage`, `feature_flags` tables
 - `src/lib/tier.js` with `TIER_LIMITS`, `getTierLimits`, `isPaid`
 - `src/lib/usage.js` with `getUsage`, `incrementUsage`, `checkLimit`
@@ -1673,7 +1673,7 @@ export async function GET(request) {
   return Response.json({
     currentTier: auth.tier,
     product: {
-      name: "Artoku Finance Pro",
+      name: "Artami Finance Pro",
       price: 50000,
       currency: "IDR",
       description: "Akses semua fitur tanpa batas",
@@ -1898,7 +1898,7 @@ if (insightsGate.allowed) {
 
 ### CONTEXT
 
-You are working on **Artoku Finance Dashboard**. Phases 1-3 are complete. The app has multi-tenancy, payments, feature gating. Now we need production hardening: rate limiting, input validation, standardized errors, health checks, and cleanup.
+You are working on **Artami Finance Dashboard**. Phases 1-3 are complete. The app has multi-tenancy, payments, feature gating. Now we need production hardening: rate limiting, input validation, standardized errors, health checks, and cleanup.
 
 ### YOUR TASK
 
@@ -2421,7 +2421,7 @@ npm uninstall googleapis
 
 ### CONTEXT
 
-You are working on **Artoku Finance Dashboard**. All phases 0-4 are complete. The app has:
+You are working on **Artami Finance Dashboard**. All phases 0-4 are complete. The app has:
 - Security fixes (Phase 0)
 - Supabase multi-tenancy (Phase 1)
 - Payments + admin (Phase 2)

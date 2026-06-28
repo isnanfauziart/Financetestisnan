@@ -369,7 +369,7 @@ export function generateReportHTML({
 <div class="header-stripe"></div>
 <div class="header-area">
   <h1>LAPORAN KEUANGAN BULANAN</h1>
-  <p class="subtitle">${esc(month)} ${esc(year)} &mdash; Artoku</p>
+  <p class="subtitle">${esc(month)} ${esc(year)} &mdash; Artami</p>
 </div>
 <div class="header-divider"></div>
 <div class="content">
@@ -639,7 +639,7 @@ ${prevTx ? `
 
 <hr class="footer-hr">
 <div class="footer">
-  Dibuat otomatis oleh Artoku &mdash; ${timestamp}
+  Dibuat otomatis oleh Artami &mdash; ${timestamp}
 </div>
 </div><!-- /.content -->
 <div class="footer-stripe"></div>
@@ -745,7 +745,7 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Year-in-Review ${esc(year)} — Artoku</title>
+<title>Year-in-Review ${esc(year)} — Artami</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -828,7 +828,7 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData }) {
 <div class="hero">
   <h1>YEAR IN REVIEW</h1>
   <div class="year">${esc(year)}</div>
-  <p class="subtitle">Artoku Finance Dashboard</p>
+  <p class="subtitle">Artami Finance Dashboard</p>
 </div>
 <div class="content">
 
@@ -964,7 +964,7 @@ ${sortedCategories.length > 0 ? `
 
 <hr class="footer-hr">
 <div class="footer">
-  Dibuat otomatis oleh Artoku &mdash; ${timestamp}
+  Dibuat otomatis oleh Artami &mdash; ${timestamp}
 </div>
 </div><!-- /.content -->
 <div class="footer-stripe"></div>

@@ -17,7 +17,7 @@ console.log('Creating Android TWA project...');
 
 // Create directory structure
 createDir(projectDir);
-createDir(path.join(projectDir, 'app', 'src', 'main', 'java', 'com', 'artoku', 'app'));
+createDir(path.join(projectDir, 'app', 'src', 'main', 'java', 'com', 'artami', 'app'));
 createDir(path.join(projectDir, 'app', 'src', 'main', 'res', 'values'));
 createDir(path.join(projectDir, 'app', 'src', 'main', 'res', 'mipmap-hdpi'));
 createDir(path.join(projectDir, 'app', 'src', 'main', 'res', 'mipmap-mdpi'));
@@ -57,11 +57,11 @@ writeFile(path.join(projectDir, 'app', 'build.gradle'), `plugins {
 }
 
 android {
-    namespace 'com.artoku.app'
+    namespace 'com.artami.app'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.artoku.app"
+        applicationId "com.artami.app"
         minSdk 24
         targetSdk 34
         versionCode 1
@@ -94,7 +94,7 @@ writeFile(path.join(projectDir, 'app', 'src', 'main', 'AndroidManifest.xml'), `<
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Artoku"
+        android:label="Artami"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
@@ -147,7 +147,7 @@ writeFile(path.join(projectDir, 'app', 'src', 'main', 'AndroidManifest.xml'), `<
 `);
 
 // MainActivity.java
-writeFile(path.join(projectDir, 'app', 'src', 'main', 'java', 'com', 'artoku', 'app', 'MainActivity.java'), `package com.artoku.app;
+writeFile(path.join(projectDir, 'app', 'src', 'main', 'java', 'com', 'artami', 'app', 'MainActivity.java'), `package com.artami.app;
 
 import android.net.Uri;
 import android.os.Bundle;
@@ -188,7 +188,7 @@ writeFile(path.join(projectDir, 'app', 'src', 'main', 'res', 'values', 'colors.x
 // Strings
 writeFile(path.join(projectDir, 'app', 'src', 'main', 'res', 'values', 'strings.xml'), `<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Artoku</string>
+    <string name="app_name">Artami</string>
 </resources>
 `);
 
@@ -231,7 +231,7 @@ android.enableJetifier=true
 `);
 
 // settings.gradle
-writeFile(path.join(projectDir, 'settings.gradle'), `rootProject.name = "Artoku"
+writeFile(path.join(projectDir, 'settings.gradle'), `rootProject.name = "Artami"
 include ':app'
 `);
 

@@ -1,5 +1,5 @@
 -- =============================================================================
--- Artoku Finance Dashboard - Database Functions
+-- Artami Finance Dashboard - Database Functions
 -- Run this file after 002-rls.sql
 -- =============================================================================
 

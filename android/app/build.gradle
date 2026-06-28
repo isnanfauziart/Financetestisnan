@@ -3,26 +3,26 @@ plugins {
 }
 
 android {
-    namespace 'com.artoku.app'
+    namespace 'com.artami.app'
     compileSdk 34
 
     signingConfigs {
         debug {
-            storeFile file("$rootDir/../artoku.keystore")
-            storePassword "artoku123"
+            storeFile file("$rootDir/../artami.keystore")
+            storePassword "artami123"
             keyAlias "key0"
-            keyPassword "artoku123"
+            keyPassword "artami123"
         }
         release {
-            storeFile file("$rootDir/../artoku.keystore")
-            storePassword "artoku123"
+            storeFile file("$rootDir/../artami.keystore")
+            storePassword "artami123"
             keyAlias "key0"
-            keyPassword "artoku123"
+            keyPassword "artami123"
         }
     }
 
     defaultConfig {
-        applicationId "com.artoku.app"
+        applicationId "com.artami.app"
         minSdk 24
         targetSdk 34
         versionCode 1

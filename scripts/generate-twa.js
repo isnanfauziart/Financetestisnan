@@ -10,10 +10,10 @@ async function generateTwa() {
   
   // Create TWA manifest manually
   const twaManifest = {
-    packageId: 'com.artoku.app',
+    packageId: 'com.artami.app',
     host: 'financedashv1.vercel.app',
-    name: 'Artoku',
-    launcherName: 'Artoku',
+    name: 'Artami',
+    launcherName: 'Artami',
     display: 'standalone',
     orientation: 'default',
     themeColor: '#9f87ef',
@@ -25,7 +25,7 @@ async function generateTwa() {
     appVersionCode: 1,
     appVersionName: '1.0.0',
     signingKey: {
-      path: path.join(__dirname, '..', 'artoku.keystore'),
+      path: path.join(__dirname, '..', 'artami.keystore'),
       alias: 'key0',
     },
     features: {

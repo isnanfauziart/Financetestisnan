@@ -1,4 +1,4 @@
-# Artoku Android TWA - Build Instructions
+# Artami Android TWA - Build Instructions
 
 ## Prerequisites
 
@@ -74,7 +74,7 @@ android/
 │   ├── build.gradle          # App build config
 │   └── src/main/
 │       ├── AndroidManifest.xml
-│       ├── java/com/artoku/app/
+│       ├── java/com/artami/app/
 │       │   └── MainActivity.java
 │       └── res/
 │           ├── drawable/     # Splash screen

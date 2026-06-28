@@ -1,4 +1,4 @@
-# 💰 Artoku — Finance Dashboard
+# 💰 Artami — Finance Dashboard
 
 Dashboard keuangan pribadi berbasis Next.js yang terhubung langsung ke Google Sheets.
 

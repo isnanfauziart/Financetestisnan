@@ -1,5 +1,5 @@
 -- =============================================================================
--- Artoku Finance Dashboard - Database Views
+-- Artami Finance Dashboard - Database Views
 -- Run this file after 003-functions.sql
 -- =============================================================================
 
