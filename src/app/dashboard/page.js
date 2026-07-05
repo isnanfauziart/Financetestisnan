@@ -10,7 +10,7 @@ import { computeAllGoalProgress, computeGoalProgress } from "./_components/goalU
 import EmptyState from "./_components/EmptyState"
 import HomeTab from "./HomeTab"
 import StatsTab from "./StatsTab"
-import WalletTab from "./WalletTab"
+import PlanTab from "./PlanTab"
 import ProfileTab from "./ProfileTab"
 import EditTransactionModal from "./_components/EditTransactionModal"
 import ConfirmSheet from "./_components/ConfirmSheet"
@@ -109,6 +109,8 @@ export default function Dashboard() {
 
   // Scroll Y for P8 parallax
   const [scrollY, setScrollY] = useState(0)
+  const [fabVisible, setFabVisible] = useState(true)
+  const lastScrollYRef = useRef(0)
 
   const fetchData = useCallback(() => {
     if (!session) return
@@ -233,7 +235,14 @@ export default function Dashboard() {
     const onScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
-          setScrollY(window.scrollY)
+          const currentY = window.scrollY
+          setScrollY(currentY)
+          if (currentY > 100) {
+            setFabVisible(currentY < lastScrollYRef.current || currentY < lastScrollYRef.current + 10)
+          } else {
+            setFabVisible(true)
+          }
+          lastScrollYRef.current = currentY
           ticking = false
         })
         ticking = true
@@ -781,7 +790,7 @@ export default function Dashboard() {
 
   // Bill handlers
   const handleBillPay = (bill) => setBillPayTarget(bill)
-  const handleViewBills = () => setActiveNav("profile")
+  const handleViewBills = () => setActiveNav("plan")
   const handleBillPaid = (result) => {
     setBillPayTarget(null)
     if (hapticsEnabled) haptics.success()
@@ -833,13 +842,13 @@ export default function Dashboard() {
         <div className="flex items-center justify-between max-w-3xl mx-auto">
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">
-              {activeNav === "home" ? "Overview" : activeNav === "stats" ? "Statistics" : activeNav === "wallet" ? "New Transaction" : "Profile"}
+              {activeNav === "home" ? "Overview" : activeNav === "stats" ? "Analytics" : activeNav === "plan" ? "Plan" : "Profile"}
             </p>
             <h1 className="text-2xl font-display font-bold text-earth-900 tracking-tight leading-tight mt-0.5">
               {activeNav === "home" && (data?.transactions?.[0] ? "Halo 👋" : "Artami")}
               {activeNav === "home" && session?.user?.name?.split(" ")[0] ? `, ${session.user.name.split(" ")[0]}` : ""}
-              {activeNav === "stats" && "Statistics"}
-              {activeNav === "wallet" && "Add Transaction"}
+              {activeNav === "stats" && "Analytics"}
+              {activeNav === "plan" && "Plan"}
               {activeNav === "profile" && "Profile"}
             </h1>
             {activeNav === "home" && lastSyncAt && (
@@ -898,15 +907,11 @@ export default function Dashboard() {
             recent5={recent5}
             setActiveNav={setActiveNav} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
             onToast={showToast}
-            goalsRefreshTrigger={goalsRefreshTrigger}
             filteredTransactions={filteredTransactions}
             allTransactions={data?.transactions || []}
             selectedMonth={selectedMonth} selectedYear={selectedYear}
             monthlyData={data?.monthlyData || []}
             onCategoryClick={handleAnomalyCategoryClick}
-            onWhatIfOpen={() => setWhatIfOpen(true)}
-            onBillPay={handleBillPay}
-            onViewBills={handleViewBills}
           />
         )}
         {activeNav === "stats" && (
@@ -937,13 +942,20 @@ export default function Dashboard() {
             monthlyData={data?.monthlyData || []}
             allTransactions={data?.transactions || []}
             eventsRefreshTrigger={eventsRefreshTrigger}
+            onCategoryClick={handleAnomalyCategoryClick}
           />
         )}
-        {activeNav === "wallet" && (
-          <WalletTab
-            txType={txType} formData={formData} rawAmount={rawAmount} submitting={submitting}
-            setTxType={setTxType} setFormData={setFormData} setRawAmount={setRawAmount} handleSubmit={handleWalletSubmit}
-            onGoalContribute={openGoalPicker}
+        {activeNav === "plan" && (
+          <PlanTab
+            data={data}
+            transactions={data?.transactions || []}
+            monthlyData={data?.monthlyData || []}
+            goalsRefreshTrigger={goalsRefreshTrigger}
+            eventsRefreshTrigger={eventsRefreshTrigger}
+            onToast={showToast}
+            onBillPay={handleBillPay}
+            onViewBills={handleViewBills}
+            onWhatIfOpen={() => setWhatIfOpen(true)}
           />
         )}
         {activeNav === "profile" && (
@@ -1092,27 +1104,38 @@ export default function Dashboard() {
         onSaved={() => { refetchSettings(); fetchData() }}
       />
 
+      {/* Floating Action Button */}
+      <button
+        onClick={() => { if (hapticsEnabled) haptics.tap(); openQuickAdd("expense") }}
+        aria-label="Add new transaction"
+        aria-haspopup="dialog"
+        className={`fixed bottom-20 right-5 z-40 max-w-md transition-all duration-300 ease-out ${fabVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0"}`}
+      >
+        <div className="w-14 h-14 rounded-2xl mesh-aurora shadow-pop flex items-center justify-center active:scale-90 transition-transform" style={{ boxShadow: "0 12px 32px rgba(124,95,207,0.4)" }}>
+          <Plus size={24} color="white" strokeWidth={2.5} aria-hidden="true" />
+        </div>
+      </button>
+
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-5 left-5 right-5 z-30 safe-bottom max-w-md mx-auto" aria-label="Main navigation">
+      <nav className="fixed bottom-5 left-5 right-5 z-30 safe-bottom max-w-md mx-auto" role="tablist" aria-label="Main navigation">
         <div className="glass-nav rounded-[28px] px-3 py-3 flex justify-between items-center">
           {[
             { id: "home", label: "Overview", icon: Home, aria: "Overview tab" },
-            { id: "stats", label: "Statistics", icon: Activity, aria: "Statistics tab" },
-            { id: "wallet", label: "Add", icon: Plus, isFab: true, aria: "Add transaction tab" },
+            { id: "stats", label: "Analytics", icon: Activity, aria: "Analytics tab" },
+            { id: "plan", label: "Plan", icon: Target, aria: "Plan tab" },
             { id: "profile", label: "Profile", icon: User, aria: "Profile tab" },
           ].map((nav) => {
             const isActive = activeNav === nav.id
-            if (nav.isFab) {
-              return (
-                <button key={nav.id} onClick={() => { if (hapticsEnabled) haptics.tap(); setActiveNav(nav.id) }} aria-label={nav.aria} aria-current={isActive ? "page" : undefined} className="-mt-8 active:scale-95 transition-transform">
-                  <div className="w-14 h-14 rounded-2xl mesh-aurora shadow-pop flex items-center justify-center" style={{ boxShadow: "0 12px 32px rgba(124,95,207,0.4)" }}>
-                    <nav.icon size={24} color="white" strokeWidth={2.5} aria-hidden="true" />
-                  </div>
-                </button>
-              )
-            }
             return (
-              <button key={nav.id} onClick={() => { if (hapticsEnabled) haptics.tap(); setActiveNav(nav.id) }} aria-label={nav.aria} aria-current={isActive ? "page" : undefined} className="flex flex-col items-center gap-0.5 group relative px-3 py-1 rounded-2xl transition-all">
+              <button
+                key={nav.id}
+                role="tab"
+                aria-selected={isActive}
+                aria-label={nav.aria}
+                aria-current={isActive ? "page" : undefined}
+                onClick={() => { if (hapticsEnabled) haptics.tap(); setActiveNav(nav.id) }}
+                className="flex flex-col items-center gap-0.5 group relative px-3 py-1 rounded-2xl transition-all"
+              >
                 {isActive && (
                   <span className="absolute inset-0 rounded-2xl animate-scale-in" style={{ background: THEME.surfaceWarm }} />
                 )}
