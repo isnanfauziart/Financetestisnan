@@ -2,6 +2,21 @@ import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
+async function withRetry(fn, retries = 2, delayMs = 1000, label = "") {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      if (i === retries) {
+        console.error(`[Retry] ${label} failed after ${retries + 1} attempts:`, err.message)
+        throw err
+      }
+      console.warn(`[Retry] ${label} attempt ${i + 1} failed, retrying in ${delayMs}ms...`)
+      await new Promise(r => setTimeout(r, delayMs))
+    }
+  }
+}
+
 async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=RAW`
   const res = await fetch(url, {
@@ -20,7 +35,10 @@ async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
 }
 
 async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
-  const colA = await getSheetData(accessToken, `${sheetName}!A1:A9998`, spreadsheetId)
+  const colA = await withRetry(
+    () => getSheetData(accessToken, `${sheetName}!A1:A9998`, spreadsheetId),
+    2, 1000, "Sheets:readColumnA"
+  )
   // Scan from top to bottom, track last non-empty row
   let lastNonEmpty = 0
   for (let i = 0; i < colA.length; i++) {
@@ -104,11 +122,14 @@ export async function POST(request) {
     ]
 
     const targetRow = await findNextEmptyRow(accessToken, sheetName, spreadsheetId)
-    await sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:O${targetRow}`, [row], spreadsheetId)
+    await withRetry(
+      () => sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:O${targetRow}`, [row], spreadsheetId),
+      2, 1000, "Sheets:writeRow"
+    )
 
     return Response.json({ success: true, message: `Transaksi berhasil disimpan ke tab ${sheetName}`, rowIndex: targetRow })
   } catch (err) {
-    console.error("[Transaction]", err)
+    console.error("[Transaction] Error:", err.message, "| type:", type, "| sheet:", sheetName, "| row:", targetRow)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
