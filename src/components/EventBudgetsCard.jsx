@@ -9,7 +9,7 @@ const EVENT_ICONS = {
   "lebaran-thr": Moon,
 }
 
-export default function EventBudgetsCard({ setActiveNav }) {
+export default function EventBudgetsCard({ setActiveNav } = {}) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -38,7 +38,7 @@ export default function EventBudgetsCard({ setActiveNav }) {
           <h3 className="text-sm font-bold font-display text-earth-800">Event Budget</h3>
           <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">{events.length} aktif</span>
         </div>
-        <button onClick={() => setActiveNav("stats")} className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all" aria-label="Lihat semua event">
+        <button onClick={() => setActiveNav?.("stats")} className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all" aria-label="Lihat semua event">
           Detail <ChevronRight size={12} aria-hidden="true" />
         </button>
       </div>
@@ -50,7 +50,7 @@ export default function EventBudgetsCard({ setActiveNav }) {
           return (
             <button
               key={evt.id}
-              onClick={() => setActiveNav("stats")}
+              onClick={() => setActiveNav?.("stats")}
               className="w-full text-left bento-tile bg-white border border-earth-100 shadow-warm p-3 rounded-2xl flex items-center gap-3 hover:bg-earth-50/60 transition-colors"
               style={{ borderLeft: `4px solid ${color}` }}
             >
