@@ -107,7 +107,7 @@ export async function DELETE(request, { params }) {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ values: [[""]] }),
+      body: JSON.stringify({ values: [["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]] }),
     })
 
     if (!res.ok) {
