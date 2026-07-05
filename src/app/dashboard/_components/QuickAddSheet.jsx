@@ -71,6 +71,11 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
             <input id="qa-amount" type="text" inputMode="numeric" placeholder="0" value={rawAmount} onChange={e => setRawAmount(formatInputRupiah(e.target.value))} aria-label="Transaction amount"
               className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200 transition-shadow" />
           </div>
+          <div>
+            <label htmlFor="qa-date" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Tanggal</label>
+            <input id="qa-date" type="date" value={formData.tanggal} onChange={e => setFormData(f => ({ ...f, tanggal: e.target.value }))} aria-label="Transaction date"
+              className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none" />
+          </div>
           <SelectField label="Category" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
             options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
           {formData.kategori && !formData.eventId && (
@@ -79,6 +84,11 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
           <EventTagPicker value={formData.eventId || ""} onChange={v => setFormData(f => ({ ...f, eventId: v }))} />
           <SelectField label="Bank Account" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
             options={BANK_ACCOUNTS} placeholder="Select Bank" />
+          <div>
+            <label htmlFor="qa-note" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Catatan</label>
+            <input id="qa-note" type="text" placeholder="Catatan..." value={formData.catatan} onChange={e => setFormData(f => ({ ...f, catatan: e.target.value }))} aria-label="Transaction note"
+              className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-medium outline-none" />
+          </div>
           <button type="submit" disabled={submitting} aria-label="Save transaction"
             className="w-full py-3.5 mt-1 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
             style={{ background: submitting ? "#ccc" : "linear-gradient(135deg, #4a3d33, #7c5fcf)" }}>
