@@ -85,8 +85,8 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
           <SelectField label="Bank Account" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
             options={BANK_ACCOUNTS} placeholder="Select Bank" />
           <div>
-            <label htmlFor="qa-note" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Catatan</label>
-            <input id="qa-note" type="text" placeholder="Catatan..." value={formData.catatan} onChange={e => setFormData(f => ({ ...f, catatan: e.target.value }))} aria-label="Transaction note"
+            <label htmlFor="qa-note" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Note</label>
+            <input id="qa-note" type="text" placeholder="Description..." value={formData.keterangan} onChange={e => setFormData(f => ({ ...f, keterangan: e.target.value }))} aria-label="Transaction note"
               className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-medium outline-none" />
           </div>
           <button type="submit" disabled={submitting} aria-label="Save transaction"
