@@ -11,6 +11,9 @@ import RecapSection from "./_components/RecapSection"
 import BudgetsSection from "@/components/BudgetsSection"
 import EventBudgetsSection from "@/components/EventBudgetsSection"
 import MonthlyReportButton from "@/components/MonthlyReportButton"
+import CashFlowForecast from "@/components/CashFlowForecast"
+import SavingsRateTrend from "@/components/SavingsRateTrend"
+import AnomalyAlerts from "@/components/AnomalyAlerts"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 
@@ -44,6 +47,7 @@ export default function StatsTab({
   monthlyData,
   allTransactions,
   eventsRefreshTrigger,
+  onCategoryClick,
 }) {
   const [showDateRange, setShowDateRange] = useState(false)
   const hasDateRange = dateFrom || dateTo
@@ -134,6 +138,13 @@ export default function StatsTab({
         </div>
       )}
 
+      <AnomalyAlerts
+        transactions={allTransactions}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        onCategoryClick={onCategoryClick}
+      />
+
       {/* Stat hero */}
       {refreshing ? <ChartSkeleton height={200} /> : (
       <div className="bento-tile-dark mesh-hero text-white p-5 shadow-pop relative overflow-hidden">
@@ -213,6 +224,9 @@ export default function StatsTab({
         </div>
         )
       )}
+
+      <CashFlowForecast monthlyData={monthlyData} />
+      <SavingsRateTrend monthlyData={monthlyData} />
 
       {/* Pie charts — clickable */}
       {refreshing ? (
