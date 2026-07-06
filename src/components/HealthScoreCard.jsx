@@ -49,11 +49,12 @@ export default function HealthScoreCard({
   }
 
   const { score, grade, gradeColor, gradeDesc, delta, components } = healthResult
+  const visibleComponents = components.slice(0, 3)
 
   return (
     <>
       <div
-        className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in cursor-pointer active:scale-[0.99] transition-transform"
+        className="mt-6 bento-tile bg-white border border-earth-100 p-4 sm:p-5 shadow-warm animate-bento-in cursor-pointer active:scale-[0.99] transition-transform"
         onClick={() => setFormulaOpen(true)}
         role="button"
         aria-label="Ketuk untuk melihat penjelasan rumus skor kesehatan"
@@ -61,7 +62,7 @@ export default function HealthScoreCard({
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setFormulaOpen(true) }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-1.5">
             <Info size={14} className="text-earth-400" aria-hidden="true" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Skor Kesehatan Finansial</p>
@@ -89,9 +90,9 @@ export default function HealthScoreCard({
               }}
             />
           </div>
-          <div className="flex items-baseline gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span
-              className="text-5xl font-display font-bold tracking-tight leading-none"
+              className="text-4xl sm:text-5xl font-display font-bold tracking-tight leading-none"
               style={{ color: gradeColor }}
             >
               {animatedScore}
@@ -119,7 +120,7 @@ export default function HealthScoreCard({
 
         {/* Component breakdown */}
         <div className="space-y-3">
-          {components.map((c, i) => {
+          {visibleComponents.map((c, i) => {
             const Icon = ICONS[c.icon] || Info
             const isActive = c.score !== null
             return (
@@ -150,10 +151,10 @@ export default function HealthScoreCard({
                           }}
                         />
                       </div>
-                      <span className="text-[9px] text-earth-500 w-16 text-right flex-shrink-0 truncate">{c.detail}</span>
-                    </div>
-                  ) : (
-                    <p className="text-[9px] text-earth-400">{c.detail}</p>
+                        <span className="text-[9px] text-earth-500 w-14 sm:w-16 text-right flex-shrink-0 truncate">{c.detail}</span>
+                      </div>
+                    ) : (
+                      <p className="text-[9px] text-earth-400">{c.detail}</p>
                   )}
                 </div>
               </div>
@@ -162,8 +163,11 @@ export default function HealthScoreCard({
         </div>
 
         {/* Footer hint */}
-        <p className="text-[10px] text-earth-400 mt-4 flex items-center gap-1">
-          <Info size={10} aria-hidden="true" /> Ketuk untuk penjelasan rumus
+        <p className="text-[10px] text-earth-400 mt-4 flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1">
+            <Info size={10} aria-hidden="true" /> Ketuk untuk penjelasan rumus
+          </span>
+          <span className="text-earth-500">+{components.length - visibleComponents.length} faktor lain</span>
         </p>
       </div>
 

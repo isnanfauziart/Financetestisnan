@@ -1,5 +1,5 @@
 "use client"
-import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, Plus, ArrowRight } from "lucide-react"
+import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, ArrowRight } from "lucide-react"
 import { THEME } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
@@ -24,120 +24,102 @@ export default function HomeTab({
   const monthlyDelta = data?.netWorthMonthlyDelta || 0
   const deltaLabel = monthlyDelta >= 0 ? "Bertumbuh" : "Turun"
 
+  const summaryCards = [
+    {
+      key: "income",
+      label: "Pemasukan",
+      value: formatRp(animatedIncome),
+      icon: ArrowDownRight,
+      tint: THEME.incomeBg,
+      color: THEME.income,
+      onClick: () => setDrillDown({ type: "income", title: "Pemasukan" }),
+      aria: "Lihat 10 transaksi pemasukan terbesar",
+    },
+    {
+      key: "expense",
+      label: "Pengeluaran",
+      value: formatRp(animatedExpense),
+      icon: ArrowUpRight,
+      tint: THEME.expenseBg,
+      color: THEME.expense,
+      onClick: () => setDrillDown({ type: "expense", title: "Pengeluaran" }),
+      aria: "Lihat 10 transaksi pengeluaran terbesar",
+    },
+    {
+      key: "savings",
+      label: "Tabungan",
+      value: formatRp(animatedSavings),
+      icon: PiggyBank,
+      tint: THEME.savingsBg,
+      color: THEME.savings,
+      onClick: () => setActiveNav("plan"),
+      aria: "Lihat ringkasan tabungan dan goal",
+    },
+    {
+      key: "top",
+      label: "Terbesar",
+      value: topCategory.name,
+      meta: `${topCategoryPct.toFixed(0)}% dari pengeluaran`,
+      icon: Sparkles,
+      tint: THEME.primaryBg,
+      color: THEME.primary,
+      onClick: () => setActiveNav("stats"),
+      aria: "Lihat kategori pengeluaran terbesar di Statistik",
+    },
+  ]
+
   return (
     <div className="px-5 pt-4 animate-bento-in" key="home-tab">
-      <div className="grid grid-cols-3 gap-3 auto-rows-[110px]">
-
-        {/* Hero — Kekayaan Bersih (2 cols x 2 rows) */}
-        <div className="col-span-2 row-span-2 bento-tile-dark mesh-hero text-white p-5 relative overflow-hidden animate-bento-in stagger-1">
+      <div className="space-y-3">
+        <div className="bento-tile-dark mesh-hero text-white p-5 sm:p-6 relative overflow-hidden animate-bento-in stagger-1 min-h-[220px]">
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl animate-glow" style={{ background: "radial-gradient(circle, rgba(159,135,239,0.4) 0%, transparent 70%)" }} />
           <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(212,168,83,0.3) 0%, transparent 70%)" }} />
-          <div className="relative z-10 h-full flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="relative z-10 h-full flex flex-col justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5">
                 <Wallet size={12} className="opacity-70" aria-hidden="true" />
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-80">Kekayaan Bersih</p>
               </div>
-              <h2 className="text-3xl font-display font-bold tracking-tight animate-count-in leading-none">
+              <h2 className="text-[2.2rem] sm:text-5xl font-display font-bold tracking-tight animate-count-in leading-none break-words">
                 {formatRpFull(animatedBalance)}
               </h2>
-              <p className="mt-2 text-[11px] font-semibold text-white/80">
+              <p className="text-[12px] sm:text-sm font-semibold text-white/80">
                 {deltaLabel} {formatRp(Math.abs(monthlyDelta))} bulan ini
               </p>
             </div>
-            <div className="space-y-2">
-              <button
-                onClick={() => openQuickAdd("expense")}
-                aria-label="Tambah transaksi baru"
-                className="w-full rounded-2xl px-3 py-2.5 text-sm font-bold text-left backdrop-blur-md active:scale-[0.98] transition-transform"
-                style={{ background: "rgba(255,255,255,0.14)" }}
-              >
-                Tambah Transaksi
-              </button>
-              <div className="grid grid-cols-3 gap-2">
-              <div className="flex-1 rounded-2xl px-3 py-2 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.1)" }}>
-                <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 mb-0.5">Pemasukan</p>
-                <p className="text-sm font-bold flex items-center gap-1">
-                  <ArrowDownRight size={11} aria-hidden="true" /> {formatRp(animatedIncome)}
-                </p>
-              </div>
-              <div className="flex-1 rounded-2xl px-3 py-2 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.1)" }}>
-                <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 mb-0.5">Pengeluaran</p>
-                <p className="text-sm font-bold flex items-center gap-1">
-                  <ArrowUpRight size={11} aria-hidden="true" /> {formatRp(animatedExpense)}
-                </p>
-              </div>
-                <div className="flex-1 rounded-2xl px-3 py-2 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.1)" }}>
-                  <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 mb-0.5">Tabungan</p>
-                  <p className="text-sm font-bold flex items-center gap-1">
-                    <PiggyBank size={11} aria-hidden="true" /> {formatRp(animatedSavings)}
-                  </p>
-                </div>
-              </div>
+            <div className="rounded-2xl px-4 py-3 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">Fokus Hari Ini</p>
+              <p className="text-sm font-semibold text-white/90 leading-relaxed">
+                Pantau pertumbuhan kekayaanmu, lalu cek kategori terbesar sebelum menambah transaksi baru.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Top Category — small */}
-        <button
-          onClick={() => setActiveNav("stats")}
-          aria-label="Lihat kategori pengeluaran terbesar di Statistik"
-          className="col-span-1 row-span-1 bento-tile mesh-violet text-white p-3.5 relative overflow-hidden text-left animate-bento-in stagger-2 active:scale-95 transition-transform"
-        >
-          <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl" style={{ background: "rgba(255,255,255,0.3)" }} />
-          <div className="relative z-10 h-full flex flex-col justify-between">
-            <Sparkles size={14} className="opacity-80" aria-hidden="true" />
-            <div>
-              <p className="text-[8px] font-bold uppercase tracking-wider opacity-80">Terbesar</p>
-              <p className="text-[11px] font-bold leading-tight truncate">{topCategory.name}</p>
-              <p className="text-[10px] font-semibold opacity-80 mt-0.5">{topCategoryPct.toFixed(0)}%</p>
-            </div>
-          </div>
-        </button>
-
-        {/* Quick add — small */}
-        <button
-          onClick={() => openQuickAdd("expense")}
-          aria-label="Tambah pengeluaran cepat"
-          className="col-span-1 row-span-1 bento-tile mesh-amber text-white p-3.5 relative overflow-hidden text-left animate-bento-in stagger-3 active:scale-95 transition-transform"
-        >
-          <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full blur-2xl" style={{ background: "rgba(255,255,255,0.3)" }} />
-          <div className="relative z-10 h-full flex flex-col justify-between">
-            <Plus size={14} className="opacity-80" aria-hidden="true" />
-            <div>
-              <p className="text-[8px] font-bold uppercase tracking-wider opacity-80">Tambah</p>
-              <p className="text-[11px] font-bold leading-tight">Cepat</p>
-            </div>
-          </div>
-        </button>
-
-        {/* Income tile */}
-        <button onClick={() => setDrillDown({ type: "income", title: "Pemasukan" })} aria-label="Lihat 10 transaksi pemasukan terbesar" className="col-span-1 row-span-1 bento-tile bg-sage-50 border border-sage-100 p-3.5 text-left animate-bento-in stagger-4 active:scale-95 transition-transform">
-          <div className="h-full flex flex-col justify-between">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: THEME.income + "22", color: THEME.income }}>
-              <ArrowDownRight size={14} strokeWidth={2.5} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-[8px] font-bold uppercase tracking-wider text-sage-700">Pemasukan</p>
-              <p className="text-sm font-bold text-sage-700 leading-tight">{formatRp(animatedIncome)}</p>
-            </div>
-          </div>
-        </button>
-
-        {/* Expense tile */}
-        <button onClick={() => setDrillDown({ type: "expense", title: "Pengeluaran" })} aria-label="Lihat 10 transaksi pengeluaran terbesar" className="col-span-1 row-span-1 bento-tile bg-clay-50 border border-clay-100 p-3.5 text-left animate-bento-in stagger-5 active:scale-95 transition-transform">
-          <div className="h-full flex flex-col justify-between">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: THEME.expense + "22", color: THEME.expense }}>
-              <ArrowUpRight size={14} strokeWidth={2.5} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-[8px] font-bold uppercase tracking-wider text-clay-600">Pengeluaran</p>
-              <p className="text-sm font-bold text-clay-600 leading-tight">{formatRp(animatedExpense)}</p>
-            </div>
-          </div>
-        </button>
-
-        {/* Savings tile (removed - duplicated Net Worth hero) */}
+        <div className="grid grid-cols-2 gap-3">
+          {summaryCards.map((card, idx) => {
+            const Icon = card.icon
+            return (
+              <button
+                key={card.key}
+                onClick={card.onClick}
+                aria-label={card.aria}
+                className={`bento-tile bg-white border border-earth-100 p-4 text-left shadow-warm animate-bento-in stagger-${idx + 2} active:scale-[0.98] transition-transform min-h-[126px]`}
+              >
+                <div className="h-full flex flex-col justify-between gap-4">
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: card.tint, color: card.color }}>
+                    <Icon size={16} strokeWidth={2.4} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">{card.label}</p>
+                    <p className="text-base font-bold text-earth-800 leading-tight mt-1 break-words">{card.value}</p>
+                    {card.meta && <p className="text-[11px] text-earth-500 mt-1 leading-snug">{card.meta}</p>}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Financial Health Score (replaces spending gauge) */}

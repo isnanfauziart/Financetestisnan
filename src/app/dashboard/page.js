@@ -819,7 +819,7 @@ export default function Dashboard() {
     .slice(0, 5)
 
   return (
-    <div className="min-h-screen pb-44 font-body relative text-earth-800">
+    <div className="min-h-screen pb-52 sm:pb-44 font-body relative text-earth-800">
       {/* P8: Parallax background */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-organic" style={{ transform: `translateY(${scrollY * -0.15}px)` }} aria-hidden="true" />
 
@@ -1105,20 +1105,20 @@ export default function Dashboard() {
       />
 
       {/* Floating Action Button */}
-        <button
+      <button
           onClick={() => { if (hapticsEnabled) haptics.tap(); openQuickAdd("expense") }}
           aria-label="Tambah transaksi baru"
           aria-haspopup="dialog"
-          className={`fixed bottom-20 right-5 z-40 max-w-md transition-all duration-300 ease-out ${fabVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0"}`}
+          className={`fixed bottom-24 sm:bottom-20 right-4 sm:right-5 z-40 max-w-md transition-all duration-300 ease-out ${fabVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0"}`}
         >
-        <div className="w-14 h-14 rounded-2xl mesh-aurora shadow-pop flex items-center justify-center active:scale-90 transition-transform" style={{ boxShadow: "0 12px 32px rgba(124,95,207,0.4)" }}>
-          <Plus size={24} color="white" strokeWidth={2.5} aria-hidden="true" />
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl mesh-aurora shadow-pop flex items-center justify-center active:scale-90 transition-transform" style={{ boxShadow: "0 12px 32px rgba(124,95,207,0.4)" }}>
+          <Plus size={22} color="white" strokeWidth={2.5} aria-hidden="true" />
         </div>
       </button>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-5 left-5 right-5 z-30 safe-bottom max-w-md mx-auto" role="tablist" aria-label="Main navigation">
-        <div className="glass-nav rounded-[28px] px-3 py-3 flex justify-between items-center">
+      <nav className="fixed bottom-4 sm:bottom-5 left-4 sm:left-5 right-4 sm:right-5 z-30 safe-bottom max-w-md mx-auto" role="tablist" aria-label="Main navigation">
+        <div className="glass-nav rounded-[28px] px-3 py-2.5 sm:py-3 flex justify-between items-center">
           {[
             { id: "home", label: "Beranda", icon: Home, aria: "Tab beranda" },
             { id: "stats", label: "Statistik", icon: Activity, aria: "Tab statistik" },

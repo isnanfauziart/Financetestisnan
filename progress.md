@@ -293,6 +293,54 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
 - No lint or automated test scripts exist in the repo, so verification used the production Next.js build
 - This pass intentionally avoids deeper layout refactors; next likely milestone is a more structural Home + Stats simplification if desired
 
+## Session: July 6, 2026 (continued — mobile APK layout cleanup)
+
+### Problem
+- The dashboard looked cramped and "not in place" inside the Android APK on phone-width screens
+- Home hero was overloaded with too much content for a narrow viewport
+- Fixed bottom navigation and floating action button visually competed with the first large card below the fold
+- APK screenshot also showed a browser/custom-tab top bar, which is a separate shell issue from the web layout itself
+
+### Root Cause
+- `HomeTab.jsx` had evolved into a dense 3-column bento layout that works on wider web viewports but becomes compressed inside the APK browser surface
+- The `Kekayaan Bersih` hero contained the big number, monthly delta, an in-hero CTA, and 3 mini metric pills, creating excessive density in a `2x2` tile
+- The first viewport also included duplicate information and actions: hero metrics + repeated support cards + floating action button
+- `HealthScoreCard.jsx` exposed too much detail in its default collapsed state for mobile first-view readability
+- The Android shell uses Trusted Web Activity tooling, but the visible browser toolbar indicates a likely verification/signing/runtime issue outside the React layout
+
+### Updates Made
+- Reworked Home into a mobile-first structure:
+  - Full-width `Kekayaan Bersih` hero
+  - Removed the in-hero `Tambah Transaksi` button
+  - Removed the compressed 3-pill metric row from inside the hero
+  - Added a compact “Fokus Hari Ini” message inside the hero instead
+  - Replaced the old 3-column bento top area with a 2-column support-card grid
+- Added 4 clearer support cards below the hero:
+  - `Pemasukan`
+  - `Pengeluaran`
+  - `Tabungan`
+  - `Terbesar`
+- Compacted `HealthScoreCard` for mobile:
+  - smaller padding and score type scale on small screens
+  - only first 3 factor rows shown by default
+  - remaining factors indicated via summary text
+- Adjusted mobile shell spacing:
+  - increased page bottom padding
+  - moved FAB slightly higher and made it smaller on small screens
+  - tightened bottom nav inset/padding on phone widths
+
+### Files Changed
+- `src/app/dashboard/HomeTab.jsx`
+- `src/components/HealthScoreCard.jsx`
+- `src/app/dashboard/page.js`
+
+### Verification
+- `npm run build` passes successfully after the mobile layout changes
+- Dashboard route still builds successfully at `311 kB` / `408 kB` first load
+
+### Notes
+- The browser/custom-tab top bar seen in the APK screenshot was not addressed in this pass; that is likely a TWA verification/build-signing issue and should be handled separately from the React layout
+
 ### Key Decisions
 - **Per-month records** (user chose this over templates+overrides — accepts the friction, mitigated with "Saran budget" pills)
 - **Account-less + matching account** for account filter
