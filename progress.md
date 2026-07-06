@@ -341,6 +341,51 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
 ### Notes
 - The browser/custom-tab top bar seen in the APK screenshot was not addressed in this pass; that is likely a TWA verification/build-signing issue and should be handled separately from the React layout
 
+## Session: July 6, 2026 (continued — dynamic Fokus Hari Ini)
+
+### Goal
+- Replace the static `Fokus Hari Ini` note on Home with a dynamic, data-driven note system using existing dashboard data plus live budgets and bills.
+
+### Updates Made
+- Added a new helper: `src/app/dashboard/_components/focusNote.js`
+  - Centralizes note selection outside JSX
+  - Returns one selected note with `{ label, tone, message }`
+  - Uses signal prioritization instead of random or repeated static copy
+- Added a shared `useBills()` hook to `src/lib/useSharedData.js`
+  - Matches the existing shared-cache pattern already used for budgets, goals, debts, settings, and events
+  - Lets Home consume live bill state without ad hoc local fetch logic
+- Updated `src/app/dashboard/HomeTab.jsx`
+  - Replaced the hardcoded `Fokus Hari Ini` sentence with the dynamic note result
+  - Uses live budgets, live bills, selected month/year context, top category concentration, wealth delta, savings/income/expense, and dashboard insights
+- Updated `src/app/dashboard/page.js`
+  - Passed `insights` down to `HomeTab` so the note system can reuse already-computed dashboard signals
+
+### Note Logic
+- Priority order:
+  - overdue / due-today bill
+  - due-soon bill
+  - budget almost over / over budget
+  - warning/positive/info insight reuse
+  - top spending category concentration
+  - net worth growth / high expense-vs-income ratio
+  - calm fallback note
+- Templates are varied per signal group and selected deterministically from live values, so the note does not feel random on every render
+- Tone is practical, warm, and specific to match the approved copy style
+
+### Files Changed
+- `src/app/dashboard/_components/focusNote.js` (new)
+- `src/lib/useSharedData.js`
+- `src/app/dashboard/HomeTab.jsx`
+- `src/app/dashboard/page.js`
+
+### Verification
+- `npm run build` passes successfully after the dynamic note changes
+- Dashboard route builds successfully at `313 kB` / `411 kB` first load
+
+### Notes
+- The note system currently uses budgets and bills plus existing dashboard state; it does not yet use goals/events directly
+- Further expansion can add goal progress or event pressure as additional note signals without changing the Home JSX structure
+
 ### Key Decisions
 - **Per-month records** (user chose this over templates+overrides — accepts the friction, mitigated with "Saran budget" pills)
 - **Account-less + matching account** for account filter

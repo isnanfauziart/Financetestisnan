@@ -1,10 +1,13 @@
 "use client"
+import { useMemo } from "react"
 import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, ArrowRight } from "lucide-react"
-import { THEME } from "./_components/constants"
+import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
 import BudgetStatusCard from "@/components/BudgetStatusCard"
 import HealthScoreCard from "@/components/HealthScoreCard"
+import { useBudgets, useBills } from "@/lib/useSharedData"
+import { getFocusNote } from "./_components/focusNote"
 
 export default function HomeTab({
   data, session,
@@ -15,7 +18,7 @@ export default function HomeTab({
   onToast,
   selectedMonth, selectedYear, monthlyData,
   filteredTransactions, allTransactions,
-  onCategoryClick,
+  onCategoryClick, insights,
 }) {
   const animatedBalance = useCountUpOvershoot(data?.netWorth || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)
@@ -23,6 +26,14 @@ export default function HomeTab({
   const animatedSavings = useCountUp(data?.totalSavings || 0)
   const monthlyDelta = data?.netWorthMonthlyDelta || 0
   const deltaLabel = monthlyDelta >= 0 ? "Bertumbuh" : "Turun"
+  const budgetMonth = selectedMonth && selectedMonth !== "Semua Bulan"
+    ? selectedMonth
+    : AVAILABLE_MONTHS[new Date().getMonth()]
+  const budgetYear = selectedYear && selectedYear !== "Semua Tahun"
+    ? selectedYear
+    : String(new Date().getFullYear())
+  const { budgets } = useBudgets(budgetMonth, budgetYear)
+  const { bills } = useBills()
 
   const summaryCards = [
     {
@@ -68,6 +79,36 @@ export default function HomeTab({
     },
   ]
 
+  const focusNote = useMemo(() => {
+    return getFocusNote({
+      budgets,
+      bills,
+      allTransactions,
+      selectedMonth: budgetMonth,
+      selectedYear: budgetYear,
+      topCategory,
+      topCategoryPct,
+      monthlyDelta,
+      statSavings,
+      statIncome,
+      statExpense,
+      insights,
+    })
+  }, [
+    budgets,
+    bills,
+    allTransactions,
+    budgetMonth,
+    budgetYear,
+    topCategory,
+    topCategoryPct,
+    monthlyDelta,
+    statSavings,
+    statIncome,
+    statExpense,
+    insights,
+  ])
+
   return (
     <div className="px-5 pt-4 animate-bento-in" key="home-tab">
       <div className="space-y-3">
@@ -88,9 +129,9 @@ export default function HomeTab({
               </p>
             </div>
             <div className="rounded-2xl px-4 py-3 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">Fokus Hari Ini</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">{focusNote.label}</p>
               <p className="text-sm font-semibold text-white/90 leading-relaxed">
-                Pantau pertumbuhan kekayaanmu, lalu cek kategori terbesar sebelum menambah transaksi baru.
+                {focusNote.message}
               </p>
             </div>
           </div>

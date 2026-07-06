@@ -348,6 +348,85 @@ export function useDebts() {
   }
 }
 
+// ─── Bills shared cache ─────────────────────────────────────────────
+let billsCache = null
+let billsLoaded = false
+let billsListeners = new Set()
+let billsInFlight = null
+let billsError = null
+
+function subscribeBills(listener) {
+  billsListeners.add(listener)
+  return () => billsListeners.delete(listener)
+}
+
+function getBillsSnapshot() {
+  return JSON.stringify({ data: billsCache, loaded: billsLoaded, error: billsError })
+}
+
+function notifyBills() {
+  billsListeners.forEach((fn) => fn())
+}
+
+async function fetchBillsInternal() {
+  if (billsLoaded && billsCache !== null) return
+
+  if (billsInFlight) {
+    await billsInFlight
+    return
+  }
+
+  billsError = null
+  notifyBills()
+
+  billsInFlight = (async () => {
+    try {
+      const res = await fetch("/api/bills")
+      const data = await res.json()
+      if (res.ok) {
+        billsCache = data.bills || []
+      } else {
+        billsError = data.error || "Gagal memuat tagihan"
+        billsCache = []
+      }
+      billsLoaded = true
+    } catch (err) {
+      billsError = err.message
+      billsCache = []
+      billsLoaded = true
+    } finally {
+      billsInFlight = null
+      notifyBills()
+    }
+  })()
+
+  await billsInFlight
+}
+
+export function useBills() {
+  useEffect(() => {
+    fetchBillsInternal()
+  }, [])
+
+  const snapshot = useSyncExternalStore(subscribeBills, getBillsSnapshot, getBillsSnapshot)
+  const parsed = JSON.parse(snapshot)
+  const isLoading = !parsed.loaded && parsed.data === null && parsed.error === null
+
+  const refetch = useCallback(async () => {
+    billsLoaded = false
+    billsCache = null
+    billsError = null
+    await fetchBillsInternal()
+  }, [])
+
+  return {
+    bills: parsed.data || [],
+    loading: isLoading,
+    error: parsed.error,
+    refetch,
+  }
+}
+
 // ─── Test helpers ───────────────────────────────────────────────────
 // Reset caches between test runs. Not used in production.
 export function _resetBudgetCache() {

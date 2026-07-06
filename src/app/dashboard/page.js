@@ -912,6 +912,7 @@ export default function Dashboard() {
             selectedMonth={selectedMonth} selectedYear={selectedYear}
             monthlyData={data?.monthlyData || []}
             onCategoryClick={handleAnomalyCategoryClick}
+            insights={insights}
           />
         )}
         {activeNav === "stats" && (
