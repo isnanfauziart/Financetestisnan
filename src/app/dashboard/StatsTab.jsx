@@ -57,9 +57,9 @@ export default function StatsTab({
       {/* Filter bar — glass */}
       <div className="glass rounded-2xl p-3 space-y-2">
         <div className="grid grid-cols-3 gap-2">
-          <SelectField value={selectedYear} onChange={setSelectedYear} options={["Semua Tahun", ...availableYears]} placeholder="Year" />
-          <SelectField value={selectedMonth} onChange={setSelectedMonth} options={["Semua Bulan", ...AVAILABLE_MONTHS]} placeholder="Month" />
-          <SelectField value={selectedAccount} onChange={setSelectedAccount} options={["Semua Akun", ...availableAccounts]} placeholder="Account" />
+          <SelectField value={selectedYear} onChange={setSelectedYear} options={["Semua Tahun", ...availableYears]} placeholder="Tahun" />
+          <SelectField value={selectedMonth} onChange={setSelectedMonth} options={["Semua Bulan", ...AVAILABLE_MONTHS]} placeholder="Bulan" />
+          <SelectField value={selectedAccount} onChange={setSelectedAccount} options={["Semua Akun", ...availableAccounts]} placeholder="Akun" />
         </div>
         <button onClick={() => setShowDateRange(!showDateRange)} className="text-[10px] font-bold text-earth-500 uppercase tracking-wider flex items-center gap-1.5 hover:text-violet-600 transition-colors">
           {showDateRange ? "− Sembunyikan" : "+ Tambah"} rentang tanggal
@@ -78,11 +78,11 @@ export default function StatsTab({
         )}
         {(categoryFilter || hasDateRange) && (
           <div className="flex items-center gap-2 flex-wrap pt-1">
-            <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Active:</span>
+            <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Filter aktif:</span>
             {categoryFilter && (
               <div className="chip chip-active">
                 {categoryFilter}
-                <button onClick={() => setCategoryFilter(null)} className="ml-1 hover:opacity-70" aria-label="Clear category filter">
+                <button onClick={() => setCategoryFilter(null)} className="ml-1 hover:opacity-70" aria-label="Hapus filter kategori">
                   <X size={10} strokeWidth={3} aria-hidden="true" />
                 </button>
               </div>
@@ -90,7 +90,7 @@ export default function StatsTab({
             {hasDateRange && (
               <div className="chip chip-active">
                 {dateFrom || "..."} → {dateTo || "..."}
-                <button onClick={() => { setDateFrom(""); setDateTo("") }} className="ml-1 hover:opacity-70" aria-label="Clear date range">
+                <button onClick={() => { setDateFrom(""); setDateTo("") }} className="ml-1 hover:opacity-70" aria-label="Hapus rentang tanggal">
                   <X size={10} strokeWidth={3} aria-hidden="true" />
                 </button>
               </div>
@@ -152,14 +152,15 @@ export default function StatsTab({
         <div className="relative z-10">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-1">Net Profit · {isAllMonths ? "All Months" : selectedMonth}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-1">Ringkasan Keuangan · {isAllMonths ? "Semua Bulan" : selectedMonth}</p>
               <h2 className="text-3xl font-display font-bold">{formatRpFull(statSurplus)}</h2>
+              <p className="mt-2 text-[11px] font-semibold text-white/80">Surplus bersih untuk periode yang sedang kamu lihat</p>
             </div>
           </div>
           <div className="space-y-3 border-t border-white/15 pt-4">
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1.5">
-                <span className="opacity-80">Income</span>
+                <span className="opacity-80">Pemasukan</span>
                 <span>{formatRp(statIncome)}</span>
               </div>
               <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
@@ -168,7 +169,7 @@ export default function StatsTab({
             </div>
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1.5">
-                <span className="opacity-80">Expense</span>
+                <span className="opacity-80">Pengeluaran</span>
                 <span>{formatRp(statExpense)}</span>
               </div>
               <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
@@ -210,14 +211,14 @@ export default function StatsTab({
       {isAllMonths && (
         refreshing ? <ChartSkeleton height={240} /> : (
         <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
-          <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Monthly Trend</h3>
+          <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Tren Bulanan</h3>
           <ResponsiveContainer width="100%" height={220}>
             <ComposedChart data={clientMonthlyData}>
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
               <YAxis hide />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="pemasukan" name="Income" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={200} animationDuration={800} />
-              <Bar dataKey="pengeluaran" name="Expense" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={400} animationDuration={800} />
+              <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={200} animationDuration={800} />
+              <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={400} animationDuration={800} />
               <Line type="monotone" dataKey="surplus" name="Surplus" stroke={THEME.primary} strokeWidth={3} dot={{ r: 4, fill: THEME.primary, strokeWidth: 2, stroke: "#fff" }} animationBegin={600} animationDuration={800} />
             </ComposedChart>
           </ResponsiveContainer>
@@ -234,7 +235,7 @@ export default function StatsTab({
       ) : (
       <div className="grid grid-cols-2 gap-3">
         <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
-          <h3 className="text-xs font-bold text-center mb-2 font-display text-earth-800">Income Mix</h3>
+          <h3 className="text-xs font-bold text-center mb-2 font-display text-earth-800">Komposisi Pemasukan</h3>
           {incomeCategories.length === 0 ? (
             <EmptyState icon={<Wallet size={18} />} title="Belum ada" />
           ) : (
@@ -275,7 +276,7 @@ export default function StatsTab({
           })()}
         </div>
         <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
-          <h3 className="text-xs font-bold text-center mb-2 font-display text-earth-800">Expense Mix</h3>
+          <h3 className="text-xs font-bold text-center mb-2 font-display text-earth-800">Komposisi Pengeluaran</h3>
           {expenseCategories.length === 0 ? (
             <EmptyState icon={<Wallet size={18} />} title="Belum ada" />
           ) : (
@@ -342,7 +343,7 @@ export default function StatsTab({
       <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-sm font-bold font-display text-earth-800">Bandingkan Bulan</h3>
-          <button onClick={() => setCompareMode(!compareMode)} aria-label="Toggle month comparison" className="text-[11px] font-bold py-1.5 px-3 rounded-full transition-all"
+          <button onClick={() => setCompareMode(!compareMode)} aria-label="Tampilkan perbandingan bulan" className="text-[11px] font-bold py-1.5 px-3 rounded-full transition-all"
             style={{ background: compareMode ? THEME.heroBg : THEME.surfaceWarm, color: compareMode ? "white" : THEME.textSecondary }}>
             {compareMode ? "Sembunyikan" : "Bandingkan"}
           </button>
@@ -353,15 +354,15 @@ export default function StatsTab({
               <div>
                 <p className="text-[10px] font-bold text-earth-500 mb-1.5">Bulan A</p>
                 <div className="flex gap-2">
-                  <div className="flex-1"><SelectField value={compareMonthA} onChange={setCompareMonthA} options={AVAILABLE_MONTHS} placeholder="Month" /></div>
-                  <div className="w-20"><SelectField value={compareYearA} onChange={setCompareYearA} options={availableYears} placeholder="Year" /></div>
+                  <div className="flex-1"><SelectField value={compareMonthA} onChange={setCompareMonthA} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
+                  <div className="w-20"><SelectField value={compareYearA} onChange={setCompareYearA} options={availableYears} placeholder="Tahun" /></div>
                 </div>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-earth-500 mb-1.5">Bulan B</p>
                 <div className="flex gap-2">
-                  <div className="flex-1"><SelectField value={compareMonthB} onChange={setCompareMonthB} options={AVAILABLE_MONTHS} placeholder="Month" /></div>
-                  <div className="w-20"><SelectField value={compareYearB} onChange={setCompareYearB} options={availableYears} placeholder="Year" /></div>
+                  <div className="flex-1"><SelectField value={compareMonthB} onChange={setCompareMonthB} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
+                  <div className="w-20"><SelectField value={compareYearB} onChange={setCompareYearB} options={availableYears} placeholder="Tahun" /></div>
                 </div>
               </div>
             </div>
@@ -410,11 +411,11 @@ export default function StatsTab({
         <h3 className="text-sm font-bold mb-1 font-display text-earth-800">Peta Pengeluaran Harian</h3>
         <p className="text-[10px] text-earth-500 mb-3">Rincian pengeluaran harian bulan {calMonth} {calYear}</p>
         <div className="flex items-center justify-between mb-3">
-          <button onClick={() => navigateCalendar(-1)} aria-label="Previous month" className="w-8 h-8 rounded-xl bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center">
+          <button onClick={() => navigateCalendar(-1)} aria-label="Bulan sebelumnya" className="w-8 h-8 rounded-xl bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center">
             <ChevronLeft size={14} color={THEME.textSecondary} aria-hidden="true" />
           </button>
           <span className="text-sm font-bold text-earth-800">{calMonth} {calYear}</span>
-          <button onClick={() => navigateCalendar(1)} aria-label="Next month" className="w-8 h-8 rounded-xl bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center">
+          <button onClick={() => navigateCalendar(1)} aria-label="Bulan berikutnya" className="w-8 h-8 rounded-xl bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center">
             <ChevronRight size={14} color={THEME.textSecondary} aria-hidden="true" />
           </button>
         </div>
@@ -435,7 +436,7 @@ export default function StatsTab({
                   <button
                     key={ci}
                     onClick={() => handleDayClick(cell)}
-                    aria-label={`${cell.day} ${calMonth}, ${cell.amount > 0 ? formatRp(cell.amount) + " expenses" : "no expenses"}`}
+                    aria-label={`${cell.day} ${calMonth}, ${cell.amount > 0 ? formatRp(cell.amount) + " pengeluaran" : "tidak ada pengeluaran"}`}
                     className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:scale-110 cursor-pointer ${isToday ? "ring-2 ring-violet-500 ring-offset-1 ring-offset-white" : ""}`}
                     style={{ background: bg, color: txt }}
                   >

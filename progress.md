@@ -253,6 +253,46 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
   - `src/components/NetWorthCard.jsx` — full-width bento-tile below the bento grid on HOME; big animated number + monthly delta + 12-month mini sparkline + help-tooltip explaining the formula
 - **Filter chain**: budget cards respect year+month+account filter (account-less + matching — YNAB-style). Spent is computed from `filteredTransactions`.
 
+## Session: July 6, 2026
+
+### Updates Made
+- Applied a focused UI/UX polish pass across the dashboard shell, Home, Stats, Wallet, and Quick Add flow
+- Preserved the Home hero as **Kekayaan Bersih** with net worth as the primary number, per product direction
+- Localized core navigation and transactional UI copy to Indonesian for a more consistent market fit
+
+### Files Changed
+- `src/app/dashboard/HomeTab.jsx`
+- `src/app/dashboard/WalletTab.jsx`
+- `src/app/dashboard/StatsTab.jsx`
+- `src/app/dashboard/page.js`
+- `src/app/dashboard/_components/QuickAddSheet.jsx`
+- `src/app/dashboard/_components/SelectField.jsx`
+- `src/app/dashboard/_components/RecapSection.jsx`
+
+### Key Decisions
+- Keep **Kekayaan Bersih** as the largest number on Home to reinforce the user's sense of total wealth growth
+- Make `Tambah Transaksi` more prominent inside the Home hero while keeping the floating action button
+- Use Indonesian-first wording for navigation, filters, summaries, form labels, and major calls to action
+- Keep the changes scoped to copy, hierarchy, and clarity rather than refactoring screen architecture
+
+### UX Improvements Applied
+- Home hero label changed from English to **Kekayaan Bersih** with monthly delta copy
+- Added a prominent `Tambah Transaksi` action inside the hero card
+- Localized Home metrics (`Pemasukan`, `Pengeluaran`, `Tabungan`) and recent transaction section
+- Localized Wallet form labels, placeholders, CTA text, and helper copy
+- Localized Quick Add sheet to match Wallet terminology
+- Simplified Stats hero language to a clearer Indonesian financial summary
+- Localized Stats filters, chart headings, comparison controls, and calendar aria labels
+- Localized dashboard header and bottom navigation labels
+
+### Verification
+- `npm run build` passes successfully
+- Dashboard route builds successfully at `311 kB` / `408 kB` first load
+
+### Notes
+- No lint or automated test scripts exist in the repo, so verification used the production Next.js build
+- This pass intentionally avoids deeper layout refactors; next likely milestone is a more structural Home + Stats simplification if desired
+
 ### Key Decisions
 - **Per-month records** (user chose this over templates+overrides — accepts the friction, mitigated with "Saran budget" pills)
 - **Account-less + matching account** for account filter

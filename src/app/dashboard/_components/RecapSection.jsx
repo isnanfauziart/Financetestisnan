@@ -189,9 +189,9 @@ export default function RecapSection({ transactions = [], onEdit, onDelete }) {
             <button
               onClick={clearFilter}
               className="ml-auto text-[10px] font-bold text-violet-600 hover:underline flex items-center gap-1"
-              aria-label="Reset recap filter"
+              aria-label="Atur ulang filter recap"
             >
-              <X size={10} strokeWidth={3} aria-hidden="true" /> Reset
+              <X size={10} strokeWidth={3} aria-hidden="true" /> Atur Ulang
             </button>
           )}
         </div>
@@ -201,7 +201,7 @@ export default function RecapSection({ transactions = [], onEdit, onDelete }) {
         <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm text-center">
           <p className="text-xs text-earth-500 py-4">Tidak ada transaksi yang cocok dengan filter.</p>
           <button onClick={clearFilter} className="text-[11px] font-bold text-violet-600 hover:underline">
-            Reset filter
+            Atur ulang filter
           </button>
         </div>
       ) : (

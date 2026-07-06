@@ -21,12 +21,14 @@ export default function HomeTab({
   const animatedIncome = useCountUp(data?.totalIncome || 0)
   const animatedExpense = useCountUp(data?.totalExpense || 0)
   const animatedSavings = useCountUp(data?.totalSavings || 0)
+  const monthlyDelta = data?.netWorthMonthlyDelta || 0
+  const deltaLabel = monthlyDelta >= 0 ? "Bertumbuh" : "Turun"
 
   return (
     <div className="px-5 pt-4 animate-bento-in" key="home-tab">
       <div className="grid grid-cols-3 gap-3 auto-rows-[110px]">
 
-        {/* Hero — Net Worth (2 cols x 2 rows) */}
+        {/* Hero — Kekayaan Bersih (2 cols x 2 rows) */}
         <div className="col-span-2 row-span-2 bento-tile-dark mesh-hero text-white p-5 relative overflow-hidden animate-bento-in stagger-1">
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl animate-glow" style={{ background: "radial-gradient(circle, rgba(159,135,239,0.4) 0%, transparent 70%)" }} />
           <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(212,168,83,0.3) 0%, transparent 70%)" }} />
@@ -34,24 +36,43 @@ export default function HomeTab({
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Wallet size={12} className="opacity-70" aria-hidden="true" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-80">Net Worth</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-80">Kekayaan Bersih</p>
               </div>
               <h2 className="text-3xl font-display font-bold tracking-tight animate-count-in leading-none">
                 {formatRpFull(animatedBalance)}
               </h2>
+              <p className="mt-2 text-[11px] font-semibold text-white/80">
+                {deltaLabel} {formatRp(Math.abs(monthlyDelta))} bulan ini
+              </p>
             </div>
-            <div className="flex gap-2">
+            <div className="space-y-2">
+              <button
+                onClick={() => openQuickAdd("expense")}
+                aria-label="Tambah transaksi baru"
+                className="w-full rounded-2xl px-3 py-2.5 text-sm font-bold text-left backdrop-blur-md active:scale-[0.98] transition-transform"
+                style={{ background: "rgba(255,255,255,0.14)" }}
+              >
+                Tambah Transaksi
+              </button>
+              <div className="grid grid-cols-3 gap-2">
               <div className="flex-1 rounded-2xl px-3 py-2 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.1)" }}>
-                <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 mb-0.5">Income</p>
+                <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 mb-0.5">Pemasukan</p>
                 <p className="text-sm font-bold flex items-center gap-1">
                   <ArrowDownRight size={11} aria-hidden="true" /> {formatRp(animatedIncome)}
                 </p>
               </div>
               <div className="flex-1 rounded-2xl px-3 py-2 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.1)" }}>
-                <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 mb-0.5">Expense</p>
+                <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 mb-0.5">Pengeluaran</p>
                 <p className="text-sm font-bold flex items-center gap-1">
                   <ArrowUpRight size={11} aria-hidden="true" /> {formatRp(animatedExpense)}
                 </p>
+              </div>
+                <div className="flex-1 rounded-2xl px-3 py-2 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.1)" }}>
+                  <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 mb-0.5">Tabungan</p>
+                  <p className="text-sm font-bold flex items-center gap-1">
+                    <PiggyBank size={11} aria-hidden="true" /> {formatRp(animatedSavings)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -60,14 +81,14 @@ export default function HomeTab({
         {/* Top Category — small */}
         <button
           onClick={() => setActiveNav("stats")}
-          aria-label="View top spending category in Statistics"
+          aria-label="Lihat kategori pengeluaran terbesar di Statistik"
           className="col-span-1 row-span-1 bento-tile mesh-violet text-white p-3.5 relative overflow-hidden text-left animate-bento-in stagger-2 active:scale-95 transition-transform"
         >
           <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl" style={{ background: "rgba(255,255,255,0.3)" }} />
           <div className="relative z-10 h-full flex flex-col justify-between">
             <Sparkles size={14} className="opacity-80" aria-hidden="true" />
             <div>
-              <p className="text-[8px] font-bold uppercase tracking-wider opacity-80">Top</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider opacity-80">Terbesar</p>
               <p className="text-[11px] font-bold leading-tight truncate">{topCategory.name}</p>
               <p className="text-[10px] font-semibold opacity-80 mt-0.5">{topCategoryPct.toFixed(0)}%</p>
             </div>
@@ -77,40 +98,40 @@ export default function HomeTab({
         {/* Quick add — small */}
         <button
           onClick={() => openQuickAdd("expense")}
-          aria-label="Quick add expense"
+          aria-label="Tambah pengeluaran cepat"
           className="col-span-1 row-span-1 bento-tile mesh-amber text-white p-3.5 relative overflow-hidden text-left animate-bento-in stagger-3 active:scale-95 transition-transform"
         >
           <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full blur-2xl" style={{ background: "rgba(255,255,255,0.3)" }} />
           <div className="relative z-10 h-full flex flex-col justify-between">
             <Plus size={14} className="opacity-80" aria-hidden="true" />
             <div>
-              <p className="text-[8px] font-bold uppercase tracking-wider opacity-80">Quick</p>
-              <p className="text-[11px] font-bold leading-tight">Add</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider opacity-80">Tambah</p>
+              <p className="text-[11px] font-bold leading-tight">Cepat</p>
             </div>
           </div>
         </button>
 
         {/* Income tile */}
-        <button onClick={() => setDrillDown({ type: "income", title: "Pemasukan" })} aria-label="View top 10 income transactions" className="col-span-1 row-span-1 bento-tile bg-sage-50 border border-sage-100 p-3.5 text-left animate-bento-in stagger-4 active:scale-95 transition-transform">
+        <button onClick={() => setDrillDown({ type: "income", title: "Pemasukan" })} aria-label="Lihat 10 transaksi pemasukan terbesar" className="col-span-1 row-span-1 bento-tile bg-sage-50 border border-sage-100 p-3.5 text-left animate-bento-in stagger-4 active:scale-95 transition-transform">
           <div className="h-full flex flex-col justify-between">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: THEME.income + "22", color: THEME.income }}>
               <ArrowDownRight size={14} strokeWidth={2.5} aria-hidden="true" />
             </div>
             <div>
-              <p className="text-[8px] font-bold uppercase tracking-wider text-sage-700">Income</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider text-sage-700">Pemasukan</p>
               <p className="text-sm font-bold text-sage-700 leading-tight">{formatRp(animatedIncome)}</p>
             </div>
           </div>
         </button>
 
         {/* Expense tile */}
-        <button onClick={() => setDrillDown({ type: "expense", title: "Pengeluaran" })} aria-label="View top 10 expense transactions" className="col-span-1 row-span-1 bento-tile bg-clay-50 border border-clay-100 p-3.5 text-left animate-bento-in stagger-5 active:scale-95 transition-transform">
+        <button onClick={() => setDrillDown({ type: "expense", title: "Pengeluaran" })} aria-label="Lihat 10 transaksi pengeluaran terbesar" className="col-span-1 row-span-1 bento-tile bg-clay-50 border border-clay-100 p-3.5 text-left animate-bento-in stagger-5 active:scale-95 transition-transform">
           <div className="h-full flex flex-col justify-between">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: THEME.expense + "22", color: THEME.expense }}>
               <ArrowUpRight size={14} strokeWidth={2.5} aria-hidden="true" />
             </div>
             <div>
-              <p className="text-[8px] font-bold uppercase tracking-wider text-clay-600">Expense</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider text-clay-600">Pengeluaran</p>
               <p className="text-sm font-bold text-clay-600 leading-tight">{formatRp(animatedExpense)}</p>
             </div>
           </div>
@@ -136,9 +157,9 @@ export default function HomeTab({
       {/* Recent transactions */}
       <div className="mt-6 animate-bento-in stagger-9">
         <div className="flex justify-between items-end mb-3 px-1">
-          <h3 className="text-base font-bold font-display text-earth-800">Recent</h3>
-          <button onClick={() => setActiveNav("stats")} aria-label="View all transactions in Statistics" className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all">
-            View All <ArrowRight size={12} aria-hidden="true" />
+          <h3 className="text-base font-bold font-display text-earth-800">Transaksi Terbaru</h3>
+          <button onClick={() => setActiveNav("stats")} aria-label="Lihat semua transaksi di Statistik" className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all">
+            Lihat Semua <ArrowRight size={12} aria-hidden="true" />
           </button>
         </div>
         {recent5.length === 0 ? (

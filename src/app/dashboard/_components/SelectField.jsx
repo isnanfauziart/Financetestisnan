@@ -51,7 +51,7 @@ export default function SelectField({ label, value, onChange, options, placehold
       <button
         ref={btnRef}
         type="button"
-        aria-label={label || placeholder || "Select option"}
+        aria-label={label || placeholder || "Pilih opsi"}
         onClick={() => { if (!open) updatePos(); setOpen(!open) }}
         className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm text-left transition-all active:scale-[0.98] ${
           isDark ? "bg-white/15 text-white hover:bg-white/20" : "glass text-earth-800 hover:bg-white/90"

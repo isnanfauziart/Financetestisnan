@@ -11,55 +11,56 @@ export default function WalletTab({ txType, formData, rawAmount, submitting, set
     <div className="px-5 pt-4 animate-bento-in" key="wallet-tab">
       <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
         <div className="flex gap-2 mb-5 p-1.5 rounded-2xl" style={{ background: THEME.surfaceWarm }}>
-          <button onClick={() => { setTxType("expense"); setFormData(f => ({ ...f, kategori: "" })) }} aria-label="Switch to expense form" aria-pressed={txType === "expense"}
+          <button onClick={() => { setTxType("expense"); setFormData(f => ({ ...f, kategori: "" })) }} aria-label="Pilih form pengeluaran" aria-pressed={txType === "expense"}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${txType === "expense" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
-            Expense
+            Pengeluaran
           </button>
-          <button onClick={() => { setTxType("income"); setFormData(f => ({ ...f, kategori: "" })) }} aria-label="Switch to income form" aria-pressed={txType === "income"}
+          <button onClick={() => { setTxType("income"); setFormData(f => ({ ...f, kategori: "" })) }} aria-label="Pilih form pemasukan" aria-pressed={txType === "income"}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${txType === "income" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
-            Income
+            Pemasukan
           </button>
         </div>
 
         <div className="text-center mb-6 mt-2">
-          <p className="text-[10px] font-bold text-earth-500 uppercase tracking-wider mb-2">Amount</p>
+          <p className="text-[10px] font-bold text-earth-500 uppercase tracking-wider mb-2">Jumlah</p>
           <h2 className="text-4xl font-display font-bold" style={{ color: txType === "expense" ? THEME.textPrimary : THEME.income }}>
             {rawAmount ? `Rp ${rawAmount}` : "Rp 0"}
           </h2>
+          <p className="mt-2 text-xs text-earth-500">Fokus isi jumlah, kategori, dan akun terlebih dulu.</p>
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit({ formData, rawAmount, txType }) }} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="amount-input" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Amount</label>
-              <input id="amount-input" type="text" inputMode="numeric" placeholder="0" value={rawAmount} onChange={e => setRawAmount(formatInputRupiah(e.target.value))} aria-label="Transaction amount"
+              <label htmlFor="amount-input" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Jumlah</label>
+              <input id="amount-input" type="text" inputMode="numeric" placeholder="0" value={rawAmount} onChange={e => setRawAmount(formatInputRupiah(e.target.value))} aria-label="Jumlah transaksi"
                 className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200 transition-shadow" />
             </div>
             <div>
-              <label htmlFor="date-input" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Date</label>
-              <input id="date-input" type="date" value={formData.tanggal} onChange={e => setFormData(f => ({ ...f, tanggal: e.target.value }))} aria-label="Transaction date"
+              <label htmlFor="date-input" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Tanggal</label>
+              <input id="date-input" type="date" value={formData.tanggal} onChange={e => setFormData(f => ({ ...f, tanggal: e.target.value }))} aria-label="Tanggal transaksi"
                 className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none" />
             </div>
           </div>
-          <SelectField label="Category" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
-            options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Select Category" />
+          <SelectField label="Kategori" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
+            options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Pilih kategori" />
           {formData.kategori && !formData.eventId && (
             <EventSuggestionChip kategori={formData.kategori} eventId={formData.eventId} onSelect={v => setFormData(f => ({ ...f, eventId: v }))} />
           )}
           <EventTagPicker value={formData.eventId || ""} onChange={v => setFormData(f => ({ ...f, eventId: v }))} />
-          <SelectField label="Bank Account" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
-            options={BANK_ACCOUNTS} placeholder="Select Bank" />
+          <SelectField label="Akun" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
+            options={BANK_ACCOUNTS} placeholder="Pilih akun" />
           <div>
-            <label htmlFor="note-input" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Note</label>
-            <input id="note-input" type="text" placeholder="Description..." value={formData.keterangan} onChange={e => setFormData(f => ({ ...f, keterangan: e.target.value }))} aria-label="Transaction note"
+            <label htmlFor="note-input" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Keterangan</label>
+            <input id="note-input" type="text" placeholder="Tulis keterangan transaksi" value={formData.keterangan} onChange={e => setFormData(f => ({ ...f, keterangan: e.target.value }))} aria-label="Keterangan transaksi"
               className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-medium outline-none" />
           </div>
-          <button type="submit" disabled={submitting} aria-label="Save transaction"
+          <button type="submit" disabled={submitting} aria-label="Simpan transaksi"
             className="w-full py-4 mt-2 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
             style={{ background: submitting ? "#ccc" : "linear-gradient(135deg, #4a3d33, #7c5fcf)" }}>
-            {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Plus size={18} aria-hidden="true" /> Save Transaction</>}
+            {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Plus size={18} aria-hidden="true" /> Simpan Transaksi</>}
           </button>
-          <button type="button" onClick={onGoalContribute} aria-label="Contribute to goal"
+          <button type="button" onClick={onGoalContribute} aria-label="Kontribusi ke goal"
             className="w-full py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.97]"
             style={{ background: THEME.savingsBg, color: THEME.savings }}>
             <Target size={16} aria-hidden="true" /> Kontribusi ke Goal

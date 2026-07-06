@@ -842,32 +842,32 @@ export default function Dashboard() {
         <div className="flex items-center justify-between max-w-3xl mx-auto">
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">
-              {activeNav === "home" ? "Overview" : activeNav === "stats" ? "Analytics" : activeNav === "plan" ? "Plan" : "Profile"}
+              {activeNav === "home" ? "Beranda" : activeNav === "stats" ? "Statistik" : activeNav === "plan" ? "Rencana" : "Profil"}
             </p>
             <h1 className="text-2xl font-display font-bold text-earth-900 tracking-tight leading-tight mt-0.5">
               {activeNav === "home" && (data?.transactions?.[0] ? "Halo 👋" : "Artami")}
               {activeNav === "home" && session?.user?.name?.split(" ")[0] ? `, ${session.user.name.split(" ")[0]}` : ""}
-              {activeNav === "stats" && "Analytics"}
-              {activeNav === "plan" && "Plan"}
-              {activeNav === "profile" && "Profile"}
+              {activeNav === "stats" && "Statistik"}
+              {activeNav === "plan" && "Rencana"}
+              {activeNav === "profile" && "Profil"}
             </h1>
             {activeNav === "home" && lastSyncAt && (
               <button
                 onClick={() => fetchData()}
                 disabled={refreshing}
                 className="text-[10px] font-bold text-earth-500 mt-1 tracking-wide active:opacity-60 transition-opacity"
-                aria-label="Refresh data"
+                aria-label="Perbarui data"
               >
                 {!isOnline
                   ? `Offline · ${getLastSyncAgo(lastSyncAt, syncNow)}`
                   : refreshing
                     ? "Memperbarui..."
-                    : `Synced ${getLastSyncAgo(lastSyncAt, syncNow)} · Tap to refresh`}
+                    : `Tersinkron ${getLastSyncAgo(lastSyncAt, syncNow)} · Ketuk untuk perbarui`}
               </button>
             )}
           </div>
           {activeNav === "home" && (
-            <button onClick={() => setActiveNav("profile")} aria-label="Open profile" className="relative active:scale-95 transition-transform flex-shrink-0 ml-3">
+            <button onClick={() => setActiveNav("profile")} aria-label="Buka profil" className="relative active:scale-95 transition-transform flex-shrink-0 ml-3">
               <img src={session?.user?.image} alt="" className="w-11 h-11 rounded-2xl border-2 border-white shadow-warm" />
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-moss-500 border-2 border-cream-50 rounded-full" />
             </button>
@@ -1105,12 +1105,12 @@ export default function Dashboard() {
       />
 
       {/* Floating Action Button */}
-      <button
-        onClick={() => { if (hapticsEnabled) haptics.tap(); openQuickAdd("expense") }}
-        aria-label="Add new transaction"
-        aria-haspopup="dialog"
-        className={`fixed bottom-20 right-5 z-40 max-w-md transition-all duration-300 ease-out ${fabVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0"}`}
-      >
+        <button
+          onClick={() => { if (hapticsEnabled) haptics.tap(); openQuickAdd("expense") }}
+          aria-label="Tambah transaksi baru"
+          aria-haspopup="dialog"
+          className={`fixed bottom-20 right-5 z-40 max-w-md transition-all duration-300 ease-out ${fabVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0"}`}
+        >
         <div className="w-14 h-14 rounded-2xl mesh-aurora shadow-pop flex items-center justify-center active:scale-90 transition-transform" style={{ boxShadow: "0 12px 32px rgba(124,95,207,0.4)" }}>
           <Plus size={24} color="white" strokeWidth={2.5} aria-hidden="true" />
         </div>
@@ -1120,10 +1120,10 @@ export default function Dashboard() {
       <nav className="fixed bottom-5 left-5 right-5 z-30 safe-bottom max-w-md mx-auto" role="tablist" aria-label="Main navigation">
         <div className="glass-nav rounded-[28px] px-3 py-3 flex justify-between items-center">
           {[
-            { id: "home", label: "Overview", icon: Home, aria: "Overview tab" },
-            { id: "stats", label: "Analytics", icon: Activity, aria: "Analytics tab" },
-            { id: "plan", label: "Plan", icon: Target, aria: "Plan tab" },
-            { id: "profile", label: "Profile", icon: User, aria: "Profile tab" },
+            { id: "home", label: "Beranda", icon: Home, aria: "Tab beranda" },
+            { id: "stats", label: "Statistik", icon: Activity, aria: "Tab statistik" },
+            { id: "plan", label: "Rencana", icon: Target, aria: "Tab rencana" },
+            { id: "profile", label: "Profil", icon: User, aria: "Tab profil" },
           ].map((nav) => {
             const isActive = activeNav === nav.id
             return (
