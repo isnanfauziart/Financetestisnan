@@ -28,13 +28,15 @@ export default function StatsTab({
   filteredTransactions,
   statIncome, statExpense, statSavings, statSurplus,
   expenseCategories, incomeCategories,
-  availableYears, availableAccounts,
+  availableYears, compareYearOptions, availableAccounts,
   selectedMonth, selectedYear, selectedAccount, categoryFilter, dateFrom, dateTo,
   setSelectedMonth, setSelectedYear, setSelectedAccount, setCategoryFilter, setDateFrom, setDateTo,
   clientMonthlyData,
   top5Categories, trendData,
   compareMode, compareMonthA, compareYearA, compareMonthB, compareYearB, compareDataA, compareDataB, compareChartData,
+  compareLabelA, compareLabelB,
   setCompareMode, setCompareMonthA, setCompareYearA, setCompareMonthB, setCompareYearB,
+  resetComparePeriods,
   calMonth, calYear, calMonthIdx, calWeeks, calendarDayTotals,
   navigateCalendar, handleDayClick,
   insights,
@@ -343,26 +345,36 @@ export default function StatsTab({
       <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-sm font-bold font-display text-earth-800">Bandingkan Bulan</h3>
-          <button onClick={() => setCompareMode(!compareMode)} aria-label="Tampilkan perbandingan bulan" className="text-[11px] font-bold py-1.5 px-3 rounded-full transition-all"
-            style={{ background: compareMode ? THEME.heroBg : THEME.surfaceWarm, color: compareMode ? "white" : THEME.textSecondary }}>
-            {compareMode ? "Sembunyikan" : "Bandingkan"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={resetComparePeriods}
+              className="text-[11px] font-bold py-1.5 px-3 rounded-full transition-all bg-earth-50 text-earth-600 hover:bg-earth-100"
+            >
+              Reset ke bulan ini
+            </button>
+            <button onClick={() => setCompareMode(!compareMode)} aria-label="Tampilkan perbandingan bulan" className="text-[11px] font-bold py-1.5 px-3 rounded-full transition-all"
+              style={{ background: compareMode ? THEME.heroBg : THEME.surfaceWarm, color: compareMode ? "white" : THEME.textSecondary }}>
+              {compareMode ? "Sembunyikan" : "Bandingkan"}
+            </button>
+          </div>
         </div>
+        <p className="text-[10px] text-earth-500 mb-3">Default: bulan ini vs bulan lalu</p>
         {compareMode && (
           <div className="space-y-4 mt-3 animate-slide-down">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] font-bold text-earth-500 mb-1.5">Bulan A</p>
+                <p className="text-[10px] font-bold text-earth-500 mb-1.5">Periode utama</p>
                 <div className="flex gap-2">
                   <div className="flex-1"><SelectField value={compareMonthA} onChange={setCompareMonthA} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
-                  <div className="w-20"><SelectField value={compareYearA} onChange={setCompareYearA} options={availableYears} placeholder="Tahun" /></div>
+                  <div className="w-20"><SelectField value={compareYearA} onChange={setCompareYearA} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
                 </div>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-earth-500 mb-1.5">Bulan B</p>
+                <p className="text-[10px] font-bold text-earth-500 mb-1.5">Bandingkan dengan</p>
                 <div className="flex gap-2">
                   <div className="flex-1"><SelectField value={compareMonthB} onChange={setCompareMonthB} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
-                  <div className="w-20"><SelectField value={compareYearB} onChange={setCompareYearB} options={availableYears} placeholder="Tahun" /></div>
+                  <div className="w-20"><SelectField value={compareYearB} onChange={setCompareYearB} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
                 </div>
               </div>
             </div>
@@ -396,8 +408,8 @@ export default function StatsTab({
                     <XAxis type="number" hide />
                     <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey={compareMonthA} name={compareMonthA} fill={THEME.income} radius={[0, 6, 6, 0]} maxBarSize={12} />
-                    <Bar dataKey={compareMonthB} name={compareMonthB} fill={THEME.expense} radius={[0, 6, 6, 0]} maxBarSize={12} />
+                    <Bar dataKey={compareLabelA} name={compareLabelA} fill={THEME.income} radius={[0, 6, 6, 0]} maxBarSize={12} />
+                    <Bar dataKey={compareLabelB} name={compareLabelB} fill={THEME.expense} radius={[0, 6, 6, 0]} maxBarSize={12} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

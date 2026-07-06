@@ -258,6 +258,42 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
 ### Updates Made
 - Applied a focused UI/UX polish pass across the dashboard shell, Home, Stats, Wallet, and Quick Add flow
 - Preserved the Home hero as **Kekayaan Bersih** with net worth as the primary number, per product direction
+
+## Session: July 6, 2026 (continued — Stats tab month defaults + comparison UX)
+
+### Updates Made
+- Changed Stats tab default filter behavior to open on the **current month** and **current year** instead of `Semua Bulan`
+- Kept month comparison as **current month vs last month** by default, but made that default more visible and easier to restore
+- Improved the comparison section copy and controls without changing the overall dashboard architecture
+- Added focused test coverage for period default logic and Stats tab comparison controls
+
+### Files Changed
+- **Created**:
+  - `src/app/dashboard/_components/statsPeriod.js` — shared helper for current/previous month-year defaults, compare year options, and compare chart labels
+  - `tests/lib/statsPeriod.test.js` — unit tests for stats/comparison period defaults and rollover behavior
+  - `tests/components/StatsTab.test.jsx` — UI tests for comparison helper copy, labels, and reset action
+- **Modified**:
+  - `src/app/dashboard/page.js` — wired current-month defaults into Stats state, added compare reset handler, compare year options, and year-safe compare chart labels
+  - `src/app/dashboard/StatsTab.jsx` — updated comparison copy, added `Reset ke bulan ini`, used clearer labels, and switched compare chart bars to month+year labels
+
+### Key Decisions
+- **Main Stats filter now defaults to current month** because the user explicitly wants a month-first Stats experience
+- **Comparison remains independently editable** via month/year dropdowns; it does not auto-sync to later top-filter changes
+- **Reset is explicit, not automatic**: `Reset ke bulan ini` restores `bulan ini vs bulan lalu` without overriding user-made custom comparisons
+- **Compare chart keys now use month+year labels** (for example `Jan 2026`) to avoid collisions when comparing the same month name across different years
+- **Compare year options are hardened** so the previous year still appears in the dropdown during January rollover even if transaction data only contains the current year
+
+### Verification
+- `npm test -- tests/lib/statsPeriod.test.js tests/components/StatsTab.test.jsx` passes: **8 tests passed**
+- `npm run build` passes successfully on Next.js 14.2.5
+
+### User-Visible Result
+- Opening the Stats tab now lands on the current month automatically
+- The comparison block opens by default and starts at **current month vs last month**
+- The comparison area now shows:
+  - helper copy: `Default: bulan ini vs bulan lalu`
+  - clearer labels: `Periode utama` and `Bandingkan dengan`
+  - quick reset action: `Reset ke bulan ini`
 - Localized core navigation and transactional UI copy to Indonesian for a more consistent market fit
 
 ### Files Changed

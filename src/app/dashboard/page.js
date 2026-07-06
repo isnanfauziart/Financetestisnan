@@ -7,6 +7,7 @@ import { useCountUp, useSoundPref, playSuccessSound, parseTxDate, formatRp } fro
 import useHaptics from "./_components/useHaptics"
 import useHapticsPref from "./_components/useHapticsPref"
 import { computeAllGoalProgress, computeGoalProgress } from "./_components/goalUtils"
+import { getStatsPeriodDefaults, getComparePeriodOptions, getCompareSeriesLabels } from "./_components/statsPeriod"
 import EmptyState from "./_components/EmptyState"
 import HomeTab from "./HomeTab"
 import StatsTab from "./StatsTab"
@@ -30,6 +31,7 @@ import { useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
 
 export default function Dashboard() {
+  const statsDefaults = getStatsPeriodDefaults()
   const { data: session, status } = useSession()
   const [data, setData] = useState(() => {
     if (typeof window === "undefined") return null
@@ -67,19 +69,19 @@ export default function Dashboard() {
   const [quickAddOpen, setQuickAddOpen] = useState(false)
 
   // Stats state
-  const [selectedMonth, setSelectedMonth] = useState("Semua Bulan")
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [selectedMonth, setSelectedMonth] = useState(statsDefaults.selectedMonth)
+  const [selectedYear, setSelectedYear] = useState(statsDefaults.selectedYear)
   const [selectedAccount, setSelectedAccount] = useState("Semua Akun")
   const [categoryFilter, setCategoryFilter] = useState(null)
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
 
   // Comparison state
-  const [compareMode, setCompareMode] = useState(false)
-  const [compareMonthA, setCompareMonthA] = useState(AVAILABLE_MONTHS[new Date().getMonth()])
-  const [compareYearA, setCompareYearA] = useState(new Date().getFullYear().toString())
-  const [compareMonthB, setCompareMonthB] = useState(AVAILABLE_MONTHS[new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1])
-  const [compareYearB, setCompareYearB] = useState(new Date().getMonth() === 0 ? (new Date().getFullYear() - 1).toString() : new Date().getFullYear().toString())
+  const [compareMode, setCompareMode] = useState(true)
+  const [compareMonthA, setCompareMonthA] = useState(statsDefaults.compareMonthA)
+  const [compareYearA, setCompareYearA] = useState(statsDefaults.compareYearA)
+  const [compareMonthB, setCompareMonthB] = useState(statsDefaults.compareMonthB)
+  const [compareYearB, setCompareYearB] = useState(statsDefaults.compareYearB)
 
   // Calendar state for daily expense heatmap
   const [calMonth, setCalMonth] = useState(AVAILABLE_MONTHS[new Date().getMonth()])
@@ -291,6 +293,14 @@ export default function Dashboard() {
     pullStartY.current = 0
     pullLocked.current = false
   }, [fetchData])
+
+  const resetComparePeriods = useCallback(() => {
+    const defaults = getStatsPeriodDefaults()
+    setCompareMonthA(defaults.compareMonthA)
+    setCompareYearA(defaults.compareYearA)
+    setCompareMonthB(defaults.compareMonthB)
+    setCompareYearB(defaults.compareYearB)
+  }, [])
 
   // --- Hooks that must run on every render (before any early return) ---
   const isAllMonths = selectedMonth === "Semua Bulan"
@@ -693,6 +703,10 @@ export default function Dashboard() {
 
   const availableYears = Array.from(new Set(data?.transactions?.map(t => t.year).filter(Boolean) || [])).sort((a,b) => b.localeCompare(a))
   if (availableYears.length === 0) availableYears.push(new Date().getFullYear().toString())
+  const compareYearOptions = getComparePeriodOptions(availableYears, {
+    currentYear: statsDefaults.selectedYear,
+    previousYear: statsDefaults.compareYearB,
+  })
 
   const availableAccounts = Array.from(new Set((data?.transactions || []).map(t => t.account).filter(Boolean))).sort()
 
@@ -708,13 +722,14 @@ export default function Dashboard() {
   }
   const compareDataA = getMonthData(compareMonthA, compareYearA)
   const compareDataB = getMonthData(compareMonthB, compareYearB)
+  const { compareLabelA, compareLabelB } = getCompareSeriesLabels(compareMonthA, compareYearA, compareMonthB, compareYearB)
 
   const allCompareCategories = Array.from(new Set([...compareDataA.categories.map(c => c.name), ...compareDataB.categories.map(c => c.name)]))
   const compareChartData = allCompareCategories.map(cat => ({
     category: cat,
-    [compareMonthA]: compareDataA.categories.find(c => c.name === cat)?.value || 0,
-    [compareMonthB]: compareDataB.categories.find(c => c.name === cat)?.value || 0,
-  })).sort((a,b) => (b[compareMonthA] + b[compareMonthB]) - (a[compareMonthA] + a[compareMonthB]))
+    [compareLabelA]: compareDataA.categories.find(c => c.name === cat)?.value || 0,
+    [compareLabelB]: compareDataB.categories.find(c => c.name === cat)?.value || 0,
+  })).sort((a,b) => (b[compareLabelA] + b[compareLabelB]) - (a[compareLabelA] + a[compareLabelB]))
 
   const top5Categories = Object.entries(
     (data?.transactions || []).filter(t => t.type === "expense").reduce((acc, t) => {
@@ -921,17 +936,19 @@ export default function Dashboard() {
             filteredTransactions={filteredTransactions}
             statIncome={statIncome} statExpense={statExpense} statSavings={statSavings} statSurplus={statSurplus}
             expenseCategories={expenseCategories} incomeCategories={incomeCategories}
-            availableYears={availableYears} availableAccounts={availableAccounts}
-            selectedMonth={selectedMonth} selectedYear={selectedYear} selectedAccount={selectedAccount} categoryFilter={categoryFilter}
+             availableYears={availableYears} compareYearOptions={compareYearOptions} availableAccounts={availableAccounts}
+             selectedMonth={selectedMonth} selectedYear={selectedYear} selectedAccount={selectedAccount} categoryFilter={categoryFilter}
             dateFrom={dateFrom} dateTo={dateTo}
             setSelectedMonth={setSelectedMonth} setSelectedYear={setSelectedYear} setSelectedAccount={setSelectedAccount} setCategoryFilter={setCategoryFilter}
             setDateFrom={setDateFrom} setDateTo={setDateTo}
-            clientMonthlyData={clientMonthlyData}
-            top5Categories={top5Categories} trendData={trendData}
-            compareMode={compareMode} compareMonthA={compareMonthA} compareYearA={compareYearA} compareMonthB={compareMonthB} compareYearB={compareYearB}
-            compareDataA={compareDataA} compareDataB={compareDataB} compareChartData={compareChartData}
-            setCompareMode={setCompareMode} setCompareMonthA={setCompareMonthA} setCompareYearA={setCompareYearA} setCompareMonthB={setCompareMonthB} setCompareYearB={setCompareYearB}
-            calMonth={calMonth} calYear={calYear} calMonthIdx={calMonthIdx} calWeeks={calWeeks} calendarDayTotals={calendarDayTotals}
+             clientMonthlyData={clientMonthlyData}
+             top5Categories={top5Categories} trendData={trendData}
+             compareMode={compareMode} compareMonthA={compareMonthA} compareYearA={compareYearA} compareMonthB={compareMonthB} compareYearB={compareYearB}
+             compareLabelA={compareLabelA} compareLabelB={compareLabelB}
+             compareDataA={compareDataA} compareDataB={compareDataB} compareChartData={compareChartData}
+             setCompareMode={setCompareMode} setCompareMonthA={setCompareMonthA} setCompareYearA={setCompareYearA} setCompareMonthB={setCompareMonthB} setCompareYearB={setCompareYearB}
+             resetComparePeriods={resetComparePeriods}
+             calMonth={calMonth} calYear={calYear} calMonthIdx={calMonthIdx} calWeeks={calWeeks} calendarDayTotals={calendarDayTotals}
             navigateCalendar={navigateCalendar} handleDayClick={handleDayClick}
             insights={insights}
             isAllMonths={isAllMonths} refreshing={refreshing}
