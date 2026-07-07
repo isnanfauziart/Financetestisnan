@@ -4,7 +4,6 @@ import { LogOut, Wallet, Calendar } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRpFull, formatInputRupiah } from "./_components/helpers"
 import { useSettings } from "@/lib/useSharedData"
-import BillsSection from "@/components/BillsSection"
 
 function formatDateDisplay(dateStr) {
   if (!dateStr) return "—"
@@ -15,7 +14,7 @@ function formatDateDisplay(dateStr) {
   return `${parseInt(parts[2], 10)} ${monthName} ${parts[0]}`
 }
 
-export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh, billsRefreshTrigger }) {
+export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh }) {
   const { settings, refetch: refetchSettings } = useSettings()
   const [editingSaldo, setEditingSaldo] = useState(false)
   const [rawSaldo, setRawSaldo] = useState("")
@@ -182,10 +181,6 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
         </button>
       </div>
 
-      {/* Bills */}
-      <div className="w-full mt-4">
-        <BillsSection onToast={onToast} refreshTrigger={billsRefreshTrigger || 0} />
-      </div>
     </div>
   )
 }

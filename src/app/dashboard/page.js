@@ -805,7 +805,6 @@ export default function Dashboard() {
 
   // Bill handlers
   const handleBillPay = (bill) => setBillPayTarget(bill)
-  const handleViewBills = () => setActiveNav("plan")
   const handleBillPaid = (result) => {
     setBillPayTarget(null)
     if (hapticsEnabled) haptics.success()
@@ -978,14 +977,19 @@ export default function Dashboard() {
             monthlyData={data?.monthlyData || []}
             goalsRefreshTrigger={goalsRefreshTrigger}
             eventsRefreshTrigger={eventsRefreshTrigger}
+            billsRefreshTrigger={billsRefreshTrigger}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            selectedAccount={selectedAccount}
+            filteredTransactions={filteredTransactions}
+            expenseCategories={expenseCategories}
             onToast={showToast}
             onBillPay={handleBillPay}
-            onViewBills={handleViewBills}
             onWhatIfOpen={() => setWhatIfOpen(true)}
           />
         )}
         {activeNav === "profile" && (
-          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} onToast={showToast} onRefresh={fetchData} billsRefreshTrigger={billsRefreshTrigger} />
+          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} onToast={showToast} onRefresh={fetchData} />
         )}
       </div>
 

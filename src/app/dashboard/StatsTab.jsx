@@ -8,7 +8,6 @@ import SelectField from "./_components/SelectField"
 import CustomTooltip from "./_components/CustomTooltip"
 import EmptyState from "./_components/EmptyState"
 import RecapSection from "./_components/RecapSection"
-import BudgetsSection from "@/components/BudgetsSection"
 import EventBudgetsSection from "@/components/EventBudgetsSection"
 import MonthlyReportButton from "@/components/MonthlyReportButton"
 import YearInReviewButton from "@/components/YearInReviewButton"
@@ -206,25 +205,6 @@ export default function StatsTab({
           </div>
         </div>
       </div>
-          )}
-
-          {/* Budgets section — only visible when filtered to a specific month */}
-          {isAllMonths ? (
-            <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
-              <div className="flex items-center gap-2 text-earth-600">
-                <Info size={14} className="text-earth-400" aria-hidden="true" />
-                <p className="text-xs font-medium">Pilih bulan tertentu untuk melihat Budget per kategori.</p>
-              </div>
-            </div>
-          ) : (
-            <BudgetsSection
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              selectedAccount={selectedAccount}
-              filteredTransactions={filteredTransactions}
-              expenseCategories={expenseCategories}
-              onToast={onToast}
-            />
           )}
 
           {/* Event Budgets section */}
