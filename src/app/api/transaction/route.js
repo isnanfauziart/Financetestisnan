@@ -36,7 +36,7 @@ async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
 
 async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
   const colA = await withRetry(
-    () => getSheetData(accessToken, `${sheetName}!A1:A9998`, spreadsheetId),
+    () => getSheetData(accessToken, `${sheetName}!A:A`, spreadsheetId),
     2, 1000, "Sheets:readColumnA"
   )
   // Scan from top to bottom, track last non-empty row

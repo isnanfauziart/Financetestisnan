@@ -597,6 +597,38 @@ The prop name mismatch meant `page.js`'s `goalsRefreshTrigger` state increment (
 Remove the Smart Insights section from the Overview tab. The Statistics page already has its own (compact) insights, so the Overview copy was redundant.
 
 ### Changes Applied
+
+## Session: July 7, 2026 (continued — fix repeated writes to row 9999)
+
+### Problem
+- New income transactions reported `Tersimpan di baris 9999` repeatedly.
+- A later successful save overwrote the previous transaction because both writes targeted the same row.
+- The same capped-row logic also existed in bill-payment auto-created transactions.
+
+### Root Cause
+- `findNextEmptyRow()` in `src/app/api/transaction/route.js` only scanned `A1:A9998`.
+- Once row `9999` already had data, the scanner could never see it, so it kept returning `9999` as the next row.
+- `src/app/api/bills/pay/route.js` had the same hard-capped scan and a slightly different first-empty implementation.
+
+### Fix Applied
+- **`src/app/api/transaction/route.js`**
+  - Changed row scan range from `A1:A9998` to `A:A`.
+  - Keeps the existing `last non-empty + 1` behavior, but now uses the actual last used row.
+
+- **`src/app/api/bills/pay/route.js`**
+  - Changed row scan range from `A1:A9998` to `A:A`.
+  - Aligned logic with transaction POST: scan top-to-bottom, track last non-empty row, return the next row.
+
+- **`tests/api/nextRowSelection.test.js`**
+  - Added regression tests for both transaction POST and bills-pay POST.
+  - Verifies that when row `9999` is already occupied, the next write targets row `10000` instead of overwriting `9999`.
+
+### Verification
+- `npm test -- tests/api/nextRowSelection.test.js` passes.
+
+### Notes
+- This preserves explicit `values.update` writes and does not reintroduce the old Google Sheets `append` table-end bug.
+- Existing overwritten data on row `9999` cannot be restored automatically; new writes will now continue on the true next row.
 - **`src/app/dashboard/HomeTab.jsx`** (3 edits):
   - Removed entire Smart Insights JSX block (was lines 121-168)
   - Removed `insights,` from props destructuring

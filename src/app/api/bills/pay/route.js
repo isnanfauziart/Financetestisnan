@@ -55,13 +55,15 @@ async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
 }
 
 async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
-  const colA = await getSheetData(accessToken, `${sheetName}!A1:A9998`, spreadsheetId)
-  for (let i = 1; i < colA.length; i++) {
-    if (!colA[i] || !colA[i][0] || String(colA[i][0]).trim() === "") {
-      return i + 1
+  const colA = await getSheetData(accessToken, `${sheetName}!A:A`, spreadsheetId)
+  let lastNonEmpty = 0
+  for (let i = 0; i < colA.length; i++) {
+    const cell = colA[i] && colA[i][0]
+    if (cell && String(cell).trim().length > 0) {
+      lastNonEmpty = i
     }
   }
-  return colA.length + 1
+  return lastNonEmpty + 2
 }
 
 export async function POST(request) {
