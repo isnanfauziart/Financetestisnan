@@ -1,6 +1,6 @@
 "use client"
 import { useMemo } from "react"
-import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, ArrowRight } from "lucide-react"
+import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, ArrowRight, Clock3, AlertTriangle, PlusCircle } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
@@ -34,6 +34,72 @@ export default function HomeTab({
     : String(new Date().getFullYear())
   const { budgets } = useBudgets(budgetMonth, budgetYear)
   const { bills } = useBills()
+
+  const priorityActions = useMemo(() => {
+    const actions = []
+
+    const sortedBills = [...(bills || [])].sort((a, b) => (a.daysUntilDue || 0) - (b.daysUntilDue || 0))
+    const urgentBill = sortedBills.find((bill) => bill.status === "overdue" || bill.status === "due_today" || bill.status === "due_soon")
+
+    if (urgentBill) {
+      actions.push({
+        key: `bill-${urgentBill.id || urgentBill.nama}`,
+        eyebrow: urgentBill.status === "overdue" ? "Tagihan terlambat" : urgentBill.status === "due_today" ? "Jatuh tempo hari ini" : "Jatuh tempo dekat",
+        title: `Bayar tagihan ${urgentBill.nama}`,
+        description: urgentBill.jumlah
+          ? `${formatRp(urgentBill.jumlah)} • Buka Rencana untuk lanjut bayar.`
+          : "Buka Rencana untuk cek dan selesaikan tagihan ini.",
+        icon: Clock3,
+        tint: "bg-rose-50 text-rose-600 border-rose-100",
+        onClick: () => setActiveNav("plan"),
+        aria: `Bayar tagihan ${urgentBill.nama}`,
+      })
+    }
+
+    const monthExpenses = (allTransactions || []).filter((t) =>
+      t.type === "expense" && t.month === budgetMonth && String(t.year) === String(budgetYear)
+    )
+    const spentByCategory = monthExpenses.reduce((acc, tx) => {
+      acc[tx.category] = (acc[tx.category] || 0) + tx.amount
+      return acc
+    }, {})
+    const urgentBudget = (budgets || [])
+      .map((budget) => {
+        const spent = spentByCategory[budget.kategori] || 0
+        const pct = budget.limit > 0 ? (spent / budget.limit) * 100 : 0
+        return { ...budget, spent, pct }
+      })
+      .filter((budget) => budget.limit > 0 && budget.pct >= 85)
+      .sort((a, b) => b.pct - a.pct)[0]
+
+    if (urgentBudget && actions.length < 2) {
+      actions.push({
+        key: `budget-${urgentBudget.kategori}`,
+        eyebrow: urgentBudget.pct >= 100 ? "Budget jebol" : "Budget menipis",
+        title: `Cek budget ${urgentBudget.kategori}`,
+        description: `${urgentBudget.pct.toFixed(0)}% terpakai • Lihat detail kategori di Statistik.`,
+        icon: AlertTriangle,
+        tint: urgentBudget.pct >= 100 ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-orange-50 text-orange-700 border-orange-100",
+        onClick: () => setActiveNav("stats"),
+        aria: `Cek budget ${urgentBudget.kategori}`,
+      })
+    }
+
+    if (actions.length === 0) {
+      actions.push({
+        key: "quick-add-expense",
+        eyebrow: "Langkah cepat",
+        title: "Tambah transaksi hari ini",
+        description: "Catat pengeluaran atau pemasukan tanpa buka form penuh.",
+        icon: PlusCircle,
+        tint: "bg-violet-50 text-violet-700 border-violet-100",
+        onClick: () => openQuickAdd("expense"),
+        aria: "Tambah transaksi hari ini",
+      })
+    }
+
+    return actions.slice(0, 2)
+  }, [bills, budgets, allTransactions, budgetMonth, budgetYear, setActiveNav, openQuickAdd])
 
   const summaryCards = [
     {
@@ -137,6 +203,47 @@ export default function HomeTab({
           </div>
         </div>
 
+        <div className="bento-tile bg-white border border-earth-100 shadow-warm p-3 sm:p-4 animate-bento-in stagger-2">
+          <div className="flex items-center justify-between gap-3 mb-3 px-1">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">Beranda</p>
+              <h3 className="text-sm sm:text-base font-bold font-display text-earth-800">Aksi Prioritas</h3>
+            </div>
+            <button
+              onClick={() => setActiveNav("plan")}
+              className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all"
+              aria-label="Buka Rencana untuk lihat semua prioritas"
+            >
+              Buka Rencana <ArrowRight size={12} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className={`grid gap-2 ${priorityActions.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+            {priorityActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <button
+                  key={action.key}
+                  onClick={action.onClick}
+                  aria-label={action.aria}
+                  className="rounded-2xl border border-earth-100 p-3 text-left hover:-translate-y-0.5 transition-transform bg-earth-50/60"
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center flex-shrink-0 ${action.tint}`}>
+                      <Icon size={16} strokeWidth={2.2} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-earth-500">{action.eyebrow}</p>
+                      <p className="text-sm font-bold text-earth-800 leading-snug mt-1">{action.title}</p>
+                      <p className="text-[11px] text-earth-500 leading-snug mt-1">{action.description}</p>
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           {summaryCards.map((card, idx) => {
             const Icon = card.icon
@@ -145,7 +252,7 @@ export default function HomeTab({
                 key={card.key}
                 onClick={card.onClick}
                 aria-label={card.aria}
-                className={`bento-tile bg-white border border-earth-100 p-4 text-left shadow-warm animate-bento-in stagger-${idx + 2} active:scale-[0.98] transition-transform min-h-[126px]`}
+                className={`bento-tile bg-white border border-earth-100 p-4 text-left shadow-warm animate-bento-in stagger-${idx + 3} active:scale-[0.98] transition-transform min-h-[126px]`}
               >
                 <div className="h-full flex flex-col justify-between gap-4">
                   <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: card.tint, color: card.color }}>

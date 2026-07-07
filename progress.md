@@ -1576,3 +1576,7 @@ Rename all occurrences of "Artoku" to "Artami" across the entire codebase (sourc
 - Files changed: `Updatesidea.md`, `src/app/dashboard/page.js`, `.superpowers/sdd/task-1-report.md`, `progress.md`
 - Decisions: Kept the existing 4-tab shell unchanged; kept `Fokus hari ini` as a P1 Beranda element; made no UI ownership moves in this task.
 - Blockers: Prompt-referenced brief file `.superpowers/sdd/task-1-brief.md` was not present in the worktree, so verification/reporting notes record that discrepancy.
+- Tasks completed: Task 2 Product & IA Beranda migration step; added focused `HomeTab` tests first; inserted compact `Aksi Prioritas` block under the existing hero; preserved `Fokus Hari Ini` as P1; wrote task report.
+- Files changed: `tests/components/HomeTab.test.jsx`, `src/app/dashboard/HomeTab.jsx`, `.superpowers/sdd/task-2-report.md`, `progress.md`
+- Decisions: Kept the hero unchanged; limited urgent actions to 2 cards max; routed priority cards only into `plan`, `stats`, or quick-add flows; kept previews compact and Indonesian-first.
+- Blockers: Prompt-referenced brief file `.superpowers/sdd/task-2-brief.md` was not present in the worktree, so implementation aligned to `Updatesidea.md` plus the ownership contract comment in `src/app/dashboard/page.js`.
