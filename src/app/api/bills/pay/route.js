@@ -1,30 +1,12 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { rowToBill } from "@/lib/bills"
 
 export const dynamic = 'force-dynamic'
 
 const SHEET_NAME = "Tagihan"
 const RANGE = `${SHEET_NAME}!A:M`
-
-function rowToBill(row, rowIndex) {
-  return {
-    rowIndex,
-    id: String(row[0] || "").trim(),
-    nama: String(row[1] || "").trim(),
-    jumlah: parseRupiah(row[2] || 0),
-    tipe: String(row[3] || "expense").trim().toLowerCase(),
-    kategoriBill: String(row[4] || "").trim(),
-    kategoriTransaksi: String(row[5] || "").trim(),
-    frekuensi: String(row[6] || "monthly").trim().toLowerCase(),
-    tanggalJatuhTempo: parseInt(row[7], 10) || 1,
-    akunBank: String(row[8] || "").trim(),
-    aktif: String(row[9] || "TRUE").trim().toUpperCase() === "TRUE",
-    terakhirDibayar: String(row[10] || "").trim(),
-    catatan: String(row[11] || "").trim(),
-    createdAt: String(row[12] || "").trim(),
-  }
-}
 
 async function fetchAllBills(accessToken, spreadsheetId) {
   const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
@@ -52,6 +34,11 @@ async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
     throw new Error(`Sheets API error: ${err}`)
   }
   return res.json()
+}
+
+async function transactionExistsById(accessToken, sheetName, txId, spreadsheetId) {
+  const rows = await getSheetData(accessToken, `${sheetName}!B:B`, spreadsheetId).catch(() => [])
+  return rows.some((row, index) => index > 0 && String(row?.[0] || "").trim() === txId)
 }
 
 async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
@@ -89,6 +76,14 @@ export async function POST(request) {
     // 2. Auto-create transaction
     const now = new Date()
     const tanggal = now.toISOString().split("T")[0]
+    if (bill.terakhirDibayar === tanggal) {
+      return Response.json({
+        success: true,
+        idempotent: true,
+        message: "Tagihan sudah dibayar hari ini",
+      })
+    }
+
     const formattedDate = `${now.getDate()} ${AVAILABLE_MONTHS[now.getMonth()]} ${now.getFullYear()}`
     const month = AVAILABLE_MONTHS[now.getMonth()]
     const year = String(now.getFullYear())
@@ -99,11 +94,21 @@ export async function POST(request) {
     const catatan = bill.catatan || ""
 
     const targetSheet = bill.tipe === "income" ? "Pemasukan" : "Pengeluaran"
+    const txId = `billpay:${bill.id}:${tanggal}`
+
+    if (await transactionExistsById(accessToken, targetSheet, txId, spreadsheetId)) {
+      return Response.json({
+        success: true,
+        idempotent: true,
+        message: "Pembayaran tagihan ini sudah tercatat hari ini",
+      })
+    }
+
     const targetRow = await findNextEmptyRow(accessToken, targetSheet, spreadsheetId)
 
     const txRow = [
       formattedDate,
-      "",
+      txId,
       keterangan,
       kategori,
       amount,

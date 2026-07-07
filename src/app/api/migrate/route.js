@@ -36,11 +36,11 @@ export async function GET(request) {
 }
 
 const TABS = [
-  { name: "Pemasukan", range: "A:M" },
-  { name: "Pengeluaran", range: "A:M" },
-  { name: "Tabungan", range: "A:M" },
+  { name: "Pemasukan", range: "A:O" },
+  { name: "Pengeluaran", range: "A:O" },
+  { name: "Tabungan", range: "A:O" },
   { name: "Budgets", range: "A:F" },
-  { name: "Goals", range: "A:H" },
+  { name: "Goals", range: "A:I" },
   { name: "Utang", range: "A:I" },
   { name: "Momental", range: "A:K" },
   { name: "EventBudgets", range: "A:F" },

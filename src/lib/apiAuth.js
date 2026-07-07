@@ -1,3 +1,4 @@
+import "server-only"
 import { getToken } from "next-auth/jwt"
 import { getOrCreateUser } from "./user"
 import { createUserSheet } from "./sheetManager"
@@ -16,6 +17,20 @@ async function withRetry(fn, retries = 2, delayMs = 1000, label = "") {
       await new Promise(r => setTimeout(r, delayMs))
     }
   }
+}
+
+async function getUserById(id) {
+  const { data, error } = await supabaseAdmin
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal mengambil user terbaru: ${error.message}`)
+  }
+
+  return data
 }
 
 export async function getAuthContext(request) {
@@ -50,13 +65,25 @@ export async function getAuthContext(request) {
   let spreadsheetId = user.spreadsheet_id
   if (!spreadsheetId) {
     try {
+      const freshUser = await getUserById(user.id)
+      if (freshUser.spreadsheet_id) {
+        user = freshUser
+        spreadsheetId = freshUser.spreadsheet_id
+      }
+    } catch (err) {
+      console.warn("[AuthContext] Gagal refresh user sebelum provisioning sheet:", err.message)
+    }
+  }
+
+  if (!spreadsheetId) {
+    try {
       spreadsheetId = await withRetry(
         () => createUserSheet(token.accessToken, name),
         1, 2000, "Sheets:createUserSheet"
       )
 
       // Save spreadsheet_id to user record
-      await supabaseAdmin
+      const { data: updatedUsers, error: updateErr } = await supabaseAdmin
         .from("users")
         .update({
           spreadsheet_id: spreadsheetId,
@@ -64,8 +91,20 @@ export async function getAuthContext(request) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id)
+        .is("spreadsheet_id", null)
+        .select("*")
 
-      user.spreadsheet_id = spreadsheetId
+      if (updateErr) {
+        throw updateErr
+      }
+
+      if (updatedUsers && updatedUsers.length > 0) {
+        user = updatedUsers[0]
+      } else {
+        user = await getUserById(user.id)
+        spreadsheetId = user.spreadsheet_id
+      }
+
     } catch (err) {
       console.error("[AuthContext] Gagal membuat Google Sheet:", err)
       throw new Error("Gagal membuat Google Sheet untuk user")
@@ -75,7 +114,7 @@ export async function getAuthContext(request) {
   return {
     user,
     accessToken: token.accessToken,
-    spreadsheetId: user.spreadsheet_id,
+    spreadsheetId: spreadsheetId || user.spreadsheet_id,
     tier: user.tier || "free",
   }
 }

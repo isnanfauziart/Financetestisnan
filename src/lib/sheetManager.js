@@ -1,14 +1,14 @@
-const TX_HEADERS = [["Tanggal", "ID", "Keterangan", "Kategori", "Jumlah", "Pajak", "Biaya", "AkunBank", "Net", "Catatan", "M", "Y", "Y2"]]
+const TX_HEADERS = [["Tanggal", "ID", "Keterangan", "Kategori", "Jumlah", "Pajak", "Biaya", "AkunBank", "Net", "Catatan", "M", "Y", "Y2", "EventID", "EventSubKategori"]]
 
-const ALL_TABS = [
-  // Transaction tabs (A-M, 13 columns)
-  { name: "Pemasukan", headers: TX_HEADERS, cols: 13 },
-  { name: "Pengeluaran", headers: TX_HEADERS, cols: 13 },
-  { name: "Tabungan", headers: TX_HEADERS, cols: 13 },
+export const ALL_TABS = [
+  // Transaction tabs (A-O, 15 columns)
+  { name: "Pemasukan", headers: TX_HEADERS, cols: 15 },
+  { name: "Pengeluaran", headers: TX_HEADERS, cols: 15 },
+  { name: "Tabungan", headers: TX_HEADERS, cols: 15 },
   // Budgets (A-F, 6 columns)
   { name: "Budgets", headers: [["Kategori", "Bulan", "Tahun", "Limit", "Akun", "Catatan"]], cols: 6 },
-  // Goals (A-H, 8 columns)
-  { name: "Goals", headers: [["ID", "Nama", "Target", "Deadline", "Kategori", "Icon", "Color", "CreatedAt"]], cols: 8 },
+  // Goals (A-I, 9 columns)
+  { name: "Goals", headers: [["ID", "Nama", "Target", "Deadline", "Kategori", "Icon", "Color", "CreatedAt", "Status"]], cols: 9 },
   // Debts (A-I, 9 columns)
   { name: "Utang", headers: [["ID", "NamaOrang", "Jumlah", "Arah", "JatuhTempo", "Status", "SisaSaldo", "Catatan", "CreatedAt"]], cols: 9 },
   // Events (A-K, 11 columns)
@@ -54,7 +54,7 @@ export async function createUserSheet(accessToken, userName) {
   for (let i = 0; i < 3; i++) {
     const tab = ALL_TABS[i]
     const lastCol = String.fromCharCode(64 + tab.cols) // A=65, so 13 cols → M
-    await fetch(
+    const headerRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab.name + "!A1:" + lastCol + "1")}?valueInputOption=USER_ENTERED`,
       {
         method: "PUT",
@@ -65,6 +65,10 @@ export async function createUserSheet(accessToken, userName) {
         body: JSON.stringify({ values: tab.headers }),
       }
     )
+    if (!headerRes.ok) {
+      const err = await headerRes.text()
+      throw new Error(`Gagal menulis header tab ${tab.name}: ${err}`)
+    }
   }
 
   // 3. Add remaining tabs via batchUpdate
@@ -91,13 +95,14 @@ export async function createUserSheet(accessToken, userName) {
   )
 
   if (!addSheetsRes.ok) {
-    console.error("[SheetManager] Gagal menambah tab:", await addSheetsRes.text())
+    const err = await addSheetsRes.text()
+    throw new Error(`Gagal menambah tab: ${err}`)
   }
 
   // 4. Write headers for extra tabs
   for (const tab of extraTabs) {
     const lastCol = String.fromCharCode(64 + tab.cols)
-    await fetch(
+    const headerRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab.name + "!A1:" + lastCol + "1")}?valueInputOption=USER_ENTERED`,
       {
         method: "PUT",
@@ -108,6 +113,10 @@ export async function createUserSheet(accessToken, userName) {
         body: JSON.stringify({ values: tab.headers }),
       }
     )
+    if (!headerRes.ok) {
+      const err = await headerRes.text()
+      throw new Error(`Gagal menulis header tab ${tab.name}: ${err}`)
+    }
   }
 
   return spreadsheetId

@@ -1,105 +1,11 @@
 import { getAuthContext } from "@/lib/apiAuth"
-import { getSheetData, parseRupiah } from "@/lib/sheets"
+import { getSheetData } from "@/lib/sheets"
+import { computeBillStatus, rowToBill } from "@/lib/bills"
 
 export const dynamic = 'force-dynamic'
 
 const SHEET_NAME = "Tagihan"
 const RANGE = `${SHEET_NAME}!A:M`
-
-function rowToBill(row, rowIndex) {
-  return {
-    rowIndex,
-    id: String(row[0] || "").trim(),
-    nama: String(row[1] || "").trim(),
-    jumlah: parseRupiah(row[2] || 0),
-    tipe: String(row[3] || "expense").trim().toLowerCase(),
-    kategoriBill: String(row[4] || "").trim(),
-    kategoriTransaksi: String(row[5] || "").trim(),
-    frekuensi: String(row[6] || "monthly").trim().toLowerCase(),
-    tanggalJatuhTempo: parseInt(row[7], 10) || 1,
-    akunBank: String(row[8] || "").trim(),
-    aktif: String(row[9] || "TRUE").trim().toUpperCase() === "TRUE",
-    terakhirDibayar: String(row[10] || "").trim(),
-    catatan: String(row[11] || "").trim(),
-    createdAt: String(row[12] || "").trim(),
-  }
-}
-
-function computeNextDueDate(bill) {
-  const today = new Date()
-  const todayDay = today.getDate()
-  const freq = bill.frekuensi
-  const dueDay = bill.tanggalJatuhTempo
-
-  if (freq === "monthly") {
-    let nextDate = new Date(today.getFullYear(), today.getMonth(), dueDay)
-    if (nextDate < today) {
-      nextDate = new Date(today.getFullYear(), today.getMonth() + 1, dueDay)
-    }
-    return nextDate
-  }
-
-  if (freq === "weekly") {
-    const todayDow = today.getDay() === 0 ? 7 : today.getDay()
-    let daysAhead = dueDay - todayDow
-    if (daysAhead <= 0) daysAhead += 7
-    const nextDate = new Date(today)
-    nextDate.setDate(today.getDate() + daysAhead)
-    return nextDate
-  }
-
-  if (freq === "biweekly") {
-    const todayDow = today.getDay() === 0 ? 7 : today.getDay()
-    let daysAhead = dueDay - todayDow
-    if (daysAhead <= 0) daysAhead += 14
-    const nextDate = new Date(today)
-    nextDate.setDate(today.getDate() + daysAhead)
-    return nextDate
-  }
-
-  if (freq === "quarterly") {
-    let nextDate = new Date(today.getFullYear(), today.getMonth(), dueDay)
-    if (nextDate < today) {
-      nextDate = new Date(today.getFullYear(), today.getMonth() + 3, dueDay)
-    }
-    return nextDate
-  }
-
-  if (freq === "yearly") {
-    let nextDate = new Date(today.getFullYear(), today.getMonth(), dueDay)
-    if (nextDate < today) {
-      nextDate = new Date(today.getFullYear() + 1, today.getMonth(), dueDay)
-    }
-    return nextDate
-  }
-
-  // Fallback: monthly
-  let nextDate = new Date(today.getFullYear(), today.getMonth(), dueDay)
-  if (nextDate < today) {
-    nextDate = new Date(today.getFullYear(), today.getMonth() + 1, dueDay)
-  }
-  return nextDate
-}
-
-function computeBillStatus(bill) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const nextDue = computeNextDueDate(bill)
-  nextDue.setHours(0, 0, 0, 0)
-  const diffMs = nextDue - today
-  const daysUntilDue = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-
-  let status = "upcoming"
-  if (daysUntilDue < 0) status = "overdue"
-  else if (daysUntilDue === 0) status = "due_today"
-  else if (daysUntilDue <= 1) status = "due_soon"
-
-  return {
-    daysUntilDue,
-    status,
-    nextDueDate: nextDue.toISOString().split("T")[0],
-  }
-}
 
 async function fetchAllBills(accessToken, spreadsheetId) {
   const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])

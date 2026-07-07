@@ -259,6 +259,53 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
 - Applied a focused UI/UX polish pass across the dashboard shell, Home, Stats, Wallet, and Quick Add flow
 - Preserved the Home hero as **Kekayaan Bersih** with net worth as the primary number, per product direction
 
+## Session: July 7, 2026
+
+### Updates Made
+- Fixed 4 approved critical backend issues from the audit, excluding commercialization gating:
+  - Clarified the current Supabase model as server-only in runtime modules
+  - Hardened user creation and spreadsheet assignment against first-request races
+  - Aligned new user sheet provisioning and migration ranges with current API row contracts
+  - Centralized and corrected bill due/overdue calculation
+  - Added same-day idempotency protection to bill payment writes
+
+### Files Changed
+- **Created**:
+  - `src/lib/bills.js` — shared bill parsing + due-status summary helper
+  - `tests/lib/bills.test.js`
+  - `tests/lib/user.test.js`
+  - `tests/lib/sheetManager.test.js`
+  - `tests/api/billPayIdempotency.test.js`
+  - `tests/mocks/server-only.js`
+- **Modified**:
+  - `src/lib/supabaseAdmin.js`
+  - `src/lib/user.js`
+  - `src/lib/apiAuth.js`
+  - `src/lib/sheetManager.js`
+  - `src/app/api/bills/route.js`
+  - `src/app/api/bills/summary/route.js`
+  - `src/app/api/dashboard/route.js`
+  - `src/app/api/bills/pay/route.js`
+  - `src/app/api/migrate/route.js`
+  - `vitest.config.js`
+
+### Key Decisions
+- Kept Supabase explicitly **server-side only for now** instead of attempting a broader auth/RLS redesign.
+- Used conditional `spreadsheet_id` persistence plus user re-read to prevent duplicate assignment during concurrent first login flows.
+- Reused one bill-status implementation everywhere to eliminate logic drift between bills, dashboard, and summary endpoints.
+- Used same-day idempotency for `/api/bills/pay` via `TerakhirDibayar` short-circuit plus stable transaction IDs (`billpay:<billId>:<date>`).
+
+### Verification
+- Focused regression tests added first, then run green:
+  - `npm test -- tests/lib/bills.test.js tests/lib/user.test.js tests/lib/sheetManager.test.js tests/api/billPayIdempotency.test.js`
+- Production build passes:
+  - `npm run build`
+- Full test suite status:
+  - `npm test` still has unrelated pre-existing failures in `tests/components/QuickAddSheet.test.jsx` and `tests/lib/useDashboardCache.test.js`
+
+### Notes
+- The current sheet race handling prevents duplicate `spreadsheet_id` assignment, but in a rare true concurrency case Google may still create an orphan extra sheet before the DB conditional update loses. Fixing that fully would require a small DB-backed provisioning lock.
+
 ## Session: July 6, 2026 (continued — Stats tab month defaults + comparison UX)
 
 ### Updates Made
