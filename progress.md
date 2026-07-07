@@ -207,6 +207,33 @@ Dev mode logs a warning but the page still renders. Production minified build cr
 - v2: Bulk select + batch delete (long-press or checkbox mode)
 - Unrelated bonus from previous session: still TODO — `favicon.ico` + `icon-192.png` 404s
 
+## Session: July 7, 2026 (Product & IA migration — Task 5 Profil cleanup)
+
+### Updates Made
+- Added focused `ProfileTab` tests first for the final ownership cleanup in the Product & IA migration.
+- Reworked `Profil` into lightweight administrative sections only:
+  - `Identitas Akun`
+  - `Paket & Akses`
+  - `Preferensi`
+  - `Data & Sesi`
+- Kept identity visible near the top and surfaced plan/access information above preferences.
+- Preserved useful settings controls (`Saldo Awal`, sound, haptics) and logout.
+- Verified `Profil` does not reintroduce bills or report ownership.
+
+### Files Changed
+- `tests/components/ProfileTab.test.jsx` — new focused ownership tests
+- `src/app/dashboard/ProfileTab.jsx` — minimal IA cleanup and sectioned layout
+- `.superpowers/sdd/task-5-report.md` — task report
+- `.superpowers/sdd/progress.md` — SDD ledger updated
+
+### Verification
+- `npm test -- tests/components/ProfileTab.test.jsx` ✅ (3/3)
+- `npm test -- tests/components/PlanTab.test.jsx` ✅ (5/5)
+
+### Notes
+- `task-5-brief.md` was not present in the worktree; execution followed the explicit task requirements from the user message.
+- Tier display currently falls back safely to `Free` if the session payload lacks tier metadata.
+
 ## Session: June 7, 2026 (continued — Net Worth refactor)
 
 ### Goal
