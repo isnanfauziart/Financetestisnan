@@ -398,6 +398,34 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
 
 ### Verification
 - `npm run build` passes successfully
+
+## Session: July 7, 2026 (Product & IA migration — Task 6 integration cleanup)
+
+### Updates Made
+- Performed the final integration cleanup pass for the current Product & IA migration slice.
+- Removed stale tab prop wiring after the ownership moves from Tasks 2-5.
+- Kept the 4-tab shell intact and avoided any ownership reversals.
+
+### Files Changed
+- `src/app/dashboard/HomeTab.jsx` — removed unused props from the tab signature
+- `src/app/dashboard/PlanTab.jsx` — removed unused `onBillPay` prop from the tab signature
+- `src/app/dashboard/page.js` — removed matching stale prop passing for `HomeTab` and `PlanTab`
+- `.superpowers/sdd/task-6-report.md` — added required task report
+- `.superpowers/sdd/progress.md` — updated SDD ledger
+
+### Key Decisions
+- Kept the diff limited to integration cleanup only; no UI ownership was moved.
+- Treated the focused IA component suite as the primary verification target, per task instructions.
+- Documented the exact production build blocker instead of inferring a code failure.
+
+### Verification
+- `npm test -- tests/components/HomeTab.test.jsx tests/components/StatsTab.test.jsx tests/components/PlanTab.test.jsx tests/components/ProfileTab.test.jsx` ✅ (16/16)
+- `npm run build` ❌ blocked by environment requirement:
+  - `Error: supabaseUrl is required.`
+  - `Error: Failed to collect page data for /api/transaction/[id]`
+
+### Notes
+- The task brief file referenced in the prompt was not present in the worktree, so execution followed the prompt as the source of truth.
 - Dashboard route builds successfully at `311 kB` / `408 kB` first load
 
 ### Notes

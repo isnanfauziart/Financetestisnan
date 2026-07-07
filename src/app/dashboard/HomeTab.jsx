@@ -10,15 +10,14 @@ import { useBudgets, useBills } from "@/lib/useSharedData"
 import { getFocusNote } from "./_components/focusNote"
 
 export default function HomeTab({
-  data, session,
+  data,
   statIncome, statExpense, statSavings,
   topCategory, topCategoryPct,
   recent5,
   setActiveNav, openQuickAdd, setDrillDown,
-  onToast,
   selectedMonth, selectedYear, monthlyData,
-  filteredTransactions, allTransactions,
-  onCategoryClick, insights,
+  allTransactions,
+  insights,
 }) {
   const animatedBalance = useCountUpOvershoot(data?.netWorth || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)

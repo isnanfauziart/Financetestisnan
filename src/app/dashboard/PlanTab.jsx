@@ -31,7 +31,6 @@ export default function PlanTab({
   filteredTransactions,
   expenseCategories,
   onToast,
-  onBillPay,
   onWhatIfOpen,
 }) {
   const [activeSection, setActiveSection] = useState("goal")

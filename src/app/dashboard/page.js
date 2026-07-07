@@ -923,17 +923,14 @@ export default function Dashboard() {
         */}
         {activeNav === "home" && (
           <HomeTab
-            data={data} session={session}
+            data={data}
             statIncome={statIncome} statExpense={statExpense} statSavings={statSavings}
             topCategory={topCategory} topCategoryPct={topCategoryPct}
             recent5={recent5}
             setActiveNav={setActiveNav} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
-            onToast={showToast}
-            filteredTransactions={filteredTransactions}
             allTransactions={data?.transactions || []}
             selectedMonth={selectedMonth} selectedYear={selectedYear}
             monthlyData={data?.monthlyData || []}
-            onCategoryClick={handleAnomalyCategoryClick}
             insights={insights}
           />
         )}
@@ -984,7 +981,6 @@ export default function Dashboard() {
             filteredTransactions={filteredTransactions}
             expenseCategories={expenseCategories}
             onToast={showToast}
-            onBillPay={handleBillPay}
             onWhatIfOpen={() => setWhatIfOpen(true)}
           />
         )}
