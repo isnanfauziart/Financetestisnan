@@ -914,6 +914,14 @@ export default function Dashboard() {
         className="relative z-10 max-w-3xl mx-auto"
         style={{ transform: `translateY(${pullDistance}px)`, transition: pullDistance === 0 ? "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" : "none" }}
       >
+        {/*
+          Product & IA ownership contract (Task 1 pre-migration lock):
+          - Beranda/home owns summary + urgent actions; keep "Fokus hari ini" as a P1 Beranda element.
+          - Statistik/stats owns analysis + reports.
+          - Rencana/plan owns goals + budgets + bills + planning.
+          - Profil/profile owns account + settings.
+          - Preserve the 4-tab shell in this task; do not move UI ownership here.
+        */}
         {activeNav === "home" && (
           <HomeTab
             data={data} session={session}

@@ -1571,3 +1571,8 @@ Rename all occurrences of "Artoku" to "Artami" across the entire codebase (sourc
 
 ### Commit
 - `2b63f59` — rename: Artoku -> Artami across entire codebase (464 files changed, 90 insertions, 27,921 deletions)
+## 2026-07-07
+- Tasks completed: Task 1 Product & IA pre-migration ownership lock; documented tab ownership in `Updatesidea.md`; added dashboard shell ownership contract comment in `src/app/dashboard/page.js`; wrote task report.
+- Files changed: `Updatesidea.md`, `src/app/dashboard/page.js`, `.superpowers/sdd/task-1-report.md`, `progress.md`
+- Decisions: Kept the existing 4-tab shell unchanged; kept `Fokus hari ini` as a P1 Beranda element; made no UI ownership moves in this task.
+- Blockers: Prompt-referenced brief file `.superpowers/sdd/task-1-brief.md` was not present in the worktree, so verification/reporting notes record that discrepancy.

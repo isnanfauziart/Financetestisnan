@@ -17,6 +17,12 @@ Status legend:
 
 ## Product and Information Architecture
 
+- [x] Ownership lock for Product & IA migration is explicit before UI moves:
+  - `Beranda` remains the home for summary + urgent actions, and `Fokus hari ini` stays a P1 Beranda element.
+  - `Statistik` remains analysis + reports.
+  - `Rencana` remains planning ownership for goals + budgets + bills + planning.
+  - `Profil` remains account + settings.
+  - This task does not move UI between tabs; it only locks ownership for later migration tasks.
 - [ ] Reorganize top-level structure so responsibilities are clearer:
   - `Beranda` = summary + urgent actions
   - `Statistik` = analysis + reports
