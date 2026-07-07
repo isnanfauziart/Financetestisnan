@@ -32,8 +32,11 @@ export default function PlanTab({
   expenseCategories,
   onToast,
   onWhatIfOpen,
+  activeSection,
+  onSectionChange,
 }) {
-  const [activeSection, setActiveSection] = useState("goal")
+  const [internalActiveSection, setInternalActiveSection] = useState("goal")
+  const currentSection = activeSection || internalActiveSection
 
   return (
     <div className="px-5 pt-4 animate-bento-in" key="plan-tab">
@@ -41,14 +44,20 @@ export default function PlanTab({
         <div className="glass rounded-2xl p-2" role="tablist" aria-label="Navigasi Rencana">
           <div className="grid grid-cols-4 gap-2">
             {PLAN_SECTIONS.map((section) => {
-              const isActive = activeSection === section.key
+              const isActive = currentSection === section.key
               return (
                 <button
                   key={section.key}
                   type="button"
                   role="tab"
                   aria-selected={isActive}
-                  onClick={() => setActiveSection(section.key)}
+                  onClick={() => {
+                    if (onSectionChange) {
+                      onSectionChange(section.key)
+                      return
+                    }
+                    setInternalActiveSection(section.key)
+                  }}
                   className={`rounded-2xl px-3 py-2.5 text-xs font-bold transition-all ${
                     isActive
                       ? "bg-earth-900 text-white shadow-warm"
@@ -62,7 +71,7 @@ export default function PlanTab({
           </div>
         </div>
 
-        {activeSection === "goal" && (
+        {currentSection === "goal" && (
           <GoalsSection
             transactions={transactions}
             onToast={onToast}
@@ -70,7 +79,7 @@ export default function PlanTab({
           />
         )}
 
-        {activeSection === "budget" && (
+        {currentSection === "budget" && (
           <div className="space-y-5">
             <BudgetsSection
               selectedMonth={selectedMonth}
@@ -83,14 +92,14 @@ export default function PlanTab({
           </div>
         )}
 
-        {activeSection === "tagihan" && (
+        {currentSection === "tagihan" && (
           <BillsSection
             onToast={onToast}
             refreshTrigger={billsRefreshTrigger || 0}
           />
         )}
 
-        {activeSection === "simulasi" && (
+        {currentSection === "simulasi" && (
           <div className="space-y-5">
             <FITrackerCard
               netWorth={data?.netWorth}

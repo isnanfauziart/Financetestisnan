@@ -8,7 +8,6 @@ import SelectField from "./_components/SelectField"
 import CustomTooltip from "./_components/CustomTooltip"
 import EmptyState from "./_components/EmptyState"
 import RecapSection from "./_components/RecapSection"
-import EventBudgetsSection from "@/components/EventBudgetsSection"
 import MonthlyReportButton from "@/components/MonthlyReportButton"
 import YearInReviewButton from "@/components/YearInReviewButton"
 import CashFlowForecast from "@/components/CashFlowForecast"
@@ -54,7 +53,6 @@ export default function StatsTab({
   hapticsEnabled,
   monthlyData,
   allTransactions,
-  eventsRefreshTrigger,
   onCategoryClick,
 }) {
   const [showDateRange, setShowDateRange] = useState(false)
@@ -206,13 +204,6 @@ export default function StatsTab({
         </div>
       </div>
           )}
-
-          {/* Event Budgets section */}
-          <EventBudgetsSection
-            filteredTransactions={filteredTransactions}
-            onToast={onToast}
-            refreshTrigger={eventsRefreshTrigger || 0}
-          />
         </>
       )}
 

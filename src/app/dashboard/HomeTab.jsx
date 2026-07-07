@@ -14,7 +14,7 @@ export default function HomeTab({
   statIncome, statExpense, statSavings,
   topCategory, topCategoryPct,
   recent5,
-  setActiveNav, openQuickAdd, setDrillDown,
+  setActiveNav, openPlanSection, openQuickAdd, setDrillDown,
   selectedMonth, selectedYear, monthlyData,
   allTransactions,
   insights,
@@ -50,7 +50,10 @@ export default function HomeTab({
           : "Buka Rencana untuk cek dan selesaikan tagihan ini.",
         icon: Clock3,
         tint: "bg-rose-50 text-rose-600 border-rose-100",
-        onClick: () => setActiveNav("plan"),
+        onClick: () => {
+          setActiveNav("plan")
+          openPlanSection?.("tagihan")
+        },
         aria: `Bayar tagihan ${urgentBill.nama}`,
       })
     }
@@ -76,10 +79,13 @@ export default function HomeTab({
         key: `budget-${urgentBudget.kategori}`,
         eyebrow: urgentBudget.pct >= 100 ? "Budget jebol" : "Budget menipis",
         title: `Cek budget ${urgentBudget.kategori}`,
-        description: `${urgentBudget.pct.toFixed(0)}% terpakai • Lihat detail kategori di Statistik.`,
+        description: `${urgentBudget.pct.toFixed(0)}% terpakai • Buka Rencana untuk cek dan atur budget.`,
         icon: AlertTriangle,
         tint: urgentBudget.pct >= 100 ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-orange-50 text-orange-700 border-orange-100",
-        onClick: () => setActiveNav("stats"),
+        onClick: () => {
+          setActiveNav("plan")
+          openPlanSection?.("budget")
+        },
         aria: `Cek budget ${urgentBudget.kategori}`,
       })
     }

@@ -37,6 +37,7 @@ function createProps(overrides = {}) {
       { type: "expense", category: "Makanan", desc: "Makan siang", date: "7 Jul 2026", amount: 45000 },
     ],
     setActiveNav: vi.fn(),
+    openPlanSection: vi.fn(),
     openQuickAdd: vi.fn(),
     setDrillDown: vi.fn(),
     onToast: vi.fn(),
@@ -92,14 +93,17 @@ describe("HomeTab priority actions", () => {
     expect(priorityHeading.compareDocumentPosition(incomeSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it("routes priority actions into plan and stats flows", () => {
+  it("routes urgent budget and bill actions into the correct plan sections", () => {
     const setActiveNav = vi.fn()
-    render(<HomeTab {...createProps({ setActiveNav })} />)
+    const openPlanSection = vi.fn()
+    render(<HomeTab {...createProps({ setActiveNav, openPlanSection })} />)
 
     fireEvent.click(screen.getByRole("button", { name: /bayar tagihan internet wifi/i }))
     fireEvent.click(screen.getByRole("button", { name: /cek budget makanan/i }))
 
     expect(setActiveNav).toHaveBeenNthCalledWith(1, "plan")
-    expect(setActiveNav).toHaveBeenNthCalledWith(2, "stats")
+    expect(openPlanSection).toHaveBeenNthCalledWith(1, "tagihan")
+    expect(setActiveNav).toHaveBeenNthCalledWith(2, "plan")
+    expect(openPlanSection).toHaveBeenNthCalledWith(2, "budget")
   })
 })

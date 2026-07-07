@@ -139,4 +139,10 @@ describe("StatsTab segmented statistik navigation", () => {
 
     expect(screen.getByText("Recap Bulanan")).toBeInTheDocument()
   })
+
+  it("does not render event budgeting ownership inside Statistik", () => {
+    render(<StatsTab {...createProps()} />)
+
+    expect(screen.queryByText("Event budgets mock")).not.toBeInTheDocument()
+  })
 })

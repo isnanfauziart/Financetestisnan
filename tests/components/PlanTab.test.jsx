@@ -70,6 +70,13 @@ describe("PlanTab planning ownership", () => {
     expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
   })
 
+  it("supports deep-linking directly into a plan section from shared routing state", () => {
+    render(<PlanTab {...createProps({ activeSection: "tagihan", onSectionChange: vi.fn() })} />)
+
+    expect(screen.getByText("Bills section mock")).toBeInTheDocument()
+    expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
+  })
+
   it("keeps future-oriented tools under Simulasi", () => {
     render(<PlanTab {...createProps()} />)
 

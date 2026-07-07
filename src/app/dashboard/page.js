@@ -53,6 +53,7 @@ export default function Dashboard() {
   })
   const [syncNow, setSyncNow] = useState(() => Date.now())
   const [activeNav, setActiveNav] = useState("home")
+  const [activePlanSection, setActivePlanSection] = useState("goal")
   const [soundEnabled, setSoundEnabled] = useSoundPref()
   const [hapticsEnabled, setHapticsEnabled] = useHapticsPref()
   const haptics = useHaptics()
@@ -300,6 +301,11 @@ export default function Dashboard() {
     setCompareYearA(defaults.compareYearA)
     setCompareMonthB(defaults.compareMonthB)
     setCompareYearB(defaults.compareYearB)
+  }, [])
+
+  const openPlanSection = useCallback((sectionKey) => {
+    setActivePlanSection(sectionKey)
+    setActiveNav("plan")
   }, [])
 
   // --- Hooks that must run on every render (before any early return) ---
@@ -927,7 +933,7 @@ export default function Dashboard() {
             statIncome={statIncome} statExpense={statExpense} statSavings={statSavings}
             topCategory={topCategory} topCategoryPct={topCategoryPct}
             recent5={recent5}
-            setActiveNav={setActiveNav} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
+            setActiveNav={setActiveNav} openPlanSection={openPlanSection} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
             allTransactions={data?.transactions || []}
             selectedMonth={selectedMonth} selectedYear={selectedYear}
             monthlyData={data?.monthlyData || []}
@@ -958,13 +964,12 @@ export default function Dashboard() {
             isAllMonths={isAllMonths} refreshing={refreshing}
             onToast={showToast}
             onEditTx={handleEditTx}
-            onDeleteTx={handleDelete}
-            haptics={haptics}
-            hapticsEnabled={hapticsEnabled}
-            monthlyData={data?.monthlyData || []}
-            allTransactions={data?.transactions || []}
-            eventsRefreshTrigger={eventsRefreshTrigger}
-            onCategoryClick={handleAnomalyCategoryClick}
+             onDeleteTx={handleDelete}
+             haptics={haptics}
+             hapticsEnabled={hapticsEnabled}
+             monthlyData={data?.monthlyData || []}
+             allTransactions={data?.transactions || []}
+             onCategoryClick={handleAnomalyCategoryClick}
           />
         )}
         {activeNav === "plan" && (
@@ -982,6 +987,8 @@ export default function Dashboard() {
             expenseCategories={expenseCategories}
             onToast={showToast}
             onWhatIfOpen={() => setWhatIfOpen(true)}
+            activeSection={activePlanSection}
+            onSectionChange={setActivePlanSection}
           />
         )}
         {activeNav === "profile" && (
@@ -1159,7 +1166,11 @@ export default function Dashboard() {
                 aria-selected={isActive}
                 aria-label={nav.aria}
                 aria-current={isActive ? "page" : undefined}
-                onClick={() => { if (hapticsEnabled) haptics.tap(); setActiveNav(nav.id) }}
+                onClick={() => {
+                  if (hapticsEnabled) haptics.tap()
+                  if (nav.id === "plan") setActivePlanSection("goal")
+                  setActiveNav(nav.id)
+                }}
                 className="flex flex-col items-center gap-0.5 group relative px-3 py-1 rounded-2xl transition-all"
               >
                 {isActive && (
