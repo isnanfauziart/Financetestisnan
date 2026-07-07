@@ -259,6 +259,7 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
 - Applied a focused UI/UX polish pass across the dashboard shell, Home, Stats, Wallet, and Quick Add flow
 - Preserved the Home hero as **Kekayaan Bersih** with net worth as the primary number, per product direction
 
+
 ## Session: July 7, 2026
 
 ### Updates Made
@@ -1580,3 +1581,7 @@ Rename all occurrences of "Artoku" to "Artami" across the entire codebase (sourc
 - Files changed: `tests/components/HomeTab.test.jsx`, `src/app/dashboard/HomeTab.jsx`, `.superpowers/sdd/task-2-report.md`, `progress.md`
 - Decisions: Kept the hero unchanged; limited urgent actions to 2 cards max; routed priority cards only into `plan`, `stats`, or quick-add flows; kept previews compact and Indonesian-first.
 - Blockers: Prompt-referenced brief file `.superpowers/sdd/task-2-brief.md` was not present in the worktree, so implementation aligned to `Updatesidea.md` plus the ownership contract comment in `src/app/dashboard/page.js`.
+- Tasks completed: Task 3 Product & IA Statistik migration step; added focused `StatsTab` tests first; introduced segmented Statistik navigation (`Ringkasan`, `Kategori`, `Tren`, `Recap`); moved report ownership from `ProfileTab` into `StatsTab` Recap; wrote task report.
+- Files changed: `src/app/dashboard/StatsTab.jsx`, `src/app/dashboard/ProfileTab.jsx`, `src/app/dashboard/page.js`, `tests/components/StatsTab.test.jsx`, `.superpowers/sdd/task-3-report.md`, `.superpowers/sdd/progress.md`, `progress.md`
+- Decisions: Kept Statistik analysis-first; grouped existing content under four internal sections instead of rewriting chart modules; preserved Indonesian-first copy and existing `Recap Bulanan` wording.
+- Blockers: Prompt-referenced brief file `.superpowers/sdd/task-3-brief.md` was not present in the worktree. Focused Stats tests are green, but repo-wide `npm test` still has unrelated failures (`QuickAddSheet`, `useDashboardCache`) and `npm run build` is blocked in this environment by missing Supabase config (`supabaseUrl is required`).

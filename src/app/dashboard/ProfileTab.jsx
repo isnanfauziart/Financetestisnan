@@ -4,8 +4,6 @@ import { LogOut, Wallet, Calendar } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRpFull, formatInputRupiah } from "./_components/helpers"
 import { useSettings } from "@/lib/useSharedData"
-import YearInReviewButton from "@/components/YearInReviewButton"
-import MonthlyReportButton from "@/components/MonthlyReportButton"
 import BillsSection from "@/components/BillsSection"
 
 function formatDateDisplay(dateStr) {
@@ -17,7 +15,7 @@ function formatDateDisplay(dateStr) {
   return `${parseInt(parts[2], 10)} ${monthName} ${parts[0]}`
 }
 
-export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, selectedMonth, selectedYear, filteredTransactions, monthlyData, onToast, onRefresh, billsRefreshTrigger }) {
+export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh, billsRefreshTrigger }) {
   const { settings, refetch: refetchSettings } = useSettings()
   const [editingSaldo, setEditingSaldo] = useState(false)
   const [rawSaldo, setRawSaldo] = useState("")
@@ -187,21 +185,6 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
       {/* Bills */}
       <div className="w-full mt-4">
         <BillsSection onToast={onToast} refreshTrigger={billsRefreshTrigger || 0} />
-      </div>
-
-      {/* Reports */}
-      <div className="w-full space-y-3 mt-4">
-        <MonthlyReportButton
-          selectedMonth={selectedMonth}
-          selectedYear={selectedYear}
-          transactions={filteredTransactions}
-          monthlyData={monthlyData}
-          allTransactions={data?.transactions || []}
-        />
-        <YearInReviewButton
-          transactions={data?.transactions || []}
-          monthlyData={monthlyData}
-        />
       </div>
     </div>
   )

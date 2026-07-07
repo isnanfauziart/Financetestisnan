@@ -5,6 +5,7 @@ import StatsTab from "@/app/dashboard/StatsTab"
 vi.mock("@/components/BudgetsSection", () => ({ default: () => <div>Budgets mock</div> }))
 vi.mock("@/components/EventBudgetsSection", () => ({ default: () => <div>Event budgets mock</div> }))
 vi.mock("@/components/MonthlyReportButton", () => ({ default: () => <button type="button">Monthly report</button> }))
+vi.mock("@/components/YearInReviewButton", () => ({ default: () => <button type="button">Year in review</button> }))
 vi.mock("@/components/CashFlowForecast", () => ({ default: () => <div>Forecast mock</div> }))
 vi.mock("@/components/SavingsRateTrend", () => ({ default: () => <div>Savings trend mock</div> }))
 vi.mock("@/components/AnomalyAlerts", () => ({ default: () => <div>Anomaly mock</div> }))
@@ -80,12 +81,16 @@ describe("StatsTab comparison controls", () => {
   it("shows the default comparison helper copy and reset action", () => {
     render(<StatsTab {...createProps()} />)
 
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+
     expect(screen.getByText("Default: bulan ini vs bulan lalu")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Reset ke bulan ini" })).toBeInTheDocument()
   })
 
   it("uses clearer comparison labels", () => {
     render(<StatsTab {...createProps()} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
 
     expect(screen.getByText("Periode utama")).toBeInTheDocument()
     expect(screen.getByText("Bandingkan dengan")).toBeInTheDocument()
@@ -95,8 +100,43 @@ describe("StatsTab comparison controls", () => {
     const resetComparePeriods = vi.fn()
     render(<StatsTab {...createProps({ resetComparePeriods })} />)
 
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+
     fireEvent.click(screen.getByRole("button", { name: "Reset ke bulan ini" }))
 
     expect(resetComparePeriods).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("StatsTab segmented statistik navigation", () => {
+  it("shows the segmented navigation labels for statistik sections", () => {
+    render(<StatsTab {...createProps()} />)
+
+    expect(screen.getByRole("tab", { name: "Ringkasan" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Kategori" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Tren" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Recap" })).toBeInTheDocument()
+  })
+
+  it("moves report actions into the Recap section", () => {
+    render(<StatsTab {...createProps()} />)
+
+    expect(screen.queryByText("Monthly report")).not.toBeInTheDocument()
+    expect(screen.queryByText("Year in review")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("tab", { name: "Recap" }))
+
+    expect(screen.getByText("Monthly report")).toBeInTheDocument()
+    expect(screen.getByText("Year in review")).toBeInTheDocument()
+  })
+
+  it("shows recap content only after the Recap segment is selected", () => {
+    render(<StatsTab {...createProps()} />)
+
+    expect(screen.queryByText("Recap Bulanan")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("tab", { name: "Recap" }))
+
+    expect(screen.getByText("Recap Bulanan")).toBeInTheDocument()
   })
 })
