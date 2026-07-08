@@ -62,30 +62,33 @@ export async function PUT(request) {
     for (const [key, value] of entries) {
       if (!key) continue
       const targetRow = existingKeys[key.toLowerCase()]
+      const normalizedValue = key.toLowerCase() === "startingbalance"
+        ? String(value ?? "")
+        : String(value ?? "")
 
       if (targetRow) {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${SHEET_NAME}!A${targetRow}:B${targetRow}`)}?valueInputOption=USER_ENTERED`
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${SHEET_NAME}!A${targetRow}:B${targetRow}`)}?valueInputOption=RAW`
         const res = await fetch(url, {
           method: "PUT",
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ values: [[key, value]] }),
+          body: JSON.stringify({ values: [[key, normalizedValue]] }),
         })
         if (!res.ok) {
           const err = await res.text()
           throw new Error(`Sheets API error: ${err}`)
         }
       } else {
-        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(RANGE)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(RANGE)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`
         const res = await fetch(appendUrl, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ values: [[key, value]] }),
+          body: JSON.stringify({ values: [[key, normalizedValue]] }),
         })
         if (!res.ok) {
           const err = await res.text()

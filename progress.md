@@ -732,6 +732,31 @@ Remove the Smart Insights section from the Overview tab. The Statistics page alr
 ### Notes
 - This preserves explicit `values.update` writes and does not reintroduce the old Google Sheets `append` table-end bug.
 - Existing overwritten data on row `9999` cannot be restored automatically; new writes will now continue on the true next row.
+
+## Session: July 7, 2026 (continued — prevent Saldo Awal from being coerced into a date)
+
+### Problem
+- Updating `Saldo Awal` to `10000000` sometimes saved a date-like value such as `29279-01-24` in the `Settings` sheet.
+- After refetch, the app parsed that malformed cell as `29279`, so the profile/dashboard showed `29.279` instead of the intended balance.
+
+### Root Cause
+- `src/app/api/settings/route.js` wrote settings using `valueInputOption=USER_ENTERED`.
+- In Google Sheets, `USER_ENTERED` lets the cell's format reinterpret numeric input.
+- If the settings value cell had date formatting, `10000000` was coerced into a date serial instead of staying a plain number.
+
+### Fix Applied
+- **`src/app/api/settings/route.js`**
+  - Switched settings writes from `USER_ENTERED` to `RAW` for both updates and appends.
+  - Normalized values to strings before writing so `startingBalance` stays a plain scalar and dates remain plain `YYYY-MM-DD` text.
+
+- **`tests/api/settingsRoute.test.js`**
+  - Added a regression test proving `startingBalance: 10000000` writes with `valueInputOption=RAW` and body `[["startingBalance", "10000000"]]`.
+
+### Verification
+- `npm test -- tests/api/settingsRoute.test.js` passes.
+
+### Notes
+- Existing bad settings values already saved as date-like strings must be corrected in the sheet once; future saves will no longer be coerced by Sheets formatting.
 - **`src/app/dashboard/HomeTab.jsx`** (3 edits):
   - Removed entire Smart Insights JSX block (was lines 121-168)
   - Removed `insights,` from props destructuring
