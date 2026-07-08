@@ -757,6 +757,26 @@ Remove the Smart Insights section from the Overview tab. The Statistics page alr
 
 ### Notes
 - Existing bad settings values already saved as date-like strings must be corrected in the sheet once; future saves will no longer be coerced by Sheets formatting.
+
+## Session: July 7, 2026 (continued — shorten transaction success toast)
+
+### Problem
+- After saving a transaction, the mobile success toast stayed on screen too long and showed extra technical detail (`baris XXX`).
+- This slowed down rapid repeat entry because the user had to wait for the bottom toast to clear visually before adding the next transaction.
+
+### Fix Applied
+- **`src/app/dashboard/page.js`**
+  - Extended `showToast()` to accept an optional per-toast `duration` override.
+  - Changed transaction-save success feedback to the exact message `Transaksi berhasil disimpan`.
+  - Removed the row-number suffix from that success toast.
+  - Set the transaction-save success toast duration to `1500ms`.
+  - Left all other toasts unchanged: errors still use the default duration, and undo toasts still stay longer.
+
+### Verification
+- `npm test -- tests/components/Toast.test.jsx` passes.
+
+### Notes
+- This is a UI-only tweak; it does not change transaction saving, refetching, or undo behavior.
 - **`src/app/dashboard/HomeTab.jsx`** (3 edits):
   - Removed entire Smart Insights JSX block (was lines 121-168)
   - Removed `insights,` from props destructuring

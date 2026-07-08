@@ -513,8 +513,8 @@ export default function Dashboard() {
     return out.slice(0, 5)
   }, [filteredTransactions, isAllMonths, isAllAccounts, selectedMonth, selectedYear, statIncome, statExpense, statSavings, expenseCategories, data])
 
-  const showToast = (msg, type = "success", action = null) => {
-    setToast({ msg, type, action })
+  const showToast = (msg, type = "success", action = null, options = {}) => {
+    setToast({ msg, type, action, duration: options.duration })
   }
 
   const submitTransaction = async ({ formData, rawAmount, txType }) => {
@@ -532,8 +532,7 @@ export default function Dashboard() {
       if (result.success) {
         if (hapticsEnabled) haptics.success()
         if (soundEnabled) playSuccessSound()
-        const rowNote = result.rowIndex ? ` · baris ${result.rowIndex}` : ""
-        showToast(`Transaksi berhasil disimpan! ✓${rowNote}`)
+        showToast("Transaksi berhasil disimpan", "success", null, { duration: 1500 })
         fetchData()
         setGoalsRefreshTrigger(t => t + 1)
         setEventsRefreshTrigger(t => t + 1)
@@ -850,7 +849,7 @@ export default function Dashboard() {
           onDone={() => setToast(null)}
           variant={toast.type}
           position="bottom"
-          duration={toast.action ? 8000 : 5000}
+          duration={toast.duration ?? (toast.action ? 8000 : 5000)}
           action={toast.action}
         >
           {toast.msg}
