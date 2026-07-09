@@ -53,17 +53,22 @@ export default function WhatIfModal({ open, onClose, transactions }) {
     return Math.round(values.reduce((s, v) => s + v, 0) / values.length)
   }, [selectedCategory, transactions])
 
-  const reduction = useMemo(() => {
+  const targetCategorySpend = useMemo(() => {
     const num = parseFloat(String(rawReduction).replace(/\./g, ""))
     return isNaN(num) || num <= 0 ? 0 : num
   }, [rawReduction])
+
+  const categorySavings = useMemo(() => {
+    if (!selectedCategory || categoryAvg <= 0 || targetCategorySpend <= 0) return 0
+    return Math.max(0, categoryAvg - targetCategorySpend)
+  }, [selectedCategory, categoryAvg, targetCategorySpend])
 
   const incomeIncrease = useMemo(() => {
     const num = parseFloat(String(rawIncomeIncrease).replace(/\./g, ""))
     return isNaN(num) || num <= 0 ? 0 : num
   }, [rawIncomeIncrease])
 
-  const totalExtra = reduction + incomeIncrease
+  const totalExtra = categorySavings + incomeIncrease
 
   const activeGoals = useMemo(() => {
     return (goals || []).filter(g => g.target > 0 && g.nama)
@@ -110,12 +115,16 @@ export default function WhatIfModal({ open, onClose, transactions }) {
     const origDate = formatDateFromDays(now, originalDays)
     const newDate = formatDateFromDays(now, newDays)
 
-    const parts = []
-    if (reduction > 0 && selectedCategory) {
-      parts.push(`Kurangi ${selectedCategory} ${formatRp(reduction)}`)
-    }
-    if (incomeIncrease > 0) {
-      parts.push(`tambah pemasukan ${formatRp(incomeIncrease)}`)
+      const parts = []
+      if (targetCategorySpend > 0 && selectedCategory) {
+        if (categorySavings > 0) {
+          parts.push(`${selectedCategory} jadi ${formatRp(targetCategorySpend)}/bulan, hemat ${formatRp(categorySavings)}/bulan`)
+        } else {
+          parts.push(`${selectedCategory} tetap ${formatRp(targetCategorySpend)}/bulan`)
+        }
+      }
+      if (incomeIncrease > 0) {
+        parts.push(`tambah pemasukan ${formatRp(incomeIncrease)}`)
     }
     const summaryAction = parts.join(" + ")
 
@@ -131,12 +140,13 @@ export default function WhatIfModal({ open, onClose, transactions }) {
       daysSaved,
       originalDate: origDate,
       newDate: newDate,
-      reductionPct: categoryAvg > 0 ? ((reduction / categoryAvg) * 100).toFixed(0) : 0,
+      targetSpendPct: categoryAvg > 0 ? ((targetCategorySpend / categoryAvg) * 100).toFixed(0) : 0,
+      categorySavings,
       summaryAction,
     }
-  }, [totalExtra, selectedGoal, transactions, monthlyContributions, reduction, incomeIncrease, selectedCategory, categoryAvg])
+  }, [totalExtra, selectedGoal, transactions, monthlyContributions, targetCategorySpend, incomeIncrease, selectedCategory, categoryAvg, categorySavings])
 
-  const hasInput = reduction > 0 || incomeIncrease > 0
+  const hasInput = targetCategorySpend > 0 || incomeIncrease > 0
 
   return (
     <Sheet
@@ -157,7 +167,7 @@ export default function WhatIfModal({ open, onClose, transactions }) {
       </p>
 
       <div className="space-y-3">
-        {/* Expense reduction */}
+        {/* Expense target */}
         <SelectField
           label="Kurangi Pengeluaran (opsional)"
           value={selectedCategory}
@@ -175,7 +185,7 @@ export default function WhatIfModal({ open, onClose, transactions }) {
 
         <div>
           <label htmlFor="reduction-amount" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
-            Jumlah Pengurangan (Rp)
+            Jumlah Pengurangan yang Diharapkan (Rp)
           </label>
           <input
             id="reduction-amount"
@@ -186,11 +196,11 @@ export default function WhatIfModal({ open, onClose, transactions }) {
             onChange={e => setRawReduction(formatInputRupiah(e.target.value))}
             className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
           />
-          {selectedCategory && categoryAvg > 0 && reduction > 0 && (
+          {selectedCategory && categoryAvg > 0 && targetCategorySpend > 0 && (
             <p className="text-[10px] text-earth-500 mt-1 px-1">
-              {reduction >= categoryAvg
-                ? `⚠ Melebihi rata-rata ${selectedCategory}`
-                : `${result?.reductionPct || 0}% dari rata-rata ${selectedCategory}`}
+              {targetCategorySpend >= categoryAvg
+                ? `Target di atas atau sama dengan rata-rata ${selectedCategory}, tidak ada penghematan`
+                : `Target ${result?.targetSpendPct || 0}% dari rata-rata ${selectedCategory}, hemat ${formatRp(categorySavings)}/bulan`}
             </p>
           )}
         </div>
@@ -324,7 +334,8 @@ export default function WhatIfModal({ open, onClose, transactions }) {
       <div className="mt-4 rounded-2xl p-3 border border-earth-200">
         <p className="text-[10px] font-bold text-earth-700 mb-1">Cara kerja:</p>
         <ul className="text-[10px] text-earth-600 space-y-0.5 list-disc list-inside">
-          <li>Pilih kategori pengeluaran yang ingin dikurangi (opsional)</li>
+          <li>Pilih kategori pengeluaran yang ingin diatur (opsional)</li>
+          <li>Masukkan target pengeluaran bulanan baru untuk kategori tersebut</li>
           <li>Tambah pemasukan tambahan per bulan (opsional)</li>
           <li>Pilih goal yang ingin dipercepat</li>
           <li>Lihat perbandingan timeline pencapaian goal</li>
