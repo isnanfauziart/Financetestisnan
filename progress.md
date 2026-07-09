@@ -218,6 +218,31 @@ Dev mode logs a warning but the page still renders. Production minified build cr
   - `Data & Sesi`
 - Kept identity visible near the top and surfaced plan/access information above preferences.
 - Preserved useful settings controls (`Saldo Awal`, sound, haptics) and logout.
+
+## Session: July 9, 2026
+
+### Updates Made
+- Refined Stats insights cards by removing the decorative empty oval and replacing it with a cleaner premium card treatment.
+- Fixed mobile month-comparison controls so the compare header stacks cleanly and month/year selectors have full width on small screens.
+- Added a shared Lucide-only category/service icon system and applied it to budget cards plus bills list/card/detail UI.
+
+### Files Changed
+- Created: `src/lib/categoryIcons.js`
+- Modified:
+  - `src/components/BudgetCard.jsx`
+  - `src/components/BillsSection.jsx`
+  - `src/components/BillsCard.jsx`
+  - `src/components/BillPayModal.jsx`
+  - `src/app/dashboard/StatsTab.jsx`
+  - `src/app/globals.css`
+
+### Decisions
+- Kept iconography fully dependency-light by using `lucide-react` only, no brand/logo assets.
+- Preserved the warm/premium palette by mapping category/service icons to existing earth/sage/violet/amber tints.
+- Limited scope to the requested surfaces; no data/API behavior changes.
+
+### Verification
+- `npm run build` passes successfully after the UI updates.
 - Verified `Profil` does not reintroduce bills or report ownership.
 
 ### Files Changed
@@ -524,6 +549,42 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
 ### Notes
 - The note system currently uses budgets and bills plus existing dashboard state; it does not yet use goals/events directly
 - Further expansion can add goal progress or event pressure as additional note signals without changing the Home JSX structure
+
+## Session: July 6, 2026 (continued — insight cleanup, compare controls, and card icons)
+
+### Goal
+- Clean up unnecessary insight decoration, fix cramped month comparison selectors on mobile, and add a shared icon system for budgets and bills using `lucide-react` only.
+
+### Updates Made
+- Removed the empty decorative oval from insight cards and replaced it with a cleaner premium card treatment
+- Reworked the mobile layout of `Bandingkan Bulan` so month/year controls have enough space and KPI cards stack more naturally on smaller screens
+- Added a shared icon mapping layer in `src/lib/categoryIcons.js`
+  - category icons for budgets/categories
+  - service icons for bills
+  - warm tinted icon backgrounds for consistency with the app's visual language
+- Applied the shared icon system to:
+  - `src/components/BudgetCard.jsx`
+  - `src/components/BillsSection.jsx`
+  - `src/components/BillsCard.jsx`
+  - `src/components/BillPayModal.jsx`
+- Added one follow-up consistency fix in `BillPayModal` so bill frequency labels display in Indonesian like the bills list
+
+### Files Changed
+- `src/app/globals.css`
+- `src/app/dashboard/StatsTab.jsx`
+- `src/lib/categoryIcons.js` (new)
+- `src/components/BudgetCard.jsx`
+- `src/components/BillsSection.jsx`
+- `src/components/BillsCard.jsx`
+- `src/components/BillPayModal.jsx`
+
+### Verification
+- `npm run build` passes successfully after these UI changes
+- Dashboard route builds successfully at `317 kB` / `414 kB` first load
+
+### Notes
+- The icon system currently uses `lucide-react` only, per the approved direction, so there are no external logo assets to manage yet
+- A useful next follow-up would be applying the same icon system to transaction rows and other category-heavy surfaces for full visual consistency
 
 ### Key Decisions
 - **Per-month records** (user chose this over templates+overrides — accepts the friction, mitigated with "Saran budget" pills)

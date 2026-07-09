@@ -347,42 +347,44 @@ export default function StatsTab({
 
           {/* Month comparison */}
           <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-bold font-display text-earth-800">Bandingkan Bulan</h3>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2.5 mb-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-bold font-display text-earth-800">Bandingkan Bulan</h3>
+                <p className="text-[10px] text-earth-500 mt-1">Default: bulan ini vs bulan lalu</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                 <button
                   type="button"
                   onClick={resetComparePeriods}
-                  className="text-[11px] font-bold py-1.5 px-3 rounded-full transition-all bg-earth-50 text-earth-600 hover:bg-earth-100"
+                  className="text-[11px] font-bold py-2 px-3 rounded-full transition-all bg-earth-50 text-earth-600 hover:bg-earth-100"
                 >
                   Reset ke bulan ini
                 </button>
-                <button onClick={() => setCompareMode(!compareMode)} aria-label="Tampilkan perbandingan bulan" className="text-[11px] font-bold py-1.5 px-3 rounded-full transition-all"
+                <button onClick={() => setCompareMode(!compareMode)} aria-label="Tampilkan perbandingan bulan" className="text-[11px] font-bold py-2 px-3 rounded-full transition-all"
                   style={{ background: compareMode ? THEME.heroBg : THEME.surfaceWarm, color: compareMode ? "white" : THEME.textSecondary }}>
                   {compareMode ? "Sembunyikan" : "Bandingkan"}
                 </button>
               </div>
             </div>
-            <p className="text-[10px] text-earth-500 mb-3">Default: bulan ini vs bulan lalu</p>
             {compareMode && (
               <div className="space-y-4 mt-3 animate-slide-down">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                   <div>
                     <p className="text-[10px] font-bold text-earth-500 mb-1.5">Periode utama</p>
-                    <div className="flex gap-2">
-                      <div className="flex-1"><SelectField value={compareMonthA} onChange={setCompareMonthA} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
-                      <div className="w-20"><SelectField value={compareYearA} onChange={setCompareYearA} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_120px] gap-2">
+                      <div className="min-w-0"><SelectField value={compareMonthA} onChange={setCompareMonthA} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
+                      <div className="min-w-0"><SelectField value={compareYearA} onChange={setCompareYearA} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
                     </div>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-earth-500 mb-1.5">Bandingkan dengan</p>
-                    <div className="flex gap-2">
-                      <div className="flex-1"><SelectField value={compareMonthB} onChange={setCompareMonthB} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
-                      <div className="w-20"><SelectField value={compareYearB} onChange={setCompareYearB} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_120px] gap-2">
+                      <div className="min-w-0"><SelectField value={compareMonthB} onChange={setCompareMonthB} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
+                      <div className="min-w-0"><SelectField value={compareYearB} onChange={setCompareYearB} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {[
                     { label: "Pemasukan", a: compareDataA.income, b: compareDataB.income, color: THEME.income },
                     { label: "Pengeluaran", a: compareDataA.expense, b: compareDataB.expense, color: THEME.expense },

@@ -1,7 +1,8 @@
 "use client"
-import { Pencil, Trash2, Wallet } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
+import { getCategoryVisual } from "@/lib/categoryIcons"
 import BudgetProgressBar from "./BudgetProgressBar"
 
 function statusLabel(pct) {
@@ -15,6 +16,7 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete })
   const safeLimit = Math.max(budget.limit, 1)
   const pct = (spent / safeLimit) * 100
   const status = statusLabel(pct)
+  const { icon: CategoryIcon, tint } = getCategoryVisual(budget.kategori)
 
   return (
     <div
@@ -26,17 +28,27 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete })
           aria-label={`View ${budget.kategori} transactions`}
           className="flex-1 min-w-0 text-left"
         >
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <p className="text-sm font-bold text-earth-800 truncate">{budget.kategori}</p>
-            {budget.akun && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-earth-50 text-earth-600 flex-shrink-0">
-                {budget.akun}
-              </span>
-            )}
+          <div className="flex items-start gap-3">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+              style={{ background: tint.bg, color: tint.color }}
+            >
+              <CategoryIcon size={17} strokeWidth={2.2} aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                <p className="text-sm font-bold text-earth-800 truncate">{budget.kategori}</p>
+                {budget.akun && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-earth-50 text-earth-600 flex-shrink-0">
+                    {budget.akun}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-earth-500">
+                {formatRp(spent)} <span className="text-earth-400">/ {formatRp(budget.limit)}</span>
+              </p>
+            </div>
           </div>
-          <p className="text-[11px] text-earth-500">
-            {formatRp(spent)} <span className="text-earth-400">/ {formatRp(budget.limit)}</span>
-          </p>
         </button>
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: status.color + "18", color: status.color }}>

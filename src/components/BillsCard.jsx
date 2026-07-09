@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Receipt, AlertTriangle, Clock, ChevronRight } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
+import { getBillVisual } from "@/lib/categoryIcons"
 
 const STATUS_COLORS = {
   overdue: THEME.danger,
@@ -54,6 +55,7 @@ export default function BillsCard({ onPay, onViewAll }) {
         {bills.map((bill, i) => {
           const statusColor = STATUS_COLORS[bill.status] || THEME.textTertiary
           const isUrgent = bill.status === "overdue" || bill.status === "due_today" || bill.status === "due_soon"
+          const { icon: BillIcon, tint } = getBillVisual(bill.kategoriBill)
           return (
             <button
               key={bill.id}
@@ -63,10 +65,16 @@ export default function BillsCard({ onPay, onViewAll }) {
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: statusColor + "18", color: statusColor }}
+                  className="relative w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border border-white/70"
+                  style={{ background: tint.bg, color: tint.color }}
                 >
-                  {isUrgent ? <AlertTriangle size={14} aria-hidden="true" /> : <Clock size={14} aria-hidden="true" />}
+                  <BillIcon size={14} strokeWidth={2.1} aria-hidden="true" />
+                  <span
+                    className="absolute -right-1 -bottom-1 w-4.5 h-4.5 rounded-full border border-white flex items-center justify-center"
+                    style={{ background: statusColor, color: "white" }}
+                  >
+                    {isUrgent ? <AlertTriangle size={9} strokeWidth={2.5} aria-hidden="true" /> : <Clock size={9} strokeWidth={2.5} aria-hidden="true" />}
+                  </span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-sm text-earth-800 truncate">{bill.nama}</p>
@@ -75,7 +83,7 @@ export default function BillsCard({ onPay, onViewAll }) {
                     {bill.status === "due_today" && "Hari ini"}
                     {bill.status === "due_soon" && "Besok"}
                     {bill.status === "upcoming" && `${bill.daysUntilDue} hari lagi`}
-                    {" · tgl "}{bill.tanggalJatuhTempo}
+                    {" · "}{bill.kategoriBill}{" · tgl "}{bill.tanggalJatuhTempo}
                   </p>
                 </div>
               </div>

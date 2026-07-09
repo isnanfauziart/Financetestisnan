@@ -4,6 +4,7 @@ import { Plus, Receipt, AlertTriangle, Clock, CheckCircle, Power, Trash2 } from 
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRpFull } from "@/app/dashboard/_components/helpers"
 import EmptyState from "@/app/dashboard/_components/EmptyState"
+import { getBillVisual } from "@/lib/categoryIcons"
 import BillSetupModal from "./BillSetupModal"
 import BillPayModal from "./BillPayModal"
 
@@ -174,19 +175,26 @@ export default function BillsSection({ onToast, refreshTrigger }) {
             {activeBills.map(bill => {
               const StatusIcon = STATUS_ICONS[bill.status] || Clock
               const statusColor = STATUS_COLORS[bill.status] || THEME.textTertiary
+              const { icon: BillIcon, tint } = getBillVisual(bill.kategoriBill)
               return (
                 <div
                   key={bill.id}
                   className="bento-tile bg-white border border-earth-100 shadow-warm p-3.5 rounded-2xl flex items-center gap-3 group"
                 >
                   <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: statusColor + "18", color: statusColor }}
+                    className="relative w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+                    style={{ background: tint.bg, color: tint.color }}
                   >
-                    <StatusIcon size={16} aria-hidden="true" />
+                    <BillIcon size={16} strokeWidth={2.1} aria-hidden="true" />
+                    <span
+                      className="absolute -right-1 -bottom-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center"
+                      style={{ background: statusColor, color: "white" }}
+                    >
+                      <StatusIcon size={10} strokeWidth={2.6} aria-hidden="true" />
+                    </span>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-earth-800 truncate">{bill.nama}</p>
                       {bill.status === "overdue" && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.dangerBg, color: THEME.danger }}>
@@ -255,36 +263,39 @@ export default function BillsSection({ onToast, refreshTrigger }) {
               </button>
               {showInactive && (
                 <div className="space-y-2">
-                  {inactiveBills.map(bill => (
-                    <div
-                      key={bill.id}
-                      className="bento-tile bg-white/60 border border-earth-100 shadow-warm p-3.5 rounded-2xl flex items-center gap-3 opacity-60"
-                    >
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-earth-100 text-earth-400">
-                        <Receipt size={16} aria-hidden="true" />
+                  {inactiveBills.map(bill => {
+                    const { icon: BillIcon, tint } = getBillVisual(bill.kategoriBill)
+                    return (
+                      <div
+                        key={bill.id}
+                        className="bento-tile bg-white/60 border border-earth-100 shadow-warm p-3.5 rounded-2xl flex items-center gap-3 opacity-60"
+                      >
+                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/70" style={{ background: tint.bg, color: tint.color }}>
+                          <BillIcon size={16} strokeWidth={2.1} aria-hidden="true" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-earth-600 truncate">{bill.nama}</p>
+                          <p className="text-[11px] text-earth-400">{FREQ_LABELS[bill.frekuensi]} · {bill.kategoriBill}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleToggleActive(bill)}
+                            className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-green-100 flex items-center justify-center text-earth-600 hover:text-green-600"
+                            aria-label={`Aktifkan ${bill.nama}`}
+                          >
+                            <Power size={10} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(bill)}
+                            className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500"
+                            aria-label={`Hapus ${bill.nama}`}
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-earth-600 truncate">{bill.nama}</p>
-                        <p className="text-[11px] text-earth-400">{FREQ_LABELS[bill.frekuensi]} · {bill.kategoriBill}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleToggleActive(bill)}
-                          className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-green-100 flex items-center justify-center text-earth-600 hover:text-green-600"
-                          aria-label={`Aktifkan ${bill.nama}`}
-                        >
-                          <Power size={10} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(bill)}
-                          className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500"
-                          aria-label={`Hapus ${bill.nama}`}
-                        >
-                          <Trash2 size={10} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
