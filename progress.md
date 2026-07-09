@@ -777,6 +777,32 @@ Remove the Smart Insights section from the Overview tab. The Statistics page alr
 
 ### Notes
 - This is a UI-only tweak; it does not change transaction saving, refetching, or undo behavior.
+
+## Session: July 7, 2026 (continued — prevent toast countdown reset on scroll)
+
+### Problem
+- The shorter transaction success toast was visually faster, but its countdown restarted whenever the user scrolled.
+- On mobile, repeated scrolling could keep the toast visible indefinitely.
+
+### Root Cause
+- `Toast` restarts its timer when any dependency in its dismissal effect changes.
+- In `src/app/dashboard/page.js`, the toast was rendered with inline `onDone={() => setToast(null)}`.
+- Scroll updates `scrollY`, which rerenders the dashboard and recreates that inline callback each frame.
+- The changed `onDone` identity caused the toast effect to clean up and restart, resetting the countdown.
+
+### Fix Applied
+- **`src/app/dashboard/page.js`**
+  - Added a stable `dismissToast` callback via `useCallback`.
+  - Passed `onDone={dismissToast}` to `Toast` instead of an inline function.
+
+- **`tests/components/Toast.test.jsx`**
+  - Added a lifecycle test proving the toast countdown does not restart when rerendered with the same callback.
+
+### Verification
+- `npm test -- tests/components/Toast.test.jsx` passes.
+
+### Notes
+- The fix is at the parent callback identity level; the `Toast` component itself did not need behavioral changes.
 - **`src/app/dashboard/HomeTab.jsx`** (3 edits):
   - Removed entire Smart Insights JSX block (was lines 121-168)
   - Removed `insights,` from props destructuring

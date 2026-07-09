@@ -79,6 +79,25 @@ describe("Toast", () => {
     vi.useRealTimers()
   })
 
+  it("does not restart countdown when rerendered with the same onDone callback", () => {
+    vi.useFakeTimers()
+    const onDone = vi.fn()
+    const { rerender } = render(<Toast open={true} onDone={onDone} duration={1000}>x</Toast>)
+
+    act(() => {
+      vi.advanceTimersByTime(800)
+    })
+
+    rerender(<Toast open={true} onDone={onDone} duration={1000}>x</Toast>)
+
+    act(() => {
+      vi.advanceTimersByTime(250)
+    })
+
+    expect(onDone).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
   it("does not call onDone when duration=0 (manual dismiss)", () => {
     vi.useFakeTimers()
     const onDone = vi.fn()

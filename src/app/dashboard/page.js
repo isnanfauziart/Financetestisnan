@@ -517,6 +517,10 @@ export default function Dashboard() {
     setToast({ msg, type, action, duration: options.duration })
   }
 
+  const dismissToast = useCallback(() => {
+    setToast(null)
+  }, [])
+
   const submitTransaction = async ({ formData, rawAmount, txType }) => {
     if (!formData.tanggal || !formData.kategori || !rawAmount) {
       showToast("Tanggal, kategori, dan jumlah wajib diisi!", "error")
@@ -846,7 +850,7 @@ export default function Dashboard() {
       {toast && (
         <Toast
           open={!!toast}
-          onDone={() => setToast(null)}
+          onDone={dismissToast}
           variant={toast.type}
           position="bottom"
           duration={toast.duration ?? (toast.action ? 8000 : 5000)}
