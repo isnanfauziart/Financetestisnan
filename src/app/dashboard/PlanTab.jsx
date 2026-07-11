@@ -41,7 +41,7 @@ export default function PlanTab({
   return (
     <div className="px-5 pt-4 animate-bento-in" key="plan-tab">
       <div className="space-y-5">
-        <div className="glass rounded-2xl p-2" role="tablist" aria-label="Navigasi Rencana">
+        <nav className="glass rounded-2xl p-2" aria-label="Navigasi Rencana">
           <div className="grid grid-cols-4 gap-2">
             {PLAN_SECTIONS.map((section) => {
               const isActive = currentSection === section.key
@@ -49,8 +49,7 @@ export default function PlanTab({
                 <button
                   key={section.key}
                   type="button"
-                  role="tab"
-                  aria-selected={isActive}
+                  aria-current={isActive ? "page" : undefined}
                   onClick={() => {
                     if (onSectionChange) {
                       onSectionChange(section.key)
@@ -58,7 +57,7 @@ export default function PlanTab({
                     }
                     setInternalActiveSection(section.key)
                   }}
-                  className={`rounded-2xl px-3 py-2.5 text-xs font-bold transition-all ${
+                  className={`rounded-2xl px-3 py-2.5 text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${
                     isActive
                       ? "bg-earth-900 text-white shadow-warm"
                       : "bg-white/70 text-earth-500 hover:bg-white hover:text-earth-800"
@@ -69,7 +68,7 @@ export default function PlanTab({
               )
             })}
           </div>
-        </div>
+        </nav>
 
         {currentSection === "goal" && (
           <GoalsSection

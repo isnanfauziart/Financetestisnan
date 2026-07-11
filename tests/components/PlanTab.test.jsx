@@ -38,10 +38,10 @@ describe("PlanTab planning ownership", () => {
   it("shows segmented planning navigation labels", () => {
     render(<PlanTab {...createProps()} />)
 
-    expect(screen.getByRole("tab", { name: "Goal" })).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: "Budget" })).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: "Tagihan" })).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: "Simulasi" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /goal/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /budget/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /tagihan/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /simulasi/i })).toBeInTheDocument()
   })
 
   it("keeps goals as the default owner section", () => {
@@ -55,7 +55,7 @@ describe("PlanTab planning ownership", () => {
   it("moves budget ownership into the Budget section", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(screen.getByRole("tab", { name: "Budget" }))
+    fireEvent.click(screen.getByRole("button", { name: /budget/i }))
 
     expect(screen.getByText("Budgets section mock")).toBeInTheDocument()
     expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
@@ -64,7 +64,7 @@ describe("PlanTab planning ownership", () => {
   it("moves bill management into the Tagihan section", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(screen.getByRole("tab", { name: "Tagihan" }))
+    fireEvent.click(screen.getByRole("button", { name: /tagihan/i }))
 
     expect(screen.getByText("Bills section mock")).toBeInTheDocument()
     expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
@@ -80,11 +80,18 @@ describe("PlanTab planning ownership", () => {
   it("keeps future-oriented tools under Simulasi", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(screen.getByRole("tab", { name: "Simulasi" }))
+    fireEvent.click(screen.getByRole("button", { name: /simulasi/i }))
 
     expect(screen.getByRole("button", { name: "Open What-If Scenario simulator" })).toBeInTheDocument()
     expect(screen.getByText("FI tracker mock")).toBeInTheDocument()
     expect(screen.getByText("Debts section mock")).toBeInTheDocument()
     expect(screen.getByText("Event budgets section mock")).toBeInTheDocument()
+  })
+
+  it("marks the current section with aria-current", () => {
+    render(<PlanTab {...createProps({ activeSection: "simulasi", onSectionChange: vi.fn() })} />)
+
+    expect(screen.getByRole("button", { name: /simulasi/i })).toHaveAttribute("aria-current", "page")
+    expect(screen.getByRole("button", { name: /goal/i })).not.toHaveAttribute("aria-current")
   })
 })
