@@ -51,15 +51,16 @@ async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
 }
 
 function formatDate(dateStr) {
-  const d = new Date(dateStr)
-  const day = d.getDate()
-  const month = AVAILABLE_MONTHS[d.getMonth()]
-  const year = d.getFullYear()
-  return `${day} ${month} ${year}`
+  const parts = String(dateStr).split("-")
+  if (parts.length !== 3) return dateStr
+  const monthIdx = parseInt(parts[1], 10) - 1
+  return `${parseInt(parts[2], 10)} ${AVAILABLE_MONTHS[monthIdx]} ${parts[0]}`
 }
 
 function getMonthName(dateStr) {
-  return AVAILABLE_MONTHS[new Date(dateStr).getMonth()]
+  const parts = String(dateStr).split("-")
+  if (parts.length < 2) return ""
+  return AVAILABLE_MONTHS[parseInt(parts[1], 10) - 1] || ""
 }
 
 export async function POST(request) {
@@ -100,7 +101,7 @@ export async function POST(request) {
 
     const formattedDate = formatDate(tanggal)
     const month = getMonthName(tanggal)
-    const year = new Date(tanggal).getFullYear()
+    const year = parseInt(String(tanggal).split("-")[0], 10)
     const sheetName = type === "income" ? "Pemasukan" : type === "savings" ? "Tabungan" : "Pengeluaran"
 
     const row = [

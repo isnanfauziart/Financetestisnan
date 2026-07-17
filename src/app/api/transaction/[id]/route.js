@@ -4,18 +4,17 @@ import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 const ALLOWED_TABS = ["Pemasukan", "Pengeluaran", "Tabungan"]
 
 function formatDate(dateStr) {
-  const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return dateStr
-  const day = d.getDate()
-  const month = AVAILABLE_MONTHS[d.getMonth()]
-  const year = d.getFullYear()
-  return `${day} ${month} ${year}`
+  const parts = String(dateStr).split("-")
+  if (parts.length !== 3) return dateStr
+  const monthIdx = parseInt(parts[1], 10) - 1
+  if (isNaN(monthIdx)) return dateStr
+  return `${parseInt(parts[2], 10)} ${AVAILABLE_MONTHS[monthIdx]} ${parts[0]}`
 }
 
 function getMonthName(dateStr) {
-  const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return ""
-  return AVAILABLE_MONTHS[d.getMonth()]
+  const parts = String(dateStr).split("-")
+  if (parts.length < 2) return ""
+  return AVAILABLE_MONTHS[parseInt(parts[1], 10) - 1] || ""
 }
 
 export async function PUT(request, { params }) {
@@ -35,7 +34,7 @@ export async function PUT(request, { params }) {
 
     const formattedDate = formatDate(tanggal)
     const month = getMonthName(tanggal)
-    const year = new Date(tanggal).getFullYear()
+    const year = parseInt(String(tanggal).split("-")[0], 10)
     const amount = parseFloat(String(jumlah).replace(/[^0-9.]/g, ""))
 
     // Format: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M | Y | Y2 | EventID | EventSubKategori

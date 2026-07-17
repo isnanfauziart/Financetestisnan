@@ -97,9 +97,12 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
 }
 
 function toDateInput(dateStr) {
-  if (!dateStr) return new Date().toISOString().split("T")[0]
+  if (!dateStr) {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+  }
   const m = String(dateStr).match(/^(\d+)\s+(\w+)\s+(\d+)/)
   if (!m) return dateStr
-  const d = new Date(+m[3], MONTHS_MAP[m[2]] ?? 0, +m[1])
-  return d.toISOString().split("T")[0]
+  const monthIdx = MONTHS_MAP[m[2]] ?? 0
+  return `${m[3]}-${String(monthIdx + 1).padStart(2, "0")}-${m[1].padStart(2, "0")}`
 }
