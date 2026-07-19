@@ -27,6 +27,7 @@ import SetupSaldoAwal from "@/components/SetupSaldoAwal"
 import BillPayModal from "@/components/BillPayModal"
 import BillSetupModal from "@/components/BillSetupModal"
 import EventCelebration from "@/components/EventCelebration"
+import LegacySheetConnector from "@/components/LegacySheetConnector"
 import { useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
 
@@ -43,6 +44,7 @@ export default function Dashboard() {
   })
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
+  const [needsSheetConnection, setNeedsSheetConnection] = useState(false)
   const [lastSyncAt, setLastSyncAt] = useState(() => {
     if (typeof window === "undefined") return null
     return readCache()?.cachedAt || null
@@ -121,9 +123,16 @@ export default function Dashboard() {
     fetch("/api/dashboard")
       .then(r => r.json())
       .then(d => {
+        if (d.needsSheetConnection || d.code === "SHEET_CONNECTION_REQUIRED") {
+          setNeedsSheetConnection(true)
+          setData(null)
+          setError(null)
+          return
+        }
         if (d.error) {
           setError(d.error)
         } else {
+          setNeedsSheetConnection(false)
           setData(d)
           setError(null)
           const ts = d.serverTimestamp || new Date().toISOString()
@@ -135,7 +144,7 @@ export default function Dashboard() {
       .finally(() => { setLoading(false); setRefreshing(false) })
   }, [session, data])
 
-  useEffect(() => { if (session && !data) fetchData() }, [session, data, fetchData])
+  useEffect(() => { if (session) fetchData() }, [session?.user?.email])
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true)
@@ -656,6 +665,20 @@ export default function Dashboard() {
         </div>
         <p className="text-sm font-semibold text-earth-600">Memuat data keuangan...</p>
       </div>
+    )
+  }
+
+  if (needsSheetConnection) {
+    return (
+      <LegacySheetConnector
+        userName={session?.user?.name}
+        onConnected={() => {
+          setNeedsSheetConnection(false)
+          setLoading(true)
+          fetchData()
+        }}
+        onSignOut={() => signOut({ callbackUrl: "/" })}
+      />
     )
   }
 

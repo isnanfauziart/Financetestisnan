@@ -19,7 +19,10 @@ GOOGLE_CLIENT_ID=isi_client_id_dari_google_cloud
 GOOGLE_CLIENT_SECRET=isi_client_secret_dari_google_cloud
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=random_string_panjang_minimal_32_karakter
-SPREADSHEET_ID=1fjleD98FeBZIhAybqM9pTfNgnHBxWdTV7sLj24W7TEY
+LEGACY_SHEET_OWNER_EMAIL=email_owner@gmail.com
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=isi_client_id_dari_google_cloud
+NEXT_PUBLIC_GOOGLE_PICKER_API_KEY=isi_api_key_google_picker
+NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER=isi_project_number_google_cloud
 ```
 
 Untuk `NEXTAUTH_SECRET`, buka cmd dan jalankan:

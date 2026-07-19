@@ -2,6 +2,7 @@ import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { buildBillSummary } from "@/lib/bills"
 import { pickAmount } from "@/lib/parseSheetRow"
+import { sheetConnectionRequiredPayload } from "@/lib/legacySheet"
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +10,9 @@ export async function GET(request) {
   const auth = await getAuthContext(request)
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  if (auth.needsSheetConnection) {
+    return Response.json(sheetConnectionRequiredPayload(), { status: 409 })
   }
   const { accessToken, spreadsheetId } = auth
 

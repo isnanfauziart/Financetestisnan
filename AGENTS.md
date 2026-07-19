@@ -70,7 +70,10 @@ All 5 vars required at runtime:
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — Google Cloud OAuth credentials
 - `NEXTAUTH_URL` — base URL (local or deployed)
 - `NEXTAUTH_SECRET` — random 32+ char string (generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
-- `SPREADSHEET_ID` — target Google Sheets spreadsheet ID
+- `LEGACY_SHEET_OWNER_EMAIL` — owner email allowed to connect the pre-Artami private spreadsheet
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — browser OAuth client ID for Google Picker (same project as server OAuth)
+- `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY` — restricted browser API key for Google Picker
+- `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` — Google Cloud project number for Picker `setAppId`
 
 **Additional vars after Phase 1 (Supabase):**
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
@@ -97,7 +100,7 @@ One optional tab for the Bills feature (Phase C):
 If tab names in sheets differ, update `src/app/api/dashboard/route.js` (and the budgets/goals/bills routes for those tabs).
 
 ## OAuth scope
-Google OAuth must request `https://www.googleapis.com/auth/spreadsheets` and `https://www.googleapis.com/auth/drive.file` (see `src/app/api/auth/[...nextauth]/route.js`).
+Google OAuth must request `https://www.googleapis.com/auth/drive.file` only for Sheets access (plus `openid email profile` for sign-in). Do not request `https://www.googleapis.com/auth/spreadsheets`. Normal users get app-created spreadsheets; the configured owner connects one existing private spreadsheet through Google Picker.
 
 ## Data flow
 - `src/app/api/auth/[...nextauth]/route.js` — NextAuth config, stores `accessToken` in session
@@ -311,4 +314,3 @@ These rules ensure AGENTS.md stays current as commercialization progresses.
 2. Read `docs/commercialization-prompts.md` for the full task breakdown of the current phase
 3. Follow the step-by-step prompts in order (each is self-contained with context)
 4. The `[PHASE-STATUS]` marker in the phase tracker is grep-able for quick status checks
-

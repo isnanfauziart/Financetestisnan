@@ -1,5 +1,16 @@
 const TX_HEADERS = [["Tanggal", "ID", "Keterangan", "Kategori", "Jumlah", "Pajak", "Biaya", "AkunBank", "Net", "Catatan", "M", "Y", "Y2", "EventID", "EventSubKategori"]]
 
+function getLastCol(cols) {
+  let n = cols
+  let out = ""
+  while (n > 0) {
+    const rem = (n - 1) % 26
+    out = String.fromCharCode(65 + rem) + out
+    n = Math.floor((n - 1) / 26)
+  }
+  return out
+}
+
 export const ALL_TABS = [
   // Transaction tabs (A-O, 15 columns)
   { name: "Pemasukan", headers: TX_HEADERS, cols: 15 },
@@ -53,7 +64,7 @@ export async function createUserSheet(accessToken, userName) {
   // 2. Write headers to the initial 3 tabs
   for (let i = 0; i < 3; i++) {
     const tab = ALL_TABS[i]
-    const lastCol = String.fromCharCode(64 + tab.cols) // A=65, so 13 cols → M
+    const lastCol = getLastCol(tab.cols)
     const headerRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab.name + "!A1:" + lastCol + "1")}?valueInputOption=USER_ENTERED`,
       {
@@ -101,7 +112,7 @@ export async function createUserSheet(accessToken, userName) {
 
   // 4. Write headers for extra tabs
   for (const tab of extraTabs) {
-    const lastCol = String.fromCharCode(64 + tab.cols)
+    const lastCol = getLastCol(tab.cols)
     const headerRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab.name + "!A1:" + lastCol + "1")}?valueInputOption=USER_ENTERED`,
       {
@@ -120,4 +131,74 @@ export async function createUserSheet(accessToken, userName) {
   }
 
   return spreadsheetId
+}
+
+export async function ensureArtamiSheetSchema(accessToken, spreadsheetId) {
+  const metadataRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  if (!metadataRes.ok) {
+    const err = await metadataRes.text()
+    throw new Error(`Gagal membaca spreadsheet: ${err}`)
+  }
+
+  const metadata = await metadataRes.json()
+  const existingTabs = new Set((metadata.sheets || []).map(sheet => sheet.properties?.title).filter(Boolean))
+  const missingTabs = ALL_TABS.filter(tab => !existingTabs.has(tab.name))
+
+  if (missingTabs.length > 0) {
+    const addSheetsRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requests: missingTabs.map(tab => ({
+            addSheet: {
+              properties: {
+                title: tab.name,
+                gridProperties: { rowCount: 1000, columnCount: tab.cols },
+              },
+            },
+          })),
+        }),
+      }
+    )
+
+    if (!addSheetsRes.ok) {
+      const err = await addSheetsRes.text()
+      throw new Error(`Gagal menambah tab legacy: ${err}`)
+    }
+  }
+
+  for (const tab of missingTabs) {
+    const lastCol = getLastCol(tab.cols)
+    const headerRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tab.name + "!A1:" + lastCol + "1")}?valueInputOption=USER_ENTERED`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ values: tab.headers }),
+      }
+    )
+
+    if (!headerRes.ok) {
+      const err = await headerRes.text()
+      throw new Error(`Gagal menulis header tab ${tab.name}: ${err}`)
+    }
+  }
+
+  return { addedTabs: missingTabs.map(tab => tab.name) }
 }

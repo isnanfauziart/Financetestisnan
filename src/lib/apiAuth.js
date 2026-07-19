@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt"
 import { getOrCreateUser } from "./user"
 import { createUserSheet } from "./sheetManager"
 import { supabaseAdmin } from "./supabaseAdmin"
+import { needsLegacySheetConnection } from "./legacySheet"
 
 async function withRetry(fn, retries = 2, delayMs = 1000, label = "") {
   for (let i = 0; i <= retries; i++) {
@@ -76,6 +77,16 @@ export async function getAuthContext(request) {
   }
 
   if (!spreadsheetId) {
+    if (needsLegacySheetConnection(user)) {
+      return {
+        user,
+        accessToken: token.accessToken,
+        spreadsheetId: null,
+        tier: user.tier || "free",
+        needsSheetConnection: true,
+      }
+    }
+
     try {
       spreadsheetId = await withRetry(
         () => createUserSheet(token.accessToken, name),
