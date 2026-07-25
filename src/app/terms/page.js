@@ -25,7 +25,7 @@ export default function TermsOfService() {
                 Syarat & Ketentuan
               </h1>
               <p className="text-sm text-earth-500">
-                Terakhir diperbarui: 28 Juni 2026
+                Terakhir diperbarui: 25 Juli 2026
               </p>
             </div>
           </div>
@@ -77,7 +77,7 @@ export default function TermsOfService() {
               Artami menggunakan model pembayaran satu kali:
             </p>
             <ul className="list-disc list-inside space-y-2 text-earth-700">
-              <li><strong>Harga:</strong> Rp 49.000 untuk akses seumur hidup</li>
+              <li><strong>Harga:</strong> Rp 40.000 untuk akses seumur hidup</li>
               <li><strong>Tidak ada langganan:</strong> Tidak ada biaya berulang</li>
               <li><strong>Metode pembayaran:</strong> QRIS</li>
               <li><strong>Fitur gratis:</strong> 75 transaksi/bulan, 4 bulan riwayat, 3 anggaran, 1 tujuan</li>
@@ -103,8 +103,11 @@ export default function TermsOfService() {
 
           <section>
             <h2 className="text-lg font-bold text-earth-900 mb-3">6. Penghentian Layanan</h2>
+            <p className="text-earth-700 leading-relaxed mb-3">
+              Kami berhak menghentikan atau menangguhkan akun Anda jika Anda melanggar Syarat & Ketentuan ini. Anda juga dapat menghentikan penggunaan Layanan kapan saja dengan menghapus akun Anda. Penghapusan akun mencabut akses Pro, sedangkan email dan riwayat pembayaran tetap disimpan sebagaimana dijelaskan dalam Kebijakan Privasi.
+            </p>
             <p className="text-earth-700 leading-relaxed">
-              Kami berhak menghentikan atau menangguhkan akun Anda jika Anda melanggar Syarat & Ketentuan ini. Anda juga dapat menghentikan penggunaan Layanan kapan saja dengan menghapus akun Anda.
+              Jika Anda kembali menggunakan email yang sama, admin dapat memulihkan akses Pro tanpa pembayaran ulang setelah meninjau riwayat pembayaran dan menyetujui alasan yang sah. Pemulihan tidak otomatis dan dicatat untuk keperluan audit.
             </p>
           </section>
 

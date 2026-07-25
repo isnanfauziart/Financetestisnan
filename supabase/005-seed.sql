@@ -23,9 +23,9 @@ ON CONFLICT (key) DO NOTHING;
 -- =============================================================================
 -- ADMIN USERS
 -- =============================================================================
--- Add your admin email here (replace with your actual email)
--- INSERT INTO admins (email) VALUES ('your-email@gmail.com')
--- ON CONFLICT (email) DO NOTHING;
+INSERT INTO admins (email)
+VALUES ('isnanfauzi08@gmail.com')
+ON CONFLICT (email) DO NOTHING;
 
 -- =============================================================================
 -- USAGE LIMITS REFERENCE
@@ -40,7 +40,7 @@ ON CONFLICT (key) DO NOTHING;
 -- - Insights: 3 per week
 -- - History: 4 months
 
--- Paid Tier (Rp 49,000 one-time):
+-- Paid Tier (Rp 40,000 one-time):
 -- - Transactions: Unlimited
 -- - Budgets: Unlimited
 -- - Goals: Unlimited

@@ -586,6 +586,23 @@ Rename the hero "Total Balance" card to "Net Worth" (showing cumulative savings 
 - The icon system currently uses `lucide-react` only, per the approved direction, so there are no external logo assets to manage yet
 - A useful next follow-up would be applying the same icon system to transaction rows and other category-heavy surfaces for full visual consistency
 
+## Session: July 11, 2026
+
+### Updates Made
+- Created a new audit and planning document: `docs/UI & UX Analysis.md`
+- Consolidated the full read-only UI Designer and UX Architect findings into a checklist-driven reference
+- Structured the document into:
+  - what is already good / already implemented
+  - what still needs updating
+  - prioritized phases and quick wins
+
+### Files Changed
+- `docs/UI & UX Analysis.md` (new)
+- `progress.md`
+
+### Notes
+- The analysis file is intentionally written as a living checklist so future UI/UX updates can be marked complete over time
+
 ### Key Decisions
 - **Per-month records** (user chose this over templates+overrides — accepts the friction, mitigated with "Saran budget" pills)
 - **Account-less + matching account** for account filter
@@ -948,7 +965,7 @@ Hide the BudgetsSection on the Statistics tab when the filter is set to "Semua B
 ### Deliverable
 - Produced 12 concrete frontend-engineering recommendations ahead of the React Native + Expo port of Keuangan Isnan
   - 6 P0 (must-do before port): delete page.original.js + split page.js; extract insights/calendar/comparison/filters/trend to src/lib/; consolidate 6 duplicate MONTHS arrays into src/lib/dates.js; complete PWA (icons, screenshots, theme_color, service worker); add zod env validation; add /api/auth/exchange token endpoint for native OAuth
-  - 4 P1 (high impact, parallel with port): adopt Zustand for the dashboard store; code-split Recharts via 
+  - 4 P1 (high impact, parallel with port): adopt Zustand for the dashboard store; code-split Recharts via
 ext/dynamic; add Vitest+RTL for lib/ (concrete test list for parseRupiah, pickAmount, parseDateLoose, computeGoalProgress, insights, calendar, filters); add Sentry + lib/telemetry.js abstraction
   - 2 P2 (nice-to-have): API hardening (zod, error envelopes, Cache-Control, rate limit); single-source design tokens + JSDoc on lib/ + 	sconfig.json with llowJs+checkJs+
 oEmit+	arget: ES2022+moduleResolution: bundler+jsx: preserve+path alias @/*→./src/*+aseUrl: .+include: src/**/*`n  - 4 quick-wins: server-component split for the dashboard shell, modal focus trap, prefers-reduced-motion guard, move DrillDownModal to its own file
@@ -959,13 +976,14 @@ oEmit+	arget: ES2022+moduleResolution: bundler+jsx: preserve+path alias @/*→./
 - src/app/dashboard/HomeTab.jsx, StatsTab.jsx, WalletTab.jsx, ProfileTab.jsx`n- src/app/dashboard/_components/{helpers.js, goalUtils.js, constants.js, SelectField.jsx, EditTransactionModal.jsx} plus the other 6 files in that dir
 - src/components/{BudgetCard, BudgetsSection, GoalCard, GoalsSection, GoalCelebration, GoalProgressRing, GoalSetupModal, GoalContributeModal, BudgetSetupModal, BudgetDetailModal, BudgetProgressBar}.jsx (11 feature components)
 - src/app/api/{dashboard, transaction, transaction/[id], budgets, goals, auth/[...nextauth]}/route.js (6 route handlers)
-- src/lib/sheets.js, public/manifest.json, src/app/layout.js, 
+- src/lib/sheets.js, public/manifest.json, src/app/layout.js,
 ext.config.js, 	ailwind.config.js, package.json, jsconfig.json, AGENTS.md, progress.md`n
 ### Key Findings
 - page.original.js (57KB / 1548 lines) is dead code from the Phase 0 refactor — git rm candidate
 - 6 copies of month-name lookup across sheets.js, constants.js, goalUtils.js, helpers.js, pi/dashboard/route.js (2 places), pi/transaction/route.js (2 places) — port-nightmare if not consolidated
 - THEME (in _components/constants.js:1-25) duplicates the Tailwind color scales (	ailwind.config.js:12-119) — two names, one color, will drift
-- echarts is synchronous-imported in StatsTab.jsx:4 even though the Home tab never renders a chart — ~150KB of dead weight on first paint
+- 
+echarts is synchronous-imported in StatsTab.jsx:4 even though the Home tab never renders a chart — ~150KB of dead weight on first paint
 - public/manifest.json is 10 lines with no icons/screenshots/	heme_color/id — no service worker registered
 - 4 API routes return raw err.message (could leak Google Sheets API URLs) — no zod, no rate limit, no Cache-Control, no request IDs
 - ccessToken in NextAuth session is browser-cookie-bound — needs a token-exchange endpoint for the Expo/RN shell
@@ -1007,9 +1025,9 @@ ext.config.js, 	ailwind.config.js, package.json, jsconfig.json, AGENTS.md, progr
 - Added Vitest + RTL + jsdom devDeps (179 packages, 1 changed)
 - Created itest.config.js (jsdom env, @ alias, React plugin with .js include for JSX)
 - Created 	ests/setup.js (loads @testing-library/jest-dom/vitest)
-- Scripts: 
-pm test, 
-pm test:watch, 
+- Scripts:
+pm test,
+pm test:watch,
 pm test:coverage
 - Extracted pickAmount from pi/dashboard/route.js to src/lib/parseSheetRow.js (testable in isolation); route imports from new location
 - **3 test suites (32 tests passing, 2 skipped)**:
@@ -1018,9 +1036,9 @@ pm test:coverage
   - 	ests/components/Dashboard.smoke.test.jsx (**2 tests skipped** with TODO) — Vite/Next.js bundler conflict on page.js "use client" component; will revisit after PR 10 extracts testable modules
 
 ### Build & tests
-- 
+-
 pm run build — ✓ Compiled successfully, dashboard 141 kB unchanged
-- 
+-
 pm test — 32 passed, 2 skipped in 5s
 - All grep checks green (0 hits for ormatRpForConfirm/Insights, useRouter, inline MONTHS arrays)
 
@@ -1052,7 +1070,8 @@ pm test — 32 passed, 2 skipped in 5s
   - ESC key close (new — fixes inconsistency where 4 in-page modals lacked ESC)
   - Body scroll lock while open
   - Backdrop click closes (configurable)
-  - ole="dialog" aria-modal="true"
+  - 
+ole="dialog" aria-modal="true"
 - **Refactored 8 modals to use <Sheet>:**
   1. ConfirmSheet.jsx (delete confirm) — custom header (trash icon + title + message) + footer (2 buttons); added closeOnBackdrop={!confirming} (was a minor bug — backdrop click during submit would close mid-operation)
   2. EditTransactionModal.jsx — built-in header; added closeOnBackdrop={!submitting}
@@ -1069,9 +1088,9 @@ pm test — 32 passed, 2 skipped in 5s
 - ackdropFilter: "blur(8px)" matches: 8 → 2 (only Sheet.jsx + GoalsSection.jsx, which has its own delete confirm not in PR 4 scope)
 
 ### Build & tests
-- 
+-
 pm run build — ✓ Compiled successfully, dashboard 141 kB unchanged
-- 
+-
 pm test — 46 passed, 2 skipped in 6s
 
 ### File-level diff (PR 4 only)
@@ -1099,10 +1118,11 @@ pm test — 46 passed, 2 skipped in 6s
   - position ("top" | "top-high" | "bottom") for vertical placement
   - duration (ms) — auto-dismiss via setTimeout, progress bar via rAF
   - ction prop — renders undo/action button
-  - 
+  -
 oPointerEvents — for non-blocking toasts (celebration)
   - celebrationColor — overrides default gold gradient
-  - ole="status" aria-live="polite"
+  - 
+ole="status" aria-live="polite"
 - src/components/GoalCelebration.jsx — refactored to use <Toast variant="celebration"> internally (visual moved to Toast, confetti + vibrate side-effect stays)
 - src/app/dashboard/page.js:
   - Replaced inline toast div (was lines 595-607) with <Toast> invocation
@@ -1130,9 +1150,9 @@ oPointerEvents — for non-blocking toasts (celebration)
   - Test uses i.useFakeTimers() to control setTimeout
 
 ### Build & tests
-- 
+-
 pm run build — ✓ dashboard 141 kB unchanged
-- 
+-
 pm test — 60 passed, 2 skipped in 7s
 
 ### File-level diff
@@ -1156,7 +1176,8 @@ pm test — 60 passed, 2 skipped in 7s
 ### PR 6 — <Skeleton> + last-sync + offline cache
 - src/app/dashboard/_components/Skeleton.jsx — NEW, 5 variants: tile (h-[110px]), card (h-[140px]), row (h-[64px]), chart (h-[180px]), hero (h-[220px]); aria-hidden
 - src/app/dashboard/_components/useDashboardCache.js — NEW, 4 functions:
-  - eadCache() — localStorage read with SSR safety
+  - 
+eadCache() — localStorage read with SSR safety
   - writeCache(data) — localStorage write with fresh cachedAt timestamp
   - invalidateCache() — localStorage remove
   - getLastSyncAgo(cachedAt, now?) — formats "baru saja"/"Xm lalu"/"Xj lalu"/"Xh lalu"
@@ -1174,9 +1195,9 @@ pm test — 60 passed, 2 skipped in 7s
 - 	ests/components/Skeleton.test.jsx — NEW, 8 tests (5 variants, className merge, aria-hidden)
 
 ### Build & tests
-- 
+-
 pm run build — ✓ dashboard 142 kB (+1 kB for new code)
-- 
+-
 pm test — 80 passed, 2 skipped in 10s
 
 ### User-facing wins
@@ -1472,20 +1493,28 @@ Behavior preserved: WalletTab's full form still works identically (submit, spinn
 ### Hotfix: Google OAuth token refresh (June 19, 2026)
 - **Issue:** Production dashboard crashed with UNAUTHENTICATED 401 from Google Sheets API. Google OAuth access tokens expire after ~1 hour; the previous NextAuth config stored ccess_token on sign-in but never refreshed it. After expiry, every /api/dashboard (and other Sheets calls) returned 401 and the dashboard rendered an error state.
 - **Fix:**
-  1. **New src/lib/auth.js** � extracted efreshAccessToken(token) that POSTs to https://oauth2.googleapis.com/token with grant_type=refresh_token, returns updated token or { error: "RefreshAccessTokenError" } on failure. Keeps existing efresh_token if Google doesn't rotate it.
+  1. **New src/lib/auth.js** � extracted 
+efreshAccessToken(token) that POSTs to https://oauth2.googleapis.com/token with grant_type=refresh_token, returns updated token or { error: "RefreshAccessTokenError" } on failure. Keeps existing 
+efresh_token if Google doesn't rotate it.
   2. **src/app/api/auth/[...nextauth]/route.js** � jwt callback now:
-     - Stores efreshToken and ccessTokenExpires (using ccount.expires_at if provided, else Date.now() + 60 min) on initial sign-in
+     - Stores 
+efreshToken and ccessTokenExpires (using ccount.expires_at if provided, else Date.now() + 60 min) on initial sign-in
      - Returns existing token if not yet expired
-     - Calls efreshAccessToken when expired
+     - Calls 
+efreshAccessToken when expired
   3. **Session callback** � surfaces 	oken.error to session.error so UI can show "session expired, sign in again" if refresh fails
-  4. **src/app/dashboard/HomeTab.jsx:169** � fixed prop name: efreshTrigger={onGoalsRefresh} ? efreshTrigger={goalsRefreshTrigger}. The destructured prop is goalsRefreshTrigger (line 17), so onGoalsRefresh was always undefined, meaning GoalsSection never auto-refreshed on new transactions. Functional bug, not a crash.
+  4. **src/app/dashboard/HomeTab.jsx:169** � fixed prop name: 
+efreshTrigger={onGoalsRefresh} ? 
+efreshTrigger={goalsRefreshTrigger}. The destructured prop is goalsRefreshTrigger (line 17), so onGoalsRefresh was always undefined, meaning GoalsSection never auto-refreshed on new transactions. Functional bug, not a crash.
 - **Verification:**
-  - 
+  -
 pm run build � Compiled successfully, dashboard 143 kB (unchanged), all 6 routes
-  - 
+  -
 pm test � 135 passed, 2 skipped (+5 new auth tests, was 130 + 2)
   - New 	ests/lib/auth.test.js covers: happy path, refresh token rotation, no-rotation keep, non-OK response, network error, expiry math
-- **User action required:** Sign out and sign back in once to seed the new efreshToken in the JWT (existing sessions may not have efresh_token stored because the old config didn't capture it). Subsequent token refreshes will work automatically.
+- **User action required:** Sign out and sign back in once to seed the new 
+efreshToken in the JWT (existing sessions may not have 
+efresh_token stored because the old config didn't capture it). Subsequent token refreshes will work automatically.
 - **Why PR 9 specifically:** PR 9 added BudgetStatusCard which makes its own /api/budgets call. This doubled Sheets API traffic on the home tab and accelerated token-expiry error reproduction. The root cause (no refresh logic) predates PR 9, but PR 9 made the failure user-visible.
 
 
@@ -1495,7 +1524,7 @@ pm test � 135 passed, 2 skipped (+5 new auth tests, was 130 + 2)
 - **Fix:**
   1. **src/app/favicon.ico** (new, 1118 bytes) � 16x16 violet gradient circle, generated via Node.js script. Served automatically by Next.js App Router at /favicon.ico.
   2. **src/app/icon.svg** (new, 706 bytes) � SVG favicon with violet gradient rounded rect + white chart line + gold accent stroke. Served at /icon.svg via Next.js file convention. Modern browsers use this as primary icon.
-- **Verification:** 
+- **Verification:**
 pm run build compiled successfully, /icon.svg route auto-registered. 135 tests pass.
 - **No layout.js changes needed** � Next.js App Router auto-generates <link rel="icon"> tags from special files in src/app/.
 
@@ -1784,3 +1813,592 @@ Rename all occurrences of "Artoku" to "Artami" across the entire codebase (sourc
 - Files changed: `src/components/WhatIfModal.jsx`, `progress.md`
 - Decisions: Kept the existing goal timeline formula and only changed the meaning of the category input; treat target spend greater than or equal to category average as zero savings from expense reduction.
 - Blockers: No automated test/build pass was run for this isolated UI logic change; verification was done by reading the updated code path and matching it against the intended Transportasi example.
+## Session: July 9, 2026 (Landing Page Commercialization Polish)
+
+### Updates Made
+- Updated the standalone `landingpageartami` Vite landing page for commercial readiness.
+- Replaced all placeholder `href="#"` CTAs with real route targets:
+  - Free/start CTAs now point to `/api/auth/signin/google?callbackUrl=/dashboard`
+  - Pro upgrade CTA points to `/dashboard?upgrade=1`
+  - Footer legal links point to `/privacy` and `/terms`
+- Updated hero privacy copy to the safer approved wording: data lives in the user's own Google Sheets, not Artami's server.
+- Replaced the abstract feature-card section with an interactive product carousel using polished in-page mobile UI mockups based on the provided app screenshots.
+- Redesigned the problem/trust section:
+  - Removed emoji cards
+  - Added Lucide icons
+  - Fixed contrast with white cards and a dark privacy-first panel
+  - Removed overclaiming privacy text
+- Added FAQ section after pricing with accessibility-friendly accordion buttons.
+- Improved landing page SEO metadata:
+  - Better Indonesian search-intent title/description
+  - Canonical URL
+  - OG/Twitter large-card metadata
+  - `SoftwareApplication` JSON-LD
+  - `FAQPage` JSON-LD
+- Shortened the forced loading screen and fixed CTA magnetic-hover divide-by-zero edge case.
+
+### Files Changed
+- `landingpageartami/src/App.jsx`
+- `landingpageartami/index.html`
+- `progress.md`
+
+### Decisions
+- Real screenshot files were not present in the workspace, so the carousel was implemented as styled product mockups matching the screenshots instead of broken image placeholders.
+- Kept the landing page standalone under `landingpageartami` for this pass; did not migrate it into the main Next.js app.
+- Used safer privacy language instead of claiming Artami has no technical access at all.
+
+### Verification
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 11, 2026 (FI Tracker Correctness + Accessibility Pass)
+
+### Updates Made
+- Reworked `FITrackerCard` to make the Financial Independence feature more trustworthy and easier to read:
+  - Uses one shared trailing observation window for income and expenses instead of averaging over different month sets.
+  - Renamed `Tabungan/bulan` to `Surplus/bulan` and clarified it as average cash-flow surplus.
+  - Added explicit states for:
+    - insufficient history
+    - missing expense data
+    - missing net-worth value
+    - negative net worth
+    - FI already achieved
+  - Prevented past-date / negative-year projections once FI is already reached.
+  - Clamped displayed progress to `0%`-`100%` for negative net worth and over-target states.
+  - Added in-card educational disclaimer and clarified formula sheet copy.
+- Reworked FI card semantics for accessibility:
+  - Replaced the whole-card pseudo-button pattern with a semantic content section.
+  - Added a dedicated `Pelajari rumus FI` button.
+  - Added `progressbar` semantics with `aria-valuenow` and `aria-valuetext`.
+  - Increased supporting text sizes and strengthened information hierarchy.
+  - Stacked scenario rows more safely for narrow widths.
+- Improved shared `Sheet` modal behavior:
+  - Moves focus into the sheet on open.
+  - Restores focus to the triggering control on close.
+  - Traps keyboard focus within the open modal.
+  - Added visible focus treatment to the close button.
+- Simplified `PlanTab` section navigation semantics:
+  - Replaced the partial ARIA tabs pattern with plain navigation semantics.
+  - Uses `aria-current="page"` for the active section.
+  - Added visible keyboard focus styling to section buttons.
+- Intentionally did **not** implement the skipped scope item from user feedback:
+  - no starting-balance cutoff changes
+  - no debt/receivable accounting changes
+
+### Files Changed
+- `src/components/FITrackerCard.jsx`
+- `src/app/dashboard/_components/Sheet.jsx`
+- `src/app/dashboard/PlanTab.jsx`
+- `tests/components/FITrackerCard.test.jsx`
+- `tests/components/SheetFocus.test.jsx`
+- `tests/components/PlanTab.test.jsx`
+- `progress.md`
+
+### Verification
+- `npm test -- tests/components/FITrackerCard.test.jsx tests/components/SheetFocus.test.jsx tests/components/PlanTab.test.jsx` passes (`16/16`).
+- `npm run build` passes for the main app.
+- Checked that no `href="#"` CTA placeholders remain in `landingpageartami/src`.
+- Checked that risky lines like "kami tidak bisa lihat data" and "Transaksi tercatat otomatis" are removed.
+
+## Session: July 10, 2026 (Landing Page Feature Showcase Revision)
+
+### Updates Made
+- Revised `landingpageartami` after design feedback that the interactive carousel required too much user effort.
+- Restored the original-style animated feature cards:
+  - Skor Kesehatan Finansial shuffler
+  - Google Sheets typewriter/live feed
+  - Month/target tracker animation
+- Added a separate passive, scroll-only real-product showcase using screenshots from `landingpageartami/public/Screenshot/`.
+- Polished screenshots in phone frames with layered compositions:
+  - Beranda main screen
+  - Statistik + Cashflow pair
+  - Budgets + Bills pair
+  - Add transaction form
+- Rebuilt the Beranda screenshot greeting as an HTML overlay so it displays `Halo 👋, Fajar` without patching the JPEG directly.
+- Removed the unused interactive-carousel mock code and stale `Isnan` string.
+
+### Files Changed
+- `landingpageartami/src/App.jsx`
+- `progress.md`
+
+### Decisions
+- Kept scroll-only storytelling for landing-page comprehension; no carousel tabs or required interaction.
+- Used real screenshots for credibility, with light cropping/framing instead of recreated mock UI.
+- Left screenshot files in the user-provided `public/Screenshot/` folder path.
+
+### Verification
+- `npm run build` in `landingpageartami` passes.
+- Confirmed no stale `Halo, Isnan`, `ProductShowcase`, or old mock carousel code remains.
+
+## Session: July 10, 2026 (Landing Screenshot Polish Follow-up)
+
+### Updates Made
+- Tightened the Beranda screenshot overlay so the net-worth card and `Rp 16.718.000` remain visible.
+- Shortened the Beranda marketing overlay copy to `Tersinkron baru saja` and kept the `Halo 👋, Fajar` name treatment.
+- Strengthened all screenshot phone frames with darker shells, inner rim, ring, and heavier shadow for better separation from the cream background.
+- Reworked paired screenshot compositions with a clipped backing plate so secondary screenshots no longer look washed out or leak text outside the phone composition.
+- Increased secondary screenshot opacity from washed-out treatment to a sharper 95% while clipping it inside the showcase container.
+
+### Files Changed
+- `landingpageartami/src/App.jsx`
+- `progress.md`
+
+### Verification
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 10, 2026 (Landing Smart Feature Screenshot Expansion)
+
+### Updates Made
+- Replaced product-showcase intro copy so it no longer mentions screenshots or polishing:
+  - New headline: `Keuangan yang lebih jelas, untuk keputusan yang lebih tenang.`
+  - New support copy focuses on tracking today, understanding direction, and planning next steps.
+- Adjusted Beranda screenshot crop from `120` to `45` and increased the clean header cover so the net-worth number remains visible.
+- Added three new product-showcase blocks using newly added screenshots:
+  - `financialscore.jpeg` — Kesehatan Finansial
+  - `fi index.jpeg` — Bebas Finansial
+  - `eventbudget.jpeg` — Event Budget
+- Applied user-preferred copy for Financial Independence and Event Budget:
+  - `Artami menghitung angka Kebebasan Finansial kamu...`
+  - `Atur budget berdasarkan event seperti Lebaran atau anak masuk sekolah...`
+
+### Files Changed
+- `landingpageartami/src/App.jsx`
+- `progress.md`
+
+### Verification
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 10, 2026 (Landing Background Atmosphere Revamp)
+
+### Updates Made
+- Replaced the old flat repeated light backgrounds + global grain overlay with a scoped editorial background system in `landingpageartami`.
+- Added new background tokens for paper surfaces, ambient moss/clay/cream fields, grain opacity, and blur radius.
+- Removed the old fixed `body::before` grain layer that sat above all content and screenshots.
+- Added reusable background classes in `landingpageartami/src/index.css`:
+  - `section-isolate`
+  - `paper-grain`
+  - `atmosphere-layer`
+  - `ambient-blob` variants
+  - `contour-field`
+  - `presentation-mat`
+  - `trust-vault`
+  - `hero-atmosphere`
+- Reworked section backgrounds in `landingpageartami/src/App.jsx`:
+  - Hero now uses slow moss/clay/cream ambient fields instead of the old diagonal animated gradient feel.
+  - Features and Product Proof use warm paper surfaces with subtle drifting blobs.
+  - Product screenshot pairs now sit on a cleaner `presentation-mat` instead of the older generic gradient wrapper.
+  - Problem/Trust uses a warmer paper field plus a more atmospheric privacy vault.
+  - `Cara Kerja` is now the only section using the contour/ledger field motif.
+  - Pricing, FAQ, and Footer now each have distinct but restrained ambient background treatments.
+- Added mobile/reduced-motion guardrails for the new ambient background motion.
+
+### Files Changed
+- `landingpageartami/src/index.css`
+- `landingpageartami/src/App.jsx`
+- `progress.md`
+
+### Verification
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 10, 2026 (Landing Moss Hero + Cara Kerja Motion Restore)
+
+### Updates Made
+- Corrected the background direction after feedback that the first ambient revamp was too subtle and made the hero feel black.
+- Restored a clearly moss-editorial hero by replacing the charcoal base with a moss-led gradient and stronger cream/clay atmospheric fields.
+- Increased paper-surface differentiation by introducing more visible section tones:
+  - editorial cream
+  - warm oat paper
+  - pale sage paper
+  - pale clay paper
+- Strengthened ambient blob visibility and contour contrast so the background change is perceptible, not just technically present.
+- Changed dark utility surfaces from charcoal to moss where appropriate:
+  - mobile menu
+  - trust vault
+  - footer
+- Restored internal motion in `Cara Kerja`:
+  - Step 1 helix spins faster and feels intentional again
+  - Step 2 grid now has a moving scan line + pulsing cells
+  - Step 3 waveform redraws on a loop
+  - Step numbers now count from `00` to `01/02/03` on scroll instead of staying static
+- Removed two stray absolute placeholder nodes in the product showcase rows.
+
+### Files Changed
+- `landingpageartami/src/index.css`
+- `landingpageartami/src/App.jsx`
+- `progress.md`
+
+### Verification
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 10, 2026 (Landing Visible Editorial Background Motion)
+
+### Updates Made
+- Diagnosed why background animation was not visible despite `prefers-reduced-motion` being false: the prior low-contrast blurred blobs were mostly off-canvas and moved too subtly against similar-colored surfaces.
+- Removed the dedicated cream hero blob that created the circular spotlight behind `seni`.
+- Replaced the hero cream spotlight with a broad static elliptical wash in the moss hero background.
+- Added visibly animated, section-specific background treatments:
+  - `editorial-ribbon` for moss/clay moving ink-ribbon forms
+  - `paper-band` for broad moving paper-light bands across longer sections
+  - `ledger-drift` for subtle moving dot-field detail
+- Replaced the previous ambient blobs in Hero, Features, Product Proof, Problem/Trust, Cara Kerja, Pricing, FAQ, and Footer with the new motion system.
+- Increased visible background travel and shortened cycles so motion is observable within a few seconds while preserving passive, non-interactive behavior.
+- Added reduced-motion handling for the new background layers and the looping diagnostic/typewriter/month/SVG feature animations.
+
+### Files Changed
+- `landingpageartami/src/index.css`
+- `landingpageartami/src/App.jsx`
+- `progress.md`
+
+### Verification
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 10, 2026 (Landing Visible Motion Geometry Fix)
+
+### Updates Made
+- Confirmed `prefers-reduced-motion` was false and Vite was serving the expected standalone landing page on port 5173.
+- Identified the remaining animation issue as visual geometry: prior animated forms were mostly positioned off-canvas, heavily blurred, and only exposed transparent edges.
+- Moved editorial ribbons and paper bands substantially into the visible area of Hero, Features, Product Proof, Problem/Trust, Pricing, FAQ, and Footer.
+- Reduced ribbon/band blur and strengthened their colored center zones so movement is readable within a few seconds.
+- Increased ribbon/paper-band travel ranges and peak opacity while retaining passive, non-interactive behavior.
+
+### Files Changed
+- `landingpageartami/src/index.css`
+- `landingpageartami/src/App.jsx`
+- `progress.md`
+
+### Verification
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 10, 2026 (Landing Desktop Motion Scaling)
+
+### Updates Made
+- Confirmed the background motion was visible in a narrower viewport but too subtle on full-width desktop.
+- Added a desktop-only animation override for screens `>= 1280px` so background ribbons and paper bands move using `vw`/`vh` travel instead of fixed pixel distances.
+- Kept the existing narrower/mobile motion untouched, since it already read correctly.
+
+### Files Changed
+- `landingpageartami/src/index.css`
+- `progress.md`
+
+### Verification
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 13, 2026 (Landing Product-Led Editorial Redesign)
+
+### Updates Made
+- Rebuilt the standalone Artami landing page around a Beacon-inspired product-led editorial structure.
+- Replaced decorative AI-slop sections with a smaller sequence: hero, three-step flow, dashboard proof, outcome cards, trust, pricing, FAQ, footer.
+- Kept Artami's color system: moss, clay, cream, charcoal, and paper.
+- Removed rendered GSAP-heavy/abstract concepts such as terminal typewriter, shuffler cards, laser/helix protocol visuals, and floating-ribbon-first composition.
+- Centered real product screenshots as the main proof, including Beranda, Stats, Cashflow, Financial Score, FI Index, and Event Budget.
+- Added a compact implementation plan at `docs/superpowers/plans/2026-07-13-product-led-editorial-landing.md`.
+
+### Files Changed
+- `landingpageartami/src/App.jsx`
+- `landingpageartami/src/index.css`
+- `docs/superpowers/plans/2026-07-13-product-led-editorial-landing.md`
+- `progress.md`
+
+### Verification
+- `npm run lint` in `landingpageartami` passes with 0 warnings and 0 errors.
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 13, 2026 (Landing Screenshot Bugs + Kinetics Motion)
+
+### Updates Made
+- Fixed the hero phone frame sizing bug by preserving the default `HomeScreenshot` max width instead of passing an empty class through to `ScreenshotPhone`.
+- Replaced the dashboard section's problematic absolute overlapping phone with a bounded two-screenshot composition inside the moss panel.
+- Updated `Cara Kerja` with a stronger editorial rhythm: animated step rows, springy step numbers, and a compact ledger strip connecting Google Sheets → Artami Dashboard → Keputusan Bulanan.
+- Added restrained Kinetics-inspired CSS motion without adding dependencies: hero stagger reveal, phone settle, floating note entrance, CTA press/squish, card lift, step line animation, and FAQ icon spring.
+- Converted non-standard Tailwind opacity utilities to arbitrary opacity syntax so intended text colors render reliably.
+
+### Files Changed
+- `landingpageartami/src/App.jsx`
+- `landingpageartami/src/index.css`
+- `progress.md`
+
+### Verification
+- `npm run lint` in `landingpageartami` passes with 0 warnings and 0 errors.
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 13, 2026 (Landing Custom Product Mockups)
+
+### Updates Made
+- Replaced the hero's raw screenshot-based phone with a custom `HeroPhoneMockup` so the screen content is fully controllable.
+- Added the missing Net Worth card directly under `Halo 👋, Fajar` and above `Fokus hari ini`.
+- Removed the unintended out-of-phone screenshot artifact by no longer relying on a cropped real screenshot in the hero.
+- Replaced the dashboard proof screenshot composition with reusable custom `FeatureMockup` cards for controlled size, tone, value, and mini-chart styling.
+- Added a small animated `Cara Kerja` flow element to give the section more motion and product context without adding decorative noise.
+- Added CSS for custom phone screen, net-worth card, mock feature charts, feature board, and animated flow dots.
+
+### Files Changed
+- `landingpageartami/src/App.jsx`
+- `landingpageartami/src/index.css`
+- `progress.md`
+
+### Verification
+- `npm run lint` in `landingpageartami` passes with 0 warnings and 0 errors.
+- `npm run build` in `landingpageartami` passes.
+
+## Session: July 12, 2026 (Artami Android TWA Rebuild)
+
+### Updates Made
+- Rebuilt the Android APK for the new production domain `https://ultah.biz.id/dashboard`.
+- Confirmed the live Digital Asset Links file at `https://ultah.biz.id/.well-known/assetlinks.json` matches package `com.artami.app` and the current signing certificate SHA-256 fingerprint.
+- Bumped Android app version from `1.0.0` / `versionCode 1` to `1.0.1` / `versionCode 2` so phones can install it as an update over the previous APK.
+- Updated stale TWA generator inputs from `financedashv1.vercel.app` to `ultah.biz.id`.
+- Updated the fallback Android project generator so it creates the same `LauncherActivity` TWA flow instead of a plain Custom Tab wrapper.
+
+### Files Changed
+- `android/app/build.gradle`
+- `twa-manifest.json`
+- `scripts/generate-twa.js`
+- `scripts/create-android-project.js`
+- `artami.apk`
+- `public/artami.apk`
+
+### Decisions
+- Kept the existing signing key and password because the deployed `assetlinks.json` already trusts that certificate fingerprint.
+- Did not add new Android dependencies; reused the already-installed Android Browser Helper TWA dependency.
+
+### Verification
+- `./gradlew.bat assembleDebug` in `android` passes.
+- Packaged manifest shows `android:host="ultah.biz.id"`, default URL `https://ultah.biz.id/dashboard`, `versionCode="2"`, and `versionName="1.0.1"`.
+- `artami.apk` and `public/artami.apk` have identical SHA-256 hashes after copying from the Gradle build output.
+
+## Session: July 12, 2026 (Artami TWA Host Redirect Fix)
+
+### Updates Made
+- Diagnosed visible Chrome Custom Tab bar on Android as failed TWA verification caused by hostname mismatch/redirect.
+- Confirmed `https://ultah.biz.id/.well-known/assetlinks.json` redirects to `https://www.ultah.biz.id/.well-known/assetlinks.json`.
+- Confirmed `https://www.ultah.biz.id/.well-known/assetlinks.json` and `/manifest.json` return direct HTTP `200` responses.
+- Updated the Android TWA launch host from `ultah.biz.id` to `www.ultah.biz.id`.
+- Bumped Android app version from `1.0.1` / `versionCode 2` to `1.0.2` / `versionCode 3`.
+- Rebuilt and copied the new APK to `artami.apk` and `public/artami.apk`.
+
+### Files Changed
+- `android/app/src/main/java/com/artami/app/MainActivity.java`
+- `android/app/src/main/AndroidManifest.xml`
+- `android/app/src/main/res/xml/network_security_config.xml`
+- `android/app/build.gradle`
+- `twa-manifest.json`
+- `scripts/generate-twa.js`
+- `scripts/create-android-project.js`
+- `artami.apk`
+- `public/artami.apk`
+- `progress.md`
+
+### Verification
+- `./gradlew.bat assembleDebug` in `android` passes.
+- Packaged manifest shows `android:host="www.ultah.biz.id"`, default URL `https://www.ultah.biz.id/dashboard`, `versionCode="3"`, and `versionName="1.0.2"`.
+- `https://www.ultah.biz.id/.well-known/assetlinks.json` returns HTTP `200` directly.
+- Gradle output APK, `artami.apk`, and `public/artami.apk` have identical SHA-256 hashes.
+## Session: July 12, 2026 (Artami motion generated-asset prompt revision)
+
+### Updates Made
+- Revised `MotionGraphPlan.md` after approval of the master atmospheric background generated with ChatGPT Image Generation 2.0.
+- Reduced the generated pack from object-heavy scene assets to exactly five compositing assets: two 16:9 atmosphere plates and three transparent edge overlays.
+- Replaced prompts for financial artifacts, spreadsheet paper, generated textures, and object-based end-card art with production prompts for the matched end plate and clay/taupe, moss, and dusty-violet overlays.
+- Added measurable negative-space contracts, true-alpha requirements, an expanded prohibition block, and consistency/QA rules.
+
+### Files Changed
+- `MotionGraphPlan.md`
+- `progress.md`
+
+### Decisions
+- Remotion is the sole source of UI, charts, copy, values, icons, cards, glass treatment, grain, metallic lines, spreadsheet visuals, product proof, and animation.
+- Generated images provide background atmosphere and edge framing only.
+- No additional generated scene assets are allowed without renewed approval.
+
+## Session: July 19, 2026 (Google OAuth drive.file legacy-owner migration)
+
+### Updates Made
+- Removed the broad Google Sheets OAuth scope from the Google provider and kept `drive.file` for app-created/explicitly selected files.
+- Added owner-only legacy spreadsheet connection support using Google Picker and a protected server route.
+- Changed owner auth flow so the configured legacy owner does not auto-create a new sheet before connecting the existing private spreadsheet.
+- Added schema upgrade support for legacy spreadsheets by creating only missing Artami tabs and headers.
+- Removed the shared `SPREADSHEET_ID` fallback from `getSheetData`.
+- Disabled the public `/api/migrate` shared-spreadsheet route with a `410` response.
+
+### Files Changed
+- `src/app/api/account/connect-legacy-sheet/route.js`
+- `src/app/api/auth/[...nextauth]/route.js`
+- `src/app/api/dashboard/route.js`
+- `src/app/api/migrate/route.js`
+- `src/app/dashboard/page.js`
+- `src/components/LegacySheetConnector.jsx`
+- `src/lib/apiAuth.js`
+- `src/lib/legacySheet.js`
+- `src/lib/sheetManager.js`
+- `src/lib/sheets.js`
+- `scripts/migrate-user.js`
+- `tests/lib/legacySheet.test.js`
+- `tests/lib/sheetManager.test.js`
+- `AGENTS.md`
+- `README.md`
+- `progress.md`
+
+### Decisions
+- Only the configured `LEGACY_SHEET_OWNER_EMAIL` can connect an existing spreadsheet.
+- Normal users continue receiving Artami-created spreadsheets automatically.
+- The owner connection route verifies the selected spreadsheet server-side before saving the `spreadsheet_id`.
+
+### Verification
+- `npm.cmd run test -- tests/lib/legacySheet.test.js tests/lib/sheetManager.test.js` passes.
+- `npm.cmd run build` passes.
+- Full `npm.cmd run test` still has unrelated existing failures in QuickAddSheet, Sheet, and useDashboardCache suites.
+
+## Session: July 22, 2026 - Documentation Audit Cleanup
+
+### Tasks Completed
+- Replaced stale root README with current setup, env, data model, and doc map.
+- Replaced stale commercialization plan and system flow with current concise source-of-truth docs.
+- Replaced old roadmap with commercialization-first roadmap.
+- Completed the Debts sheet schema with API and payment behavior.
+- Updated landing page README after duplicate prompt cleanup.
+- Added status notes to Supabase README and commercialization prompts archive.
+- Corrected AGENTS.md schema/status details for transaction A-O columns and Goals A-I status.
+
+### Files Changed
+- README.md
+- AGENTS.md
+- docs/commercialization-plan.md
+- docs/Flow-system.md
+- docs/roadmap.md
+- docs/sheets-debts.md
+- docs/commercialization-prompts.md
+- supabase/README.md
+- landingpageartami/README.md
+- progress.md
+
+### Decisions
+- Kept `docs/commercialization-prompts.md` as an archive instead of splitting it; shorter and avoids creating more docs.
+- Marked payment/admin and feature-gating flows as planned until their routes exist.
+
+### Blockers
+- `apply_patch` was blocked by a Windows sandbox ACL error, so docs were written with one scoped PowerShell pass.
+
+## Session: July 23, 2026 - Phase 2 Payment Decisions
+
+### Tasks Completed
+- Synced the current documentation and public pricing copy to Rp40.000 lifetime Pro.
+- Defined the Phase 2 MVP as QRIS only: a dedicated `/upgrade` page displays the static QRIS and a `Simpan QR` action.
+- Defined private payment-proof storage, signed admin-only proof access, manual approval/rejection, and WhatsApp CS for rejected payments.
+
+### Files Changed
+- docs/commercialization-plan.md
+- docs/Flow-system.md
+- docs/commercialization-prompts.md
+- docs/play-store-react-native-plan.md
+- supabase/005-seed.sql
+- src/app/terms/page.js
+- landingpageartami/src/App.jsx
+- landingpageartami/index.html
+- landingpageartami/spec.md
+- docs/UI & UX Analysis.md
+- progress.md
+
+### Decisions
+- Pro costs Rp40.000 once; QRIS is the sole MVP payment method.
+- The provided GoPay QRIS is shown only on `/upgrade`, never inline below an upgrade CTA.
+- Proofs remain private; no payment tier changes until manual admin approval.
+- Rejected payments route users to WhatsApp CS at +62 882-0062-82613.
+
+### Blockers
+- Phase 2 remains unimplemented and unchecked; the QRIS asset still needs to be added to the workspace when the upgrade page is built.
+
+## Session: July 24, 2026 - Phase 2 Payment Timing Decisions
+
+### Tasks Completed
+- Documented the two-stage payment request and proof-submission lifecycle.
+- Added the 48-hour payment deadline, one-hour proof-upload grace period, countdown/deadline UI, cancellation, expiry, and retained history requirements.
+- Added fixed Rp40.000 copy behavior and separate underpayment/overpayment guidance.
+
+### Files Changed
+- docs/commercialization-plan.md
+- docs/Flow-system.md
+- docs/commercialization-prompts.md
+- progress.md
+
+### Decisions
+- Opening `/upgrade` creates nothing; `Mulai Pembayaran` starts the 48-hour request.
+- The page shows a live countdown and exact WIB deadline; the amount is fixed with `Salin Nominal`.
+- Payment must occur before the original deadline. Proof may be uploaded up to one hour late and is marked for admin review.
+- After the grace period, history remains and the UI prioritizes WhatsApp CS while warning against duplicate payment.
+- Underpayment may use `Nominal tidak sesuai`; overpayment instead shows `Jika salah pembayaran, silahkan hubungi CS`.
+- Underpayment cannot be topped up. Overpayment uses `rejected` + `Lainnya` and requires an explanatory admin note.
+- Refunds and corrections stay in WhatsApp; the admin records the outcome in the payment note.
+- WhatsApp support messages are editable and contain only an issue type plus `PAY-XXXXXXXX`, not the full UUID, proof URL, or sensitive details.
+- `Hubungi CS` is limited to payment-support states and automatically selects an editable issue context.
+- Starting a new request during the grace hour requires confirmation and abandons late-proof eligibility.
+- Pending proof is immutable; payment history remains visible with owner-only signed proof access.
+- Phase 2 status changes use in-app banners only, with no automatic WhatsApp, email, or push messages.
+- Proof-viewing signed URLs last 5 minutes and are regenerated on demand.
+- Result-banner dismissal is local per device; payment history remains authoritative.
+- Admin pending work is oldest-first, marks late proof, polls every 30 seconds, and supports manual refresh.
+- Approval/rejection requires a payment-summary confirmation.
+- Admin may correct `rejected` to `approved` through the protected correction flow.
+- Rejected-to-approved correction now requires confirmation, a preset reason, audit fields, and no newer active request.
+- Original rejection details remain preserved; corrected approvals can later use the normal revocation flow.
+- Users receive a specific reconsideration-approval banner.
+- Admin history covers all completed/inactive states and supports PAY-reference or email search.
+- Future documentation batches are applied after every seven approved answers.
+
+### Blockers
+- Phase 2 remains unimplemented and unchecked.
+
+## Session: July 25, 2026 - Phase 2 Decision Packet
+
+### Tasks Completed
+- Consolidated the remaining Phase 2 product decisions into one temporary approval-by-exception packet.
+- Defined that approved answers must be merged into permanent documentation before the packet is deleted.
+- Resolved all 14 packet decisions and merged them into the permanent Phase 2 plan, flow, implementation prompt, Privacy Policy, and Terms.
+- Verified the permanent documentation and production build, then deleted the resolved temporary packet.
+
+### Files Changed
+- docs/phase-2-decision-packet.md
+- docs/commercialization-plan.md
+- docs/Flow-system.md
+- docs/commercialization-prompts.md
+- src/app/privacy/page.js
+- src/app/terms/page.js
+- progress.md
+
+### Decisions
+- Future unresolved Phase 2 questions are reviewed as one finite packet instead of an open-ended interview.
+- The temporary packet is deleted after all decisions are resolved, synchronized, and verified.
+- Defaults 1-9 and 11-14 were approved.
+- Account deletion revokes Pro but retains email and payment history; a returning same-email user may receive manual Pro restoration for a documented valid reason.
+
+### Blockers
+- Phase 2 decisions are resolved; implementation and verification remain pending.
+
+## 2026-07-25 — Phase 2 payments and admin implemented locally
+
+### Tasks Completed
+- Added the Rp40.000 QRIS-only `/upgrade` flow, private proof upload, payment history, status banners, WhatsApp support, and account-deletion disclosure.
+- Added owner payment APIs, signed proof access, `/admin`, approve/reject/revoke/correct actions, and manual Pro restoration.
+- Added the Phase 2 Supabase migration, private Storage bucket configuration, admin seed, payment audit fields, active-payment constraint, and atomic admin review function.
+- Added the approved GoPay QRIS asset and verified focused tests plus the production build.
+
+### Files Changed
+- `supabase/007-payments-phase2.sql`
+- `src/app/api/payments/**`
+- `src/app/api/admin/**`
+- `src/app/api/account/route.js`
+- `src/app/upgrade/**`
+- `src/app/admin/**`
+- `src/components/PaymentQrisFlow.jsx`
+- `src/app/dashboard/_components/PaymentStatusBanner.jsx`
+- `src/lib/payments.js`, `src/lib/paymentAuth.js`, `src/lib/adminAuth.js`, `src/lib/user.js`
+- `public/payment/qris-gopay.jpeg`
+- Payment and user tests
+
+### Decisions
+- Phase 2 stays unchecked until the production migration and real payment flow are verified.
+
+### Blockers
+- Run one real QRIS upload and admin approve/reject verification after deployment.
+
+### Status Update
+- Owner reports that `supabase/007-payments-phase2.sql` has been applied to Supabase.
+- Focused Phase 2 tests: 15 passed. Production build: passed.

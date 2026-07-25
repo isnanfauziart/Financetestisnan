@@ -28,6 +28,7 @@ import BillPayModal from "@/components/BillPayModal"
 import BillSetupModal from "@/components/BillSetupModal"
 import EventCelebration from "@/components/EventCelebration"
 import LegacySheetConnector from "@/components/LegacySheetConnector"
+import PaymentStatusBanner from "./_components/PaymentStatusBanner"
 import { useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
 
@@ -945,6 +946,7 @@ export default function Dashboard() {
         className="relative z-10 max-w-3xl mx-auto"
         style={{ transform: `translateY(${pullDistance}px)`, transition: pullDistance === 0 ? "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" : "none" }}
       >
+        <PaymentStatusBanner />
         {/*
           Product & IA ownership contract (Task 1 pre-migration lock):
           - Beranda/home owns summary + urgent actions; keep "Fokus hari ini" as a P1 Beranda element.

@@ -13,10 +13,10 @@
 Artami is being commercialized as a one-time-payment personal finance app for the Indonesian market. Target: Play Store launch via React Native/Expo.
 
 ### Business Model
-- **Pricing:** Rp 49,000 one-time lifetime (NOT subscription)
+- **Pricing:** Rp 40,000 one-time lifetime (NOT subscription)
 - **Free tier:** 75 txn/month, 4 months history, 3 budgets, 1 goal, 3 insights/week
 - **Paid tier:** Unlimited everything + smart features (Health Score, Cash Flow Forecast, Anomaly Alerts)
-- **Payment:** Manual QRIS → user uploads proof → admin approves in `/admin` dashboard
+- **Payment:** QRIS-only manual flow → user uploads proof to private storage → admin approves/rejects in `/admin` dashboard; payment support uses WhatsApp CS
 - **Break-even:** ~7 paying users covers infra (Supabase Pro + Vercel Pro)
 
 ### Target Market
@@ -66,7 +66,7 @@ Code sharing strategy: `src/lib/*.js` shared pure JS modules (import in both web
 - `@/*` → `./src/*` (via `jsconfig.json`)
 
 ## Environment (.env.local)
-All 5 vars required at runtime:
+Required runtime vars:
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — Google Cloud OAuth credentials
 - `NEXTAUTH_URL` — base URL (local or deployed)
 - `NEXTAUTH_SECRET` — random 32+ char string (generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
@@ -81,18 +81,18 @@ All 5 vars required at runtime:
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase server-side service role key (secret, never expose to client)
 
 ## Google Sheets structure
-Three required tabs with columns A–M (transaction data):
+Three required tabs with columns A-O (transaction data):
 - `Pemasukan` — income transactions
 - `Pengeluaran` — expense transactions
 - `Tabungan` — savings transactions
 
-Column layout: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M(bulan) | Y(tahun) | Y2
+Column layout: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M(bulan) | Y(tahun) | Y2 | EventID | EventSubKategori
 
 One optional tab for the Budgets feature (Phase A):
 - `Budgets` — per-category monthly limits. Schema in `docs/sheets-budgets.md`. Columns A–F: Kategori | Bulan | Tahun | Limit | Akun | Catatan.
 
 One optional tab for the Goals feature (Phase B):
-- `Goals` — savings goals. Schema in `docs/sheets-goals.md`. Columns A–H: ID | Nama | Target | Deadline | Kategori | Icon | Color | CreatedAt.
+- `Goals` - savings goals. Schema in `docs/sheets-goals.md`. Columns A-I: ID | Nama | Target | Deadline | Kategori | Icon | Color | CreatedAt | Status.
 
 One optional tab for the Bills feature (Phase C):
 - `Tagihan` — bill reminders with auto-transaction creation. Schema in `docs/sheets-tagihan.md`. Columns A–M: ID | Nama | Jumlah | Tipe | KategoriBill | KategoriTransaksi | Frekuensi | TanggalJatuhTempo | AkunBank | Aktif | TerakhirDibayar | Catatan | CreatedAt.
@@ -103,7 +103,7 @@ If tab names in sheets differ, update `src/app/api/dashboard/route.js` (and the 
 Google OAuth must request `https://www.googleapis.com/auth/drive.file` only for Sheets access (plus `openid email profile` for sign-in). Do not request `https://www.googleapis.com/auth/spreadsheets`. Normal users get app-created spreadsheets; the configured owner connects one existing private spreadsheet through Google Picker.
 
 ## Data flow
-- `src/app/api/auth/[...nextauth]/route.js` — NextAuth config, stores `accessToken` in session
+- `src/app/api/auth/[...nextauth]/route.js` - NextAuth config, stores `accessToken` in the JWT, not the client session
 - `src/app/api/dashboard/route.js` — reads all 3 sheets, returns aggregated data (includes `netWorth`, `netWorthMonthlyDelta`, `netWorthHistory`)
 - `src/app/api/transaction/route.js` — appends rows to sheets via Sheets API (now uses find-empty-row + `values.update` instead of `:append` to avoid table-end detection issues)
 - `src/app/api/transaction/[id]/route.js` — update (PUT) and clear (DELETE) transaction rows
@@ -207,6 +207,11 @@ Google OAuth must request `https://www.googleapis.com/auth/drive.file` only for 
 - `src/app/api/bills/[id]/route.js` — Bill update/delete
 - `src/app/api/bills/pay/route.js` — Pay bill → auto-create transaction
 - `src/app/api/bills/summary/route.js` — Lightweight bill summary for notifications
+- `src/app/api/debts/route.js` - Debts/piutang CRUD and payment action
+- `src/app/api/momental/route.js` - Event budget CRUD
+- `src/app/api/momental/[id]/route.js` - Single event detail/update/delete
+- `src/app/api/momental/summary/route.js` - Active event summary
+- `src/app/api/settings/route.js` - User settings
 - `src/lib/sheets.js` — Sheet helpers
 - `src/lib/notifications.js` — Service worker registration + notification helpers
 - `src/lib/supabase.js` — Browser Supabase client

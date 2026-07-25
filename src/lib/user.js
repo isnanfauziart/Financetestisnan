@@ -25,12 +25,22 @@ export async function getOrCreateUser({ email, name, avatarUrl, googleId }) {
   }
 
   if (existing) {
-    // Update avatar/name if changed
-    if (existing.name !== name || existing.avatar_url !== avatarUrl) {
+    const reactivating = Boolean(existing.deleted_at)
+    if (existing.name !== name || existing.avatar_url !== avatarUrl || reactivating) {
+      const changes = {
+        name,
+        avatar_url: avatarUrl,
+        updated_at: new Date().toISOString(),
+      }
+      if (reactivating) {
+        changes.google_id = googleId
+        changes.deleted_at = null
+      }
       await supabaseAdmin
         .from("users")
-        .update({ name, avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+        .update(changes)
         .eq("id", existing.id)
+      return reactivating ? { ...existing, ...changes } : existing
     }
     return existing
   }

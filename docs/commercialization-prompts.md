@@ -1,7 +1,6 @@
 # Artami Finance Dashboard — Commercialization Prompts
 
-6 self-contained prompts for separate opencode sessions. Run them in order (0→5).
-Each prompt includes all context needed — no prior session memory required.
+Archive of 6 self-contained implementation prompts. Phases 0-1 are already complete in the repo; Phase 2 is the current prompt. Do not treat old phase sections as current source-of-truth without checking AGENTS.md and the source tree.
 
 ---
 
@@ -361,6 +360,10 @@ CREATE TABLE IF NOT EXISTS users (
   tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'paid')),
   spreadsheet_id TEXT,
   sheet_created_at TIMESTAMPTZ,
+  deleted_at TIMESTAMPTZ,
+  pro_restored_by TEXT,
+  pro_restored_at TIMESTAMPTZ,
+  pro_restore_reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -371,9 +374,24 @@ CREATE TABLE IF NOT EXISTS payments (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   amount NUMERIC NOT NULL,
   proof_url TEXT,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  payment_at TIMESTAMPTZ,
+  payer_name TEXT,
+  status TEXT NOT NULL DEFAULT 'awaiting_payment' CHECK (status IN ('awaiting_payment', 'pending', 'approved', 'rejected', 'revoked', 'expired', 'cancelled')),
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '48 hours'),
+  proof_uploaded_late BOOLEAN NOT NULL DEFAULT false,
+  cancelled_at TIMESTAMPTZ,
   reviewed_by TEXT,
   reviewed_at TIMESTAMPTZ,
+  rejection_reason TEXT,
+  rejection_note TEXT,
+  corrected_by TEXT,
+  corrected_at TIMESTAMPTZ,
+  correction_reason TEXT,
+  correction_note TEXT,
+  revoked_by TEXT,
+  revoked_at TIMESTAMPTZ,
+  revocation_reason TEXT,
+  revocation_note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -918,6 +936,8 @@ The Google OAuth app is currently in "testing" mode. To go production:
 
 ## PHASE 2: PAYMENTS + ADMIN DASHBOARD
 
+**Implementation status (25 July 2026):** Implemented in the local repository, and the owner reports that migration `supabase/007-payments-phase2.sql` is deployed. Do not mark Phase 2 complete until the production QRIS/admin flow passes end-to-end verification.
+
 ### CONTEXT
 
 You are working on **Artami Finance Dashboard**. Phase 1 is complete: Supabase is set up with `users`, `payments`, `usage`, `feature_flags`, `admins` tables. Each user gets their own Google Sheet with all 10 tabs. The `getAuthContext(request)` helper returns `{user, accessToken, spreadsheetId, tier}`.
@@ -1084,11 +1104,12 @@ export async function GET(request) {
   try {
     const { data, error } = await supabaseAdmin
       .from("payments")
-      .select("id, amount, proof_url, status, created_at, reviewed_at")
+      .select("id, amount, payment_at, payer_name, status, expires_at, proof_uploaded_late, cancelled_at, created_at, reviewed_at, rejection_reason, rejection_note, revoked_at, revocation_reason, revocation_note")
       .eq("user_id", auth.user.id)
       .order("created_at", { ascending: false })
 
     if (error) throw error
+
     return Response.json({ payments: data })
   } catch (err) {
     console.error("[payments GET]", err)
@@ -1096,52 +1117,22 @@ export async function GET(request) {
   }
 }
 
-// POST — submit payment proof
+// POST — create a 48-hour request after "Mulai Pembayaran"
 export async function POST(request) {
   const auth = await getAuthContext(request)
   if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   try {
-    const formData = await request.formData()
-    const amount = formData.get("amount")
-    const proof = formData.get("proof") // File object
-
-    if (!amount || !proof) {
-      return Response.json({ error: "Amount and proof are required" }, { status: 400 })
-    }
-
-    const numAmount = parseFloat(amount)
-    if (isNaN(numAmount) || numAmount <= 0) {
-      return Response.json({ error: "Invalid amount" }, { status: 400 })
-    }
-
-    // Upload proof to Supabase Storage
-    const fileName = `${auth.user.id}/${Date.now()}-${proof.name}`
-    const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
-      .from("payment-proofs")
-      .upload(fileName, proof, {
-        contentType: proof.type,
-        upsert: false,
-      })
-
-    if (uploadErr) {
-      console.error("[payment upload]", uploadErr)
-      return Response.json({ error: "Gagal mengupload bukti" }, { status: 500 })
-    }
-
-    // Get public URL
-    const { data: urlData } = supabaseAdmin.storage
-      .from("payment-proofs")
-      .getPublicUrl(fileName)
-
-    // Create payment record
+    // Expire any overdue awaiting_payment request first. Return 409 if an
+    // awaiting_payment or pending request still exists for this user.
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
     const { data: payment, error: payErr } = await supabaseAdmin
       .from("payments")
       .insert({
         user_id: auth.user.id,
-        amount: numAmount,
-        proof_url: urlData.publicUrl,
-        status: "pending",
+        amount: 40000,
+        status: "awaiting_payment",
+        expires_at: expiresAt,
       })
       .select()
       .single()
@@ -1156,6 +1147,14 @@ export async function POST(request) {
 }
 ```
 
+Add `PATCH /api/payments/[id]` with two owner-only actions:
+
+- `submit_proof`: accept proof through one hour after `expires_at`, but require `payment_at` between request creation and the original `expires_at`. Validate and store the private proof plus optional `payer_name`, change the request to `pending`, and set `proof_uploaded_late=true` when uploaded after `expires_at`.
+- `cancel`: before proof upload, change `awaiting_payment` to `cancelled` and set `cancelled_at`.
+- On payment GET, POST, and PATCH, lazily change `awaiting_payment` records to `expired` after `expires_at + 1 hour`; no cron job is needed for MVP.
+- Preserve `expired` and `cancelled` records. Only `awaiting_payment` and `pending` block a new request.
+- Add owner-only `GET /api/payments/[id]/proof`. Verify ownership, create a 300-second signed URL from the internal `proof_url`, and redirect to it. Generate the URL only when `Lihat Bukti` is opened.
+
 #### 5. `src/app/api/admin/payments/route.js` — Admin payment management
 ```js
 import { getAuthContext } from "@/lib/apiAuth"
@@ -1163,6 +1162,7 @@ import { isAdmin } from "@/lib/adminAuth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 export const dynamic = "force-dynamic"
+const REJECTION_REASONS = ["Bukti tidak jelas", "Nominal tidak sesuai", "Pembayaran belum ditemukan", "Bukti duplikat", "Lainnya"]
 
 // GET — list pending payments (admin only)
 export async function GET(request) {
@@ -1175,15 +1175,23 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status") || "pending"
+    const search = (searchParams.get("search") || "").trim().toLowerCase()
 
     const { data, error } = await supabaseAdmin
       .from("payments")
       .select("*, users!inner(email, name)")
       .eq("status", status)
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: status === "pending" })
 
     if (error) throw error
-    return Response.json({ payments: data })
+    const payments = data
+      .map(({ proof_url, ...safePayment }) => safePayment)
+      .filter(payment => {
+        if (!search) return true
+        const shortRef = `pay-${payment.id.replaceAll("-", "").slice(0, 8)}`.toLowerCase()
+        return shortRef.includes(search) || payment.users.email.toLowerCase().includes(search)
+      })
+    return Response.json({ payments })
   } catch (err) {
     console.error("[admin payments GET]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
@@ -1200,10 +1208,16 @@ export async function PUT(request) {
 
   try {
     const body = await request.json()
-    const { paymentId, action } = body // action: "approve" or "reject"
+    const { paymentId, action, rejectionReason, rejectionNote, correctionReason, correctionNote } = body
 
-    if (!paymentId || !["approve", "reject"].includes(action)) {
-      return Response.json({ error: "paymentId and action (approve/reject) required" }, { status: 400 })
+    if (!paymentId || !["approve", "reject", "correct_approval"].includes(action)) {
+      return Response.json({ error: "Invalid payment action" }, { status: 400 })
+    }
+    if (action === "reject" && !REJECTION_REASONS.includes(rejectionReason)) {
+      return Response.json({ error: "Rejection reason required" }, { status: 400 })
+    }
+    if (action === "reject" && rejectionReason === "Lainnya" && !rejectionNote?.trim()) {
+      return Response.json({ error: "Note required for Lainnya" }, { status: 400 })
     }
 
     // Get the payment
@@ -1217,11 +1231,22 @@ export async function PUT(request) {
       return Response.json({ error: "Payment not found" }, { status: 404 })
     }
 
-    if (payment.status !== "pending") {
+    if (action === "correct_approval" && payment.status !== "rejected") {
+      return Response.json({ error: "Only rejected payments can be corrected" }, { status: 400 })
+    }
+    if (action !== "correct_approval" && payment.status !== "pending") {
       return Response.json({ error: "Payment already processed" }, { status: 400 })
     }
+    if (action === "correct_approval" && !correctionReason) {
+      return Response.json({ error: "Correction reason required" }, { status: 400 })
+    }
+    if (action === "correct_approval" && correctionReason === "Lainnya" && !correctionNote?.trim()) {
+      return Response.json({ error: "Correction note required for Lainnya" }, { status: 400 })
+    }
+    // Before correction, reject with 409 if this user has a newer
+    // awaiting_payment or pending request.
 
-    const newStatus = action === "approve" ? "approved" : "rejected"
+    const newStatus = action === "reject" ? "rejected" : "approved"
 
     // Update payment status
     await supabaseAdmin
@@ -1230,11 +1255,21 @@ export async function PUT(request) {
         status: newStatus,
         reviewed_by: auth.user.email,
         reviewed_at: new Date().toISOString(),
+        ...(action === "reject" && {
+          rejection_reason: rejectionReason,
+          rejection_note: rejectionNote?.trim() || null,
+        }),
+        ...(action === "correct_approval" && {
+          corrected_by: auth.user.email,
+          corrected_at: new Date().toISOString(),
+          correction_reason: correctionReason,
+          correction_note: correctionNote?.trim() || null,
+        }),
       })
       .eq("id", paymentId)
 
     // If approved, upgrade user tier
-    if (action === "approve") {
+    if (action === "approve" || action === "correct_approval") {
       await supabaseAdmin
         .from("users")
         .update({ tier: "paid", updated_at: new Date().toISOString() })
@@ -1261,17 +1296,20 @@ export default function AdminPage() {
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("pending")
+  const [search, setSearch] = useState("")
   const [processing, setProcessing] = useState(null)
 
   useEffect(() => {
     if (status !== "authenticated") return
     fetchPayments()
-  }, [status, filter])
+    const timer = setInterval(fetchPayments, 30000)
+    return () => clearInterval(timer)
+  }, [status, filter, search])
 
   async function fetchPayments() {
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/payments?status=${filter}`)
+      const res = await fetch(`/api/admin/payments?status=${filter}&search=${encodeURIComponent(search)}`)
       const data = await res.json()
       if (data.error) {
         alert(data.error)
@@ -1285,13 +1323,13 @@ export default function AdminPage() {
     }
   }
 
-  async function handleAction(paymentId, action) {
-    setProcessing(paymentId)
+  async function handleAction(payment, action, rejectionReason, rejectionNote) {
+    setProcessing(payment.id)
     try {
       const res = await fetch("/api/admin/payments", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId, action }),
+        body: JSON.stringify({ paymentId: payment.id, action, rejectionReason, rejectionNote }),
       })
       const data = await res.json()
       if (data.error) {
@@ -1299,7 +1337,7 @@ export default function AdminPage() {
         return
       }
       // Remove from list
-      setPayments(prev => prev.filter(p => p.id !== paymentId))
+      setPayments(prev => prev.filter(p => p.id !== payment.id))
     } catch (err) {
       console.error(err)
     } finally {
@@ -1322,10 +1360,13 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Admin — Pembayaran</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Admin — Pembayaran</h1>
+          <button onClick={fetchPayments} className="px-3 py-2 border rounded-lg text-sm">Segarkan</button>
+        </div>
 
         <div className="flex gap-2 mb-6">
-          {["pending", "approved", "rejected"].map(s => (
+          {["pending", "approved", "rejected", "revoked", "expired", "cancelled"].map(s => (
             <button
               key={s}
               onClick={() => setFilter(s)}
@@ -1335,10 +1376,17 @@ export default function AdminPage() {
                   : "bg-white text-gray-700 border"
               }`}
             >
-              {s === "pending" ? "Menunggu" : s === "approved" ? "Disetujui" : "Ditolak"}
+              {s === "pending" ? "Menunggu" : s === "approved" ? "Disetujui" : s === "rejected" ? "Ditolak" : "Dicabut"}
             </button>
           ))}
         </div>
+
+        <input
+          value={search}
+          onChange={event => setSearch(event.target.value)}
+          placeholder="Cari PAY-XXXXXXXX atau email"
+          className="w-full border rounded-lg px-3 py-2 mb-6"
+        />
 
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="animate-spin" /></div>
@@ -1355,8 +1403,8 @@ export default function AdminPage() {
                     <p className="text-lg font-bold mt-1">Rp {Number(p.amount).toLocaleString("id-ID")}</p>
                     <p className="text-xs text-gray-400 mt-1">{new Date(p.created_at).toLocaleString("id-ID")}</p>
                   </div>
-                  {p.proof_url && (
-                    <a href={p.proof_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm underline">
+                  {p.status !== "awaiting_payment" && (
+                    <a href={`/api/admin/payments/${p.id}/proof`} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm underline">
                       Lihat Bukti
                     </a>
                   )}
@@ -1365,14 +1413,14 @@ export default function AdminPage() {
                 {filter === "pending" && (
                   <div className="flex gap-2 mt-4">
                     <button
-                      onClick={() => handleAction(p.id, "approve")}
+                      onClick={() => openAdminActionForm(p, "approve")}
                       disabled={processing === p.id}
                       className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
                     >
                       <CheckCircle size={16} /> Setujui
                     </button>
                     <button
-                      onClick={() => handleAction(p.id, "reject")}
+                      onClick={() => openAdminActionForm(p, "reject")}
                       disabled={processing === p.id}
                       className="flex items-center gap-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
                     >
@@ -1396,12 +1444,18 @@ export default function AdminPage() {
 }
 ```
 
+Add admin-only `GET /api/admin/payments/[id]/proof`. Verify admin access, create a 300-second signed URL from the internal `proof_url`, and redirect to it. Never include `proof_url` in list responses.
+
+For rejected history rows, add `Setujui setelah peninjauan ulang`. It sends `correct_approval`, a preset correction reason, and the conditional note, using the same payment-summary confirmation. Display both the preserved rejection and correction audit details.
+
+`openAdminActionForm` must render an accessible in-app dialog for approval, rejection, revocation, or correction. Show the PAY reference, amount, action, preset reason control, and conditional note in one form. Disable confirmation until valid; never use browser `prompt()` or `confirm()`.
+
 ### STEP: Supabase Storage Bucket
 
 In the Supabase dashboard:
 1. Go to Storage → Create Bucket
 2. Name: `payment-proofs`
-3. Public bucket: **Yes** (so admin can view proofs via URL)
+3. Public bucket: **No**. Admin-only endpoints create short-lived signed URLs.
 4. File size limit: 5MB
 5. Allowed MIME types: `image/jpeg, image/png, image/webp`
 
@@ -1409,7 +1463,7 @@ Or via SQL:
 ```sql
 -- This is typically done via the dashboard, but you can also run:
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('payment-proofs', 'payment-proofs', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+VALUES ('payment-proofs', 'payment-proofs', false, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp'])
 ON CONFLICT (id) DO NOTHING;
 ```
 
@@ -1417,7 +1471,7 @@ ON CONFLICT (id) DO NOTHING;
 
 After creating your Supabase tables, add yourself as admin:
 ```sql
-INSERT INTO admins (email) VALUES ('your-email@gmail.com')
+INSERT INTO admins (email) VALUES ('isnanfauzi08@gmail.com')
 ON CONFLICT (email) DO NOTHING;
 ```
 
@@ -1428,18 +1482,88 @@ ON CONFLICT (email) DO NOTHING;
 - Path alias `@/*` → `./src/*`
 - Use `getAuthContext(request)` for all API route auth (from Phase 1)
 - Use `supabaseAdmin` for all server-side Supabase operations
+- Restrict Phase 2 admin access to the seeded `admins` row for `isnanfauzi08@gmail.com`.
 - The admin page is a simple functional UI — no need for fancy design, just working
-- Payment amount is hardcoded to the product price (you can add a constant like `const PRODUCT_PRICE = 50000`)
+- Payment amount is fixed and hardcoded (`const PRODUCT_PRICE = 40000`), never editable, and displayed with `Salin Nominal`. QRIS is the only MVP method; rejected payments route to WhatsApp CS at `+62 882-0062-82613`.
+- Opening `/upgrade` must not create a payment request. Create an `awaiting_payment` request and set `expires_at` to exactly 48 hours later only when the user taps `Mulai Pembayaran`.
+- Enforce one active request (`awaiting_payment` or `pending`) per user. Return `409` when another active request exists.
+- Show a live countdown plus the exact deadline in WIB. At `expires_at`, replace the payment UI with `Waktu pembayaran berakhir`, disable new payment through that request, and show `Buat Pembayaran Baru`.
+- Allow cancellation only while `awaiting_payment`; set status to `cancelled`, preserve the record, and permit an immediate new request. Keep a one-hour grace period after `expires_at` for proof upload only when `payment_at` falls between request creation and the original deadline. Mark such proof with `proof_uploaded_late=true`.
+- After the grace hour, set the request to `expired` and preserve it. Show `Hubungi CS` as primary and `Buat Pembayaran Baru` as secondary, with a warning not to pay twice.
+- During the grace hour, `Buat Pembayaran Baru` requires confirmation and permanently abandons the old request's late-proof eligibility before creating the new request.
+- Valid proof changes the request to `pending`. Never expire or delete a `pending` payment while it awaits admin review. Always show optional WhatsApp CS with: `Pembayaran biasanya diproses dalam 1–30 menit. Jika belum terverifikasi setelah 30 menit, silakan hubungi CS melalui WhatsApp.`
+- Do not allow owners to edit or replace proof after status becomes `pending`.
+- Require exactly Rp40.000. Reject underpayment as `Nominal tidak sesuai`; do not support combining a second payment. Reject overpayment as `Lainnya`, require `rejection_note` to describe the detected amount or issue, and show `Jika salah pembayaran, silahkan hubungi CS`.
+- Rejection otherwise requires one reason from `Bukti tidak jelas`, `Pembayaran belum ditemukan`, `Bukti duplikat`, or `Lainnya`, plus an optional note. Persist both and return them to the payment owner.
+- Handle refunds and payment-amount corrections entirely through WhatsApp in Phase 2. Record the outcome in the admin note; do not build an in-app refund status or workflow.
+- Derive a display-only short reference from the payment UUID, formatted as `PAY-` plus eight uppercase hexadecimal characters. Keep the full UUID for API authorization and database operations.
+- WhatsApp CS links open an editable prefilled message with the short reference and issue type. Never include the full UUID, proof URL, or sensitive financial details.
+- Show `Hubungi CS` only for `pending`, `rejected`, `revoked`, `expired`, and incorrect-payment states. Derive the issue type automatically from state; hide CS on the initial offer and normal QRIS checkout.
+- Show the latest payment prominently and all prior statuses, short references, dates, and admin reasons inside expandable `Riwayat Pembayaran`.
+- Let authenticated owners reopen only their own proof through a short-lived signed URL. Never return `proof_url` or another raw Storage path to the browser.
+- Show in-app banners for `approved`, `rejected`, and `revoked`. Do not add automatic WhatsApp, email, or push notifications in Phase 2.
+- Generate owner/admin proof signed URLs with a 5-minute lifetime whenever `Lihat Bukti` is opened; do not reuse expired URLs.
+- Keep payment-result banners visible until dismissed. Store dismissed payment/status keys in local device storage, not Supabase; continue showing the result in payment history.
+- Sort pending admin payments oldest first, mark `proof_uploaded_late`, poll every 30 seconds while `/admin` is open, and include a manual `Segarkan` action.
+- Require approval/rejection confirmation showing `PAY-XXXXXXXX`, amount, and action.
+- Allow `rejected` to `approved` only after explicit confirmation and a mandatory reason from `Kesalahan verifikasi admin`, `Bukti pembayaran ditemukan`, `Konfirmasi melalui CS`, or `Lainnya`; require `correction_note` for `Lainnya`.
+- Preserve `rejection_reason` and `rejection_note`; persist `corrected_by`, `corrected_at`, `correction_reason`, and `correction_note`. Block correction while the user has a newer `awaiting_payment` or `pending` request.
+- After correction, grant Pro and show `Pembayaran Anda telah disetujui setelah peninjauan ulang. Akses Pro sekarang aktif.` Treat the resulting approval like any other approval for later revocation.
+- Keep admin history for `approved`, `rejected`, `revoked`, `expired`, and `cancelled`; search by `PAY-XXXXXXXX` or user email.
+- Bundle the supplied QRIS at `public/payment/qris-gopay.jpeg`, show `FAWAID DIGITAL STORE, DIGITAL & KREATIF`, and never load it from an external host. Replacement requires a reviewed file change, real QRIS scan, and deployment; do not add `/admin` QRIS management.
+- Render checkout in this order: fixed amount/`Salin Nominal`, merchant, QRIS/`Simpan QR`, countdown/deadline, PAY reference, instructions, proof form, cancellation.
+- Support camera, gallery, and file selection where available. Show preview, filename, and size. Allow replacing the local selection before submit, never after status becomes `pending`.
+- A failed upload leaves the request active and retryable through grace. Delete partial Storage objects and make request/proof submission idempotent so repeated taps cannot create duplicates.
+- Use the approved grace-abandonment warning. On confirmation, atomically mark the old request `expired` before creating the replacement.
+- Use accessible in-app forms for rejection, revocation, and correction; never use browser prompts. Show preset reason, conditional note, payment summary, and disabled confirmation until valid.
+- When correction is blocked by a newer active request, show that PAY reference. Never silently cancel the newer request.
+- Retain payment metadata/audit while the account exists. Keep private proof images for five years after terminal status, then delete the image only.
+- On account deletion, revoke Pro and retain email plus payment history; clear name, avatar, Google ID, spreadsheet connection, proof paths/images, and other profile links. Explain this retention before confirmation and in the Privacy Policy.
+- When the same email returns, allow the sole admin to restore Pro without payment only after reviewing retained history and entering a mandatory valid reason. Persist `pro_restored_by`, `pro_restored_at`, and `pro_restore_reason`.
+- Show result banners on `/dashboard` and `/upgrade`. Payment history is newest-first, 20 records initially, with `Muat Lebih Banyak`.
+- Admin history uses 50-record pages with `Sebelumnya` and `Berikutnya`; keep status filters and PAY/email search; do not add exports.
+- Auto-select WhatsApp context from `Pembayaran belum diverifikasi`, `Pembayaran ditolak`, `Akses Pro dicabut`, `Pembayaran kedaluwarsa`, `Kesalahan nominal`, or `Pengembalian dana`; keep the message editable.
+- Accept payment proofs only as JPEG, PNG, or WebP images with a maximum size of 5 MB. Validate both MIME type and file size on the server before uploading to Storage.
+- Require `payment_at` from the user as the payment date and approximate time in WIB. Accept `payer_name` as an optional payer/account name. Validate both on the server and show them beside the proof in `/admin`.
+- An approved payment may be changed to `revoked` only by the sole admin after explicit confirmation. Require one reason from `Dana dikembalikan`, `Pembayaran duplikat`, `Pembayaran terdeteksi palsu`, `Koreksi administratif`, or `Lainnya`, plus an optional note. Persist `revoked_by`, `revoked_at`, `revocation_reason`, and `revocation_note`; change the user tier to `free`; return and display the reason and optional note to the payment owner; never delete the payment audit record; allow the user to submit a new payment.
 
 ### VERIFICATION
 
 1. **Build check**: `npm run build` succeeds
 2. **Admin seed**: Run the admin INSERT SQL → check `admins` table has your email
-3. **Payment submission**: Log in as a regular user → POST to `/api/payments` with FormData containing `amount` and `proof` (a test image) → check Supabase `payments` table and Storage bucket
-4. **Admin view**: Log in as admin → visit `/admin` → should see the pending payment
-5. **Approval**: Click "Setujui" → check `payments.status` = "approved" and `users.tier` = "paid"
-6. **Rejection**: Submit another payment → click "Tolak" → check status = "rejected", user tier stays "free"
-7. **Non-admin access**: Log in as non-admin user → visit `/admin` → API should return 403
+3. **Request creation**: Open `/upgrade` and confirm no record is created; tap `Mulai Pembayaran` → check status is `awaiting_payment`, fixed amount is `40000`, `Salin Nominal` works, and `expires_at` is exactly 48 hours after creation
+4. **Active-request limit**: Try to create another request while the first is `awaiting_payment` or `pending` → API returns `409`
+5. **Countdown and cancellation**: Confirm live countdown plus exact WIB deadline; cancel before proof upload → status becomes `cancelled`, history remains, and a new request is allowed
+6. **Deadline and grace**: At 48 hours, confirm `Waktu pembayaran berakhir` and `Buat Pembayaran Baru`; upload proof during the next hour with an on-time `payment_at` → status becomes `pending` with `proof_uploaded_late=true`; a late `payment_at` is rejected
+7. **Final expiry**: After the grace hour, confirm status becomes `expired`, history remains, and the screen shows primary `Hubungi CS`, secondary `Buat Pembayaran Baru`, and the duplicate-payment warning
+8. **Proof and amount validation**: Submit a valid on-time proof → status becomes `pending`; unsupported files and images over 5 MB are rejected; underpayment is rejected as `Nominal tidak sesuai` without top-up support; overpayment is rejected as `Lainnya`, requires an admin note, and shows `Jika salah pembayaran, silahkan hubungi CS`
+9. **Non-expiring pending state**: Review after the original `expires_at` → the timely proof remains pending and valid, and the user sees the WhatsApp CS guidance
+10. **Admin view**: Log in as admin → visit `/admin` → should see the pending payment, proof, payment date/time in WIB, late-upload marker, and optional payer/account name
+11. **Approval**: Click "Setujui" → check `payments.status` = "approved" and `users.tier` = "paid"
+12. **Revocation**: Revoke the approved payment without a preset reason and expect `400`; then confirm with a valid reason and optional note → check `payments.status` = "revoked", `users.tier` = "free", the payment audit remains, the owner can see the reason and optional note, and a new submission is allowed
+13. **Rejection**: Submit another payment → click "Tolak" without a reason and expect `400`; then choose a preset reason with an optional note → check status = "rejected", user tier stays "free", the reason is visible to the owner, and a new submission is allowed
+14. **Non-admin access**: Log in as non-admin user → visit `/admin` → API should return 403
+15. **WhatsApp handoff**: Open CS from an underpayment, overpayment, refund, or correction state → editable message contains the issue and `PAY-XXXXXXXX`, but no full UUID, proof URL, or sensitive details
+16. **Refund scope**: Resolve a refund through WhatsApp and record the result in the admin note; confirm no in-app refund workflow or extra refund status exists
+17. **Signed proof lifetime**: Open owner and admin `Lihat Bukti` links → each signed URL lasts 5 minutes, raw paths are absent, and reopening generates a fresh URL
+18. **Banner behavior**: Trigger `approved`, `rejected`, and `revoked` banners → each remains until dismissed; dismissal persists locally on that device and history remains visible
+19. **Admin queue**: Confirm pending items sort oldest first, late uploads are marked, polling refreshes every 30 seconds, and `Segarkan` works
+20. **Action confirmation**: Approve or reject → confirmation displays short reference, amount, and action before submission
+21. **Rejected-payment correction**: Attempt correction without confirmation/reason, with `Lainnya` but no note, and while a newer active request exists → each is blocked; then correct validly → status becomes `approved`, tier becomes `paid`, original rejection remains, correction audit fields are set, and the correction banner appears
+22. **Corrected revocation**: Revoke the corrected approval through the normal protected flow → tier returns to `free` and both correction and revocation audit records remain
+23. **Admin history search**: Search completed/inactive history by `PAY-XXXXXXXX` and email across `approved`, `rejected`, `revoked`, `expired`, and `cancelled`
+24. **QRIS asset**: Confirm checkout uses local `public/payment/qris-gopay.jpeg`, displays the merchant name, and the deployed image scans correctly
+25. **Checkout order**: Confirm amount, merchant, QRIS, deadline, reference, instructions, proof form, and cancellation render in the approved order
+26. **Proof picker**: Test camera/gallery/file selection where supported, preview metadata, replacement before submit, and immutability after pending
+27. **Upload retry/idempotency**: Interrupt upload and retry; confirm the request remains usable, partial objects are removed, and repeated taps create one payment/proof only
+28. **Grace abandonment**: Start replacement during grace → warning appears; cancel preserves the old request, confirm atomically expires it before creating the new request
+29. **Admin forms**: Confirm rejection/revocation/correction use validated in-app dialogs with no browser prompt/confirm calls
+30. **Correction conflict**: Block correction when a newer active request exists, display its PAY reference, and confirm it is not silently cancelled
+31. **Retention**: Verify terminal proof images are eligible for deletion after five years while payment metadata/audit remains
+32. **Account deletion**: Delete an account → tier becomes free, profile/connections/proofs are removed, and email/payment history remain after explicit retention disclosure
+33. **Manual Pro restoration**: Return with the same email → admin can restore Pro only with retained-history review and a mandatory reason; audit fields are populated
+34. **History pagination**: User history shows 20 newest-first with `Muat Lebih Banyak`; admin history uses 50-record previous/next pages
+35. **Support contexts**: Each supported payment state selects the approved Indonesian issue label and leaves the WhatsApp message editable
 
 ---
 
@@ -1674,7 +1798,7 @@ export async function GET(request) {
     currentTier: auth.tier,
     product: {
       name: "Artami Finance Pro",
-      price: 50000,
+      price: 40000,
       currency: "IDR",
       description: "Akses semua fitur tanpa batas",
       features: [
@@ -1692,10 +1816,12 @@ export async function GET(request) {
     payment: {
       method: "QRIS",
       instructions: [
+        "Tekan Mulai Pembayaran untuk memulai batas waktu 48 jam",
+        "Nominal tetap Rp40.000 — gunakan Salin Nominal",
         "Scan QRIS yang tersedia",
-        "Bayar sesuai harga produk",
-        "Upload bukti pembayaran",
-        "Tunggu persetujuan admin (biasanya < 24 jam)",
+        "Bayar tepat Rp40.000 sebelum batas waktu",
+        "Upload bukti sebelum batas waktu atau maksimal 1 jam setelahnya",
+        "Jika salah pembayaran, silahkan hubungi CS",
       ],
     },
     isPaid: auth.tier === "paid",
@@ -3050,7 +3176,12 @@ for i in $(seq 1 61); do curl -s -o /dev/null -w "%{http_code}\n" http://localho
 # Create 3 bills → 4th should fail
 
 # 9. Payment flow
-# Upload payment proof → check Supabase payments table + storage bucket
+# Open /upgrade → confirm no payment request is created
+# Tap Mulai Pembayaran → confirm awaiting_payment with a 48-hour expires_at
+# Confirm countdown, exact WIB deadline, fixed Rp40.000, and Salin Nominal
+# At 48 hours confirm expired-payment screen; upload on-time-payment proof within the grace hour and confirm late marker
+# After the grace hour confirm expired history, CS-first actions, and duplicate-payment warning
+# Confirm underpayment reason and overpayment CS copy differ
 # As admin, approve payment → check user.tier changes to "paid"
 
 # 10. Data isolation
@@ -3093,16 +3224,16 @@ After completing all 6 phases:
 4. **Test on production** — run through the verification checklist on the deployed URL
 5. **Monitor** — check Vercel function logs for any errors in the first 24 hours
 
-The `SPREADSHEET_ID` env var is now only used as a fallback in `getSheetData` for backward compatibility. All new data goes to per-user sheets. Existing users will need to log in once to get their personal sheet created (with all 10 tabs), then you can migrate their data using the migration script.
+Current repo note: normal runtime no longer depends on `SPREADSHEET_ID`; API routes use `spreadsheetId` from `getAuthContext(request)`. Use `LEGACY_SHEET_OWNER_EMAIL` plus the legacy sheet connector for approved existing-sheet migration.
 
 **Google Sheets tabs created per user** (10 total):
 | Tab | Columns | Purpose |
 |-----|---------|---------|
-| Pemasukan | A-M (13) | Income transactions |
-| Pengeluaran | A-M (13) | Expense transactions |
-| Tabungan | A-M (13) | Savings transactions |
+| Pemasukan | A-O (15) | Income transactions |
+| Pengeluaran | A-O (15) | Expense transactions |
+| Tabungan | A-O (15) | Savings transactions |
 | Budgets | A-F (6) | Per-category monthly limits |
-| Goals | A-H (8) | Savings goals |
+| Goals | A-I (9) | Savings goals |
 | Utang | A-I (9) | Debts and receivables |
 | Momental | A-K (11) | Event/milestone budgets |
 | EventBudgets | A-F (6) | Event sub-category budgets |

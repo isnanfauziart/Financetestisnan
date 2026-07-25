@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
                 Kebijakan Privasi
               </h1>
               <p className="text-sm text-earth-500">
-                Terakhir diperbarui: 11 Juli 2026
+                Terakhir diperbarui: 25 Juli 2026
               </p>
             </div>
           </div>
@@ -54,6 +54,9 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Data Penggunaan:</strong> Fitur yang digunakan dan frekuensi penggunaan untuk menjaga batas fitur, meningkatkan stabilitas layanan, dan membantu dukungan pengguna.
+              </li>
+              <li>
+                <strong>Data Pembayaran:</strong> Alamat email, status dan riwayat pembayaran, waktu pembayaran, nama pembayar jika diberikan, alasan peninjauan admin, serta bukti pembayaran yang Anda unggah.
               </li>
             </ul>
           </section>
@@ -84,7 +87,10 @@ export default function PrivacyPolicy() {
                 <strong>Data Keuangan:</strong> Disimpan di Google Sheets yang terhubung dengan akun Google Anda. Artami mengakses spreadsheet tersebut hanya dengan izin Anda dan hanya untuk menjalankan fitur aplikasi.
               </li>
               <li>
-                <strong>Informasi Akun:</strong> Nama, email, status akun, dan ID spreadsheet dapat disimpan di Supabase (PostgreSQL) untuk manajemen pengguna, pembayaran, dan akses fitur.
+                <strong>Informasi Akun dan Pembayaran:</strong> Nama, email, status akun, ID spreadsheet, serta metadata dan riwayat pembayaran dapat disimpan di Supabase (PostgreSQL) untuk manajemen pengguna, pembayaran, dukungan, dan akses fitur.
+              </li>
+              <li>
+                <strong>Bukti Pembayaran:</strong> Disimpan secara privat dan hanya dapat dibuka melalui tautan sementara oleh pemilik pembayaran atau admin yang berwenang. Bukti dapat disimpan hingga lima tahun setelah pembayaran mencapai status akhir, lalu gambar dihapus dengan tetap mempertahankan metadata dan riwayat audit.
               </li>
               <li>
                 <strong>Keamanan:</strong> Data dikirim melalui koneksi HTTPS. Token akses Google tidak ditampilkan kepada pengguna di sisi browser.
@@ -138,8 +144,14 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="text-lg font-bold text-earth-900 mb-3">8. Retensi dan Penghapusan Data</h2>
+            <p className="text-earth-700 leading-relaxed mb-3">
+              Data keuangan yang berada di Google Sheets tetap berada di akun Google Anda dan dapat Anda hapus langsung melalui Google Drive. Setelah akses Google dicabut, Artami tidak lagi dapat mengakses spreadsheet Anda.
+            </p>
+            <p className="text-earth-700 leading-relaxed mb-3">
+              Jika Anda menghapus akun Artami, akses Pro dicabut dan kami menghapus nama, foto profil, Google ID, hubungan spreadsheet, jalur bukti pembayaran, serta hubungan profil lainnya. Kami tetap menyimpan alamat email dan riwayat pembayaran untuk audit, penyelesaian perselisihan, dukungan, serta kemungkinan pemulihan akses Pro tanpa pembayaran ulang jika terdapat alasan yang sah dan disetujui admin.
+            </p>
             <p className="text-earth-700 leading-relaxed">
-              Data keuangan yang berada di Google Sheets tetap berada di akun Google Anda dan dapat Anda hapus langsung melalui Google Drive. Jika Anda meminta penghapusan akun Artami, kami akan menghapus metadata akun yang tersimpan di sistem kami, seperti email, nama, status akun, dan ID spreadsheet. Setelah akses Google dicabut, Artami tidak lagi dapat mengakses spreadsheet Anda.
+              Retensi tersebut akan dijelaskan kembali sebelum Anda mengonfirmasi penghapusan akun. Anda dapat menghubungi kami untuk menanyakan data pembayaran yang masih disimpan atau meminta peninjauan atas retensi tersebut.
             </p>
           </section>
 

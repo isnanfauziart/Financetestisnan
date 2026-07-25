@@ -1,9 +1,11 @@
 "use client"
 import { useState } from "react"
+import Link from "next/link"
 import { LogOut, Wallet, Calendar } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRpFull, formatInputRupiah } from "./_components/helpers"
 import { useSettings } from "@/lib/useSharedData"
+import Sheet from "./_components/Sheet"
 
 function formatDateDisplay(dateStr) {
   if (!dateStr) return "—"
@@ -32,6 +34,8 @@ function SectionCard({ title, children }) {
 }
 
 export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh }) {
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const { settings, refetch: refetchSettings } = useSettings()
   const [editingSaldo, setEditingSaldo] = useState(false)
   const [rawSaldo, setRawSaldo] = useState("")
@@ -117,6 +121,12 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
           <span className="text-sm font-medium text-earth-500">Sumber Data</span>
           <span className="text-sm font-bold text-earth-800">Google Sheets</span>
         </div>
+        <Link
+          href="/upgrade"
+          className="mt-4 block w-full rounded-2xl bg-violet-600 px-4 py-3 text-center text-sm font-bold text-white hover:bg-violet-700"
+        >
+          {tierLabel === "Paid" ? "Lihat Pembayaran" : "Upgrade ke Pro"}
+        </Link>
       </SectionCard>
 
       <SectionCard title="Preferensi">
@@ -215,7 +225,47 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
           <span className="text-sm font-bold text-rose-500 group-hover:opacity-80 transition-opacity">Log Out</span>
           <LogOut size={16} color={THEME.danger} aria-hidden="true" className="group-hover:translate-x-1 transition-transform" />
         </button>
+        <button
+          type="button"
+          onClick={() => setShowDeleteAccount(true)}
+          className="w-full pt-3 text-left text-sm font-bold text-rose-600"
+        >
+          Hapus Akun
+        </button>
       </SectionCard>
+      <Sheet
+        open={showDeleteAccount}
+        onClose={() => !deletingAccount && setShowDeleteAccount(false)}
+        title="Hapus akun Artami?"
+        closeOnBackdrop={!deletingAccount}
+        footer={
+          <div className="flex gap-2">
+            <button className="flex-1 rounded-2xl bg-earth-100 py-3 font-bold" disabled={deletingAccount} onClick={() => setShowDeleteAccount(false)}>
+              Batal
+            </button>
+            <button
+              className="flex-1 rounded-2xl bg-rose-600 py-3 font-bold text-white disabled:opacity-50"
+              disabled={deletingAccount}
+              onClick={async () => {
+                setDeletingAccount(true)
+                const response = await fetch("/api/account", { method: "DELETE" })
+                if (response.ok) await signOut({ callbackUrl: "/" })
+                else {
+                  onToast?.("Gagal menghapus akun. Silakan coba lagi.", "error")
+                  setDeletingAccount(false)
+                }
+              }}
+            >
+              {deletingAccount ? "Menghapus..." : "Hapus permanen"}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed text-earth-600">
+          Akses Pro akan dicabut. Nama, foto, Google ID, tautan spreadsheet, dan bukti pembayaran akan dihapus.
+          Email serta riwayat pembayaran tetap disimpan untuk audit dan kemungkinan pemulihan Pro oleh admin atas alasan yang sah.
+        </p>
+      </Sheet>
     </div>
   )
 }

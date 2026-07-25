@@ -101,4 +101,25 @@ describe("getOrCreateUser", () => {
     expect(result).toEqual(existing)
     expect(updateEq).toHaveBeenCalledWith("id", "u3")
   })
+
+  it("reactivates a soft-deleted profile without restoring Pro automatically", async () => {
+    const existing = {
+      id: "u4", email: "user@example.com", name: null, avatar_url: null,
+      google_id: null, tier: "free", deleted_at: "2026-07-24T00:00:00.000Z",
+    }
+    const update = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
+    fromMock
+      .mockReturnValueOnce(makeSelectChain({ data: existing, error: null }))
+      .mockReturnValueOnce({ update })
+
+    const { getOrCreateUser } = await import("@/lib/user")
+    const result = await getOrCreateUser({
+      email: "user@example.com", name: "Kembali", avatarUrl: "new.png", googleId: "gid-new",
+    })
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Kembali", avatar_url: "new.png", google_id: "gid-new", deleted_at: null,
+    }))
+    expect(result.tier).toBe("free")
+  })
 })
