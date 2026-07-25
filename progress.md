@@ -2402,3 +2402,13 @@ Rename all occurrences of "Artoku" to "Artami" across the entire codebase (sourc
 ### Status Update
 - Owner reports that `supabase/007-payments-phase2.sql` has been applied to Supabase.
 - Focused Phase 2 tests: 15 passed. Production build: passed.
+
+## 2026-07-25 — Phase 2 completed
+
+### Verification
+- Production QRIS proof upload works.
+- Admin approval works and the user account displays Pro benefits instead of the upgrade CTA.
+- Phase 2 migration, focused tests, production build, and live approval flow are complete.
+
+### Next Phase
+- Phase 3 — Feature Gating: enforce free-tier limits and add `/api/me`.

@@ -8,7 +8,7 @@
 
 ## Commercialization — Active
 
-**Current Phase:** Phase 2 — Payments + Admin [PHASE-STATUS]
+**Current Phase:** Phase 3 — Feature Gating [PHASE-STATUS]
 
 Artami is being commercialized as a one-time-payment personal finance app for the Indonesian market. Target: Play Store launch via React Native/Expo.
 
@@ -27,8 +27,8 @@ Artami is being commercialized as a one-time-payment personal finance app for th
 ### Phase Tracker
 - [x] **Phase 0: Security Fixes** ✅ — Token leak fix, tab whitelist, input validation, generic errors, security headers
 - [x] **Phase 1: Supabase + Multi-Tenancy** ✅ — Supabase setup, per-user Google Sheets, update all 15 API routes
-- [ ] **Phase 2: Payments + Admin** ← CURRENT — Payment API (upload proof), admin dashboard (approve/reject), Supabase Storage
-- [ ] **Phase 3: Feature Gating** — Tier limits (75 txn/month wall, budget/goal/insight caps), `/api/me` endpoint
+- [x] **Phase 2: Payments + Admin** ✅ — Payment API (upload proof), admin dashboard (approve/reject), Supabase Storage
+- [ ] **Phase 3: Feature Gating** ← CURRENT — Tier limits (75 txn/month wall, budget/goal/insight caps), `/api/me` endpoint
 - [ ] **Phase 4: Polish + Hardening** — Rate limiting, zod validation, health check, feature flags, env validation
 - [ ] **Phase 5: Testing + Verification** — API tests, data isolation, rate limiting, security headers, manual checklist
 

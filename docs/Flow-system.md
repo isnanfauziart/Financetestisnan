@@ -66,7 +66,7 @@ Supabase does not store the user's finance ledger.
 
 ## Phase 2: Payments + Admin
 
-Implemented locally on 25 July 2026. The owner reports that `supabase/007-payments-phase2.sql` is applied; production activation still requires an end-to-end payment verification.
+Implemented and verified in production on 25 July 2026, including QRIS proof upload, admin approval, and Pro activation.
 
 - The upgrade CTA opens a dedicated `/upgrade` page; QRIS is not shown inline below the CTA.
 - Opening `/upgrade` does not create a request. Tapping `Mulai Pembayaran` creates an `awaiting_payment` request, starts an exact 48-hour deadline, and then displays the Rp40.000 static merchant QRIS with `Simpan QR`. The fixed, non-editable amount has a `Salin Nominal` action.

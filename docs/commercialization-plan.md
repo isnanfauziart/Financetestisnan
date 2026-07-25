@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Current phase:** Phase 2 - Payments + Admin
-**Implementation status (25 July 2026):** Local code and production build are complete, and the owner reports that `supabase/007-payments-phase2.sql` has been applied. Phase 2 remains open only until the real QRIS approve/reject flow is verified end to end.
+**Implementation status (25 July 2026):** Complete. The migration was applied, the QRIS proof flow was tested in production, and the admin approval flow correctly activated Pro access.
 
 ## Business Model
 

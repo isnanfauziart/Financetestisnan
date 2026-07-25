@@ -936,7 +936,7 @@ The Google OAuth app is currently in "testing" mode. To go production:
 
 ## PHASE 2: PAYMENTS + ADMIN DASHBOARD
 
-**Implementation status (25 July 2026):** Implemented in the local repository, and the owner reports that migration `supabase/007-payments-phase2.sql` is deployed. Do not mark Phase 2 complete until the production QRIS/admin flow passes end-to-end verification.
+**Implementation status (25 July 2026):** Complete. Migration `supabase/007-payments-phase2.sql` is deployed and the production QRIS/admin flow has passed end-to-end verification.
 
 ### CONTEXT
 
