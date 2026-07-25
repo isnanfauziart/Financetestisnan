@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { LogOut, Wallet, Calendar } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
@@ -36,12 +36,21 @@ function SectionCard({ title, children }) {
 export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh }) {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [paymentTier, setPaymentTier] = useState("")
   const { settings, refetch: refetchSettings } = useSettings()
   const [editingSaldo, setEditingSaldo] = useState(false)
   const [rawSaldo, setRawSaldo] = useState("")
   const [editDate, setEditDate] = useState("")
   const [savingSaldo, setSavingSaldo] = useState(false)
-  const tierLabel = formatTierLabel(data?.tier || session?.user?.tier)
+  useEffect(() => {
+    if (typeof fetch !== "function") return
+    fetch("/api/payments?limit=50")
+      .then((response) => response.ok ? response.json() : null)
+      .then((result) => setPaymentTier(result?.tier || ""))
+      .catch(() => {})
+  }, [])
+
+  const tierLabel = formatTierLabel(paymentTier || data?.tier || session?.user?.tier)
 
   const handleStartEdit = () => {
     setRawSaldo(formatInputRupiah(String(settings.startingBalance)))

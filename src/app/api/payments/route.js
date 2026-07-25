@@ -29,10 +29,11 @@ export async function GET(request) {
       .select("*", { count: "exact" }).eq("user_id", user.id)
       .order("created_at", { ascending: false }).range(offset, offset + limit - 1)
     if (error) throw error
+    const hasApprovedPayment = (data || []).some((payment) => payment.status === "approved")
     return Response.json({
       payments: (data || []).map(normalizePaymentForClient),
       total: count || 0,
-      tier: user.tier || "free",
+      tier: user.tier === "paid" || hasApprovedPayment ? "paid" : (user.tier || "free"),
     })
   } catch (error) {
     console.error("[Payments:GET]", error)

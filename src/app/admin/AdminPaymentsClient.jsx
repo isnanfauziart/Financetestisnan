@@ -73,7 +73,7 @@ const toneClasses = {
 }
 
 function paymentEmail(payment) {
-  return payment?.email || payment?.user_email || payment?.user?.email || "-"
+  return payment?.email || payment?.userEmail || payment?.user_email || payment?.user?.email || "-"
 }
 
 function paymentReference(payment) {
