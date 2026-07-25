@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   PAYMENT_AMOUNT,
   getPaymentWindow,
+  isPaymentAtWithinWindow,
   makePaymentReference,
   normalizePaymentForClient,
   validateProof,
@@ -25,6 +26,14 @@ describe("payment rules", () => {
       canUpload: true,
     })
     expect(getPaymentWindow(createdAt, new Date("2026-07-27T01:00:00.001Z")).canUpload).toBe(false)
+  })
+
+  it("accepts minute-rounded WIB input when the request was created seconds later", () => {
+    expect(isPaymentAtWithinWindow(
+      "2026-07-25T11:18:00.000Z",
+      "2026-07-25T11:18:35.000Z",
+      "2026-07-27T11:18:35.000Z"
+    )).toBe(true)
   })
 
   it("accepts only approved image types up to 5 MB", () => {

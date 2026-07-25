@@ -1,5 +1,5 @@
 import { getPaymentUser } from "@/lib/paymentAuth"
-import { getPaymentWindow, normalizePaymentForClient, PAYMENT_BUCKET, validateProof } from "@/lib/payments"
+import { getPaymentWindow, isPaymentAtWithinWindow, normalizePaymentForClient, PAYMENT_BUCKET, validateProof } from "@/lib/payments"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 export const dynamic = "force-dynamic"
@@ -34,7 +34,7 @@ export async function PATCH(request, { params }) {
         return jsonError("Bukti pembayaran sudah dikirim atau pembayaran tidak aktif.", 409)
       }
       const window = getPaymentWindow(payment.created_at)
-      if (!window.canUpload || paymentAt < new Date(payment.created_at) || paymentAt > new Date(window.expiresAt)) {
+      if (!window.canUpload || !isPaymentAtWithinWindow(paymentAt, payment.created_at, window.expiresAt)) {
         return jsonError("Waktu pembayaran telah berakhir.", 409)
       }
 

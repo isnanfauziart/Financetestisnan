@@ -6,6 +6,7 @@ export const WHATSAPP_NUMBER = "62882006282613"
 
 const TWO_DAYS = 48 * 60 * 60 * 1000
 const ONE_HOUR = 60 * 60 * 1000
+const PAYMENT_TIME_INPUT_TOLERANCE = 5 * 60 * 1000
 
 export function makePaymentReference(id) {
   return `PAY-${String(id || "").replaceAll("-", "").slice(0, 8).toUpperCase()}`
@@ -22,6 +23,13 @@ export function getPaymentWindow(createdAt, now = new Date()) {
     inGrace: time > expires.getTime() && time <= graceEnds.getTime(),
     canUpload: time <= graceEnds.getTime(),
   }
+}
+
+export function isPaymentAtWithinWindow(paymentAt, createdAt, expiresAt) {
+  const paymentTime = new Date(paymentAt).getTime()
+  const createdTime = new Date(createdAt).getTime()
+  const expiryTime = new Date(expiresAt).getTime()
+  return Number.isFinite(paymentTime) && paymentTime >= createdTime - PAYMENT_TIME_INPUT_TOLERANCE && paymentTime <= expiryTime
 }
 
 export function validateProof(file) {
