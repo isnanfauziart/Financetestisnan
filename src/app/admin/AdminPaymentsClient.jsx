@@ -121,7 +121,7 @@ function SummaryRow({ label, value }) {
   )
 }
 
-function PaymentCard({ payment, onAction }) {
+function PaymentCard({ payment, onAction, onViewProof }) {
   const reference = paymentReference(payment)
   const isPending = payment.status === "pending"
   const hasProof = payment.hasProof
@@ -172,7 +172,7 @@ function PaymentCard({ payment, onAction }) {
           <button
             type="button"
             disabled={!hasProof}
-            onClick={() => window.open(`/api/admin/payments/${payment.id}/proof`, "_blank", "noopener,noreferrer")}
+            onClick={() => onViewProof(payment)}
             className="inline-flex items-center gap-2 rounded-2xl border border-earth-100 bg-white px-4 py-2.5 text-sm font-bold text-earth-700 shadow-sm transition hover:bg-earth-50 focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ExternalLink size={16} aria-hidden="true" />
@@ -225,6 +225,53 @@ function PaymentCard({ payment, onAction }) {
         </div>
       </div>
     </article>
+  )
+}
+
+function ProofDialog({ proofUrl, payment, loading, error, onClose }) {
+  if (!payment) return null
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-earth-950/60 p-4 backdrop-blur-sm" role="presentation">
+      <section role="dialog" aria-modal="true" aria-labelledby="proof-dialog-title" className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-3xl bg-white p-5 shadow-warm-xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-earth-400">Bukti pembayaran</p>
+            <h2 id="proof-dialog-title" className="font-display text-2xl font-bold text-earth-900">{paymentReference(payment)}</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Tutup bukti pembayaran" className="rounded-full p-2 text-earth-500 hover:bg-earth-50">
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="mt-4 flex min-h-64 flex-1 items-center justify-center overflow-auto rounded-2xl bg-earth-50 p-3">
+          {loading && <Loader2 size={28} className="animate-spin text-earth-500" aria-label="Memuat bukti" />}
+          {error && <p role="alert" className="text-sm font-semibold text-rose-600">{error}</p>}
+          {proofUrl && !loading && !error && <img src={proofUrl} alt={`Bukti pembayaran ${paymentReference(payment)}`} className="max-h-[65vh] max-w-full object-contain" />}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function ResultDialog({ result, onClose }) {
+  if (!result) return null
+  const status = result.payment?.status || "pending"
+  const approved = status === "approved"
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-earth-950/50 p-4 backdrop-blur-sm" role="presentation">
+      <section role="dialog" aria-modal="true" aria-labelledby="result-dialog-title" className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-warm-xl">
+        <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${approved ? "bg-moss-100 text-moss-700" : "bg-earth-100 text-earth-700"}`}>
+          {approved ? <CheckCircle2 size={28} aria-hidden="true" /> : <ShieldCheck size={28} aria-hidden="true" />}
+        </div>
+        <h2 id="result-dialog-title" className="mt-4 font-display text-2xl font-bold text-earth-900">{result.title}</h2>
+        <p className="mt-2 text-sm leading-6 text-earth-600">{result.message}</p>
+        <div className="mt-4 rounded-2xl bg-earth-50 px-4 py-3 text-sm font-bold text-earth-800">
+          {paymentReference(result.payment)} · Status: {STATUS_LABELS[status] || status}
+        </div>
+        <button type="button" onClick={onClose} className="mt-5 w-full rounded-2xl bg-earth-900 px-5 py-3 text-sm font-bold text-white hover:bg-earth-800">
+          Tutup
+        </button>
+      </section>
+    </div>
   )
 }
 
@@ -360,6 +407,11 @@ export default function AdminPaymentsClient() {
   const [restoreEmail, setRestoreEmail] = useState("")
   const [restoreReason, setRestoreReason] = useState("")
   const [restoring, setRestoring] = useState(false)
+  const [proof, setProof] = useState(null)
+  const [proofUrl, setProofUrl] = useState("")
+  const [proofLoading, setProofLoading] = useState(false)
+  const [proofError, setProofError] = useState("")
+  const [result, setResult] = useState(null)
   const requestSeq = useRef(0)
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -419,6 +471,24 @@ export default function AdminPaymentsClient() {
     setDraft({ action, payment, reason: "", note: "" })
   }
 
+  const viewProof = async (payment) => {
+    setProof({ payment })
+    setProofUrl("")
+    setProofError("")
+    setProofLoading(true)
+    try {
+      const response = await fetch(`/api/admin/payments/${payment.id}/proof`)
+      if (!response.ok) throw new Error("Bukti tidak dapat dibuka.")
+      const blob = await response.blob()
+      if (!blob.type.startsWith("image/")) throw new Error("Format bukti tidak valid.")
+      setProofUrl(URL.createObjectURL(blob))
+    } catch (err) {
+      setProofError(err.message)
+    } finally {
+      setProofLoading(false)
+    }
+  }
+
   const submitAction = async (event) => {
     event.preventDefault()
     if (!draft) return
@@ -437,9 +507,17 @@ export default function AdminPaymentsClient() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(getApiError(data, "Gagal memperbarui pembayaran."))
-      setNotice(ACTIONS[draft.action].done)
+      const updatedPayment = Array.isArray(data.payment) ? data.payment[0] : data.payment
+      setResult({
+        payment: updatedPayment || draft.payment,
+        title: "Pembayaran berhasil diperbarui",
+        message: ACTIONS[draft.action].done,
+      })
       setDraft(null)
-      await fetchPayments({ silent: true })
+      setMode("history")
+      setPage(1)
+      setSearchInput("")
+      setSearchQuery("")
     } catch (err) {
       setDialogError(err.message)
     } finally {
@@ -625,6 +703,7 @@ export default function AdminPaymentsClient() {
                   key={payment.id}
                   payment={payment}
                   onAction={openAction}
+                  onViewProof={viewProof}
                 />
               ))}
             </div>
@@ -673,6 +752,18 @@ export default function AdminPaymentsClient() {
         onChange={(patch) => setDraft((value) => ({ ...value, ...patch }))}
         onSubmit={submitAction}
       />
+      <ProofDialog
+        proofUrl={proofUrl}
+        payment={proof?.payment}
+        loading={proofLoading}
+        error={proofError}
+        onClose={() => {
+          if (proofUrl) URL.revokeObjectURL(proofUrl)
+          setProof(null)
+          setProofUrl("")
+        }}
+      />
+      <ResultDialog result={result} onClose={() => setResult(null)} />
     </main>
   )
 }
