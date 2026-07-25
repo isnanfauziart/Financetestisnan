@@ -202,6 +202,7 @@ export async function GET(request) {
     }
 
     return Response.json({
+      tier: auth.tier || "free",
       totalIncome,
       totalExpense,
       totalSurplus,

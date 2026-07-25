@@ -41,7 +41,7 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
   const [rawSaldo, setRawSaldo] = useState("")
   const [editDate, setEditDate] = useState("")
   const [savingSaldo, setSavingSaldo] = useState(false)
-  const tierLabel = formatTierLabel(session?.user?.tier)
+  const tierLabel = formatTierLabel(data?.tier || session?.user?.tier)
 
   const handleStartEdit = () => {
     setRawSaldo(formatInputRupiah(String(settings.startingBalance)))
@@ -121,12 +121,26 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
           <span className="text-sm font-medium text-earth-500">Sumber Data</span>
           <span className="text-sm font-bold text-earth-800">Google Sheets</span>
         </div>
-        <Link
-          href="/upgrade"
-          className="mt-4 block w-full rounded-2xl bg-violet-600 px-4 py-3 text-center text-sm font-bold text-white hover:bg-violet-700"
-        >
-          {tierLabel === "Paid" ? "Lihat Pembayaran" : "Upgrade ke Pro"}
-        </Link>
+        {tierLabel === "Paid" ? (
+          <div className="mt-4 rounded-2xl border border-moss-100 bg-moss-50 p-4 text-sm text-moss-800">
+            <p className="font-bold">Akun Anda telah menggunakan Pro Version.</p>
+            <p className="mt-1 leading-relaxed">
+              Silakan nikmati semua fitur yang tersedia. Semoga Artami membantu mengelola keuangan Anda. Terima kasih!
+            </p>
+            <ul className="mt-3 space-y-1 text-xs font-semibold text-moss-700">
+              <li>✓ Transaksi dan riwayat tanpa batas</li>
+              <li>✓ Budget, goal, tagihan, dan fitur pintar</li>
+              <li>✓ Akses Pro seumur hidup</li>
+            </ul>
+          </div>
+        ) : (
+          <Link
+            href="/upgrade"
+            className="mt-4 block w-full rounded-2xl bg-violet-600 px-4 py-3 text-center text-sm font-bold text-white hover:bg-violet-700"
+          >
+            Upgrade ke Pro
+          </Link>
+        )}
       </SectionCard>
 
       <SectionCard title="Preferensi">

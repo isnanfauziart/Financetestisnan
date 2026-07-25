@@ -78,4 +78,12 @@ describe("ProfileTab ownership cleanup", () => {
     expect(screen.queryByText(/laporan/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/ringkasan bulanan/i)).not.toBeInTheDocument()
   })
+
+  it("hides the upgrade CTA and shows Pro benefits for a paid account", () => {
+    render(<ProfileTab {...createProps({ data: { tier: "paid", transactions: [] } })} />)
+
+    expect(screen.queryByRole("link", { name: "Upgrade ke Pro" })).not.toBeInTheDocument()
+    expect(screen.getByText("Akun Anda telah menggunakan Pro Version.")).toBeInTheDocument()
+    expect(screen.getByText(/Transaksi dan riwayat tanpa batas/)).toBeInTheDocument()
+  })
 })
