@@ -16,6 +16,7 @@ export default function BudgetsSection({
   filteredTransactions,
   expenseCategories,
   onToast,
+  onUsageChange,
 }) {
   const [setupState, setSetupState] = useState(null)
   const [detailBudget, setDetailBudget] = useState(null)
@@ -96,6 +97,7 @@ export default function BudgetsSection({
       if (!res.ok) throw new Error(result.error || "Gagal menghapus")
       onToast?.("Budget dihapus ✓", "success")
       refetch()
+      onUsageChange?.()
     } catch (err) {
       onToast?.(err.message, "error")
     }
@@ -105,6 +107,7 @@ export default function BudgetsSection({
     onToast?.(setupState?.mode === "edit" ? "Budget diperbarui ✓" : "Budget dibuat ✓", "success")
     closeSetup()
     refetch()
+    onUsageChange?.()
   }
 
   return (

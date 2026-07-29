@@ -1,7 +1,9 @@
 import { getAuthContext } from "@/lib/apiAuth"
-import { getSheetData, parseRupiah } from "@/lib/sheets"
+import { batchUpdateSheetValues, getSheetData } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { rowToBill } from "@/lib/bills"
+import { quotaErrorResponse, releaseTransaction, reserveTransaction } from "@/lib/transactionQuota"
+import { claimFeatureWrite, releaseFeatureWrite } from "@/lib/writeClaims"
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +11,7 @@ const SHEET_NAME = "Tagihan"
 const RANGE = `${SHEET_NAME}!A:M`
 
 async function fetchAllBills(accessToken, spreadsheetId) {
-  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId)
   const out = []
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -19,25 +21,8 @@ async function fetchAllBills(accessToken, spreadsheetId) {
   return out
 }
 
-async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ values }),
-  })
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Sheets API error: ${err}`)
-  }
-  return res.json()
-}
-
 async function transactionExistsById(accessToken, sheetName, txId, spreadsheetId) {
-  const rows = await getSheetData(accessToken, `${sheetName}!B:B`, spreadsheetId).catch(() => [])
+  const rows = await getSheetData(accessToken, `${sheetName}!B:B`, spreadsheetId)
   return rows.some((row, index) => index > 0 && String(row?.[0] || "").trim() === txId)
 }
 
@@ -59,6 +44,8 @@ export async function POST(request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
   const { accessToken, spreadsheetId } = auth
+  let reservation = null
+  let writeKey = null
 
   try {
     const body = await request.json()
@@ -75,18 +62,13 @@ export async function POST(request) {
 
     // 2. Auto-create transaction
     const now = new Date()
-    const tanggal = now.toISOString().split("T")[0]
-    if (bill.terakhirDibayar === tanggal) {
-      return Response.json({
-        success: true,
-        idempotent: true,
-        message: "Tagihan sudah dibayar hari ini",
-      })
-    }
-
-    const formattedDate = `${now.getDate()} ${AVAILABLE_MONTHS[now.getMonth()]} ${now.getFullYear()}`
-    const month = AVAILABLE_MONTHS[now.getMonth()]
-    const year = String(now.getFullYear())
+    const dateParts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(now).map(part => [part.type, part.value]))
+    const tanggal = `${dateParts.year}-${dateParts.month}-${dateParts.day}`
+    const formattedDate = `${Number(dateParts.day)} ${AVAILABLE_MONTHS[Number(dateParts.month) - 1]} ${dateParts.year}`
+    const month = AVAILABLE_MONTHS[Number(dateParts.month) - 1]
+    const year = dateParts.year
     const kategori = bill.kategoriTransaksi
     const keterangan = `Bayar tagihan: ${bill.nama}`
     const amount = bill.jumlah
@@ -95,8 +77,21 @@ export async function POST(request) {
 
     const targetSheet = bill.tipe === "income" ? "Pemasukan" : "Pengeluaran"
     const txId = `billpay:${bill.id}:${tanggal}`
+    if (!["income", "expense"].includes(bill.tipe) || !Number.isFinite(amount) || amount <= 0 || !String(kategori || "").trim()) {
+      return Response.json({ error: "Data tagihan tidak valid" }, { status: 400 })
+    }
 
+    const billRow = [
+      bill.id, bill.nama, bill.jumlah, bill.tipe, bill.kategoriBill, bill.kategoriTransaksi,
+      bill.frekuensi, bill.tanggalJatuhTempo, bill.akunBank, bill.aktif ? "TRUE" : "FALSE",
+      tanggal, bill.catatan, bill.createdAt,
+    ]
     if (await transactionExistsById(accessToken, targetSheet, txId, spreadsheetId)) {
+      if (bill.terakhirDibayar !== tanggal) {
+        await batchUpdateSheetValues(accessToken, spreadsheetId, [{
+          range: `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, values: [billRow],
+        }])
+      }
       return Response.json({
         success: true,
         idempotent: true,
@@ -120,28 +115,33 @@ export async function POST(request) {
       month,
       year,
       year,
+      "",
+      "",
     ]
 
-    await sheetsUpdate(accessToken, `${targetSheet}!A${targetRow}:M${targetRow}`, [txRow], spreadsheetId)
-
-    // 3. Update TerakhirDibayar on the bill
-    const todayISO = tanggal
-    const updatedRow = [
-      bill.id,
-      bill.nama,
-      bill.jumlah,
-      bill.tipe,
-      bill.kategoriBill,
-      bill.kategoriTransaksi,
-      bill.frekuensi,
-      bill.tanggalJatuhTempo,
-      bill.akunBank,
-      bill.aktif ? "TRUE" : "FALSE",
-      todayISO,
-      bill.catatan,
-      bill.createdAt,
-    ]
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, [updatedRow], spreadsheetId)
+    writeKey = `bill:${txId}`
+    if (!await claimFeatureWrite(auth.user.id, writeKey)) {
+      return Response.json({ success: true, idempotent: true, message: "Pembayaran sedang atau sudah diproses" })
+    }
+    try {
+      reservation = await reserveTransaction(auth)
+    } catch (error) {
+      await releaseFeatureWrite(auth.user.id, writeKey)
+      writeKey = null
+      throw error
+    }
+    try {
+      await batchUpdateSheetValues(accessToken, spreadsheetId, [
+        { range: `${targetSheet}!A${targetRow}:O${targetRow}`, values: [txRow] },
+        { range: `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, values: [billRow] },
+      ])
+    } catch (error) {
+      await releaseTransaction(reservation)
+      await releaseFeatureWrite(auth.user.id, writeKey)
+      reservation = null
+      writeKey = null
+      throw error
+    }
 
     return Response.json({
       success: true,
@@ -155,6 +155,7 @@ export async function POST(request) {
       },
     })
   } catch (err) {
+    if (err?.code) return quotaErrorResponse(err)
     console.error("[Bills PAY]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }

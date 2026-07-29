@@ -4,6 +4,7 @@ import { THEME, BILL_CATEGORIES, BILL_FREQUENCIES, BILL_TO_EXPENSE_MAP, BILL_TO_
 import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import SelectField from "@/app/dashboard/_components/SelectField"
+import QuotaNotice from "./QuotaNotice"
 
 export default function BillSetupModal({ bill, onClose, onSaved }) {
   const isEdit = !!bill
@@ -18,6 +19,7 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
   const [akunBank, setAkunBank] = useState(bill?.akunBank || "")
   const [catatan, setCatatan] = useState(bill?.catatan || "")
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
 
   const transactionCategories = tipe === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
   const autoMap = tipe === "income" ? BILL_TO_INCOME_MAP : BILL_TO_EXPENSE_MAP
@@ -37,6 +39,7 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
     if (!tanggalJatuhTempo) { return }
 
     setSaving(true)
+    setError(null)
     try {
       const url = isEdit ? `/api/bills/${bill.id}` : "/api/bills"
       const method = isEdit ? "PUT" : "POST"
@@ -56,10 +59,13 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Gagal menyimpan")
+      if (!res.ok) {
+        setError(data)
+        return
+      }
       onSaved()
     } catch (err) {
-      alert(err.message)
+      setError(err.message)
     } finally {
       setSaving(false)
     }
@@ -188,6 +194,8 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
             className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200 resize-none"
           />
         </div>
+
+        <QuotaNotice error={error} />
 
         {/* Save button */}
         <button

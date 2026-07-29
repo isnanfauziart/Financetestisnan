@@ -6,6 +6,7 @@ import { formatRp, formatRpFull, useCountUpOvershoot, useCountUp } from "./_comp
 import EmptyState from "./_components/EmptyState"
 import BudgetStatusCard from "@/components/BudgetStatusCard"
 import HealthScoreCard from "@/components/HealthScoreCard"
+import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import { useBudgets, useBills } from "@/lib/useSharedData"
 import { getFocusNote } from "./_components/focusNote"
 
@@ -18,6 +19,7 @@ export default function HomeTab({
   selectedMonth, selectedYear, monthlyData,
   allTransactions,
   insights,
+  entitlement,
 }) {
   const animatedBalance = useCountUpOvershoot(data?.netWorth || 0)
   const animatedIncome = useCountUp(data?.totalIncome || 0)
@@ -276,12 +278,11 @@ export default function HomeTab({
       </div>
 
       {/* Financial Health Score (replaces spending gauge) */}
-      <HealthScoreCard
-        transactions={data?.transactions}
-        monthlyData={monthlyData}
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-      />
+      {entitlement?.features?.healthScore || entitlement?.isAdmin ? (
+        <HealthScoreCard transactions={data?.transactions} monthlyData={monthlyData} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+      ) : (
+        <LockedFeaturePreview title="Health Score" description="Ringkasan kesehatan keuangan tersedia di Pro." />
+      )}
 
       {/* Budget status (compact summary, hides if no budgets) */}
       <BudgetStatusCard

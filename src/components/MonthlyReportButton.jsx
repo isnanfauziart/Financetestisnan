@@ -13,6 +13,8 @@ export default function MonthlyReportButton({
   transactions,
   monthlyData,
   allTransactions,
+  entitlement,
+  monthlyPdfWatermark,
 }) {
   const isSpecificMonth = selectedMonth && selectedMonth !== "Semua Bulan"
   const isSpecificYear = selectedYear && selectedYear !== "Semua Tahun"
@@ -31,9 +33,9 @@ export default function MonthlyReportButton({
   }, [canReport, monthlyData, selectedMonth, selectedYear])
 
   const healthScore = useMemo(() => {
-    if (!canReport || !transactions || transactions.length === 0) return null
+    if (!canReport || !(entitlement?.features?.healthScore || entitlement?.isAdmin) || !transactions || transactions.length === 0) return null
     return computeHealthScore({ transactions, monthlyData: monthFilteredData, budgets })
-  }, [canReport, transactions, monthFilteredData, budgets])
+  }, [canReport, transactions, monthFilteredData, budgets, entitlement])
 
   const handleDownload = useCallback(() => {
     generateReportPDF({
@@ -44,8 +46,8 @@ export default function MonthlyReportButton({
       allTransactions: allTransactions || [],
       monthlyData: monthlyData || [],
       healthScore,
-    })
-  }, [selectedMonth, selectedYear, transactions, budgets, allTransactions, monthlyData, healthScore])
+    }, { watermark: entitlement?.monthlyPdfWatermark ?? monthlyPdfWatermark === true })
+  }, [selectedMonth, selectedYear, transactions, budgets, allTransactions, monthlyData, healthScore, entitlement, monthlyPdfWatermark])
 
   return (
     <button

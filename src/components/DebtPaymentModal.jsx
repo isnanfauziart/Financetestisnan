@@ -4,11 +4,13 @@ import { ArrowUpRight, ArrowDownRight, Check } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRpFull, formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import Sheet from "@/app/dashboard/_components/Sheet"
+import TransactionQuotaStatus from "./TransactionQuotaStatus"
 
-export default function DebtPaymentModal({ debt, onClose, onSaved, onToast }) {
+export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, transactionUsage }) {
   const [rawAmount, setRawAmount] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [paymentId] = useState(() => crypto.randomUUID())
 
   const isUtang = debt.arah === "utang"
   const accentColor = isUtang ? THEME.expense : THEME.income
@@ -37,10 +39,15 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast }) {
           action: "pay",
           id: debt.id,
           amount: payAmount,
+          paymentId,
         }),
       })
       const result = await res.json()
-      if (!res.ok) throw new Error(result.error || "Gagal membayar")
+      if (!res.ok) {
+        setError(result)
+        setSubmitting(false)
+        return
+      }
 
       onToast(
         result.newStatus === "settled"
@@ -120,7 +127,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast }) {
           )}
         </div>
 
-        {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}
+        <TransactionQuotaStatus usage={transactionUsage} error={error} />
 
         <button
           onClick={() => handlePay(false)}

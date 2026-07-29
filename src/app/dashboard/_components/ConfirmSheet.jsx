@@ -12,6 +12,7 @@ export default function ConfirmSheet({
   onConfirm,
   onClose,
   confirming = false,
+  children,
 }) {
   return (
     <Sheet
@@ -64,6 +65,8 @@ export default function ConfirmSheet({
           </button>
         </div>
       }
-    />
+    >
+      {children}
+    </Sheet>
   )
 }

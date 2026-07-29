@@ -1,5 +1,6 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
+import { runRecordCreation } from "@/lib/recordQuota"
 
 export const dynamic = 'force-dynamic'
 
@@ -104,22 +105,16 @@ export async function POST(request) {
     if (errors.length) {
       return Response.json({ error: errors.join("; ") }, { status: 400 })
     }
-
-    const id = String(Date.now())
-    const createdAt = new Date().toISOString().split("T")[0]
-    const row = [
-      id,
-      body.nama,
-      parseFloat(body.target),
-      body.deadline,
-      body.kategori,
-      body.icon || "",
-      body.color || "",
-      createdAt,
-      "open",
-    ]
-    await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
-    return Response.json({ success: true, id, message: "Goal created" })
+    return runRecordCreation(auth, "goals", {}, async () => {
+      const id = String(Date.now())
+      const createdAt = new Date().toISOString().split("T")[0]
+      const row = [
+        id, body.nama, parseFloat(body.target), body.deadline, body.kategori,
+        body.icon || "", body.color || "", createdAt, "open",
+      ]
+      await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
+      return Response.json({ success: true, id, message: "Goal created" })
+    })
   } catch (err) {
     console.error("[Goals]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })

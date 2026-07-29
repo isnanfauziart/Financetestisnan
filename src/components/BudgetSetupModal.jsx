@@ -5,6 +5,7 @@ import { THEME, EXPENSE_CATEGORIES, BANK_ACCOUNTS, AVAILABLE_MONTHS } from "@/ap
 import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
+import QuotaNotice from "./QuotaNotice"
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = [String(CURRENT_YEAR - 1), String(CURRENT_YEAR), String(CURRENT_YEAR + 1)]
@@ -45,7 +46,11 @@ export default function BudgetSetupModal({ budget, defaultMonth, defaultYear, pr
         body: JSON.stringify(body),
       })
       const result = await res.json()
-      if (!res.ok) throw new Error(result.error || "Gagal menyimpan")
+      if (!res.ok) {
+        setError(result)
+        setSubmitting(false)
+        return
+      }
       onSaved()
     } catch (err) {
       setError(err.message)
@@ -105,7 +110,7 @@ export default function BudgetSetupModal({ budget, defaultMonth, defaultYear, pr
           />
         </div>
 
-        {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}
+        <QuotaNotice error={error} />
 
         <button
           type="submit"

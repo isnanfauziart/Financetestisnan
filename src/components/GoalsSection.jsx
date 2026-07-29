@@ -10,7 +10,7 @@ import GoalSetupModal from "./GoalSetupModal"
 import GoalContributeModal from "./GoalContributeModal"
 import GoalSettleModal from "./GoalSettleModal"
 
-export default function GoalsSection({ transactions, onToast, refreshTrigger }) {
+export default function GoalsSection({ transactions, onToast, refreshTrigger, onUsageChange, transactionUsage }) {
   const { goals, loading, error, refetch } = useGoals()
   const [setupState, setSetupState] = useState(null)
   const [contributeGoal, setContributeGoal] = useState(null)
@@ -56,6 +56,7 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
       setConfirmDelete(null)
       onToast && onToast("Goal dihapus", "success")
       refetch()
+      onUsageChange?.()
     } catch (err) {
       onToast && onToast(err.message, "error")
     }
@@ -65,6 +66,7 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
     setSettleGoal(null)
     onToast && onToast("Goal ditandai terealisasi ✓", "success")
     refetch()
+    onUsageChange?.()
   }
 
   if (loading) {
@@ -199,6 +201,7 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
             setSetupState(null)
             onToast && onToast(setupState.mode === "edit" ? "Goal diperbarui ✓" : "Goal dibuat ✓", "success")
             refetch()
+            onUsageChange?.()
           }}
         />
       )}
@@ -211,7 +214,9 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger }) 
             setContributeGoal(null)
             onToast && onToast("Kontribusi disimpan ✓", "success")
             refetch()
+            onUsageChange?.()
           }}
+          transactionUsage={transactionUsage}
         />
       )}
 

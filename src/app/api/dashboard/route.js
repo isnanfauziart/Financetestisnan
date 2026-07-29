@@ -3,6 +3,9 @@ import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { buildBillSummary } from "@/lib/bills"
 import { pickAmount } from "@/lib/parseSheetRow"
 import { sheetConnectionRequiredPayload } from "@/lib/legacySheet"
+import { getHistoryWindow } from "@/lib/tier"
+import { selectStableInsights } from "@/lib/insights"
+import { getCurrentWeekPeriod } from "@/lib/usage"
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +18,18 @@ export async function GET(request) {
     return Response.json(sheetConnectionRequiredPayload(), { status: 409 })
   }
   const { accessToken, spreadsheetId } = auth
+  const historyWindow = getHistoryWindow(auth.tier || "free")
+  const fromMonth = historyWindow.from?.slice(0, 7)
+  const toMonth = historyWindow.to?.slice(0, 7)
+  const isVisibleMonth = (month, year) => {
+    if (!fromMonth || !toMonth) return true
+    const key = `${year}-${String({
+      Jan: 1, Feb: 2, Mar: 3, Apr: 4, Mei: 5, Jun: 6,
+      Jul: 7, Agu: 8, Sep: 9, Okt: 10, Nov: 11, Des: 12,
+    }[month] || 0).padStart(2, "0")}`
+    return key >= fromMonth && key <= toMonth
+  }
+  let hasOlderData = false
 
   try {
     const incomeRows = await getSheetData(accessToken, "Pemasukan!A:O", spreadsheetId)
@@ -33,6 +48,10 @@ export async function GET(request) {
       const year = String(row[11] || new Date().getFullYear()).trim()
       const amount = pickAmount(row)
       if (amount > 0) {
+        if (!isVisibleMonth(month, year)) {
+          hasOlderData = true
+          continue
+        }
         const key = `${month} ${year}`
         monthlyIncome[key] = (monthlyIncome[key] || 0) + amount
         transactions.push({
@@ -62,6 +81,10 @@ export async function GET(request) {
       const cat = String(row[3] || "Lainnya").trim()
       const amount = pickAmount(row)
       if (amount > 0) {
+        if (!isVisibleMonth(month, year)) {
+          hasOlderData = true
+          continue
+        }
         const key = `${month} ${year}`
         monthlyExpense[key] = (monthlyExpense[key] || 0) + amount
         categoryMap[cat] = (categoryMap[cat] || 0) + amount
@@ -91,6 +114,10 @@ export async function GET(request) {
       const cat = String(row[3] || "Tabungan").trim()
       const amount = pickAmount(row)
       if (amount > 0) {
+        if (!isVisibleMonth(month, year)) {
+          hasOlderData = true
+          continue
+        }
         const key = `${month} ${year}`
         monthlySavings[key] = (monthlySavings[key] || 0) + amount
         transactions.push({
@@ -192,6 +219,8 @@ export async function GET(request) {
       : 0
 
     transactions.reverse()
+    const insightWeek = getCurrentWeekPeriod()
+    const insights = selectStableInsights({ transactions, weekPeriod: insightWeek, limit: 3 })
 
     let billsSummary = { upcoming: [], overdue: [], totalUpcoming: 0, totalOverdue: 0, overdueCount: 0 }
     try {
@@ -216,6 +245,13 @@ export async function GET(request) {
       netWorthHistory,
       startingBalance,
       billsSummary,
+      history: {
+        ...historyWindow,
+        limited: historyWindow.months !== null,
+        hasOlderData,
+      },
+      insights,
+      insightWeek,
       serverTimestamp: new Date().toISOString(),
     })
   } catch (err) {

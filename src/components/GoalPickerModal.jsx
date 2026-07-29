@@ -9,7 +9,7 @@ import Sheet from "@/app/dashboard/_components/Sheet"
 import GoalContributeModal from "./GoalContributeModal"
 import GoalProgressRing from "./GoalProgressRing"
 
-export default function GoalPickerModal({ open, onClose, onSaved, transactions }) {
+export default function GoalPickerModal({ open, onClose, onSaved, transactions, transactionUsage }) {
   const { goals, loading, refetch } = useGoals()
   const [selectedGoal, setSelectedGoal] = useState(null)
 
@@ -76,6 +76,7 @@ export default function GoalPickerModal({ open, onClose, onSaved, transactions }
             setSelectedGoal(null)
             onSaved?.()
           }}
+          transactionUsage={transactionUsage}
         />
       )}
     </>

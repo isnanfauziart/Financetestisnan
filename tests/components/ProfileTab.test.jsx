@@ -80,10 +80,28 @@ describe("ProfileTab ownership cleanup", () => {
   })
 
   it("hides the upgrade CTA and shows Pro benefits for a paid account", () => {
-    render(<ProfileTab {...createProps({ data: { tier: "paid", transactions: [] } })} />)
+    render(<ProfileTab {...createProps({ entitlement: { tier: "paid", usage: {} }, data: { transactions: [] } })} />)
 
     expect(screen.queryByRole("link", { name: "Upgrade ke Pro" })).not.toBeInTheDocument()
     expect(screen.getByText("Akun Anda telah menggunakan Pro Version.")).toBeInTheDocument()
     expect(screen.getByText(/Transaksi dan riwayat tanpa batas/)).toBeInTheDocument()
+  })
+
+  it("shows Free quota usage and warning states from /api/me metadata", () => {
+    render(<ProfileTab {...createProps({
+      entitlement: {
+        tier: "free",
+        usage: {
+          transactions: { current: 60, limit: 75, warning: "near" },
+          goals: { current: 1, limit: 1, warning: "reached" },
+        },
+      },
+    })} />)
+
+    expect(screen.getByText("Transaksi bulan ini")).toBeInTheDocument()
+    expect(screen.getByText("60 / 75")).toBeInTheDocument()
+    expect(screen.getByRole("status")).toHaveTextContent("Mendekati batas")
+    expect(screen.getByRole("alert")).toHaveTextContent("Batas tercapai")
+    expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveAttribute("href", "/upgrade")
   })
 })

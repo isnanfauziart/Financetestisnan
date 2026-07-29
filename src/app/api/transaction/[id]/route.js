@@ -1,5 +1,7 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { createUndoToken } from "@/lib/transactionUndo"
+import { getSheetData, updateSheetValues } from "@/lib/sheets"
 
 const ALLOWED_TABS = ["Pemasukan", "Pengeluaran", "Tabungan"]
 
@@ -92,29 +94,21 @@ export async function DELETE(request, { params }) {
     const body = await request.json()
     const { tab, rowIndex } = body
 
-    if (!ALLOWED_TABS.includes(tab) || !rowIndex) {
+    if (!ALLOWED_TABS.includes(tab) || !Number.isInteger(rowIndex) || rowIndex < 2) {
       return Response.json({ error: "Missing tab or rowIndex" }, { status: 400 })
     }
 
-    // Clear row contents: write 15 empty strings (A through O)
     const range = `${tab}!A${rowIndex}:O${rowIndex}`
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
-
-    const res = await fetch(url, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ values: [["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]] }),
-    })
-
-    if (!res.ok) {
-      const err = await res.text()
-      throw new Error(`Sheets API error: ${err}`)
+    const rows = await getSheetData(accessToken, range, spreadsheetId)
+    const row = Array.from({ length: 15 }, (_, index) => rows[0]?.[index] ?? "")
+    if (!row.some(cell => String(cell).trim())) {
+      return Response.json({ error: "Transaksi tidak ditemukan" }, { status: 404 })
     }
-
-    return Response.json({ success: true, message: "Transaksi dihapus" })
+    const undoToken = createUndoToken({
+      userId: auth.user.id, spreadsheetId, tab, rowIndex, row,
+    })
+    await updateSheetValues(accessToken, range, [Array(15).fill("")], spreadsheetId, "RAW")
+    return Response.json({ success: true, message: "Transaksi dihapus", undoToken })
   } catch (err) {
     console.error("[TransactionId]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })

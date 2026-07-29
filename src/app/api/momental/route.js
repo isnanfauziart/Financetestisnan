@@ -1,6 +1,7 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { getDefaultSubCategories } from "@/lib/eventTemplates"
+import { runRecordCreation } from "@/lib/recordQuota"
 
 export const dynamic = 'force-dynamic'
 
@@ -213,48 +214,28 @@ export async function POST(request) {
     if (errors.length) {
       return Response.json({ error: errors.join("; ") }, { status: 400 })
     }
+    return runRecordCreation(auth, "momental", {}, async () => {
+      const id = String(Date.now())
+      const createdAt = new Date().toISOString().split("T")[0]
+      const eventRow = [
+        id, body.nama, body.tipe || "custom", body.tanggalMulai, body.tanggalSelesai,
+        parseFloat(body.totalBudget), body.mode || "independent", body.status || "planning",
+        body.danaTHR ? parseFloat(body.danaTHR) : "", body.catatan || "", createdAt,
+      ]
+      await sheetsAppend(accessToken, RANGE, [eventRow], spreadsheetId)
 
-    const id = String(Date.now())
-    const createdAt = new Date().toISOString().split("T")[0]
-
-    // Write event row
-    const eventRow = [
-      id,
-      body.nama,
-      body.tipe || "custom",
-      body.tanggalMulai,
-      body.tanggalSelesai,
-      parseFloat(body.totalBudget),
-      body.mode || "independent",
-      body.status || "planning",
-      body.danaTHR ? parseFloat(body.danaTHR) : "",
-      body.catatan || "",
-      createdAt,
-    ]
-    await sheetsAppend(accessToken, RANGE, [eventRow], spreadsheetId)
-
-    // Write sub-category rows
-    let subCats = body.subCategories || []
-    if (subCats.length === 0 && body.tipe && body.tipe !== "custom") {
-      subCats = getDefaultSubCategories(body.tipe)
-    }
-
-    if (subCats.length > 0) {
-      const subRows = subCats.map((s, i) => [
-        id,
-        s.kategori || s.subKategori,
-        parseFloat(s.limit) || 0,
-        s.icon || "",
-        s.color || "",
-        s.catatan || "",
-      ])
-      // Write all sub-category rows at once
-      for (const row of subRows) {
-        await sheetsAppend(accessToken, SUB_RANGE, [row], spreadsheetId)
+      let subCats = body.subCategories || []
+      if (subCats.length === 0 && body.tipe && body.tipe !== "custom") {
+        subCats = getDefaultSubCategories(body.tipe)
       }
-    }
-
-    return Response.json({ success: true, id, message: "Event budget dibuat" })
+      for (const s of subCats) {
+        await sheetsAppend(accessToken, SUB_RANGE, [[
+          id, s.kategori || s.subKategori, parseFloat(s.limit) || 0,
+          s.icon || "", s.color || "", s.catatan || "",
+        ]], spreadsheetId)
+      }
+      return Response.json({ success: true, id, message: "Event budget dibuat" })
+    })
   } catch (err) {
     console.error("[Momental POST]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })

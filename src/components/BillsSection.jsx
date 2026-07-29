@@ -30,7 +30,7 @@ const FREQ_LABELS = {
   yearly: "Tahunan",
 }
 
-export default function BillsSection({ onToast, refreshTrigger }) {
+export default function BillsSection({ onToast, refreshTrigger, onUsageChange, transactionUsage }) {
   const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
   const [setupState, setSetupState] = useState(null)
@@ -62,6 +62,7 @@ export default function BillsSection({ onToast, refreshTrigger }) {
     setPayBill(null)
     onToast?.(`Tagihan dibayar! Transaksi ${result.transaction?.kategori} · ${formatRpFull(result.transaction?.jumlah)} dibuat ✓`)
     fetchBills()
+    onUsageChange?.()
   }
 
   const handleToggleActive = async (bill) => {
@@ -77,6 +78,7 @@ export default function BillsSection({ onToast, refreshTrigger }) {
       }
       onToast?.(bill.aktif ? "Tagihan dinonaktifkan" : "Tagihan diaktifkan")
       fetchBills()
+      onUsageChange?.()
     } catch (err) {
       onToast?.(err.message, "error")
     }
@@ -96,6 +98,7 @@ export default function BillsSection({ onToast, refreshTrigger }) {
       setConfirmDelete(null)
       onToast?.("Tagihan dihapus", "success")
       fetchBills()
+      onUsageChange?.()
     } catch (err) {
       onToast?.(err.message, "error")
     }
@@ -336,6 +339,7 @@ export default function BillsSection({ onToast, refreshTrigger }) {
             setSetupState(null)
             onToast?.(setupState.mode === "edit" ? "Tagihan diperbarui ✓" : "Tagihan dibuat ✓", "success")
             fetchBills()
+            onUsageChange?.()
           }}
         />
       )}
@@ -350,6 +354,7 @@ export default function BillsSection({ onToast, refreshTrigger }) {
             setPayBill(null)
             setSetupState({ mode: "edit", goal: bill })
           }}
+          transactionUsage={transactionUsage}
         />
       )}
     </div>

@@ -45,6 +45,7 @@ export default function Dashboard() {
   })
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
+  const [entitlement, setEntitlement] = useState(null)
   const [needsSheetConnection, setNeedsSheetConnection] = useState(false)
   const [lastSyncAt, setLastSyncAt] = useState(() => {
     if (typeof window === "undefined") return null
@@ -118,8 +119,17 @@ export default function Dashboard() {
   const [fabVisible, setFabVisible] = useState(true)
   const lastScrollYRef = useRef(0)
 
+  const fetchEntitlement = useCallback(() => {
+    if (!session) return
+    fetch("/api/me")
+      .then(response => response.ok ? response.json() : null)
+      .then(result => { if (result) setEntitlement(result) })
+      .catch(() => {})
+  }, [session])
+
   const fetchData = useCallback(() => {
     if (!session) return
+    fetchEntitlement()
     if (data) setRefreshing(true)
     fetch("/api/dashboard")
       .then(r => r.json())
@@ -143,7 +153,7 @@ export default function Dashboard() {
       })
       .catch(e => { setError(e.message) })
       .finally(() => { setLoading(false); setRefreshing(false) })
-  }, [session, data])
+  }, [session, data, fetchEntitlement])
 
   useEffect(() => { if (session) fetchData() }, [session?.user?.email])
 
@@ -355,6 +365,19 @@ export default function Dashboard() {
   }, [filteredTransactions])
 
   const insights = useMemo(() => {
+    if (Array.isArray(data?.insights)) {
+      const icons = {
+        target: Target,
+        activity: Activity,
+        "credit-card": CreditCard,
+        "piggy-bank": PiggyBank,
+        user: User,
+      }
+      return data.insights.map(insight => ({
+        ...insight,
+        icon: icons[insight.iconKey] || Lightbulb,
+      }))
+    }
     const out = []
     const tx = filteredTransactions
     if (tx.length === 0) return out
@@ -520,7 +543,7 @@ export default function Dashboard() {
       }
     }
 
-    return out.slice(0, 5)
+    return out.slice(0, 3)
   }, [filteredTransactions, isAllMonths, isAllAccounts, selectedMonth, selectedYear, statIncome, statExpense, statSavings, expenseCategories, data])
 
   const showToast = (msg, type = "success", action = null, options = {}) => {
@@ -534,7 +557,7 @@ export default function Dashboard() {
   const submitTransaction = async ({ formData, rawAmount, txType }) => {
     if (!formData.tanggal || !formData.kategori || !rawAmount) {
       showToast("Tanggal, kategori, dan jumlah wajib diisi!", "error")
-      return false
+      return { ok: false }
     }
     try {
       const res = await fetch("/api/transaction", {
@@ -554,21 +577,27 @@ export default function Dashboard() {
           setTimeout(() => checkGoalCelebration(), 800)
         }
         setTimeout(() => checkEventCelebration(), 800)
-        return true
+        return { ok: true }
       } else {
-        showToast(result.error || "Gagal menyimpan", "error")
-        return false
+        showToast(
+          result.error || "Gagal menyimpan",
+          "error",
+          result.code === "FEATURE_LIMIT_REACHED"
+            ? { label: "Upgrade", onClick: () => window.location.assign("/upgrade") }
+            : null
+        )
+        return { ok: false, error: result }
       }
     } catch (err) {
       showToast("Terjadi kesalahan", "error")
-      return false
+      return { ok: false }
     }
   }
 
   const handleWalletSubmit = (data) => {
     setSubmitting(true)
-    submitTransaction(data).then((ok) => {
-      if (ok) {
+    submitTransaction(data).then((result) => {
+      if (result.ok) {
         setFormData({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "" })
         setRawAmount("")
       }
@@ -608,8 +637,9 @@ export default function Dashboard() {
           rowIndex: tx.rowIndex,
         }),
       })
+      const result = await res.json()
       if (!res.ok) {
-        const err = await res.json()
+        const err = result
         throw new Error(err.error || "Gagal menghapus")
       }
       if (hapticsEnabled) haptics.warning()
@@ -617,7 +647,7 @@ export default function Dashboard() {
       setGoalsRefreshTrigger(t => t + 1)
       showToast("Transaksi dihapus", "success", {
         label: "Undo",
-        onClick: () => restoreTransaction(tx),
+        onClick: () => restoreTransaction(result.undoToken),
       })
       fetchData()
     } catch (err) {
@@ -627,21 +657,13 @@ export default function Dashboard() {
     }
   }
 
-  const restoreTransaction = async (tx) => {
+  const restoreTransaction = async (undoToken) => {
     setToast(null)
     try {
       const res = await fetch("/api/transaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tanggal: tx.date,
-          keterangan: tx.desc || "",
-          kategori: tx.category,
-          jumlah: String(tx.amount),
-          akunBank: tx.account || "",
-          catatan: "",
-          type: tx.type,
-        }),
+        body: JSON.stringify({ undoToken }),
       })
       const result = await res.json()
       if (result.success) {
@@ -966,6 +988,7 @@ export default function Dashboard() {
             selectedMonth={selectedMonth} selectedYear={selectedYear}
             monthlyData={data?.monthlyData || []}
             insights={insights}
+            entitlement={entitlement}
           />
         )}
         {activeNav === "stats" && (
@@ -998,6 +1021,7 @@ export default function Dashboard() {
              monthlyData={data?.monthlyData || []}
              allTransactions={data?.transactions || []}
              onCategoryClick={handleAnomalyCategoryClick}
+             entitlement={entitlement}
           />
         )}
         {activeNav === "plan" && (
@@ -1017,10 +1041,13 @@ export default function Dashboard() {
             onWhatIfOpen={() => setWhatIfOpen(true)}
             activeSection={activePlanSection}
             onSectionChange={setActivePlanSection}
+            onUsageChange={fetchEntitlement}
+            transactionUsage={entitlement?.usage?.transactions}
+            entitlement={entitlement}
           />
         )}
         {activeNav === "profile" && (
-          <ProfileTab session={session} data={data} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} onToast={showToast} onRefresh={fetchData} />
+          <ProfileTab session={session} data={data} entitlement={entitlement} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} onToast={showToast} onRefresh={fetchData} />
         )}
       </div>
 
@@ -1097,6 +1124,7 @@ export default function Dashboard() {
         initialType={txType}
         onSubmit={submitTransaction}
         onGoalContribute={openGoalPicker}
+        transactionUsage={entitlement?.usage?.transactions}
       />
 
       {/* Goal celebration */}
@@ -1124,6 +1152,7 @@ export default function Dashboard() {
         open={goalPickerOpen}
         onClose={() => setGoalPickerOpen(false)}
         transactions={data?.transactions || []}
+        transactionUsage={entitlement?.usage?.transactions}
         onSaved={() => {
           fetchData()
           setGoalsRefreshTrigger(t => t + 1)
@@ -1134,11 +1163,7 @@ export default function Dashboard() {
       />
 
       {/* What-If Scenario Modal */}
-      <WhatIfModal
-        open={whatIfOpen}
-        onClose={() => setWhatIfOpen(false)}
-        transactions={data?.transactions || []}
-      />
+      {(entitlement?.features?.whatIf || entitlement?.isAdmin) && <WhatIfModal open={whatIfOpen} onClose={() => setWhatIfOpen(false)} transactions={data?.transactions || []} />}
 
       {/* Bill Pay Modal */}
       {billPayTarget && (
@@ -1147,6 +1172,7 @@ export default function Dashboard() {
           onClose={() => setBillPayTarget(null)}
           onPaid={handleBillPaid}
           onEdit={handleBillEditFromPay}
+          transactionUsage={entitlement?.usage?.transactions}
         />
       )}
 

@@ -4,6 +4,7 @@ import { THEME, EVENT_COLORS, AVAILABLE_MONTHS } from "@/app/dashboard/_componen
 import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import SelectField from "@/app/dashboard/_components/SelectField"
+import QuotaNotice from "./QuotaNotice"
 import { EVENT_TEMPLATE_LIST, getTemplate } from "@/lib/eventTemplates"
 
 const MONTH_OPTIONS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
@@ -35,6 +36,7 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
   const [catatan, setCatatan] = useState(event?.catatan || "")
   const [subCategories, setSubCategories] = useState(event?.subCategories || [])
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
   const [step, setStep] = useState(isEdit ? "form" : "template")
 
   const template = useMemo(() => getTemplate(selectedTemplate), [selectedTemplate])
@@ -80,6 +82,7 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
     if (!tanggalMulai || !tanggalSelesai) return
 
     setSaving(true)
+    setError(null)
     try {
       const url = isEdit ? `/api/momental/${event.id}` : "/api/momental"
       const method = isEdit ? "PUT" : "POST"
@@ -99,10 +102,13 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Gagal menyimpan")
+      if (!res.ok) {
+        setError(data)
+        return
+      }
       onSaved()
     } catch (err) {
-      alert(err.message)
+      setError(err.message)
     } finally {
       setSaving(false)
     }
@@ -245,6 +251,8 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
           <textarea value={catatan} onChange={e => setCatatan(e.target.value)} placeholder="Catatan tambahan..." rows={2}
             className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200 resize-none" />
         </div>
+
+        <QuotaNotice error={error} />
 
         {/* Save */}
         <button onClick={handleSave} disabled={saving || !nama.trim() || !rawBudget || !tanggalMulai || !tanggalSelesai}

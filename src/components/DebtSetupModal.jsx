@@ -5,6 +5,7 @@ import { THEME } from "@/app/dashboard/_components/constants"
 import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
+import QuotaNotice from "./QuotaNotice"
 
 export default function DebtSetupModal({ onClose, onSaved }) {
   const [namaOrang, setNamaOrang] = useState("")
@@ -42,7 +43,11 @@ export default function DebtSetupModal({ onClose, onSaved }) {
         }),
       })
       const result = await res.json()
-      if (!res.ok) throw new Error(result.error || "Gagal menyimpan")
+      if (!res.ok) {
+        setError(result)
+        setSubmitting(false)
+        return
+      }
       onSaved()
     } catch (err) {
       setError(err.message)
@@ -163,7 +168,7 @@ export default function DebtSetupModal({ onClose, onSaved }) {
           />
         </div>
 
-        {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}
+        <QuotaNotice error={error} />
 
         <button
           type="submit"

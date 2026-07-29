@@ -1,136 +1,107 @@
 import { getAuthContext } from "@/lib/apiAuth"
-import { getSheetData } from "@/lib/sheets"
+import { appendSheetValues, getSheetData, updateSheetValues } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { quotaErrorResponse, releaseTransaction, reserveTransaction } from "@/lib/transactionQuota"
+import { verifyUndoToken } from "@/lib/transactionUndo"
+import { claimFeatureWrite, releaseFeatureWrite } from "@/lib/writeClaims"
 
-async function withRetry(fn, retries = 2, delayMs = 1000, label = "") {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      return await fn()
-    } catch (err) {
-      if (i === retries) {
-        console.error(`[Retry] ${label} failed after ${retries + 1} attempts:`, err.message)
-        throw err
-      }
-      console.warn(`[Retry] ${label} attempt ${i + 1} failed, retrying in ${delayMs}ms...`)
-      await new Promise(r => setTimeout(r, delayMs))
-    }
-  }
-}
-
-async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=RAW`
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ values }),
-  })
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Sheets API error: ${err}`)
-  }
-  return res.json()
-}
-
-async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
-  const colA = await withRetry(
-    () => getSheetData(accessToken, `${sheetName}!A:A`, spreadsheetId),
-    2, 1000, "Sheets:readColumnA"
-  )
-  // Scan from top to bottom, track last non-empty row
-  let lastNonEmpty = 0
-  for (let i = 0; i < colA.length; i++) {
-    const cell = colA[i] && colA[i][0]
-    if (cell && String(cell).trim().length > 0) {
-      lastNonEmpty = i
-    }
-  }
-  return lastNonEmpty + 2 // +1 for 1-indexed, +1 for next row
-}
+const ALLOWED_TYPES = ["income", "expense", "savings"]
+const ALLOWED_TABS = ["Pemasukan", "Pengeluaran", "Tabungan"]
 
 function formatDate(dateStr) {
-  const parts = String(dateStr).split("-")
-  if (parts.length !== 3) return dateStr
-  const monthIdx = parseInt(parts[1], 10) - 1
-  return `${parseInt(parts[2], 10)} ${AVAILABLE_MONTHS[monthIdx]} ${parts[0]}`
+  const [year, month, day] = String(dateStr).split("-")
+  return year && month && day ? `${Number(day)} ${AVAILABLE_MONTHS[Number(month) - 1]} ${year}` : dateStr
 }
 
-function getMonthName(dateStr) {
-  const parts = String(dateStr).split("-")
-  if (parts.length < 2) return ""
-  return AVAILABLE_MONTHS[parseInt(parts[1], 10) - 1] || ""
+function isValidIsoDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return false
+  const [year, month, day] = String(value).split("-").map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
 }
 
 export async function POST(request) {
   const auth = await getAuthContext(request)
-  if (!auth) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 })
-  }
-  const { accessToken, spreadsheetId } = auth
+  if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
+  let reservation = null
   try {
     const body = await request.json()
-    const { type, tanggal, keterangan, kategori, jumlah, akunBank, catatan, eventId, eventSubKategori } = body
 
+    if (body.undoToken) {
+      let undo
+      try {
+        undo = verifyUndoToken(body.undoToken, {
+          userId: auth.user.id,
+          spreadsheetId: auth.spreadsheetId,
+        })
+      } catch {
+        return Response.json({ error: "Undo tidak valid atau sudah kedaluwarsa" }, { status: 400 })
+      }
+      if (!ALLOWED_TABS.includes(undo.tab) || !Number.isInteger(undo.rowIndex) || undo.rowIndex < 2 || !Array.isArray(undo.row)) {
+        return Response.json({ error: "Undo tidak valid" }, { status: 400 })
+      }
+      const writeKey = `undo:${undo.jti}`
+      if (!undo.jti || !await claimFeatureWrite(auth.user.id, writeKey)) {
+        return Response.json({ error: "Undo sudah digunakan" }, { status: 409 })
+      }
+      const range = `${undo.tab}!A${undo.rowIndex}:O${undo.rowIndex}`
+      let current
+      try {
+        current = await getSheetData(auth.accessToken, range, auth.spreadsheetId)
+      } catch (error) {
+        await releaseFeatureWrite(auth.user.id, writeKey)
+        throw error
+      }
+      if (current.some(row => row.some(cell => String(cell ?? "").trim()))) {
+        return Response.json({ error: "Undo sudah digunakan atau baris telah terisi" }, { status: 409 })
+      }
+      try {
+        await updateSheetValues(auth.accessToken, range, [undo.row], auth.spreadsheetId, "RAW")
+      } catch (error) {
+        await releaseFeatureWrite(auth.user.id, writeKey)
+        throw error
+      }
+      return Response.json({ success: true, restored: true })
+    }
+
+    const { type = "expense", tanggal, keterangan, kategori, jumlah, akunBank, catatan, eventId, eventSubKategori } = body
     if (!tanggal || !kategori || !jumlah) {
       return Response.json({ error: "Tanggal, kategori, dan jumlah wajib diisi" }, { status: 400 })
     }
-
-    const amount = parseFloat(String(jumlah).replace(/[^0-9.]/g, ""))
-    if (isNaN(amount) || amount <= 0 || amount > 999999999999) {
+    if (!isValidIsoDate(tanggal)) return Response.json({ error: "Tanggal tidak valid" }, { status: 400 })
+    if (!ALLOWED_TYPES.includes(type)) return Response.json({ error: "Tipe transaksi tidak valid" }, { status: 400 })
+    const amount = Number(String(jumlah).replace(/[^0-9.]/g, ""))
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 999999999999) {
       return Response.json({ error: "Jumlah harus antara 1 dan 999.999.999.999" }, { status: 400 })
     }
-    if (keterangan && keterangan.length > 500) {
-      return Response.json({ error: "Keterangan maksimal 500 karakter" }, { status: 400 })
-    }
-    if (kategori && kategori.length > 100) {
-      return Response.json({ error: "Kategori maksimal 100 karakter" }, { status: 400 })
-    }
-    if (catatan && catatan.length > 1000) {
-      return Response.json({ error: "Catatan maksimal 1000 karakter" }, { status: 400 })
-    }
-    if (akunBank && akunBank.length > 100) {
-      return Response.json({ error: "Akun bank maksimal 100 karakter" }, { status: 400 })
-    }
-    const ALLOWED_TYPES = ["income", "expense", "savings"]
-    if (type && !ALLOWED_TYPES.includes(type)) {
-      return Response.json({ error: "Tipe transaksi tidak valid" }, { status: 400 })
+    if (String(keterangan || "").length > 500 || String(kategori).length > 100 ||
+        String(catatan || "").length > 1000 || String(akunBank || "").length > 100) {
+      return Response.json({ error: "Data transaksi terlalu panjang" }, { status: 400 })
     }
 
-    const formattedDate = formatDate(tanggal)
-    const month = getMonthName(tanggal)
-    const year = parseInt(String(tanggal).split("-")[0], 10)
+    const [year, monthNumber] = String(tanggal).split("-")
     const sheetName = type === "income" ? "Pemasukan" : type === "savings" ? "Tabungan" : "Pengeluaran"
-
     const row = [
-      formattedDate,
-      "",
-      keterangan || "",
-      kategori,
-      amount,
-      "",
-      "",
-      akunBank || "",
-      amount,
-      catatan || "",
-      month,
-      year,
-      year,
-      eventId || "",
-      eventSubKategori || "",
+      formatDate(tanggal), "", keterangan || "", kategori, amount, "", "", akunBank || "",
+      amount, catatan || "", AVAILABLE_MONTHS[Number(monthNumber) - 1] || "", Number(year), Number(year),
+      eventId || "", eventSubKategori || "",
     ]
-
-    const targetRow = await findNextEmptyRow(accessToken, sheetName, spreadsheetId)
-    await withRetry(
-      () => sheetsUpdate(accessToken, `${sheetName}!A${targetRow}:O${targetRow}`, [row], spreadsheetId),
-      2, 1000, "Sheets:writeRow"
-    )
-
-    return Response.json({ success: true, message: `Transaksi berhasil disimpan ke tab ${sheetName}`, rowIndex: targetRow })
-  } catch (err) {
-    console.error("[Transaction] Error:", err.message, "| type:", type, "| sheet:", sheetName, "| row:", targetRow)
+    reservation = await reserveTransaction(auth)
+    let result
+    try {
+      result = await appendSheetValues(auth.accessToken, `${sheetName}!A:O`, [row], auth.spreadsheetId, "RAW")
+    } catch (error) {
+      await releaseTransaction(reservation)
+      reservation = null
+      throw error
+    }
+    const updatedRange = result?.updates?.updatedRange || ""
+    const rowIndex = Number(updatedRange.match(/![A-Z]+(\d+):/)?.[1]) || null
+    return Response.json({ success: true, message: `Transaksi berhasil disimpan ke tab ${sheetName}`, rowIndex })
+  } catch (error) {
+    if (error?.code) return quotaErrorResponse(error)
+    console.error("[Transaction]", error)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }

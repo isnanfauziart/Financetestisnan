@@ -5,8 +5,9 @@ import { formatInputRupiah } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
 import EventTagPicker from "@/components/EventTagPicker"
 import EventSuggestionChip from "@/components/EventSuggestionChip"
+import TransactionQuotaStatus from "@/components/TransactionQuotaStatus"
 
-export default function WalletTab({ txType, formData, rawAmount, submitting, setTxType, setFormData, setRawAmount, handleSubmit, onGoalContribute }) {
+export default function WalletTab({ txType, formData, rawAmount, submitting, setTxType, setFormData, setRawAmount, handleSubmit, onGoalContribute, transactionUsage, quotaError }) {
   return (
     <div className="px-5 pt-4 animate-bento-in" key="wallet-tab">
       <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
@@ -30,6 +31,7 @@ export default function WalletTab({ txType, formData, rawAmount, submitting, set
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit({ formData, rawAmount, txType }) }} className="space-y-3">
+          <TransactionQuotaStatus usage={transactionUsage} error={quotaError} />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="amount-input" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Jumlah</label>

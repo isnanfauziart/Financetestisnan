@@ -5,6 +5,7 @@ import { THEME, SAVINGS_CATEGORIES, AVAILABLE_MONTHS } from "@/app/dashboard/_co
 import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
+import QuotaNotice from "./QuotaNotice"
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = [String(CURRENT_YEAR), String(CURRENT_YEAR + 1), String(CURRENT_YEAR + 2), String(CURRENT_YEAR + 3)]
@@ -103,7 +104,11 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
         body: JSON.stringify({ ...body, ...(isEdit ? { id: goal.id } : {}) }),
       })
       const result = await res.json()
-      if (!res.ok) throw new Error(result.error || "Gagal menyimpan")
+      if (!res.ok) {
+        setError(result)
+        setSubmitting(false)
+        return
+      }
       onSaved()
     } catch (err) {
       setError(err.message)
@@ -191,7 +196,7 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
           </div>
         </div>
 
-        {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}
+        <QuotaNotice error={error} />
 
         <button type="submit" disabled={submitting}
           className="w-full py-4 mt-2 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all duration-200 active:scale-[0.97] disabled:opacity-50"

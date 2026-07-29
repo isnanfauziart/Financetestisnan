@@ -8,13 +8,16 @@ import DebtCard from "./DebtCard"
 import DebtSetupModal from "./DebtSetupModal"
 import DebtPaymentModal from "./DebtPaymentModal"
 import ConfirmSheet from "@/app/dashboard/_components/ConfirmSheet"
+import TransactionQuotaStatus from "./TransactionQuotaStatus"
 
-export default function DebtsSection({ onToast }) {
+export default function DebtsSection({ onToast, onUsageChange, transactionUsage }) {
   const { debts, loading, refetch } = useDebts()
   const [setupOpen, setSetupOpen] = useState(false)
   const [payDebt, setPayDebt] = useState(null)
   const [settleDebt, setSettleDebt] = useState(null)
   const [settling, setSettling] = useState(false)
+  const [settlePaymentId, setSettlePaymentId] = useState(null)
+  const [settleError, setSettleError] = useState(null)
 
   const openDebts = useMemo(() => debts.filter(d => d.status === "open"), [debts])
 
@@ -28,6 +31,7 @@ export default function DebtsSection({ onToast }) {
     setSetupOpen(false)
     setPayDebt(null)
     refetch()
+    onUsageChange?.()
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("debts-changed"))
     }
@@ -35,6 +39,8 @@ export default function DebtsSection({ onToast }) {
 
   const handleSettle = async () => {
     if (!settleDebt) return
+    const paymentId = settlePaymentId || crypto.randomUUID()
+    if (!settlePaymentId) setSettlePaymentId(paymentId)
     setSettling(true)
     try {
       const res = await fetch("/api/debts", {
@@ -44,12 +50,18 @@ export default function DebtsSection({ onToast }) {
           action: "pay",
           id: settleDebt.id,
           amount: settleDebt.sisaSaldo,
+          paymentId,
         }),
       })
       const result = await res.json()
-      if (!res.ok) throw new Error(result.error || "Gagal settle")
+      if (!res.ok) {
+        setSettleError(result)
+        setSettling(false)
+        return
+      }
       onToast(`${settleDebt.namaOrang} lunas! 🎉`, "success")
       setSettleDebt(null)
+      setSettlePaymentId(null)
       handleSaved()
     } catch (err) {
       onToast(err.message, "error")
@@ -137,7 +149,7 @@ export default function DebtsSection({ onToast }) {
                 key={d.id}
                 debt={d}
                 onPay={setPayDebt}
-                onSettle={setSettleDebt}
+                onSettle={debt => { setSettleDebt(debt); setSettlePaymentId(crypto.randomUUID()); setSettleError(null) }}
               />
             ))}
           </div>
@@ -158,6 +170,7 @@ export default function DebtsSection({ onToast }) {
           onClose={() => setPayDebt(null)}
           onSaved={handleSaved}
           onToast={onToast}
+          transactionUsage={transactionUsage}
         />
       )}
 
@@ -168,9 +181,11 @@ export default function DebtsSection({ onToast }) {
           confirmLabel="Settle Lunas"
           confirmColor={settleDebt.arah === "utang" ? THEME.expense : THEME.income}
           onConfirm={handleSettle}
-          onClose={() => { if (!settling) setSettleDebt(null) }}
+          onClose={() => { if (!settling) { setSettleDebt(null); setSettleError(null) } }}
           confirming={settling}
-        />
+        >
+          <TransactionQuotaStatus usage={transactionUsage} error={settleError} />
+        </ConfirmSheet>
       )}
     </>
   )

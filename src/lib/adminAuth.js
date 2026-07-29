@@ -10,8 +10,8 @@ export async function requireAdmin(request) {
     .from("admins")
     .select("email")
     .ilike("email", email)
+    .limit(1)
     .maybeSingle()
   if (error) throw error
   return data ? { email } : { error: "forbidden" }
 }
-

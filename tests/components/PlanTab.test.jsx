@@ -30,6 +30,13 @@ function createProps(overrides = {}) {
     onToast: vi.fn(),
     onBillPay: vi.fn(),
     onWhatIfOpen: vi.fn(),
+    entitlement: {
+      features: {
+        financialIndependence: true,
+        whatIf: true,
+      },
+      upgrade: "/upgrade",
+    },
     ...overrides,
   }
 }
@@ -41,6 +48,8 @@ describe("PlanTab planning ownership", () => {
     expect(screen.getByRole("button", { name: /goal/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /budget/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /tagihan/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /utang/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /event/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /simulasi/i })).toBeInTheDocument()
   })
 
@@ -77,15 +86,27 @@ describe("PlanTab planning ownership", () => {
     expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
   })
 
-  it("keeps future-oriented tools under Simulasi", () => {
+  it("gives debts and events dedicated owner sections", () => {
+    render(<PlanTab {...createProps()} />)
+
+    fireEvent.click(screen.getByRole("button", { name: /utang/i }))
+    expect(screen.getByText("Debts section mock")).toBeInTheDocument()
+    expect(screen.queryByText("Event budgets section mock")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /event/i }))
+    expect(screen.getByText("Event budgets section mock")).toBeInTheDocument()
+    expect(screen.queryByText("Debts section mock")).not.toBeInTheDocument()
+  })
+
+  it("keeps only future-oriented tools under Simulasi", () => {
     render(<PlanTab {...createProps()} />)
 
     fireEvent.click(screen.getByRole("button", { name: /simulasi/i }))
 
     expect(screen.getByRole("button", { name: "Open What-If Scenario simulator" })).toBeInTheDocument()
     expect(screen.getByText("FI tracker mock")).toBeInTheDocument()
-    expect(screen.getByText("Debts section mock")).toBeInTheDocument()
-    expect(screen.getByText("Event budgets section mock")).toBeInTheDocument()
+    expect(screen.queryByText("Debts section mock")).not.toBeInTheDocument()
+    expect(screen.queryByText("Event budgets section mock")).not.toBeInTheDocument()
   })
 
   it("marks the current section with aria-current", () => {

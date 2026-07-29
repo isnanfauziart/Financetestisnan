@@ -7,7 +7,7 @@ import EventCard from "./EventCard"
 import EventSetupModal from "./EventSetupModal"
 import EventDetailModal from "./EventDetailModal"
 
-export default function EventBudgetsSection({ filteredTransactions, onToast, refreshTrigger }) {
+export default function EventBudgetsSection({ filteredTransactions, onToast, refreshTrigger, onUsageChange }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [setupState, setSetupState] = useState(null)
@@ -60,6 +60,7 @@ export default function EventBudgetsSection({ filteredTransactions, onToast, ref
       setConfirmDelete(null)
       onToast?.("Event dihapus", "success")
       fetchEvents()
+      onUsageChange?.()
     } catch (err) {
       onToast?.(err.message, "error")
     }
@@ -163,6 +164,7 @@ export default function EventBudgetsSection({ filteredTransactions, onToast, ref
             setSetupState(null)
             onToast?.(setupState.mode === "edit" ? "Event diperbarui ✓" : "Event budget dibuat ✓", "success")
             fetchEvents()
+            onUsageChange?.()
           }}
         />
       )}

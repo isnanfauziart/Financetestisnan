@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { LogOut, Wallet, Calendar } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
@@ -18,8 +18,18 @@ function formatDateDisplay(dateStr) {
 
 function formatTierLabel(tier) {
   const normalized = String(tier || "free").trim().toLowerCase()
-  if (normalized === "paid" || normalized === "premium" || normalized === "lifetime") return "Paid"
+  if (normalized === "paid" || normalized === "premium" || normalized === "lifetime") return "Pro"
   return "Free"
+}
+
+const QUOTA_LABELS = {
+  transactions: "Transaksi bulan ini",
+  budgets: "Budget bulan ini",
+  goals: "Goal",
+  debts: "Utang & piutang",
+  momental: "Event budget",
+  bills: "Tagihan",
+  insights: "Insight minggu ini",
 }
 
 function SectionCard({ title, children }) {
@@ -33,24 +43,16 @@ function SectionCard({ title, children }) {
   )
 }
 
-export default function ProfileTab({ session, data, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh }) {
+export default function ProfileTab({ session, data, entitlement, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh }) {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
-  const [paymentTier, setPaymentTier] = useState("")
   const { settings, refetch: refetchSettings } = useSettings()
   const [editingSaldo, setEditingSaldo] = useState(false)
   const [rawSaldo, setRawSaldo] = useState("")
   const [editDate, setEditDate] = useState("")
   const [savingSaldo, setSavingSaldo] = useState(false)
-  useEffect(() => {
-    if (typeof fetch !== "function") return
-    fetch("/api/payments?limit=50")
-      .then((response) => response.ok ? response.json() : null)
-      .then((result) => setPaymentTier(result?.tier || ""))
-      .catch(() => {})
-  }, [])
-
-  const tierLabel = formatTierLabel(paymentTier || data?.tier || session?.user?.tier)
+  const tierLabel = formatTierLabel(entitlement?.tier || data?.tier)
+  const quotaEntries = Object.entries(entitlement?.usage || {})
 
   const handleStartEdit = () => {
     setRawSaldo(formatInputRupiah(String(settings.startingBalance)))
@@ -124,13 +126,33 @@ export default function ProfileTab({ session, data, signOut, soundEnabled, setSo
         </div>
         <div className="flex justify-between items-center border-b border-earth-100 pb-3">
           <span className="text-sm font-medium text-earth-500">Akses</span>
-          <span className="text-sm font-bold text-earth-800">{tierLabel === "Paid" ? "Seumur hidup" : "Free tier"}</span>
+          <span className="text-sm font-bold text-earth-800">{tierLabel === "Pro" ? "Seumur hidup" : "Free tier"}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium text-earth-500">Sumber Data</span>
           <span className="text-sm font-bold text-earth-800">Google Sheets</span>
         </div>
-        {tierLabel === "Paid" ? (
+        {(data?.history?.limited || entitlement?.history?.months === 4) && (
+          <p className="border-t border-earth-100 pt-3 text-xs leading-relaxed text-earth-500">
+            Riwayat lebih lama tetap tersimpan dan dapat dikelola di Google Sheets.
+          </p>
+        )}
+        {quotaEntries.length > 0 && (
+          <div className="space-y-2 border-t border-earth-100 pt-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Pemakaian</p>
+            {quotaEntries.map(([feature, item]) => (
+              <div key={feature} className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-earth-500">{QUOTA_LABELS[feature] || feature}</span>
+                <span className={`text-right font-bold ${item.warning === "reached" ? "text-rose-600" : item.warning === "near" ? "text-amber-600" : "text-earth-800"}`}>
+                  {item.limit === null ? "Tanpa batas" : item.current === null ? `— / ${item.limit}` : `${item.current} / ${item.limit}`}
+                  {item.warning === "near" && <span className="block text-[10px]" role="status">Mendekati batas</span>}
+                  {item.warning === "reached" && <span className="block text-[10px]" role="alert">Batas tercapai</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {tierLabel === "Pro" ? (
           <div className="mt-4 rounded-2xl border border-moss-100 bg-moss-50 p-4 text-sm text-moss-800">
             <p className="font-bold">Akun Anda telah menggunakan Pro Version.</p>
             <p className="mt-1 leading-relaxed">

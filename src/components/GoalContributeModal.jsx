@@ -5,8 +5,9 @@ import { THEME, BANK_ACCOUNTS } from "@/app/dashboard/_components/constants"
 import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
+import TransactionQuotaStatus from "./TransactionQuotaStatus"
 
-export default function GoalContributeModal({ goal, onClose, onSaved }) {
+export default function GoalContributeModal({ goal, onClose, onSaved, transactionUsage }) {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split("T")[0])
   const [rawAmount, setRawAmount] = useState("")
   const [akunBank, setAkunBank] = useState("")
@@ -42,7 +43,11 @@ export default function GoalContributeModal({ goal, onClose, onSaved }) {
         }),
       })
       const result = await res.json()
-      if (!res.ok) throw new Error(result.error || "Gagal menyimpan")
+      if (!res.ok) {
+        setError(result)
+        setSubmitting(false)
+        return
+      }
       onSaved()
     } catch (err) {
       setError(err.message)
@@ -90,7 +95,7 @@ export default function GoalContributeModal({ goal, onClose, onSaved }) {
             className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-violet-200" />
         </div>
 
-        {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}
+        <TransactionQuotaStatus usage={transactionUsage} error={error} />
 
         <button type="submit" disabled={submitting}
           className="w-full py-4 mt-2 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all duration-200 active:scale-[0.97] disabled:opacity-50"

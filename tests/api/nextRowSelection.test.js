@@ -6,7 +6,20 @@ vi.mock("@/lib/apiAuth", () => ({
 
 vi.mock("@/lib/sheets", () => ({
   getSheetData: vi.fn(),
+  updateSheetValues: vi.fn(),
+  appendSheetValues: vi.fn(),
+  batchUpdateSheetValues: vi.fn(),
   parseRupiah: vi.fn(value => Number(value) || 0),
+}))
+vi.mock("@/lib/writeClaims", () => ({
+  claimFeatureWrite: vi.fn(() => true),
+  releaseFeatureWrite: vi.fn(),
+}))
+
+vi.mock("@/lib/transactionQuota", () => ({
+  reserveTransaction: vi.fn(),
+  releaseTransaction: vi.fn(),
+  quotaErrorResponse: vi.fn(),
 }))
 
 function makeFilledColumn(lastRow) {
@@ -20,11 +33,11 @@ describe("next row selection", () => {
     vi.unstubAllGlobals()
   })
 
-  it("writes a new transaction to row 10000 when row 9999 is already occupied", async () => {
+  it("uses Sheets append so concurrent manual writes cannot overwrite a selected row", async () => {
     const { getAuthContext } = await import("@/lib/apiAuth")
-    const { getSheetData } = await import("@/lib/sheets")
-    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
-    getSheetData.mockResolvedValue(makeFilledColumn(9999))
+    const { appendSheetValues } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ user: { id: "u" }, accessToken: "token", spreadsheetId: "sheet-123", tier: "paid" })
+    appendSheetValues.mockResolvedValue({ updates: { updatedRange: "Pemasukan!A10000:O10000" } })
 
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
@@ -45,22 +58,19 @@ describe("next row selection", () => {
 
     expect(res.status).toBe(200)
     expect(body.rowIndex).toBe(10000)
-    expect(getSheetData).toHaveBeenCalledWith("token", "Pemasukan!A:A", "sheet-123")
-    expect(fetchSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Pemasukan!A10000%3AO10000"),
-      expect.objectContaining({ method: "PUT" })
-    )
+    expect(appendSheetValues).toHaveBeenCalledWith("token", "Pemasukan!A:O", expect.any(Array), "sheet-123", "RAW")
   })
 
   it("writes bill payment transactions to row 10000 when row 9999 is already occupied", async () => {
     const { getAuthContext } = await import("@/lib/apiAuth")
     const { getSheetData } = await import("@/lib/sheets")
-    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getAuthContext.mockResolvedValue({ user: { id: "u" }, accessToken: "token", spreadsheetId: "sheet-123", tier: "paid" })
     getSheetData
       .mockResolvedValueOnce([
         ["ID", "Nama", "Jumlah", "Tipe", "KategoriBill", "KategoriTransaksi", "Frekuensi", "TanggalJatuhTempo", "AkunBank", "Aktif", "TerakhirDibayar", "Catatan", "CreatedAt"],
         ["bill-1", "Gaji Bulanan", "150000", "income", "Payroll", "Gaji", "monthly", "1", "BCA", "TRUE", "", "", "2026-07-07"],
       ])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce(makeFilledColumn(9999))
 
     const fetchSpy = vi.fn()
@@ -88,11 +98,11 @@ describe("next row selection", () => {
 
     expect(res.status).toBe(200)
     expect(body.transaction.row).toBe(10000)
-    expect(getSheetData).toHaveBeenNthCalledWith(2, "token", "Pemasukan!A:A", "sheet-123")
-    expect(fetchSpy).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining("Pemasukan!A10000%3AM10000"),
-      expect.objectContaining({ method: "PUT" })
+    expect(getSheetData).toHaveBeenNthCalledWith(3, "token", "Pemasukan!A:A", "sheet-123")
+    const { batchUpdateSheetValues } = await import("@/lib/sheets")
+    expect(batchUpdateSheetValues).toHaveBeenCalledWith(
+      "token", "sheet-123",
+      expect.arrayContaining([expect.objectContaining({ range: "Pemasukan!A10000:O10000" })])
     )
   })
 })

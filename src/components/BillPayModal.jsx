@@ -5,6 +5,7 @@ import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRpFull } from "@/app/dashboard/_components/helpers"
 import { getBillVisual } from "@/lib/categoryIcons"
 import Sheet from "@/app/dashboard/_components/Sheet"
+import TransactionQuotaStatus from "./TransactionQuotaStatus"
 
 const STATUS_LABELS = {
   overdue: "Terlambat",
@@ -28,11 +29,13 @@ const FREQ_LABELS = {
   yearly: "Tahunan",
 }
 
-export default function BillPayModal({ bill, onClose, onPaid, onEdit }) {
+export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactionUsage }) {
   const [paying, setPaying] = useState(false)
+  const [error, setError] = useState(null)
 
   const handlePay = async () => {
     setPaying(true)
+    setError(null)
     try {
       const res = await fetch("/api/bills/pay", {
         method: "POST",
@@ -40,10 +43,13 @@ export default function BillPayModal({ bill, onClose, onPaid, onEdit }) {
         body: JSON.stringify({ billId: bill.id }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Gagal membayar")
+      if (!res.ok) {
+        setError(data)
+        return
+      }
       onPaid(data)
     } catch (err) {
-      alert(err.message)
+      setError(err.message)
     } finally {
       setPaying(false)
     }
@@ -138,6 +144,8 @@ export default function BillPayModal({ bill, onClose, onPaid, onEdit }) {
             </div>
           )}
         </div>
+
+        <TransactionQuotaStatus usage={transactionUsage} error={error} />
 
         {/* Actions */}
         <div className="space-y-2 pt-2">

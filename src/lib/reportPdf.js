@@ -317,9 +317,9 @@ class PdfBuilder {
   }
 }
 
-export function generateReportPDF({
-  month, year, transactions, budgets, allTransactions, monthlyData, healthScore,
-}) {
+export function generateReportPDF(data, options = {}) {
+  const { month, year, transactions, budgets, allTransactions, monthlyData, healthScore } = data
+  const { watermark = Boolean(data?.watermark) } = options
   const b = new PdfBuilder()
   const doc = b.doc
 
@@ -357,6 +357,15 @@ export function generateReportPDF({
   })
 
   b.stripe(3, [C.violet, C.teal, C.sage])
+
+  if (watermark) {
+    doc.saveGraphicsState?.()
+    doc.setTextColor(225, 218, 208)
+    doc.setFontSize(28)
+    doc.setFont("Helvetica", "bold")
+    doc.text("ARTAMI FREE", PW / 2, 150, { align: "center", angle: 35 })
+    doc.restoreGraphicsState?.()
+  }
 
   b.y += 6
   b.text("LAPORAN KEUANGAN BULANAN", PW / 2, b.y, { size: 18, color: C.dark, style: "bold", align: "center" })

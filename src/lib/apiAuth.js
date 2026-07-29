@@ -4,6 +4,7 @@ import { getOrCreateUser } from "./user"
 import { createUserSheet } from "./sheetManager"
 import { supabaseAdmin } from "./supabaseAdmin"
 import { needsLegacySheetConnection } from "./legacySheet"
+import { getEffectiveEntitlement } from "./entitlement"
 
 async function withRetry(fn, retries = 2, delayMs = 1000, label = "") {
   for (let i = 0; i <= retries; i++) {
@@ -78,11 +79,12 @@ export async function getAuthContext(request) {
 
   if (!spreadsheetId) {
     if (needsLegacySheetConnection(user)) {
+      const entitlement = await getEffectiveEntitlement(user)
       return {
         user,
         accessToken: token.accessToken,
         spreadsheetId: null,
-        tier: user.tier || "free",
+        ...entitlement,
         needsSheetConnection: true,
       }
     }
@@ -122,10 +124,12 @@ export async function getAuthContext(request) {
     }
   }
 
+  const entitlement = await getEffectiveEntitlement(user)
+
   return {
     user,
     accessToken: token.accessToken,
     spreadsheetId: spreadsheetId || user.spreadsheet_id,
-    tier: user.tier || "free",
+    ...entitlement,
   }
 }

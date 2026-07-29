@@ -1,5 +1,6 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
+import { runRecordCreation } from "@/lib/recordQuota"
 
 export const dynamic = 'force-dynamic'
 
@@ -121,23 +122,24 @@ export async function POST(request) {
       return Response.json({ error: errors.join("; ") }, { status: 400 })
     }
 
-    const all = await fetchAllBudgets(accessToken, spreadsheetId)
-    const key = normalizeKey(body.kategori, body.bulan, body.tahun, body.akun || "")
-    const existingIdx = findRowIndex(all, key)
-    if (existingIdx) {
-      return Response.json({ error: "Budget already exists for this category+month+account. Use PUT to update." }, { status: 409 })
-    }
-
-    const row = [
-      body.kategori,
-      body.bulan,
-      String(body.tahun),
-      parseFloat(body.limit),
-      body.akun || "",
-      body.catatan || "",
-    ]
-    await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
-    return Response.json({ success: true, message: "Budget created" })
+    return runRecordCreation(auth, "budgets", {
+      month: body.bulan,
+      year: String(body.tahun),
+    }, async quotaRows => {
+      const all = quotaRows
+        ? quotaRows.slice(1).map((row, index) => rowToBudget(row, index + 2)).filter(b => b.kategori && b.bulan && b.tahun)
+        : await fetchAllBudgets(accessToken, spreadsheetId)
+      const key = normalizeKey(body.kategori, body.bulan, body.tahun, body.akun || "")
+      if (findRowIndex(all, key)) {
+        return Response.json({ error: "Budget already exists for this category+month+account. Use PUT to update." }, { status: 409 })
+      }
+      const row = [
+        body.kategori, body.bulan, String(body.tahun), parseFloat(body.limit),
+        body.akun || "", body.catatan || "",
+      ]
+      await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
+      return Response.json({ success: true, message: "Budget created" })
+    })
   } catch (err) {
     console.error("[Budgets]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })

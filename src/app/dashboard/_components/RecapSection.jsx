@@ -29,7 +29,7 @@ function getMonthKey(month, year) {
   return `${month} ${year}`
 }
 
-export default function RecapSection({ transactions = [], onEdit, onDelete }) {
+export default function RecapSection({ transactions = [], history, onEdit, onDelete }) {
   const [filter, setFilter] = useState({
     month: "all",
     year: "all",
@@ -121,6 +121,11 @@ export default function RecapSection({ transactions = [], onEdit, onDelete }) {
         <h3 className="text-sm font-bold mb-3 font-display text-earth-800 flex items-center gap-1.5">
           <ListFilter size={14} aria-hidden="true" /> Recap Bulanan
         </h3>
+        {history?.limited && (
+          <p className="mb-3 text-xs leading-relaxed text-earth-500">
+            Riwayat lebih lama tetap tersimpan dan dapat dikelola di Google Sheets.
+          </p>
+        )}
         <EmptyState
           icon={<ListFilter size={20} />}
           title="Belum ada transaksi"
@@ -143,6 +148,11 @@ export default function RecapSection({ transactions = [], onEdit, onDelete }) {
           · {groups.length} bulan · {totalTx} tx
         </span>
       </div>
+      {history?.limited && (
+        <p className="px-1 text-xs leading-relaxed text-earth-500">
+          Riwayat lebih lama tetap tersimpan dan dapat dikelola di Google Sheets.
+        </p>
+      )}
 
       <div className="bento-tile glass rounded-2xl p-3 space-y-2.5">
         <div className="grid grid-cols-2 gap-2">

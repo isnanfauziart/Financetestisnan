@@ -1,6 +1,7 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData } from "@/lib/sheets"
 import { computeBillStatus, rowToBill } from "@/lib/bills"
+import { runRecordCreation } from "@/lib/recordQuota"
 
 export const dynamic = 'force-dynamic'
 
@@ -101,26 +102,17 @@ export async function POST(request) {
     if (errors.length) {
       return Response.json({ error: errors.join("; ") }, { status: 400 })
     }
-
-    const id = String(Date.now())
-    const createdAt = new Date().toISOString().split("T")[0]
-    const row = [
-      id,
-      body.nama,
-      parseFloat(body.jumlah),
-      body.tipe,
-      body.kategoriBill,
-      body.kategoriTransaksi,
-      body.frekuensi,
-      parseInt(body.tanggalJatuhTempo, 10),
-      body.akunBank || "",
-      "TRUE",
-      "",
-      body.catatan || "",
-      createdAt,
-    ]
-    await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
-    return Response.json({ success: true, id, message: "Tagihan dibuat" })
+    return runRecordCreation(auth, "bills", {}, async () => {
+      const id = String(Date.now())
+      const createdAt = new Date().toISOString().split("T")[0]
+      const row = [
+        id, body.nama, parseFloat(body.jumlah), body.tipe, body.kategoriBill,
+        body.kategoriTransaksi, body.frekuensi, parseInt(body.tanggalJatuhTempo, 10),
+        body.akunBank || "", "TRUE", "", body.catatan || "", createdAt,
+      ]
+      await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
+      return Response.json({ success: true, id, message: "Tagihan dibuat" })
+    })
   } catch (err) {
     console.error("[Bills POST]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })

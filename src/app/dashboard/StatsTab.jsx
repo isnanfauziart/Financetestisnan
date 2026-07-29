@@ -13,6 +13,7 @@ import YearInReviewButton from "@/components/YearInReviewButton"
 import CashFlowForecast from "@/components/CashFlowForecast"
 import SavingsRateTrend from "@/components/SavingsRateTrend"
 import AnomalyAlerts from "@/components/AnomalyAlerts"
+import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 const STATS_SECTIONS = [
@@ -54,7 +55,9 @@ export default function StatsTab({
   monthlyData,
   allTransactions,
   onCategoryClick,
+  entitlement,
 }) {
+  const effectiveEntitlement = entitlement === undefined ? { features: { anomalyAlerts: true, cashFlowForecast: true, yearInReview: true } } : entitlement
   const [showDateRange, setShowDateRange] = useState(false)
   const [activeSection, setActiveSection] = useState("ringkasan")
   const hasDateRange = dateFrom || dateTo
@@ -162,12 +165,7 @@ export default function StatsTab({
             </div>
           )}
 
-          <AnomalyAlerts
-            transactions={allTransactions}
-            selectedMonth={selectedMonth}
-            selectedYear={selectedYear}
-            onCategoryClick={onCategoryClick}
-          />
+          {effectiveEntitlement?.features?.anomalyAlerts || effectiveEntitlement?.isAdmin ? <AnomalyAlerts transactions={allTransactions} selectedMonth={selectedMonth} selectedYear={selectedYear} onCategoryClick={onCategoryClick} /> : <LockedFeaturePreview title="Anomaly Alerts" description="Deteksi pola transaksi tidak biasa tersedia di Pro." />}
 
           {/* Stat hero */}
           {refreshing ? <ChartSkeleton height={200} /> : (
@@ -342,7 +340,7 @@ export default function StatsTab({
             )
           )}
 
-          <CashFlowForecast monthlyData={monthlyData} />
+          {effectiveEntitlement?.features?.cashFlowForecast || effectiveEntitlement?.isAdmin ? <CashFlowForecast monthlyData={monthlyData} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." />}
           <SavingsRateTrend monthlyData={monthlyData} />
 
           {/* Month comparison */}
@@ -497,14 +495,12 @@ export default function StatsTab({
                 transactions={filteredTransactions}
                 monthlyData={monthlyData}
                 allTransactions={allTransactions}
+                entitlement={effectiveEntitlement}
               />
-              <YearInReviewButton
-                transactions={allTransactions}
-                monthlyData={monthlyData}
-              />
+              {effectiveEntitlement?.features?.yearInReview || effectiveEntitlement?.isAdmin ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." />}
             </div>
           </div>
-          <RecapSection transactions={data?.transactions || []} onEdit={onEditTx} onDelete={onDeleteTx} />
+          <RecapSection transactions={data?.transactions || []} history={data?.history} onEdit={onEditTx} onDelete={onDeleteTx} />
         </>
       )}
     </div>

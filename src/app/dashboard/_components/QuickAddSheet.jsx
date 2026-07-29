@@ -7,12 +7,14 @@ import SelectField from "./SelectField"
 import Sheet from "./Sheet"
 import EventTagPicker from "@/components/EventTagPicker"
 import EventSuggestionChip from "@/components/EventSuggestionChip"
+import TransactionQuotaStatus from "@/components/TransactionQuotaStatus"
 
-export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute }) {
+export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute, transactionUsage }) {
   const [txType, setTxType] = useState(initialType)
   const [formData, setFormData] = useState({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "", eventId: "" })
   const [rawAmount, setRawAmount] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [quotaError, setQuotaError] = useState(null)
 
   function handleTypeChange(t) {
     setTxType(t)
@@ -27,11 +29,15 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
-    const ok = await onSubmit({ formData, rawAmount, txType })
+    setQuotaError(null)
+    const result = await onSubmit({ formData, rawAmount, txType })
+    const ok = result === true || result?.ok
     setSubmitting(false)
     if (ok) {
       handleReset()
       onClose()
+    } else if (result?.error?.code === "FEATURE_LIMIT_REACHED") {
+      setQuotaError(result.error)
     }
   }
 
@@ -67,6 +73,7 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          <TransactionQuotaStatus usage={transactionUsage} error={quotaError} />
           <div>
             <label htmlFor="qa-amount" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Jumlah</label>
             <input id="qa-amount" type="text" inputMode="numeric" placeholder="0" value={rawAmount} onChange={e => setRawAmount(formatInputRupiah(e.target.value))} aria-label="Jumlah transaksi"
