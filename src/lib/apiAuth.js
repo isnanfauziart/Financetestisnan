@@ -35,6 +35,23 @@ async function getUserById(id) {
   return data
 }
 
+function getSupabaseProjectRef(supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  try {
+    return new URL(supabaseUrl).hostname.split(".")[0] || "unknown"
+  } catch {
+    return "unknown"
+  }
+}
+
+export function buildAuthContextSheetDiagnostic({ user, spreadsheetId, legacyConnectionRequired }) {
+  return {
+    supabaseProjectRef: getSupabaseProjectRef(),
+    hasStoredSpreadsheetId: Boolean(user?.spreadsheet_id),
+    hasResolvedSpreadsheetId: Boolean(spreadsheetId || user?.spreadsheet_id),
+    legacyConnectionRequired: Boolean(legacyConnectionRequired),
+  }
+}
+
 export async function getAuthContext(request) {
   const token = await getToken({ req: request })
   if (!token?.accessToken) {
@@ -78,8 +95,14 @@ export async function getAuthContext(request) {
   }
 
   if (!spreadsheetId) {
-    if (needsLegacySheetConnection(user)) {
+    const legacyConnectionRequired = needsLegacySheetConnection(user)
+    if (legacyConnectionRequired) {
       const entitlement = await getEffectiveEntitlement(user)
+      console.info("[AuthContext] Sheet diagnostic", buildAuthContextSheetDiagnostic({
+        user,
+        spreadsheetId,
+        legacyConnectionRequired,
+      }))
       return {
         user,
         accessToken: token.accessToken,
@@ -125,6 +148,11 @@ export async function getAuthContext(request) {
   }
 
   const entitlement = await getEffectiveEntitlement(user)
+  console.info("[AuthContext] Sheet diagnostic", buildAuthContextSheetDiagnostic({
+    user,
+    spreadsheetId,
+    legacyConnectionRequired: false,
+  }))
 
   return {
     user,
