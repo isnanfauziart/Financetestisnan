@@ -695,11 +695,7 @@ export default function Dashboard() {
     return (
       <LegacySheetConnector
         userName={session?.user?.name}
-        onConnected={() => {
-          setNeedsSheetConnection(false)
-          setLoading(true)
-          fetchData()
-        }}
+        onConnected={() => window.location.reload()}
         onSignOut={() => signOut({ callbackUrl: "/" })}
       />
     )
