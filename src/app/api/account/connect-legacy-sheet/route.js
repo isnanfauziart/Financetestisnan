@@ -15,10 +15,6 @@ export async function POST(request) {
     return Response.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (auth.user?.spreadsheet_id) {
-    return Response.json({ error: "Spreadsheet sudah terhubung" }, { status: 409 })
-  }
-
   let body
   try {
     body = await request.json()
@@ -30,27 +26,33 @@ export async function POST(request) {
   if (!isValidSpreadsheetId(spreadsheetId)) {
     return Response.json({ error: "Spreadsheet ID tidak valid" }, { status: 400 })
   }
+  const existingSpreadsheetId = String(auth.user?.spreadsheet_id || "").trim()
+  if (existingSpreadsheetId && existingSpreadsheetId !== spreadsheetId) {
+    return Response.json({ error: "Spreadsheet berbeda sudah terhubung" }, { status: 409 })
+  }
 
   try {
     const schemaResult = await ensureArtamiSheetSchema(auth.accessToken, spreadsheetId)
 
-    const { data: updatedUsers, error: updateErr } = await supabaseAdmin
-      .from("users")
-      .update({
-        spreadsheet_id: spreadsheetId,
-        sheet_created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", auth.user.id)
-      .is("spreadsheet_id", null)
-      .select("id, spreadsheet_id")
+    if (!existingSpreadsheetId) {
+      const { data: updatedUsers, error: updateErr } = await supabaseAdmin
+        .from("users")
+        .update({
+          spreadsheet_id: spreadsheetId,
+          sheet_created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", auth.user.id)
+        .is("spreadsheet_id", null)
+        .select("id, spreadsheet_id")
 
-    if (updateErr) {
-      throw updateErr
-    }
+      if (updateErr) {
+        throw updateErr
+      }
 
-    if (!updatedUsers || updatedUsers.length === 0) {
-      return Response.json({ error: "Spreadsheet sudah terhubung" }, { status: 409 })
+      if (!updatedUsers || updatedUsers.length === 0) {
+        return Response.json({ error: "Spreadsheet sudah terhubung" }, { status: 409 })
+      }
     }
 
     return Response.json({

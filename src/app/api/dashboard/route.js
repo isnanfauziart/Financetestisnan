@@ -2,7 +2,12 @@ import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { buildBillSummary } from "@/lib/bills"
 import { pickAmount } from "@/lib/parseSheetRow"
-import { sheetConnectionRequiredPayload } from "@/lib/legacySheet"
+import {
+  isLegacySheetOwner,
+  isSheetNotFoundError,
+  sheetConnectionRequiredPayload,
+  sheetReconnectRequiredPayload,
+} from "@/lib/legacySheet"
 import { getHistoryWindow } from "@/lib/tier"
 import { selectStableInsights } from "@/lib/insights"
 import { getCurrentWeekPeriod } from "@/lib/usage"
@@ -256,6 +261,9 @@ export async function GET(request) {
     })
   } catch (err) {
     console.error("[Dashboard]", err)
+    if (isLegacySheetOwner(auth.user?.email) && isSheetNotFoundError(err)) {
+      return Response.json(sheetReconnectRequiredPayload(), { status: 409 })
+    }
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }

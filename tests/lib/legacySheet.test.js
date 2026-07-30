@@ -2,7 +2,9 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest"
 
 import {
   SHEET_CONNECTION_REQUIRED_CODE,
+  SHEET_RECONNECT_REQUIRED_CODE,
   isLegacySheetOwner,
+  isSheetNotFoundError,
   isValidSpreadsheetId,
   needsLegacySheetConnection,
 } from "@/lib/legacySheet"
@@ -40,5 +42,11 @@ describe("legacySheet helpers", () => {
 
   it("exports a stable API error code for the dashboard connection state", () => {
     expect(SHEET_CONNECTION_REQUIRED_CODE).toBe("SHEET_CONNECTION_REQUIRED")
+    expect(SHEET_RECONNECT_REQUIRED_CODE).toBe("SHEET_RECONNECT_REQUIRED")
+  })
+
+  it("recognizes only Google Sheets not-found failures as reconnectable", () => {
+    expect(isSheetNotFoundError(new Error('Sheets API error: {"error":{"code":404,"status":"NOT_FOUND"}}'))).toBe(true)
+    expect(isSheetNotFoundError(new Error('Sheets API error: {"error":{"code":403,"status":"PERMISSION_DENIED"}}'))).toBe(false)
   })
 })
