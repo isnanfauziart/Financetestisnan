@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { readCache, writeCache, invalidateCache, getLastSyncAgo } from "@/app/dashboard/_components/useDashboardCache"
 
-const KEY = "isnan.dashboard.cache.v1"
+const KEY = "isnan.dashboard.cache.v2"
 
 describe("useDashboardCache", () => {
   beforeEach(() => {

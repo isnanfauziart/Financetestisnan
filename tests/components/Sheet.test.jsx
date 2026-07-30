@@ -84,14 +84,14 @@ describe("Sheet", () => {
 
   it("centers on mobile when position is center", () => {
     render(<TestHarness position="center" />)
-    const backdrop = screen.getByRole("dialog")
+    const backdrop = screen.getByRole("dialog").parentElement
     expect(backdrop.className).toContain("items-center")
     expect(backdrop.className).not.toContain("items-end")
   })
 
   it("defaults to bottom position (items-end on mobile)", () => {
     render(<TestHarness />)
-    const backdrop = screen.getByRole("dialog")
+    const backdrop = screen.getByRole("dialog").parentElement
     expect(backdrop.className).toContain("items-end")
   })
 })

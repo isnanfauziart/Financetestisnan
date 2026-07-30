@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react"
+import { render, screen, cleanup, fireEvent, waitFor, act } from "@testing-library/react"
 import QuickAddSheet from "@/app/dashboard/_components/QuickAddSheet"
 
 afterEach(() => cleanup())
@@ -10,38 +10,37 @@ describe("QuickAddSheet", () => {
   it("renders nothing when closed", () => {
     render(<QuickAddSheet open={false} onClose={noop} onSubmit={noop} />)
     expect(screen.queryByText("Transaksi Baru")).toBeNull()
-    expect(screen.queryByText("Quick Add")).toBeNull()
+    expect(screen.queryByText("Tambah Cepat")).toBeNull()
   })
 
   it("renders title and subtitle when open", () => {
     render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
     expect(screen.getByText("Transaksi Baru")).toBeInTheDocument()
-    expect(screen.getByText("Quick Add")).toBeInTheDocument()
+    expect(screen.getByText("Tambah Cepat")).toBeInTheDocument()
   })
 
-  it("renders 3 type pills (Expense / Income / Tabungan)", () => {
+  it("renders 2 type pills (Pengeluaran / Pemasukan)", () => {
     render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
-    expect(screen.getByRole("button", { name: /switch to expense/i })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /switch to income/i })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /switch to savings/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Pilih pengeluaran" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Pilih pemasukan" })).toBeInTheDocument()
   })
 
   it("expense is selected by default", () => {
     render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
-    expect(screen.getByRole("button", { name: /switch to expense/i })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("button", { name: "Pilih pengeluaran" })).toHaveAttribute("aria-pressed", "true")
   })
 
   it("respects initialType prop", () => {
-    render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} initialType="savings" />)
-    expect(screen.getByRole("button", { name: /switch to savings/i })).toHaveAttribute("aria-pressed", "true")
+    render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} initialType="income" />)
+    expect(screen.getByRole("button", { name: "Pilih pemasukan" })).toHaveAttribute("aria-pressed", "true")
   })
 
   it("clicking a type pill switches selection and clears kategori", () => {
     render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
-    const incomeBtn = screen.getByRole("button", { name: /switch to income/i })
+    const incomeBtn = screen.getByRole("button", { name: "Pilih pemasukan" })
     fireEvent.click(incomeBtn)
     expect(incomeBtn).toHaveAttribute("aria-pressed", "true")
-    expect(screen.getByRole("button", { name: /switch to expense/i })).toHaveAttribute("aria-pressed", "false")
+    expect(screen.getByRole("button", { name: "Pilih pengeluaran" })).toHaveAttribute("aria-pressed", "false")
   })
 
   it("submit button is disabled while submitting", async () => {
@@ -49,13 +48,15 @@ describe("QuickAddSheet", () => {
     const onSubmit = vi.fn(() => new Promise(r => { resolveSubmit = r }))
     render(<QuickAddSheet open={true} onClose={noop} onSubmit={onSubmit} />)
 
-    fireEvent.change(screen.getByLabelText("Transaction amount"), { target: { value: "50.000" } })
-    fireEvent.click(screen.getByLabelText("Save transaction"))
+    fireEvent.change(screen.getByLabelText("Jumlah transaksi"), { target: { value: "50.000" } })
+    fireEvent.click(screen.getByLabelText("Simpan transaksi"))
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Save transaction")).toBeDisabled()
+      expect(screen.getByLabelText("Simpan transaksi")).toBeDisabled()
     })
-    resolveSubmit(true)
+    await act(async () => {
+      resolveSubmit(true)
+    })
   })
 
   it("calls onSubmit with form data and current type on submit", async () => {
@@ -63,8 +64,8 @@ describe("QuickAddSheet", () => {
     const onClose = vi.fn()
     render(<QuickAddSheet open={true} onClose={onClose} onSubmit={onSubmit} initialType="income" />)
 
-    fireEvent.change(screen.getByLabelText("Transaction amount"), { target: { value: "100.000" } })
-    fireEvent.click(screen.getByLabelText("Save transaction"))
+    fireEvent.change(screen.getByLabelText("Jumlah transaksi"), { target: { value: "100.000" } })
+    fireEvent.click(screen.getByLabelText("Simpan transaksi"))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1)
@@ -82,8 +83,8 @@ describe("QuickAddSheet", () => {
     const onClose = vi.fn()
     render(<QuickAddSheet open={true} onClose={onClose} onSubmit={onSubmit} />)
 
-    fireEvent.change(screen.getByLabelText("Transaction amount"), { target: { value: "250.000" } })
-    fireEvent.click(screen.getByLabelText("Save transaction"))
+    fireEvent.change(screen.getByLabelText("Jumlah transaksi"), { target: { value: "250.000" } })
+    fireEvent.click(screen.getByLabelText("Simpan transaksi"))
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalledTimes(1)
@@ -95,8 +96,8 @@ describe("QuickAddSheet", () => {
     const onClose = vi.fn()
     render(<QuickAddSheet open={true} onClose={onClose} onSubmit={onSubmit} />)
 
-    fireEvent.change(screen.getByLabelText("Transaction amount"), { target: { value: "100" } })
-    fireEvent.click(screen.getByLabelText("Save transaction"))
+    fireEvent.change(screen.getByLabelText("Jumlah transaksi"), { target: { value: "100" } })
+    fireEvent.click(screen.getByLabelText("Simpan transaksi"))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1)
