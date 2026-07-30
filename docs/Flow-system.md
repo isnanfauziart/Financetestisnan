@@ -1,6 +1,6 @@
 # Artami Finance Dashboard - System Flow
 
-**Status:** Current for Phases 0-1. Phase 2+ sections are planned until their routes/components exist.
+**Status:** Current for Phases 0-3, all shipped and verified in production. Phase 4 Polish + Hardening is current.
 
 ## Current Flow
 
@@ -68,62 +68,67 @@ Supabase does not store the user's finance ledger.
 
 Implemented and verified in production on 25 July 2026, including QRIS proof upload, admin approval, and Pro activation.
 
-- The upgrade CTA opens a dedicated `/upgrade` page; QRIS is not shown inline below the CTA.
-- Opening `/upgrade` does not create a request. Tapping `Mulai Pembayaran` creates an `awaiting_payment` request, starts an exact 48-hour deadline, and then displays the Rp40.000 static merchant QRIS with `Simpan QR`. The fixed, non-editable amount has a `Salin Nominal` action.
-- The payment page shows a live countdown and the exact WIB deadline. Before proof upload, the user may cancel the request; it becomes `cancelled`, remains in history, and permits an immediate new request.
-- At 48 hours, show `Waktu pembayaran berakhir`, disable new payment through that request, and offer `Buat Pembayaran Baru`. During the one-hour grace period, starting a new request requires confirmation and permanently abandons the old request's late-proof eligibility.
-- After the grace hour, the request becomes `expired` and remains in history. Show `Hubungi CS` first and `Buat Pembayaran Baru` second, with a warning not to pay twice.
-- Users upload a JPEG, PNG, or WebP image proof after paying, with a maximum size of 5 MB. They must provide the payment date and approximate time in WIB; the payer/account name is optional. Proofs live in the private `payment-proofs` bucket. Valid proof changes the request to `pending` and remains valid until admin review.
-- Payment must be exactly Rp40.000. Underpayment is rejected as `Nominal tidak sesuai`; do not combine a second payment to cover it. Overpayment is rejected as `Lainnya`, requires an admin note describing the amount or issue, and shows `Jika salah pembayaran, silahkan hubungi CS`.
-- Each user may have only one active request (`awaiting_payment` or `pending`). Cancellation, expiry, rejection, or revocation allows a new request, while approval ends the upgrade flow.
-- Admins compare the proof, submitted payment date/time, late-upload marker, and optional payer/account name with their merchant payment notification, then approve or reject it in `/admin`. Rejection requires `Bukti tidak jelas`, `Nominal tidak sesuai` for underpayment, `Pembayaran belum ditemukan`, `Bukti duplikat`, or `Lainnya`, with an optional note except that overpayment requires a note.
-- Only `isnanfauzi08@gmail.com`, seeded in the `admins` table, may access Phase 2 admin payment actions.
-- Approval grants `paid`; rejection keeps the user free, shows the reason and optional note, and offers a WhatsApp CS action for `+62 882-0062-82613`.
-- The admin may revoke an approved payment only after confirmation. The admin must choose `Dana dikembalikan`, `Pembayaran duplikat`, `Pembayaran terdeteksi palsu`, `Koreksi administratif`, or `Lainnya`, with an optional note. Revocation changes the payment to `revoked`, returns the user to `free`, preserves the audit record, shows the reason and optional note to the user, and allows a new submission like a rejection.
-- The pending screen always shows optional WhatsApp CS with: `Pembayaran biasanya diproses dalam 1–30 menit. Jika belum terverifikasi setelah 30 menit, silakan hubungi CS melalui WhatsApp.`
-- Refunds and payment-amount corrections are handled entirely through WhatsApp; the admin records the result in the payment note. Phase 2 has no in-app refund workflow.
-- WhatsApp opens with an editable prefilled message containing the issue type and a short reference such as `PAY-A1B2C3D4`, derived from the payment UUID. Never include the full UUID, private proof URL, or sensitive payment details.
-- Show `Hubungi CS` for `pending`, `rejected`, `revoked`, `expired`, and incorrect-payment states only. Select the issue type automatically from context while keeping the WhatsApp message editable.
-- Do not allow proof replacement after status becomes `pending`. Show the latest payment first and all prior statuses, short references, dates, and admin reasons under expandable `Riwayat Pembayaran`.
-- Owners may reopen only their own proof through a short-lived signed URL; never expose the Storage path.
-- Show in-app banners for `approved`, `rejected`, and `revoked`. Do not automatically send WhatsApp, email, or push notifications in Phase 2.
-- Owner and admin proof links expire after 5 minutes and are regenerated on every `Lihat Bukti` action.
-- Keep result banners visible until dismissed. Store dismissal locally per device; history remains available and the banner stays dismissed on later logins on that device.
-- Sort pending admin work oldest first, visibly mark late uploads, poll every 30 seconds while `/admin` is open, and provide `Segarkan`.
-- Require approval/rejection confirmation showing the short reference, amount, and action.
-- Allow an admin to correct `rejected` to `approved` only after explicit confirmation and a mandatory reason: `Kesalahan verifikasi admin`, `Bukti pembayaran ditemukan`, `Konfirmasi melalui CS`, or `Lainnya`; `Lainnya` requires a note.
-- Preserve the original rejection details, record the correcting admin and timestamp, and block correction while a newer `awaiting_payment` or `pending` request exists.
-- Show `Pembayaran Anda telah disetujui setelah peninjauan ulang. Akses Pro sekarang aktif.` A corrected approval may later use the normal protected revocation flow.
-- Keep searchable admin history for `approved`, `rejected`, `revoked`, `expired`, and `cancelled`, using short reference or user email.
-- Bundle QRIS locally at `public/payment/qris-gopay.jpeg`, show merchant name `FAWAID DIGITAL STORE, DIGITAL & KREATIF`, and replace it only through a reviewed deployment plus real scanner verification.
-- Checkout order: fixed amount/`Salin Nominal`, merchant, QRIS/`Simpan QR`, deadline, short reference, instructions, proof form, cancellation.
-- Support camera, gallery, and file proof selection with preview, filename, and size. Allow local replacement before submission only.
-- Failed uploads remain retryable through grace, clean up partial Storage objects, and never create duplicate payment/proof records.
-- Grace-period replacement requires the approved abandonment warning and changes the old request to `expired` before creating another.
-- Admin rejection, revocation, and correction use validated visible forms, not browser prompts. A blocked correction shows the newer active request and never silently cancels it.
-- Keep payment metadata/audit while the account exists. Delete proof images five years after terminal status while retaining metadata.
-- Account deletion revokes Pro but retains email and payment history, removes other account/profile connections, and discloses retention before confirmation.
-- A returning user with the same email may receive manual Pro restoration without repayment after admin review and a documented valid reason.
-- Show result banners on `/dashboard` and `/upgrade`; payment history is newest-first, 20 initially, with `Muat Lebih Banyak`.
-- Admin history uses status filters, PAY/email search, and 50-record pages with `Sebelumnya`/`Berikutnya`; no Phase 2 export.
-- Automatic WhatsApp contexts: `Pembayaran belum diverifikasi`, `Pembayaran ditolak`, `Akses Pro dicabut`, `Pembayaran kedaluwarsa`, `Kesalahan nominal`, and `Pengembalian dana`.
+**Payment policy lives in [`commercialization-plan.md`](commercialization-plan.md#payment-flow-decision) — the 43 numbered rules there are authoritative.** This section documents only the routes, storage, and files that implement it.
 
-- `/api/payments`
-- `/api/admin/payments`
-- `/admin`
-- `src/lib/adminAuth.js`
-- `src/lib/tier.js`
-- `src/lib/usage.js`
-- Supabase Storage bucket `payment-proofs`
+Implementation surface:
 
-## Planned Phase 3: Feature Gating
+| Route / file | Purpose |
+|---|---|
+| `/api/payments` | Create request, upload proof, list own history |
+| `/api/payments/[id]` | Cancel own request, fetch own status |
+| `/api/payments/[id]/proof` | Short-lived signed URL for own proof |
+| `/api/admin/payments` | Pending queue, searchable history |
+| `/api/admin/payments/[id]` | Approve, reject, revoke, correct |
+| `/api/admin/payments/[id]/proof` | Short-lived signed URL for admin review |
+| `/api/admin/users/restore-pro` | Manual Pro restoration for a returning email |
+| `/upgrade` | QRIS checkout and payment history |
+| `/admin` | Admin payments console |
+| `src/lib/payments.js`, `src/lib/paymentAuth.js` | Payment helpers and owner authorization |
+| `src/lib/adminAuth.js` | Admin allowlist check against the `admins` table |
+| `src/components/PaymentQrisFlow.jsx` | Checkout, proof upload, history UI |
+| `src/app/dashboard/_components/PaymentStatusBanner.jsx` | Approved/rejected/revoked banners |
+| Supabase Storage `payment-proofs` | Private bucket; never expose the storage path |
+| `supabase/007-payments-phase2.sql` | Tables, audit fields, active-request constraint, atomic review function |
 
-Not current until implemented:
+## Phase 3: Feature Gating
 
-- `/api/me`
-- `/api/me/upgrade`
-- `src/lib/featureGate.js`
-- Server-side free-tier limits on transactions, budgets, goals, debts, events, bills, and insights
+Completed and verified on 30 July 2026. Supabase migration
+`008-phase3-feature-gating.sql` was applied; live RPC/REST auth tests passed;
+production Free → Pro → Free revocation smoke passed; admin permanent Pro was
+already verified; `/api/me` and related routes are healthy; the full suite
+passed with 272 passed and 2 skipped; production build passed.
+
+Implemented through Phase 3E:
+
+- `src/lib/tier.js` — canonical limits, warnings, smart-feature policy, and Free history window
+- `src/lib/usage.js` — WIB periods/reset dates and atomic usage RPC wrappers
+- `src/lib/entitlement.js` — stored-tier plus normalized admin effective entitlement
+- `/api/me` — canonical entitlement plus Supabase transaction usage and batched Google Sheet record counts
+- `src/lib/transactionQuota.js`, `src/lib/transactionUndo.js`, `src/lib/writeClaims.js` — atomic quota, replay-safe Undo, and automated-write idempotency
+- `src/lib/recordQuota.js` — serialized Sheet-backed caps for budgets, goals, debts, Momental, and bills
+- Profile and creation surfaces — complete quota display, 80%/100% warnings, retained form state, and accessible `/upgrade` actions
+- `supabase/008-phase3-feature-gating.sql` — atomic usage, write claims, temporary creation locks, admin normalization, and service-role RPC hardening
+
+Confirmed rules:
+
+- Current Sheet rows determine record caps; deleting a row releases its slot.
+- Transactions use an atomic monthly WIB creation counter shared by manual and automated ledger writes.
+- Undo does not count the same transaction twice.
+- Free history is the current WIB calendar month plus the previous three and is filtered without modifying older Google Sheet rows.
+- Recap and Profile tell Free users that older data remains in Google Sheets.
+- Free smart-feature UI shows non-personal static blurred previews for Health Score, Cash Flow Forecast, Anomaly Alerts, Financial Independence, What-If, and Year-in-Review; real components and calculations run only for effective Pro.
+- Free monthly PDFs carry a watermark; Pro PDFs do not.
+- `/api/me` supplies canonical tier, usage, limits, reset dates, feature access, and `/upgrade`; no `/api/me/upgrade` route is added in Phase 3.
+- The UI warns at 80% and 100%, preserves rejected form values, and links to `/upgrade`.
+- Pro revocation preserves readable/editable data and blocks only over-limit creation.
+- Feature flags remain Phase 4; Phase 3 uses canonical plural usage names.
+- Unverifiable tier/quota state fails closed for new Free creations while safe reads/edits remain available.
+- Profile owns the full quota display; Pro limits serialize as `null`.
+- Every normalized email in Supabase `admins` has permanent effective Pro access across auth, payment, quota, and UI paths.
+- Contracts remain Expo-compatible without adding mobile-only endpoints.
+- No analytics vendor, custom overrides, grace periods, or speculative quota/billing systems are added.
+
+The complete approved decision record is `docs/phase 3 feature gating discussing.md`.
 
 ## Environment
 

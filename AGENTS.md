@@ -8,7 +8,7 @@
 
 ## Commercialization — Active
 
-**Current Phase:** Phase 3 — Feature Gating [PHASE-STATUS]
+**Current Phase:** Phase 4 — Polish + Hardening [PHASE-STATUS]
 
 Artami is being commercialized as a one-time-payment personal finance app for the Indonesian market. Target: Play Store launch via React Native/Expo.
 
@@ -28,16 +28,26 @@ Artami is being commercialized as a one-time-payment personal finance app for th
 - [x] **Phase 0: Security Fixes** ✅ — Token leak fix, tab whitelist, input validation, generic errors, security headers
 - [x] **Phase 1: Supabase + Multi-Tenancy** ✅ — Supabase setup, per-user Google Sheets, update all 15 API routes
 - [x] **Phase 2: Payments + Admin** ✅ — Payment API (upload proof), admin dashboard (approve/reject), Supabase Storage
-- [ ] **Phase 3: Feature Gating** ← CURRENT — Tier limits (75 txn/month wall, budget/goal/insight caps), `/api/me` endpoint
-- [ ] **Phase 4: Polish + Hardening** — Rate limiting, zod validation, health check, feature flags, env validation
+- [x] **Phase 3: Feature Gating** ✅ — Tier limits (75 txn/month wall, budget/goal/insight caps), `/api/me` endpoint
+- [ ] **Phase 4: Polish + Hardening** ← CURRENT — Rate limiting, zod validation, health check, feature flags, env validation
 - [ ] **Phase 5: Testing + Verification** — API tests, data isolation, rate limiting, security headers, manual checklist
+
+Phase 3 confirmed policy: record caps use current Google Sheet rows and deletion releases a slot; budgets receive 3 slots per month; all manual/automated ledger writes share the atomic monthly WIB transaction quota; Undo does not count twice; Free history is the current month plus the previous 3 and is filtered only in Artami; existing data remains readable/editable after Pro revocation; Free users see 3 stable insights/week; Health Score, Cash Flow Forecast, Anomaly Alerts, Financial Independence, What-If, and Year-in-Review stay discoverable through non-personal static blurred previews, while their real components and calculations remain locked; Free monthly PDFs are watermarked; limit warnings appear at 80% and 100%. The complete decision record is tracked in `docs/phase 3 feature gating discussing.md`.
+
+Phase 3 implementation policy: global feature flags remain Phase 4; canonical usage names are `transactions`, `budgets`, `goals`, `debts`, `momental`, `bills`, and `insights`; unverifiable tier/quota state fails closed for new Free creations while safe reads/edits remain available; Profile owns the full quota display; Pro limits serialize as `null`; every normalized email in Supabase `admins` has permanent effective Pro access across auth, payment, quota, and UI paths; no analytics vendor, per-user overrides, grace periods, or mobile-only endpoints are added.
+
+Phase 3 implementation status: complete as of 30 July 2026. Effective entitlement, `/api/me`, atomic quotas, replay-safe Undo, atomic bill/debt payments, Sheet-backed record caps, WIB history filtering, stable weekly insights, watermarked Free PDFs, locked Pro previews, and the split Plan sections are in place. Supabase migration `008-phase3-feature-gating.sql` was applied; live RPC/REST auth tests passed; production Free → Pro → Free revocation smoke passed; admin permanent Pro was already verified; `/api/me` and related routes are healthy; the full suite passed with 272 passed and 2 skipped; production build passed.
 
 Full implementation prompts: `docs/commercialization-prompts.md`
 Business plan details: `docs/commercialization-plan.md`
 System flow documentation: `docs/Flow-system.md`
 
+## Recent Work
+
+- 2026-07-30 — Phase 3 Feature Gating completed and verified; Phase 4 Polish + Hardening is current.
+
 ### Play Store Launch Plan (React Native/Expo)
-Planned after commercialization phases 1-5 are complete. See `docs/roadmap.md` for details.
+Planned after commercialization phases 1-5 are complete. See `docs/play-store-react-native-plan.md` for details.
 
 | Phase | Duration | Focus |
 |---|---|---|
@@ -59,8 +69,9 @@ Code sharing strategy: `src/lib/*.js` shared pure JS modules (import in both web
 ## Commands
 - `npm run dev` — start dev server at localhost:3000
 - `npm run build` — production build
+- `npm run test` — run the Vitest suite
 - `npm run start` — run production build
-- No lint, test, or typecheck scripts exist
+- No standalone lint or typecheck scripts exist
 
 ## Path aliases
 - `@/*` → `./src/*` (via `jsconfig.json`)
@@ -127,70 +138,12 @@ Google OAuth must request `https://www.googleapis.com/auth/drive.file` only for 
 - **`backdrop-filter` creates a CSS stacking context**: `absolute`/`fixed` children with `z-50` inside a `.glass` element are clipped to that context. For dropdowns/menus, use `position: fixed` on `<body>` level with viewport-clamped coordinates.
 - **Touch event ordering**: `touchstart` fires before `click` on mobile. If a document-level `touchstart` listener closes a dropdown before `click` fires on a child option, the tap is lost. Fix: use `mousedown` instead of `touchstart` for outside-click handlers, or check a dropdown ref in the handler.
 
-## Recent Work (June 2026)
-- **Full codebase rename: Artoku → Artami** — 33 files, ~100 replacements across source code, docs, SQL, Android config. Android package ID `com.artoku.app` → `com.artami.app`, keystore renamed, build artifacts cleaned. Zero remaining references, build passes.
-- **Bento grid UI revamp** — Mixed-size tiles, hero card, glassmorphism, mesh gradients
-- **Smart Insights panel** — Auto-generated spending patterns with glow icons
-- **Click-to-filter** — Pie chart taps set category filter chip
-- **KPI drill-down modal** — Tap income/expense/savings → top 10 transactions
-- **Account filter** — Stats tab reads AkunBank from Google Sheets
-- **Month comparison** — Category breakdown between two months
-- **Donut chart legends** — Percentage + color dots under both pie charts
-- **Fixed SelectField dropdown** — Root cause was `touchstart` closing dropdown before `click` on option. Fix: `mousedown` handler + `ddRef` container check + viewport clamping.
-- **Pull-to-refresh** — Mobile-native pull gesture with indicator, triggers data refetch
-- **Trend chart restored** — Removed `isAllMonths && isAllYears` gate that was hiding it
-- **Hooks order fix** — Moved `useMemo`/early returns to fix "Rendered fewer hooks" crash after login
-- **Phase 0 refactor** — Split monolithic `page.js` into tab files (`HomeTab.jsx`, `StatsTab.jsx`, `WalletTab.jsx`, `ProfileTab.jsx`) + `_components/` for shared bits
-- **H2 Edit/Delete transactions** — `EditTransactionModal` + `/api/transaction/[id]` (PUT/DELETE), `rowIndex` field on all transactions
-- **Phase A: Budgets + Net Worth** (Goals push) — G1 per-category monthly budgets (per-month records) + G4 net worth (lite, from transactions)
-  - New `src/app/api/budgets/route.js` with composite-key find/update/delete
-  - New `src/components/`: `NetWorthCard`, `BudgetCard`, `BudgetProgressBar`, `BudgetSetupModal`, `BudgetDetailModal`, `BudgetsSection`
-  - `NetWorthCard` placed as full-width bento-tile below the bento grid on HOME; formula `(Income − Expense) + Savings` accumulated chronologically
-  - `BudgetsSection` on STATS between hero and trend chart; respects year+month+account filter (account-less + matching)
-  - G6 light: "Saran budget" pills on unbudgeted categories
-- **Phase B: Savings Goals + Celebration** (Goals push) — auto-link to Tabungan by category + first-time 100% celebration
-  - New `docs/sheets-goals.md` schema doc
-  - New `src/app/api/goals/route.js` with rowIndex-based find/update/delete
-  - New `src/components/`: `GoalProgressRing`, `GoalSetupModal`, `GoalContributeModal`, `GoalCelebration`, `GoalCard`, `GoalsSection`
-  - New `src/app/dashboard/_components/goalUtils.js` (shared `parseDateLoose`, `computeGoalProgress`, `computeAllGoalProgress`)
-  - `GoalsSection` placed at top of HOME tab (above bento grid); receives `refreshTrigger` prop from parent to re-fetch
-  - `GoalContributeModal` posts to `/api/transaction` with `type: "savings"` and pre-filled `kategori` (auto-link)
-  - `GoalCelebration` is dynamic-imported (`canvas-confetti`, ~9KB) with gold-accented toast + `navigator.vibrate([50,30,50])`
-  - Celebration trigger: `prevGoalPctRef` in `page.js` tracks last-known progress %; fires only on `<100% → >=100%` crossings (no re-fire past 100%)
-  - Triggered after: WALLET submit (savings only), edit transaction, delete transaction — 800ms delay to let `/api/dashboard` refetch complete first
-  - Completed goals stay visible with "✓ Selesai" badge + gold ring; ETA shows "Belum ada kontribusi" when rate is 0
-  - `canvas-confetti` added as dependency
-- **`#REF!` parsing fix** — `pickAmount(row, netIdx, grossIdx)` helper in `src/app/api/dashboard/route.js` detects Google Sheets error values (`#REF!`, `#VALUE!`, `#DIV/0!`, etc.) in column I (Net) and falls through to column E (Jumlah). Prevents silent row drops when sheet has broken formulas. Replaces fragile `parseRupiah(row[8] || row[4] || 0)` pattern at all 3 parser sites (income/expense/savings).
-- **POST `/api/transaction` find-empty + update** — Rewrote to use `findNextEmptyRow(accessToken, sheetName)` + `sheetsUpdate` instead of `:append`. Avoids Google Sheets' table-end detection issue (writes to row 9996+ when sheet has formatted empty rows). Now writes to the row immediately after the last data row. Response includes `rowIndex` for the success toast.
-- **Phase C: Bills & Push Notifications** — Bill reminders with auto-transaction creation
-  - New `docs/sheets-tagihan.md` schema doc
-  - New `src/app/api/bills/route.js` (GET + POST) with computed `daysUntilDue` and `status`
-  - New `src/app/api/bills/[id]/route.js` (PUT + DELETE) for update/delete
-  - New `src/app/api/bills/pay/route.js` — pay bill → auto-creates transaction in Pemasukan/Pengeluaran + updates `TerakhirDibayar`
-  - New `src/app/api/bills/summary/route.js` — lightweight summary for notification checks
-  - New `src/components/`: `BillSetupModal`, `BillPayModal`, `BillsSection`, `BillsCard`
-  - New `src/lib/notifications.js` — service worker registration + notification permission helpers
-  - New `public/sw.js` — service worker for notification click handling
-  - `BillsSection` on PROFILE tab (like GoalsSection); full CRUD with active/inactive toggle
-  - `BillsCard` on HOME tab below GoalsSection; shows next 5 upcoming bills with urgency colors
-  - Notification check: `setInterval` in `page.js` checks `/api/bills/summary` every 30 min while app is open; fires browser notifications for overdue/due-today bills
-  - Auto-categorization: `BILL_TO_EXPENSE_MAP` / `BILL_TO_INCOME_MAP` maps bill categories → transaction categories
-  - 15 bill categories: Listrik, Air (PDAM), Internet/WiFi, Pulsa & Data, BPJS Kesehatan, BPJS Ketenagakerjaan, Asuransi, Sewa Rumah, Cicilan/Kredit, Netflix, Spotify, YouTube Premium, Gym, Arisan, Other
-- **`pickAmount` hardening** — Replaced `isErr` check (only caught `#`-prefixed strings) with strict `isNumeric` regex `/^-?[\d.,]+$/`. Now also rejects date strings (`"7 Jun 2026"`), text, and any non-numeric value in column I, falling through to column E.
-- **Phase 0: Security Fixes** (commercialization) — 5 production-blocking vulnerabilities fixed: token leak → `getToken()` pattern across all 6 API routes, tab whitelist, input validation on transactions, generic error messages, security headers in `next.config.js`. Full details in `docs/commercialization-prompts.md`.
-- **Phase 1: Supabase + Multi-Tenancy** (commercialization) — Each user gets their own Google Sheet. Supabase manages user accounts, tiers, payments, and feature flags.
-  - New `src/lib/supabase.js` — Browser Supabase client
-  - New `src/lib/supabaseAdmin.js` — Server-side admin client
-  - New `src/lib/sheetManager.js` — Creates Google Sheet with 10 tabs for new users
-  - New `src/lib/user.js` — `getOrCreateUser()` helper for Supabase user management
-  - New `src/lib/apiAuth.js` — `getAuthContext()` helper replacing `getToken()` pattern
-  - Updated all 14 data API routes to use `getAuthContext()` and per-user `spreadsheetId`
-  - Updated `src/lib/sheets.js` — `getSheetData()` now accepts optional `spreadsheetId` parameter
-  - Updated OAuth scope to include `drive.file` for creating Google Sheets
-  - New `supabase/` folder with SQL schema files (001-006)
-  - New `scripts/migrate-user.js` — Interactive migration script for moving data from shared sheet to personal sheet
-  - **Architecture decision:** Data stays in Google Sheets (not Supabase) for reliability. Supabase used only for user management.
-  - **Bugs fixed:** `findNextEmptyRow` now scans top-to-bottom, delete endpoint clears all 15 columns, settings key case-insensitive comparison
+## Project History
+
+Feature-by-feature history lives in `git log` and `progress.md`. Two facts that are not obvious from either:
+
+- The app was renamed **Artoku -> Artami** in June 2026, including the Android package ID (`com.artoku.app` -> `com.artami.app`) and the keystore. Old references should not reappear.
+- **Finance data stays in Google Sheets, not Supabase.** This is deliberate: the user owning their own ledger is the product's main differentiator. Supabase holds only account metadata (tier, payments, usage, flags, admins).
 
 ## Relevant Files
 - `src/app/dashboard/page.js` — Main dashboard orchestrator (~820 lines): state, filters, modals, pull-to-refresh
@@ -212,6 +165,7 @@ Google OAuth must request `https://www.googleapis.com/auth/drive.file` only for 
 - `src/app/api/momental/[id]/route.js` - Single event detail/update/delete
 - `src/app/api/momental/summary/route.js` - Active event summary
 - `src/app/api/settings/route.js` - User settings
+- `src/app/api/me/route.js` - Effective entitlement, usage metadata, WIB reset dates, history policy, and feature access
 - `src/lib/sheets.js` — Sheet helpers
 - `src/lib/notifications.js` — Service worker registration + notification helpers
 - `src/lib/supabase.js` — Browser Supabase client
@@ -219,6 +173,14 @@ Google OAuth must request `https://www.googleapis.com/auth/drive.file` only for 
 - `src/lib/sheetManager.js` — Creates Google Sheet with 10 tabs for new users
 - `src/lib/user.js` — getOrCreateUser() helper for Supabase user management
 - `src/lib/apiAuth.js` — getAuthContext() helper replacing getToken() pattern
+- `src/lib/entitlement.js` — shared stored-tier/admin effective entitlement resolver
+- `src/lib/tier.js` — canonical limits, feature access, warnings, and history policy
+- `src/lib/usage.js` — WIB period/reset helpers and Supabase usage RPC wrappers
+- `src/lib/transactionQuota.js`, `src/lib/transactionUndo.js`, `src/lib/writeClaims.js` — transaction reservation, secure Undo, and replay-safe write claims
+- `src/lib/recordQuota.js` — Sheet-backed record counts and serialized Free creation caps
+- `src/components/QuotaNotice.jsx`, `src/components/TransactionQuotaStatus.jsx` — accessible limit feedback and upgrade actions
+- `src/lib/insights.js` and `src/components/LockedFeaturePreview.jsx` — stable weekly insights and static Free-tier Pro previews
+- `supabase/008-phase3-feature-gating.sql` — atomic usage, write claims, creation locks, admin normalization, and service-role RPC hardening
 - `public/sw.js` — Service worker for notification click handling
 - `docs/sheets-budgets.md` — Budgets tab schema
 - `docs/sheets-goals.md` — Goals tab schema
@@ -226,7 +188,9 @@ Google OAuth must request `https://www.googleapis.com/auth/drive.file` only for 
 - `docs/commercialization-plan.md` — Business model, pricing, go-to-market, legal
 - `docs/commercialization-prompts.md` — Phase 0-5 implementation prompts (self-contained)
 - `docs/Flow-system.md` — User journey, payment flow, feature gating, admin tasks
-- `docs/roadmap.md` — PR refactor plan + Android/Expo port phases
+- `docs/play-store-react-native-plan.md` — Android/Expo port phases
+- `docs/motion-graphics.md` — launch motion graphic brief, storyboard, and revamp checklist
+- `docs/archive/` — shipped one-shot plans, kept for the decision trail
 
 ## Agent Workflow Rules
 

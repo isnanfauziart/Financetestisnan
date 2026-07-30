@@ -1,78 +1,80 @@
-# 💰 Artami — Finance Dashboard
+# Artami Finance Dashboard
 
-Dashboard keuangan pribadi berbasis Next.js yang terhubung langsung ke Google Sheets.
+Personal finance dashboard for Indonesian users. The app is built with Next.js 14, NextAuth Google OAuth, Tailwind CSS, Recharts, Google Sheets for user-owned finance data, and Supabase for account metadata.
 
----
+## Current Status
 
-## 🚀 Setup (Langkah Demi Langkah)
+Phases 0-3 (security fixes, Supabase + per-user Google Sheets, payments + admin, feature gating) are complete and verified in production. Phase 4 (polish + hardening) is current.
 
-### 1. Install dependencies
-Buka folder `finance-dashboard` di Command Prompt / Terminal, lalu jalankan:
+The phase tracker in [`docs/commercialization-plan.md`](docs/commercialization-plan.md#phase-tracker) is authoritative — check there rather than here.
+
+## Setup
+
 ```bash
 npm install
+npm run dev
 ```
 
-### 2. Isi file `.env.local`
-Buka file `.env.local` dan isi dengan kredensial kamu:
-```
-GOOGLE_CLIENT_ID=isi_client_id_dari_google_cloud
-GOOGLE_CLIENT_SECRET=isi_client_secret_dari_google_cloud
+Open `http://localhost:3000`.
+
+## Environment
+
+Create `.env.local`:
+
+```bash
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=random_string_panjang_minimal_32_karakter
-LEGACY_SHEET_OWNER_EMAIL=email_owner@gmail.com
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=isi_client_id_dari_google_cloud
-NEXT_PUBLIC_GOOGLE_PICKER_API_KEY=isi_api_key_google_picker
-NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER=isi_project_number_google_cloud
+NEXTAUTH_SECRET=
+LEGACY_SHEET_OWNER_EMAIL=
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+NEXT_PUBLIC_GOOGLE_PICKER_API_KEY=
+NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 ```
 
-Untuk `NEXTAUTH_SECRET`, buka cmd dan jalankan:
+Generate `NEXTAUTH_SECRET`:
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
-Salin outputnya ke `NEXTAUTH_SECRET`.
 
-### 3. Jalankan secara lokal
+## Data Model
+
+Financial data lives in each user's Google Sheet. Supabase stores only user metadata, tier/payment records, usage counters, feature flags, and admin emails.
+
+Per-user Google Sheets tabs:
+
+| Tab | Purpose | Columns |
+|---|---|---|
+| `Pemasukan` | Income transactions | A-O |
+| `Pengeluaran` | Expense transactions | A-O |
+| `Tabungan` | Savings transactions | A-O |
+| `Budgets` | Monthly category budgets | A-F |
+| `Goals` | Savings goals | A-I |
+| `Utang` | Debts and receivables | A-I |
+| `Momental` | Event budget planning | A-K |
+| `EventBudgets` | Event sub-budgets | A-F |
+| `Tagihan` | Bill reminders | A-M |
+| `Settings` | User settings | A-B |
+
+## Useful Docs
+
+- `AGENTS.md` - current project rules and phase tracker
+- `docs/commercialization-plan.md` - business model and phase status
+- `docs/Flow-system.md` - current and planned system flow
+- `docs/sheets-*.md` - Google Sheets tab schemas
+- `supabase/README.md` - Supabase setup
+
+## Commands
+
 ```bash
 npm run dev
-```
-Buka browser ke: **http://localhost:3000**
-
-### 4. Deploy ke Vercel (gratis)
-1. Push folder ini ke GitHub
-2. Buka vercel.com → Import project dari GitHub
-3. Tambahkan semua env variable di Settings → Environment Variables
-4. Tambahkan URL Vercel ke Google Cloud Console:
-   - Authorized redirect URIs: `https://nama-project.vercel.app/api/auth/callback/google`
-5. Deploy!
-
----
-
-## 📁 Struktur File
-```
-src/
-  app/
-    page.js          → Halaman login
-    dashboard/
-      page.js        → Dashboard utama
-    api/
-      auth/          → NextAuth (Google OAuth)
-      dashboard/     → API ambil data dari Sheets
-  lib/
-    sheets.js        → Helper Google Sheets API
+npm run build
+npm run test
+npm run start
 ```
 
----
-
-## 📋 Nama Tab Google Sheets yang Dibutuhkan
-Pastikan nama tab di spreadsheet kamu sesuai:
-- `Rekap Bulanan` — untuk data ringkasan bulanan
-- `Pengeluaran` — untuk transaksi pengeluaran
-- `Pemasukan` — untuk transaksi pemasukan
-
-Jika nama tab berbeda, ubah di file `src/app/api/dashboard/route.js`.
-
----
-
-## 🎨 Phase Selanjutnya
-- **Phase 2**: Form input transaksi → simpan langsung ke Sheets
-- **Phase 3**: Budget per kategori, alert pengeluaran, filter tanggal
+There are currently no standalone lint or typecheck scripts.

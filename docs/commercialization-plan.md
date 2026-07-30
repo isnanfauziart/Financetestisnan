@@ -1,8 +1,8 @@
 # Artami Finance Dashboard - Commercialization Plan
 
 **Status:** Active
-**Current phase:** Phase 2 - Payments + Admin
-**Implementation status (25 July 2026):** Complete. The migration was applied, the QRIS proof flow was tested in production, and the admin approval flow correctly activated Pro access.
+**Current phase:** Phase 4 - Polish + Hardening
+**Implementation status (30 July 2026):** Phase 3 Feature Gating is complete. Supabase migration `008-phase3-feature-gating.sql` was applied; live RPC/REST auth tests passed; production Free → Pro → Free revocation smoke passed; admin permanent Pro was already verified; `/api/me` and related routes are healthy; the full suite passed with 272 passed and 2 skipped; production build passed.
 
 ## Business Model
 
@@ -84,10 +84,32 @@ The sole Phase 2 admin account is `isnanfauzi08@gmail.com`.
 |---|---|---|
 | 0. Security Fixes | Complete | Token no longer exposed to session, tab whitelist, transaction validation, generic errors, security headers |
 | 1. Supabase + Multi-Tenancy | Complete | Per-user sheets, Supabase users, auth context, sheet manager, migration helper |
-| 2. Payments + Admin | Current | Payment proof upload, `/admin`, approval/rejection, storage bucket |
-| 3. Feature Gating | Planned | Free limits, `/api/me`, upgrade info, paid unlock behavior |
-| 4. Polish + Hardening | Planned | Rate limiting, shared validation, health check, env validation, feature flags |
+| 2. Payments + Admin | Complete | Payment proof upload, `/admin`, approval/rejection, private storage, verified Pro activation |
+| 3. Feature Gating | Complete | Tier limits, `/api/me`, quotas, locked previews, live Supabase RPC/REST auth, production revocation smoke, full tests, and production build verified |
+| 4. Polish + Hardening | Current | Rate limiting, shared validation, health check, env validation, feature flags |
 | 5. Testing + Verification | Planned | API tests, data isolation tests, security headers, manual checklist |
+
+### Phase 3 Confirmed Policy
+
+- Record caps count current Google Sheet rows; deletion releases a slot. Budgets allow three rows per month.
+- The 75-transaction quota counts successful creations in the current WIB calendar month, regardless of entered transaction date. Deletion does not refund quota; Undo does not count twice.
+- Goal contributions, bill payments, and debt payments consume transaction quota.
+- Free users retain readable/editable over-limit data after Pro revocation, but cannot create more until below the cap.
+- Free history is the current WIB calendar month plus the previous three; older data remains untouched and manageable in Google Sheets. Recap and Profile explain where older data remains.
+- Free users receive up to three stable insight cards per week.
+- Health Score, Cash Flow Forecast, Anomaly Alerts, Financial Independence, What-If, and Year-in-Review remain discoverable to Free users through non-personal static blurred previews; their real components and calculations run only for effective Pro users.
+- Monthly PDF reports remain available to Free with a watermark; Pro removes it.
+- Income, expense, and savings share one transaction allowance. Existing records remain editable at the limit.
+- Limit warnings appear at 80% and 100%; rejected forms retain entered values and link to `/upgrade`.
+- `/api/me` is the canonical client entitlement/usage endpoint; Phase 3 does not add `/api/me/upgrade`.
+- Global feature flags remain Phase 4. Phase 3 uses canonical usage names: `transactions`, `budgets`, `goals`, `debts`, `momental`, `bills`, and `insights`.
+- If tier or quota cannot be verified, new Free creations fail closed with a retryable error; safe reads and edits remain available.
+- Profile shows complete quota usage; Pro limits serialize as `null`; feature screens show usage only near/at a limit.
+- Phase 3 adds no analytics vendor, per-user overrides, grace periods, mobile-only endpoints, custom billing cycles, carry-over allowance, or quota purchases.
+- Error and `/api/me` contracts remain client-neutral for the planned Expo app; all limit UI meets keyboard and non-color accessibility basics.
+- Existing Free users start with a fresh transaction allowance when gating activates.
+- Transaction quota uses an atomic Supabase reservation with release on Google Sheets write failure.
+- The complete approved decision record is `docs/phase 3 feature gating discussing.md`.
 
 ## Launch Requirements
 
@@ -104,7 +126,7 @@ The sole Phase 2 admin account is `isnanfauzi08@gmail.com`.
 | Market | Indonesia only |
 | Pricing | Rp 40,000 one-time lifetime |
 | Payment MVP | QRIS-only manual verification; `Mulai Pembayaran` starts a 48-hour request, cancellation/expiry preserve history, timely proof remains pending until review, private proof storage, admin approval/rejection, and WhatsApp CS |
-| Phase 2 admin | `isnanfauzi08@gmail.com` only |
+| Phase 2 admin seed | `isnanfauzi08@gmail.com`; every normalized email added to `admins` receives permanent effective Pro access |
 | Finance data | User-owned Google Sheets |
 | Metadata | Supabase |
 | Mobile path | Web/TWA first, React Native/Expo later |
