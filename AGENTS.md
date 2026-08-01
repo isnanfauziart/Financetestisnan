@@ -203,7 +203,6 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 - `docs/sheets-tagihan.md` — Bills tab schema
 - `docs/commercialization-plan.md` — Business model, pricing, go-to-market, legal
 - `docs/commercialization-prompts.md` — Phase 0-5 implementation prompts (self-contained)
-- `docs/phase 4 hardening discussing.md` — Phase 4 decisions and acceptance checklist
 - `docs/Flow-system.md` — User journey, payment flow, feature gating, admin tasks
 - `docs/play-store-react-native-plan.md` — Android/Expo port phases
 - `docs/motion-graphics.md` — launch motion graphic brief, storyboard, and revamp checklist

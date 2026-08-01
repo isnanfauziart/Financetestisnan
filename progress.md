@@ -343,7 +343,7 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 ## 2026-08-01 — Phase 4 hardening discussion record created
 
 ### Completed
-- Created `docs/phase 4 hardening discussing.md` with Critical, Important, Medium, and Nice to Know Phase 4 topics.
+- Created the Phase 4 hardening discussion record with Critical, Important, Medium, and Nice to Know Phase 4 topics.
 - Recorded agreed rate-limit scope, request limits, shared validation, health-check behavior, production environment handling, admin permissions, confirmation before disabling features, and global plus per-user feature-flag behavior.
 - Recorded remaining recommendations for feature-flag storage, API enforcement, cache propagation, security headers, logging, exact environment validation, and acceptance checks.
 
@@ -390,8 +390,8 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 ### Blockers
 - Phase 4 implementation and verification have not started.
 - I11 environment-variable confirmation is still pending.
-- User review is still needed for the open recommendations in the discussion document.
-- Remaining open recommendations are still recorded in `docs/phase 4 hardening discussing.md`.
+- User review is still needed for the open recommendations in the discussion record.
+- Remaining open recommendations are still recorded in the discussion record.
 
 ## 2026-08-01 — Phase 4 hardening answers I11/M1/M2/M3/M4/M6 recorded
 
@@ -435,7 +435,7 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 - `src/lib/featureFlags.js`, `src/lib/featureAccess.js`, `src/lib/featureGuard.js`, `src/lib/rateLimit.js`, `src/lib/env.js`, `src/lib/validation.js`, `src/lib/logger.js`, `src/middleware.js`
 - `src/app/api/health/route.js`, `src/app/api/admin/features/route.js`, `src/app/api/admin/users/route.js`, `src/app/admin/AdminFeatureControls.jsx`
 - Affected API/dashboard/payment components, `supabase/009-phase4-feature-flag-foundation.sql`, and Phase 4 tests
-- `AGENTS.md`, `docs/phase 4 hardening discussing.md`, `docs/commercialization-plan.md`, `docs/Flow-system.md`, `supabase/README.md`, `progress.md`
+- `AGENTS.md`, `docs/commercialization-plan.md`, `docs/Flow-system.md`, `supabase/README.md`, `progress.md`
 
 ### Verification
 - Full suite: 66 test files passed, 305 tests passed, 2 repository smoke tests skipped.
