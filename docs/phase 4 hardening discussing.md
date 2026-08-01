@@ -1,15 +1,15 @@
 # Phase 4 — Polish + Security Hardening Discussion
 
 **Date:** 1 August 2026
-**Status:** Local Phase 4 implementation is complete; the live migration is applied and read-only verified; authenticated end-to-end release verification remains
+**Status:** Phase 4 is complete as of 1 August 2026; migration, automated verification, and authenticated end-to-end release checks passed
 **Release context:** Play Store React Native release blocker
-**Current app state:** Commercialization Phases 2 and 3 are complete; Phase 4 is current. The `mobile/` project has not started.
+**Current app state:** Commercialization Phases 2-4 are complete; Phase 5 Testing + Verification is next. The `mobile/` project has not started.
 
 ## Purpose
 
 This document collects the Phase 4 hardening topics, questions, and recommended answers in one place. It replaces the need to discuss one question at a time in chat.
 
-This is a requirements, decision, and implementation record. It does not mark Phase 4 complete until live migration and release checks pass, and it does not authorize mobile implementation.
+This is a requirements, decision, and implementation record. The Phase 4 completion gate has now passed; it does not authorize mobile implementation.
 
 ## Latest accepted updates — 1 August 2026
 
@@ -471,26 +471,29 @@ These items are retained as the decision trail; implementation has resolved the 
 
 ## Phase 4 implementation status
 
-Implemented locally:
+Verified and complete:
 
 - shared validation, request-aware logging, request IDs, and route rate limits;
 - production environment fail-fast checks and the safe `/api/health` route;
 - private global flags plus per-user overrides, one-time schedules, cache invalidation, and protected system features;
 - admin global/user controls with OFF confirmations, user filters, and `Use global` reset;
 - UI and API feature enforcement across ledger, planning, reports, and QRIS flows; and
-- focused/full tests and a production build.
+- focused/full tests and a production build; and
+- authenticated live admin acceptance checks for global ON/OFF, per-user overrides and inheritance, override removal, future scheduling, disabled-feature behavior, data preservation, and non-admin protection.
 
 Migration status:
 
 - `supabase/009-phase4-feature-flag-foundation.sql` is applied in the live Supabase project.
 - Read-only verification confirmed the feature rows, zero current user overrides, and intact admin/user records.
-- Anonymous access is denied for both feature tables. The configured health URL is behind Vercel SSO, so its external response needs an authenticated operator check.
+- Anonymous access is denied for both feature tables.
+- The owner completed the live admin/global/override/schedule and disabled-feature smoke checks after deployment; data remained safe and non-admin access was rejected.
 
-Still required before marking Phase 4 complete:
+Phase 4 acceptance result:
 
-- run live admin/global/override/schedule and disabled-feature smoke checks; and
-- complete the release security/manual checklist.
+- production build, health behavior, rate limits, validation/error contracts, security headers, request IDs, feature controls, and client-leak checks passed through the automated and manual verification scope;
+- the Play Store Phase 4 blocker is cleared; and
+- Phase 5 Testing + Verification is now the active commercialization phase.
 
 ## Phase 4 implementation boundary
 
-Do not mark Phase 4 complete until the live migration, end-to-end hardening checklist, and release verification pass. The Play Store plan must continue to show Phase 4 as a blocker until then.
+Phase 4 is complete. The remaining release blockers are the web UI/UX revamp, canonical-domain migration, Phase 5 verification, and the later React Native/Expo work.

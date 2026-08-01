@@ -8,7 +8,7 @@
 
 ## Commercialization — Active
 
-**Current Phase:** Phase 4 — Polish + Hardening [PHASE-STATUS]
+**Current Phase:** Phase 5 — Testing + Verification [PHASE-STATUS]
 
 Artami is being commercialized as a one-time-payment personal finance app for the Indonesian market. Target: Play Store launch via React Native/Expo.
 
@@ -29,8 +29,8 @@ Artami is being commercialized as a one-time-payment personal finance app for th
 - [x] **Phase 1: Supabase + Multi-Tenancy** ✅ — Supabase setup, per-user Google Sheets, update all 15 API routes
 - [x] **Phase 2: Payments + Admin** ✅ — Payment API (upload proof), admin dashboard (approve/reject), Supabase Storage
 - [x] **Phase 3: Feature Gating** ✅ — Tier limits (75 txn/month wall, budget/goal/insight caps), `/api/me` endpoint
-- [ ] **Phase 4: Polish + Hardening** ← CURRENT — Rate limiting, shared validation, health check, admin-controlled global/per-user feature flags, env validation
-- [ ] **Phase 5: Testing + Verification** — API tests, data isolation, rate limiting, security headers, manual checklist
+- [x] **Phase 4: Polish + Hardening** ✅ — Rate limiting, shared validation, health check, admin-controlled global/per-user feature flags, env validation, and live acceptance verification
+- [ ] **Phase 5: Testing + Verification** ← CURRENT — API tests, data isolation, rate limiting, security headers, manual checklist
 
 Phase 3 confirmed policy: record caps use current Google Sheet rows and deletion releases a slot; budgets receive 3 slots per month; all manual/automated ledger writes share the atomic monthly WIB transaction quota; Undo does not count twice; Free history is the current month plus the previous 3 and is filtered only in Artami; existing data remains readable/editable after Pro revocation; Free users see 3 stable insights/week; Health Score, Cash Flow Forecast, Anomaly Alerts, Financial Independence, What-If, and Year-in-Review stay discoverable through non-personal static blurred previews, while their real components and calculations remain locked; Free monthly PDFs are watermarked; limit warnings appear at 80% and 100%. The approved policy is also reflected in the implementation and commercialization documentation.
 
@@ -42,7 +42,7 @@ Phase 4 hardening decisions: resolve feature flags server-side and expose only t
 Phase 4 environment/admin decisions: Vercel Production and Preview show all 11 required environment-variable names; `SPREADSHEET_ID` is an extra legacy variable and is not required by the per-user runtime. Admin controls use clear OFF confirmation, record `updated_at` and `updated_by`, find users by email/name search, and keep flag reads server-side. `/api/health` remains a fast liveness/configuration check without Google or Supabase network calls.
 Phase 4 Nice to Know decisions: retain last-change metadata, in-memory rate limiting, short unavailable messages, and switch-off code/data; include simple future-dated global/targeted toggles and admin user-segment filters while deferring recurring schedules and richer segmentation.
 
-Phase 4 implementation status: rate limiting, shared validation, request-aware logging, request IDs, health/configuration checks, production env fail-fast, private global/per-user feature flags, one-time schedules, segment filters, admin confirmations, and UI/API enforcement are implemented and verified locally. Migration `supabase/009-phase4-feature-flag-foundation.sql` is applied and read-only verified in the live Supabase project. Complete authenticated live admin/override/schedule and release checks before marking Phase 4 complete.
+Phase 4 implementation status: complete as of 1 August 2026. Rate limiting, shared validation, request-aware logging, request IDs, health/configuration checks, production env fail-fast, private global/per-user feature flags, one-time schedules, segment filters, admin confirmations, and UI/API enforcement passed local tests, production build verification, live migration checks, and authenticated admin acceptance checks.
 
 Phase 3 implementation status: complete as of 30 July 2026. Effective entitlement, `/api/me`, atomic quotas, replay-safe Undo, atomic bill/debt payments, Sheet-backed record caps, WIB history filtering, stable weekly insights, watermarked Free PDFs, locked Pro previews, and the split Plan sections are in place. Supabase migration `008-phase3-feature-gating.sql` was applied; live RPC/REST auth tests passed; production Free → Pro → Free revocation smoke passed; admin permanent Pro was already verified; `/api/me` and related routes are healthy; the full suite passed with 272 passed and 2 skipped; production build passed.
 
@@ -54,6 +54,7 @@ System flow documentation: `docs/Flow-system.md`
 
 - 2026-07-30 — Phase 3 Feature Gating completed and verified; Phase 4 Polish + Hardening is current.
 - 2026-08-01 — Phase 4 hardening implemented locally; migration applied and read-only verified; full suite and production build verified; authenticated admin/manual release checks remain.
+- 2026-08-01 — Phase 4 Polish + Hardening completed and verified; Phase 5 Testing + Verification is now current.
 
 ### Play Store Launch Plan (React Native/Expo)
 Planned after commercialization phases 1-5 are complete. See `docs/play-store-react-native-plan.md` for details.

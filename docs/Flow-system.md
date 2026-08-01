@@ -1,6 +1,6 @@
 # Artami Finance Dashboard - System Flow
 
-**Status:** Phases 0-3 are shipped and verified in production. Phase 4 hardening is implemented locally; the feature-flag migration is applied and read-only verified; authenticated release verification remains.
+**Status:** Phases 0-4 are shipped and verified in production. Phase 5 Testing + Verification is current.
 
 ## Current Flow
 
@@ -142,7 +142,7 @@ The approved Phase 3 policy is summarized in this section and in the commerciali
 - API middleware applies normal, NextAuth, payment/APK, and destructive-action rate limits; security headers remain in `next.config.js`.
 - `/api/health` reports local liveness/configuration only and does not call Google or Supabase.
 
-Phase 4 code is locally verified with 305 passing tests and a production build. Migration `supabase/009-phase4-feature-flag-foundation.sql` is applied and its public access boundary is verified. Complete authenticated live admin/override/schedule and release smoke checks before moving the Play Store plan past the Phase 4 blocker.
+Phase 4 code passed 305 tests and a production build. Migration `supabase/009-phase4-feature-flag-foundation.sql` and its public access boundary were verified, followed by live admin/global/override/schedule, disabled-feature, data-preservation, and non-admin smoke checks. The Play Store Phase 4 blocker is cleared; Phase 5 Testing + Verification is now current.
 
 ## Environment
 

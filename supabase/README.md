@@ -10,7 +10,7 @@ This folder contains the database schema and setup scripts for Artami Finance Da
 - Phase 1 multi-tenancy is complete in the app.
 - Phase 2 payment/admin routes, private storage, and admin UI are complete.
 - Phase 3 Feature Gating is complete. Migration `008-phase3-feature-gating.sql` was applied; live RPC/REST auth tests passed; production Free → Pro → Free revocation smoke passed; admin permanent Pro was already verified; `/api/me` and related routes are healthy; the full suite passed with 272 passed and 2 skipped; production build passed.
-- Phase 4 Polish + Hardening is implemented locally. Migration `009-phase4-feature-flag-foundation.sql` is applied and read-only verified; complete authenticated live admin/override and release smoke checks before closure.
+- Phase 4 Polish + Hardening is complete. Migration `009-phase4-feature-flag-foundation.sql`, automated verification, public access-boundary checks, and authenticated live admin/override/release smoke checks passed. Phase 5 Testing + Verification is next.
 
 ## Database Schema
 

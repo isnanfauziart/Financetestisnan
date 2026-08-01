@@ -1,8 +1,8 @@
 # Artami Finance Dashboard - Commercialization Plan
 
 **Status:** Active
-**Current phase:** Phase 4 - Polish + Hardening
-**Implementation status (1 August 2026):** Phase 3 Feature Gating is complete. Phase 4 hardening is implemented locally and verified with 305 passing tests plus a production build; the feature-flag migration is applied and read-only verified, while authenticated admin/override smoke tests and the release checklist remain before Phase 4 closure.
+**Current phase:** Phase 5 - Testing + Verification
+**Implementation status (1 August 2026):** Phase 3 Feature Gating and Phase 4 Polish + Hardening are complete. Phase 4 passed 305 tests, a production build, live migration/access-boundary checks, and authenticated admin acceptance checks.
 
 ## Business Model
 
@@ -86,8 +86,8 @@ The sole Phase 2 admin account is `isnanfauzi08@gmail.com`.
 | 1. Supabase + Multi-Tenancy | Complete | Per-user sheets, Supabase users, auth context, sheet manager, migration helper |
 | 2. Payments + Admin | Complete | Payment proof upload, `/admin`, approval/rejection, private storage, verified Pro activation |
 | 3. Feature Gating | Complete | Tier limits, `/api/me`, quotas, locked previews, live Supabase RPC/REST auth, production revocation smoke, full tests, and production build verified |
-| 4. Polish + Hardening | Current / locally implemented | Rate limiting, shared validation, health check, env validation, private global/per-user feature flags, schedules, segment filters, UI/API enforcement |
-| 5. Testing + Verification | Planned | API tests, data isolation tests, security headers, manual checklist |
+| 4. Polish + Hardening | Complete | Rate limiting, shared validation, health check, env validation, private global/per-user feature flags, schedules, segment filters, UI/API enforcement, live acceptance verified |
+| 5. Testing + Verification | Current | API tests, data isolation tests, security headers, canonical-domain manual checklist |
 
 ### Phase 3 Confirmed Policy
 
@@ -116,7 +116,7 @@ The sole Phase 2 admin account is `isnanfauzi08@gmail.com`.
 - Transaction quota uses an atomic Supabase reservation with release on Google Sheets write failure.
 - The approved Phase 3 policy is summarized above and implemented in the source tree.
 
-### Phase 4 Local Implementation
+### Phase 4 Implementation (Complete)
 
 The local Phase 4 implementation includes:
 
@@ -126,7 +126,7 @@ The local Phase 4 implementation includes:
 - an `/admin` Feature Controls switchboard for all user-facing features, protected system controls, OFF confirmations, and email/name, tier, and account-age filters; and
 - UI/API enforcement with a safe `FEATURE_DISABLED` response while preserving existing ledger data.
 
-The migration `009-phase4-feature-flag-foundation.sql` and live manual checks still need to be applied/completed before Phase 4 is marked complete.
+The migration `009-phase4-feature-flag-foundation.sql` is applied. Automated verification, the public access-boundary check, and live manual admin/override/schedule/disabled-feature checks passed, so Phase 4 is closed.
 
 ## Launch Requirements
 
