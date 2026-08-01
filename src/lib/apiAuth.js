@@ -5,6 +5,7 @@ import { createUserSheet } from "./sheetManager"
 import { supabaseAdmin } from "./supabaseAdmin"
 import { needsLegacySheetConnection } from "./legacySheet"
 import { getEffectiveEntitlement } from "./entitlement"
+import { resolveFeatureAccess } from "./featureFlags"
 
 async function withRetry(fn, retries = 2, delayMs = 1000, label = "") {
   for (let i = 0; i <= retries; i++) {
@@ -81,11 +82,14 @@ export async function getAuthContext(request) {
     const legacyConnectionRequired = needsLegacySheetConnection(user)
     if (legacyConnectionRequired) {
       const entitlement = await getEffectiveEntitlement(user)
+      const featureAccess = await resolveFeatureAccess({ ...user, ...entitlement }, { entitlement })
       return {
         user,
         accessToken: token.accessToken,
         spreadsheetId: null,
         ...entitlement,
+        featureAccess,
+        featureAvailability: featureAccess.availability,
         needsSheetConnection: true,
       }
     }
@@ -126,11 +130,14 @@ export async function getAuthContext(request) {
   }
 
   const entitlement = await getEffectiveEntitlement(user)
+  const featureAccess = await resolveFeatureAccess({ ...user, ...entitlement }, { entitlement })
 
   return {
     user,
     accessToken: token.accessToken,
     spreadsheetId: spreadsheetId || user.spreadsheet_id,
     ...entitlement,
+    featureAccess,
+    featureAvailability: featureAccess.availability,
   }
 }

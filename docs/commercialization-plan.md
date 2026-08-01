@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Current phase:** Phase 4 - Polish + Hardening
-**Implementation status (30 July 2026):** Phase 3 Feature Gating is complete. Supabase migration `008-phase3-feature-gating.sql` was applied; live RPC/REST auth tests passed; production Free → Pro → Free revocation smoke passed; admin permanent Pro was already verified; `/api/me` and related routes are healthy; the full suite passed with 272 passed and 2 skipped; production build passed.
+**Implementation status (1 August 2026):** Phase 3 Feature Gating is complete. Phase 4 hardening is implemented locally and verified with 305 passing tests plus a production build; the feature-flag migration is applied and read-only verified, while authenticated admin/override smoke tests and the release checklist remain before Phase 4 closure.
 
 ## Business Model
 
@@ -86,7 +86,7 @@ The sole Phase 2 admin account is `isnanfauzi08@gmail.com`.
 | 1. Supabase + Multi-Tenancy | Complete | Per-user sheets, Supabase users, auth context, sheet manager, migration helper |
 | 2. Payments + Admin | Complete | Payment proof upload, `/admin`, approval/rejection, private storage, verified Pro activation |
 | 3. Feature Gating | Complete | Tier limits, `/api/me`, quotas, locked previews, live Supabase RPC/REST auth, production revocation smoke, full tests, and production build verified |
-| 4. Polish + Hardening | Current | Rate limiting, shared validation, health check, env validation, feature flags |
+| 4. Polish + Hardening | Current / locally implemented | Rate limiting, shared validation, health check, env validation, private global/per-user feature flags, schedules, segment filters, UI/API enforcement |
 | 5. Testing + Verification | Planned | API tests, data isolation tests, security headers, manual checklist |
 
 ### Phase 3 Confirmed Policy
@@ -106,10 +106,27 @@ The sole Phase 2 admin account is `isnanfauzi08@gmail.com`.
 - If tier or quota cannot be verified, new Free creations fail closed with a retryable error; safe reads and edits remain available.
 - Profile shows complete quota usage; Pro limits serialize as `null`; feature screens show usage only near/at a limit.
 - Phase 3 adds no analytics vendor, per-user overrides, grace periods, mobile-only endpoints, custom billing cycles, carry-over allowance, or quota purchases.
+- Phase 4 decision: feature flags use global defaults plus admin-managed per-user overrides. Unlisted users inherit the global setting; all user-facing product features may be controlled, while authentication, authorization, privacy, and data-integrity protections remain non-toggleable infrastructure.
+- Phase 4 operational decisions: optional or risky features fail closed when their flag cannot be read; successful updates invalidate the short cache; controls live in `/admin`; disabled features are hidden with a simple unavailable message for stale or direct access.
+- Phase 4 hardening decisions: resolve feature flags server-side and expose only the current user’s effective access; rate-limit NextAuth separately by IP; keep security headers in `next.config.js`; and use minimal safe request-aware logging without sensitive values.
+- Phase 4 environment/admin decisions: Vercel Production and Preview show all 11 required environment-variable names; `SPREADSHEET_ID` is an extra legacy variable and is not required by the per-user runtime. Admin controls use clear OFF confirmation, record `updated_at` and `updated_by`, find users by email/name search, and keep flag reads server-side. `/api/health` remains a fast liveness/configuration check without Google or Supabase network calls.
+- Phase 4 Nice to Know decisions: defer full audit history, Redis/distributed rate limiting, branded maintenance pages, and code/data removal; future-dated global/targeted toggles and admin user-segment filters are included in the first implementation in a deliberately small form.
 - Error and `/api/me` contracts remain client-neutral for the planned Expo app; all limit UI meets keyboard and non-color accessibility basics.
 - Existing Free users start with a fresh transaction allowance when gating activates.
 - Transaction quota uses an atomic Supabase reservation with release on Google Sheets write failure.
-- The complete approved decision record is `docs/phase 3 feature gating discussing.md`.
+- The approved Phase 3 policy is summarized above and implemented in the source tree.
+
+### Phase 4 Local Implementation
+
+The local Phase 4 implementation includes:
+
+- a shared 60/minute API limiter, separate NextAuth IP limiting, stricter payment/APK and account-deletion limits, shared validation, safe request-aware logging, and request IDs;
+- production required-environment validation and a network-free `/api/health` check;
+- server-only global feature flags with private per-user overrides, `Use global` reset, one-time future schedules, short caching, and immediate invalidation;
+- an `/admin` Feature Controls switchboard for all user-facing features, protected system controls, OFF confirmations, and email/name, tier, and account-age filters; and
+- UI/API enforcement with a safe `FEATURE_DISABLED` response while preserving existing ledger data.
+
+The migration `009-phase4-feature-flag-foundation.sql` and live manual checks still need to be applied/completed before Phase 4 is marked complete.
 
 ## Launch Requirements
 

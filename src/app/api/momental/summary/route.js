@@ -1,4 +1,5 @@
 import { getAuthContext } from "@/lib/apiAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -8,6 +9,8 @@ export async function GET(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "momental", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {

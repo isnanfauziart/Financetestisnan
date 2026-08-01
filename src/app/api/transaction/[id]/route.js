@@ -1,4 +1,5 @@
 import { getAuthContext } from "@/lib/apiAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { createUndoToken } from "@/lib/transactionUndo"
 import { getSheetData, updateSheetValues } from "@/lib/sheets"
@@ -24,6 +25,8 @@ export async function PUT(request, { params }) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "transactions", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {
@@ -88,6 +91,8 @@ export async function DELETE(request, { params }) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "transactions", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {

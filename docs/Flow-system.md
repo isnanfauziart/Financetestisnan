@@ -1,6 +1,6 @@
 # Artami Finance Dashboard - System Flow
 
-**Status:** Current for Phases 0-3, all shipped and verified in production. Phase 4 Polish + Hardening is current.
+**Status:** Phases 0-3 are shipped and verified in production. Phase 4 hardening is implemented locally; the feature-flag migration is applied and read-only verified; authenticated release verification remains.
 
 ## Current Flow
 
@@ -118,7 +118,7 @@ Confirmed rules:
 - Recap and Profile tell Free users that older data remains in Google Sheets.
 - Free smart-feature UI shows non-personal static blurred previews for Health Score, Cash Flow Forecast, Anomaly Alerts, Financial Independence, What-If, and Year-in-Review; real components and calculations run only for effective Pro.
 - Free monthly PDFs carry a watermark; Pro PDFs do not.
-- `/api/me` supplies canonical tier, usage, limits, reset dates, feature access, and `/upgrade`; no `/api/me/upgrade` route is added in Phase 3.
+- `/api/me` supplies canonical tier, usage, limits, reset dates, effective feature access, current-user feature availability, and `/upgrade`; no `/api/me/upgrade` route is added in Phase 3.
 - The UI warns at 80% and 100%, preserves rejected form values, and links to `/upgrade`.
 - Pro revocation preserves readable/editable data and blocks only over-limit creation.
 - Feature flags remain Phase 4; Phase 3 uses canonical plural usage names.
@@ -128,7 +128,21 @@ Confirmed rules:
 - Contracts remain Expo-compatible without adding mobile-only endpoints.
 - No analytics vendor, custom overrides, grace periods, or speculative quota/billing systems are added.
 
-The complete approved decision record is `docs/phase 3 feature gating discussing.md`.
+The approved Phase 3 policy is summarized in this section and in the commercialization plan.
+
+## Phase 4 Feature-Access Flow Update
+
+- The server resolves global feature defaults and the current user’s override before returning access and availability.
+- `/api/me` or the existing authenticated response path returns only the current user’s effective feature access and availability.
+- Clients never receive the full feature-flag table or another user’s override assignments.
+- Admins confirm the scope before turning a feature OFF; existing data is preserved and the setting can be reversed.
+- Admins find targeted users through email/name, tier, and account-age filters; global and override changes record `updated_at` and `updated_by`.
+- Admins can schedule one-time future-dated ON/OFF transitions for global or targeted settings; recurring schedules remain deferred.
+- Disabled features are hidden or return `403 FEATURE_DISABLED` with `Fitur sedang tidak tersedia.` for stale/direct access.
+- API middleware applies normal, NextAuth, payment/APK, and destructive-action rate limits; security headers remain in `next.config.js`.
+- `/api/health` reports local liveness/configuration only and does not call Google or Supabase.
+
+Phase 4 code is locally verified with 305 passing tests and a production build. Migration `supabase/009-phase4-feature-flag-foundation.sql` is applied and its public access boundary is verified. Complete authenticated live admin/override/schedule and release smoke checks before moving the Play Store plan past the Phase 4 blocker.
 
 ## Environment
 

@@ -1,4 +1,5 @@
 import { getAuthContext } from "@/lib/apiAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { batchUpdateSheetValues, getSheetData } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { rowToBill } from "@/lib/bills"
@@ -43,6 +44,8 @@ export async function POST(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "bills", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
   let reservation = null
   let writeKey = null

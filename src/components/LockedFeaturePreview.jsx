@@ -2,7 +2,16 @@
 import Link from "next/link"
 import { Lock, Sparkles } from "lucide-react"
 
-export default function LockedFeaturePreview({ title, description, href = "/upgrade" }) {
+export default function LockedFeaturePreview({ title, description, href = "/upgrade", unavailable = false }) {
+  if (unavailable) {
+    return (
+      <section className="bento-tile bg-earth-50 border border-earth-100 p-5" aria-label={`${title} tidak tersedia`}>
+        <h3 className="text-sm font-bold text-earth-800">{title}</h3>
+        <p className="mt-1 text-xs text-earth-500">{description || "Fitur sedang tidak tersedia."}</p>
+      </section>
+    )
+  }
+
   return (
     <section className="bento-tile bg-earth-50 border border-earth-100 p-5" aria-label={`${title} terkunci`}>
       <div className="rounded-2xl bg-white/70 border border-earth-100 p-4" aria-hidden="true">

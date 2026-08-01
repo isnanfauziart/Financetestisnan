@@ -1,4 +1,5 @@
 import { getAuthContext } from "@/lib/apiAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 import { getDefaultSubCategories } from "@/lib/eventTemplates"
 import { runRecordCreation } from "@/lib/recordQuota"
@@ -155,6 +156,8 @@ export async function GET(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "momental", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {
@@ -206,6 +209,8 @@ export async function POST(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "momental", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {
@@ -247,6 +252,8 @@ export async function PUT(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "momental", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {
@@ -307,6 +314,8 @@ export async function DELETE(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "momental", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {

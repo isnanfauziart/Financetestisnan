@@ -1,4 +1,5 @@
 import { getAuthContext } from "@/lib/apiAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
 
 export const dynamic = 'force-dynamic'
@@ -58,6 +59,8 @@ export async function PUT(request, { params }) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "bills", request)
+  if (blocked) return blocked
 
   const { accessToken, spreadsheetId } = auth
 
@@ -99,6 +102,8 @@ export async function DELETE(request, { params }) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "bills", request)
+  if (blocked) return blocked
 
   const { accessToken, spreadsheetId } = auth
 

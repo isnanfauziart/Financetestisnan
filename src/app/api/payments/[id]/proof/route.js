@@ -1,4 +1,5 @@
 import { getPaymentUser } from "@/lib/paymentAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { PAYMENT_BUCKET } from "@/lib/payments"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
@@ -7,6 +8,8 @@ export const dynamic = "force-dynamic"
 export async function GET(request, { params }) {
   const user = await getPaymentUser(request)
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
+  const blocked = featureUnavailableResponse(user, "paymentQris", request)
+  if (blocked) return blocked
   const { data: payment } = await supabaseAdmin.from("payments")
     .select("proof_url").eq("id", params.id).eq("user_id", user.id).maybeSingle()
   if (!payment?.proof_url) return Response.json({ error: "Bukti tidak ditemukan." }, { status: 404 })

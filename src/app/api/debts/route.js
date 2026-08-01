@@ -1,4 +1,5 @@
 import { getAuthContext } from "@/lib/apiAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { batchUpdateSheetValues, getSheetData, parseRupiah } from "@/lib/sheets"
 import { quotaErrorResponse, releaseTransaction, reserveTransaction } from "@/lib/transactionQuota"
 import { claimFeatureWrite, releaseFeatureWrite } from "@/lib/writeClaims"
@@ -83,6 +84,8 @@ export async function GET(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "debts", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {
@@ -99,6 +102,8 @@ export async function POST(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "debts", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {
@@ -239,6 +244,8 @@ export async function PUT(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "debts", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {
@@ -277,6 +284,8 @@ export async function DELETE(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "debts", request)
+  if (blocked) return blocked
   const { accessToken, spreadsheetId } = auth
 
   try {

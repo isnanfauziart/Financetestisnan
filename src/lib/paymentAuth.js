@@ -2,6 +2,7 @@ import "server-only"
 import { getToken } from "next-auth/jwt"
 import { getOrCreateUser } from "./user"
 import { getEffectiveEntitlement } from "./entitlement"
+import { resolveFeatureAccess } from "./featureFlags"
 
 export async function getPaymentUser(request) {
   const token = await getToken({ req: request })
@@ -13,5 +14,6 @@ export async function getPaymentUser(request) {
     googleId: token.sub,
   })
   const entitlement = await getEffectiveEntitlement(user)
-  return { ...user, ...entitlement }
+  const featureAccess = await resolveFeatureAccess({ ...user, ...entitlement }, { entitlement })
+  return { ...user, ...entitlement, featureAccess, featureAvailability: featureAccess.availability }
 }

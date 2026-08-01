@@ -31,6 +31,7 @@ import LegacySheetConnector from "@/components/LegacySheetConnector"
 import PaymentStatusBanner from "./_components/PaymentStatusBanner"
 import { useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
+import { hasFeature } from "@/lib/featureAccess"
 
 export default function Dashboard() {
   const statsDefaults = getStatsPeriodDefaults()
@@ -181,6 +182,7 @@ export default function Dashboard() {
   // Bill notification check (while app is open)
   useEffect(() => {
     if (!session) return
+    if (!hasFeature(entitlement, "bills")) return
     const checkBills = async () => {
       try {
         const res = await fetch("/api/bills/summary")
@@ -208,7 +210,7 @@ export default function Dashboard() {
     const timeout = setTimeout(checkBills, 5000)
     const interval = setInterval(checkBills, 30 * 60 * 1000)
     return () => { clearTimeout(timeout); clearInterval(interval) }
-  }, [session])
+  }, [session, entitlement])
 
   const checkGoalCelebration = useCallback(async () => {
     try {
@@ -845,6 +847,10 @@ export default function Dashboard() {
   }
 
   const openQuickAdd = (type = "expense") => {
+    if (!hasFeature(entitlement, "transactions")) {
+      showToast("Fitur transaksi sedang tidak tersedia.", "info")
+      return
+    }
     setTxType(type)
     setQuickAddOpen(true)
   }
@@ -964,7 +970,7 @@ export default function Dashboard() {
         className="relative z-10 max-w-3xl mx-auto"
         style={{ transform: `translateY(${pullDistance}px)`, transition: pullDistance === 0 ? "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" : "none" }}
       >
-        <PaymentStatusBanner />
+        <PaymentStatusBanner enabled={hasFeature(entitlement, "paymentQris")} />
         {/*
           Product & IA ownership contract (Task 1 pre-migration lock):
           - Beranda/home owns summary + urgent actions; keep "Fokus hari ini" as a P1 Beranda element.
@@ -1159,7 +1165,7 @@ export default function Dashboard() {
       />
 
       {/* What-If Scenario Modal */}
-      {(entitlement?.features?.whatIf || entitlement?.isAdmin) && <WhatIfModal open={whatIfOpen} onClose={() => setWhatIfOpen(false)} transactions={data?.transactions || []} />}
+      {hasFeature(entitlement, "whatIf") && <WhatIfModal open={whatIfOpen} onClose={() => setWhatIfOpen(false)} transactions={data?.transactions || []} />}
 
       {/* Bill Pay Modal */}
       {billPayTarget && (
@@ -1188,7 +1194,7 @@ export default function Dashboard() {
       />
 
       {/* Floating Action Button */}
-      <button
+      {hasFeature(entitlement, "transactions") && <button
           onClick={() => { if (hapticsEnabled) haptics.tap(); openQuickAdd("expense") }}
           aria-label="Tambah transaksi baru"
           aria-haspopup="dialog"
@@ -1197,7 +1203,7 @@ export default function Dashboard() {
         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl mesh-aurora shadow-pop flex items-center justify-center active:scale-90 transition-transform" style={{ boxShadow: "0 12px 32px rgba(124,95,207,0.4)" }}>
           <Plus size={22} color="white" strokeWidth={2.5} aria-hidden="true" />
         </div>
-      </button>
+      </button>}
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-4 sm:bottom-5 left-4 sm:left-5 right-4 sm:right-5 z-30 safe-bottom max-w-md mx-auto" role="tablist" aria-label="Main navigation">

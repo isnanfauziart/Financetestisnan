@@ -8,10 +8,11 @@ const COPY = {
   revoked: ["Akses Pro dicabut", "Lihat alasan pencabutan dan hubungi CS jika memerlukan bantuan."],
 }
 
-export default function PaymentStatusBanner() {
+export default function PaymentStatusBanner({ enabled = true }) {
   const [payment, setPayment] = useState(null)
 
   useEffect(() => {
+    if (!enabled) return undefined
     fetch("/api/payments?limit=1")
       .then((response) => response.ok ? response.json() : null)
       .then((result) => {
@@ -21,9 +22,9 @@ export default function PaymentStatusBanner() {
         if (localStorage.getItem(key) !== "1") setPayment({ ...latest, dismissalKey: key })
       })
       .catch(() => {})
-  }, [])
+  }, [enabled])
 
-  if (!payment) return null
+  if (!enabled || !payment) return null
   const [title, message] = payment.corrected_at && payment.status === "approved"
     ? ["Akses Pro aktif", "Pembayaran Anda telah disetujui setelah peninjauan ulang. Akses Pro sekarang aktif."]
     : COPY[payment.status]
@@ -53,4 +54,3 @@ export default function PaymentStatusBanner() {
     </div>
   )
 }
-

@@ -9,6 +9,7 @@ import HealthScoreCard from "@/components/HealthScoreCard"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import { useBudgets, useBills } from "@/lib/useSharedData"
 import { getFocusNote } from "./_components/focusNote"
+import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
 
 export default function HomeTab({
   data,
@@ -278,17 +279,19 @@ export default function HomeTab({
       </div>
 
       {/* Financial Health Score (replaces spending gauge) */}
-      {entitlement?.features?.healthScore || entitlement?.isAdmin ? (
+      {!isFeatureEnabled(entitlement, "healthScore") ? (
+        <LockedFeaturePreview title="Health Score" description="Fitur sedang tidak tersedia." unavailable />
+      ) : hasFeature(entitlement, "healthScore") ? (
         <HealthScoreCard transactions={data?.transactions} monthlyData={monthlyData} selectedMonth={selectedMonth} selectedYear={selectedYear} />
       ) : (
         <LockedFeaturePreview title="Health Score" description="Ringkasan kesehatan keuangan tersedia di Pro." />
       )}
 
       {/* Budget status (compact summary, hides if no budgets) */}
-      <BudgetStatusCard
+      {hasFeature(entitlement, "budgets") && <BudgetStatusCard
         allTransactions={allTransactions}
         setActiveNav={setActiveNav}
-      />
+      />}
 
       {/* Recent transactions */}
       <div className="mt-6 animate-bento-in stagger-9">

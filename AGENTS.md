@@ -29,12 +29,20 @@ Artami is being commercialized as a one-time-payment personal finance app for th
 - [x] **Phase 1: Supabase + Multi-Tenancy** ✅ — Supabase setup, per-user Google Sheets, update all 15 API routes
 - [x] **Phase 2: Payments + Admin** ✅ — Payment API (upload proof), admin dashboard (approve/reject), Supabase Storage
 - [x] **Phase 3: Feature Gating** ✅ — Tier limits (75 txn/month wall, budget/goal/insight caps), `/api/me` endpoint
-- [ ] **Phase 4: Polish + Hardening** ← CURRENT — Rate limiting, zod validation, health check, feature flags, env validation
+- [ ] **Phase 4: Polish + Hardening** ← CURRENT — Rate limiting, shared validation, health check, admin-controlled global/per-user feature flags, env validation
 - [ ] **Phase 5: Testing + Verification** — API tests, data isolation, rate limiting, security headers, manual checklist
 
-Phase 3 confirmed policy: record caps use current Google Sheet rows and deletion releases a slot; budgets receive 3 slots per month; all manual/automated ledger writes share the atomic monthly WIB transaction quota; Undo does not count twice; Free history is the current month plus the previous 3 and is filtered only in Artami; existing data remains readable/editable after Pro revocation; Free users see 3 stable insights/week; Health Score, Cash Flow Forecast, Anomaly Alerts, Financial Independence, What-If, and Year-in-Review stay discoverable through non-personal static blurred previews, while their real components and calculations remain locked; Free monthly PDFs are watermarked; limit warnings appear at 80% and 100%. The complete decision record is tracked in `docs/phase 3 feature gating discussing.md`.
+Phase 3 confirmed policy: record caps use current Google Sheet rows and deletion releases a slot; budgets receive 3 slots per month; all manual/automated ledger writes share the atomic monthly WIB transaction quota; Undo does not count twice; Free history is the current month plus the previous 3 and is filtered only in Artami; existing data remains readable/editable after Pro revocation; Free users see 3 stable insights/week; Health Score, Cash Flow Forecast, Anomaly Alerts, Financial Independence, What-If, and Year-in-Review stay discoverable through non-personal static blurred previews, while their real components and calculations remain locked; Free monthly PDFs are watermarked; limit warnings appear at 80% and 100%. The approved policy is also reflected in the implementation and commercialization documentation.
 
 Phase 3 implementation policy: global feature flags remain Phase 4; canonical usage names are `transactions`, `budgets`, `goals`, `debts`, `momental`, `bills`, and `insights`; unverifiable tier/quota state fails closed for new Free creations while safe reads/edits remain available; Profile owns the full quota display; Pro limits serialize as `null`; every normalized email in Supabase `admins` has permanent effective Pro access across auth, payment, quota, and UI paths; no analytics vendor, per-user overrides, grace periods, or mobile-only endpoints are added.
+
+Phase 4 decision update: the Phase 3 no-per-user-override rule remains historical. Phase 4 adds admin-managed per-user feature overrides on top of global defaults; users without an override inherit the global setting.
+Phase 4 operational decisions: optional or risky features fail closed when unreadable, successful updates invalidate the short cache, controls live in `/admin`, and disabled features are hidden with a simple unavailable message for stale or direct access.
+Phase 4 hardening decisions: resolve feature flags server-side and expose only the current user’s effective access; rate-limit NextAuth separately by IP; keep security headers in `next.config.js`; and use minimal safe request-aware logging without sensitive values.
+Phase 4 environment/admin decisions: Vercel Production and Preview show all 11 required environment-variable names; `SPREADSHEET_ID` is an extra legacy variable and is not required by the per-user runtime. Admin controls use clear OFF confirmation, record `updated_at` and `updated_by`, find users by email/name search, and keep flag reads server-side. `/api/health` remains a fast liveness/configuration check without Google or Supabase network calls.
+Phase 4 Nice to Know decisions: retain last-change metadata, in-memory rate limiting, short unavailable messages, and switch-off code/data; include simple future-dated global/targeted toggles and admin user-segment filters while deferring recurring schedules and richer segmentation.
+
+Phase 4 implementation status: rate limiting, shared validation, request-aware logging, request IDs, health/configuration checks, production env fail-fast, private global/per-user feature flags, one-time schedules, segment filters, admin confirmations, and UI/API enforcement are implemented and verified locally. Migration `supabase/009-phase4-feature-flag-foundation.sql` is applied and read-only verified in the live Supabase project. Complete authenticated live admin/override/schedule and release checks before marking Phase 4 complete.
 
 Phase 3 implementation status: complete as of 30 July 2026. Effective entitlement, `/api/me`, atomic quotas, replay-safe Undo, atomic bill/debt payments, Sheet-backed record caps, WIB history filtering, stable weekly insights, watermarked Free PDFs, locked Pro previews, and the split Plan sections are in place. Supabase migration `008-phase3-feature-gating.sql` was applied; live RPC/REST auth tests passed; production Free → Pro → Free revocation smoke passed; admin permanent Pro was already verified; `/api/me` and related routes are healthy; the full suite passed with 272 passed and 2 skipped; production build passed.
 
@@ -45,6 +53,7 @@ System flow documentation: `docs/Flow-system.md`
 ## Recent Work
 
 - 2026-07-30 — Phase 3 Feature Gating completed and verified; Phase 4 Polish + Hardening is current.
+- 2026-08-01 — Phase 4 hardening implemented locally; migration applied and read-only verified; full suite and production build verified; authenticated admin/manual release checks remain.
 
 ### Play Store Launch Plan (React Native/Expo)
 Planned after commercialization phases 1-5 are complete. See `docs/play-store-react-native-plan.md` for details.
@@ -165,7 +174,12 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 - `src/app/api/momental/[id]/route.js` - Single event detail/update/delete
 - `src/app/api/momental/summary/route.js` - Active event summary
 - `src/app/api/settings/route.js` - User settings
-- `src/app/api/me/route.js` - Effective entitlement, usage metadata, WIB reset dates, history policy, and feature access
+- `src/app/api/me/route.js` — Effective entitlement, usage metadata, WIB reset dates, history policy, and feature access
+- `src/app/api/health/route.js` — Safe liveness/configuration check
+- `src/app/api/admin/features/route.js`, `src/app/api/admin/users/route.js` — Admin feature controls, schedules, overrides, and user filters
+- `src/app/admin/AdminFeatureControls.jsx` — Admin switchboard UI
+- `src/lib/featureFlags.js`, `src/lib/featureAccess.js`, `src/lib/featureGuard.js` — Server flag resolution, client-safe access, and disabled-feature responses
+- `src/lib/rateLimit.js`, `src/lib/env.js`, `src/lib/validation.js`, `src/lib/logger.js`, `src/middleware.js` — Phase 4 hardening primitives
 - `src/lib/sheets.js` — Sheet helpers
 - `src/lib/notifications.js` — Service worker registration + notification helpers
 - `src/lib/supabase.js` — Browser Supabase client
@@ -181,12 +195,14 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 - `src/components/QuotaNotice.jsx`, `src/components/TransactionQuotaStatus.jsx` — accessible limit feedback and upgrade actions
 - `src/lib/insights.js` and `src/components/LockedFeaturePreview.jsx` — stable weekly insights and static Free-tier Pro previews
 - `supabase/008-phase3-feature-gating.sql` — atomic usage, write claims, creation locks, admin normalization, and service-role RPC hardening
+- `supabase/009-phase4-feature-flag-foundation.sql` — private feature overrides, schedule metadata, and service-role-only flag access
 - `public/sw.js` — Service worker for notification click handling
 - `docs/sheets-budgets.md` — Budgets tab schema
 - `docs/sheets-goals.md` — Goals tab schema
 - `docs/sheets-tagihan.md` — Bills tab schema
 - `docs/commercialization-plan.md` — Business model, pricing, go-to-market, legal
 - `docs/commercialization-prompts.md` — Phase 0-5 implementation prompts (self-contained)
+- `docs/phase 4 hardening discussing.md` — Phase 4 decisions and acceptance checklist
 - `docs/Flow-system.md` — User journey, payment flow, feature gating, admin tasks
 - `docs/play-store-react-native-plan.md` — Android/Expo port phases
 - `docs/motion-graphics.md` — launch motion graphic brief, storyboard, and revamp checklist

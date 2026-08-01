@@ -23,6 +23,12 @@ vi.mock("@/lib/sheets", () => ({
   getSheetData: vi.fn(),
 }))
 
+vi.mock("@/lib/featureFlags", () => ({
+  resolveFeatureAccess: vi.fn(async () => ({ budgets: true, healthScore: true })),
+  toClientFeatureAccess: vi.fn(access => access),
+  toClientFeatureAvailability: vi.fn(access => access),
+}))
+
 describe("/api/me", () => {
   afterEach(() => {
     vi.resetModules()

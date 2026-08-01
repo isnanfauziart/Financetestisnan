@@ -1,4 +1,5 @@
 import { getAuthContext } from "@/lib/apiAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { appendSheetValues, getSheetData, updateSheetValues } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { quotaErrorResponse, releaseTransaction, reserveTransaction } from "@/lib/transactionQuota"
@@ -23,6 +24,8 @@ function isValidIsoDate(value) {
 export async function POST(request) {
   const auth = await getAuthContext(request)
   if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
+  const blocked = featureUnavailableResponse(auth, "transactions", request)
+  if (blocked) return blocked
 
   let reservation = null
   try {

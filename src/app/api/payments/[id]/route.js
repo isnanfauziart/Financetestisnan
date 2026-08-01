@@ -1,4 +1,5 @@
 import { getPaymentUser } from "@/lib/paymentAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { getPaymentWindow, isPaymentAtWithinWindow, normalizePaymentForClient, PAYMENT_BUCKET, validateProof } from "@/lib/payments"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
@@ -14,6 +15,8 @@ export async function PATCH(request, { params }) {
   try {
     const user = await getPaymentUser(request)
     if (!user) return jsonError("Silakan masuk terlebih dahulu.", 401)
+    const blocked = featureUnavailableResponse(user, "paymentQris", request)
+    if (blocked) return blocked
     const contentType = request.headers.get("content-type") || ""
 
     if (contentType.includes("multipart/form-data")) {

@@ -1,4 +1,5 @@
 import { getAuthContext } from "@/lib/apiAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { getSheetData } from "@/lib/sheets"
 import { computeBillStatus, rowToBill } from "@/lib/bills"
 import { runRecordCreation } from "@/lib/recordQuota"
@@ -55,6 +56,8 @@ export async function GET(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "bills", request)
+  if (blocked) return blocked
 
   const { accessToken, spreadsheetId } = auth
 
@@ -93,6 +96,8 @@ export async function POST(request) {
   if (!auth) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  const blocked = featureUnavailableResponse(auth, "bills", request)
+  if (blocked) return blocked
 
   const { accessToken, spreadsheetId } = auth
 

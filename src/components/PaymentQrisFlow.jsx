@@ -77,7 +77,11 @@ function toDatetimeLocal(date = new Date()) {
 async function apiJson(path, options) {
   const response = await fetch(path, options)
   const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.error || "Terjadi kesalahan.")
+  if (!response.ok) {
+    const error = new Error(data.message || data.error || "Terjadi kesalahan.")
+    error.code = data.error
+    throw error
+  }
   return data
 }
 
@@ -116,6 +120,7 @@ export default function PaymentQrisFlow() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState("")
   const [error, setError] = useState("")
+  const [available, setAvailable] = useState(true)
   const [copied, setCopied] = useState("")
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState("")
@@ -155,6 +160,7 @@ export default function PaymentQrisFlow() {
       setTier(data.tier || "free")
       setOffset(nextOffset + HISTORY_LIMIT)
     } catch (err) {
+      if (err.code === "FEATURE_DISABLED") setAvailable(false)
       setError(err.message)
     } finally {
       setLoading(false)
@@ -179,6 +185,7 @@ export default function PaymentQrisFlow() {
       ])
       setTotal((current) => current + 1)
     } catch (err) {
+      if (err.code === "FEATURE_DISABLED") setAvailable(false)
       setError(err.message)
     } finally {
       setBusy("")
@@ -198,6 +205,7 @@ export default function PaymentQrisFlow() {
       setPayments((current) => current.map((payment) => payment.id === data.payment.id ? data.payment : payment))
       clearProof()
     } catch (err) {
+      if (err.code === "FEATURE_DISABLED") setAvailable(false)
       setError(err.message)
     } finally {
       setBusy("")
@@ -219,6 +227,7 @@ export default function PaymentQrisFlow() {
       setPayments((current) => current.map((payment) => payment.id === data.payment.id ? data.payment : payment))
       clearProof()
     } catch (err) {
+      if (err.code === "FEATURE_DISABLED") setAvailable(false)
       setError(err.message)
     } finally {
       setBusy("")
@@ -243,6 +252,17 @@ export default function PaymentQrisFlow() {
   }
 
   const supportUrl = whatsappUrl(activePayment?.reference || "Upgrade Artami", "pembayaran QRIS")
+
+  if (!available) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-cream-50 px-4 text-center text-earth-900">
+        <section className="max-w-md rounded-3xl border border-earth-100 bg-white p-8 shadow-warm">
+          <h1 className="font-display text-2xl font-bold">Fitur sedang tidak tersedia.</h1>
+          <p className="mt-2 text-sm leading-6 text-earth-500">Silakan coba lagi nanti atau hubungi bantuan Artami.</p>
+        </section>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-cream-50 via-white to-moss-50 text-earth-900">

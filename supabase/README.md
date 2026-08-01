@@ -10,7 +10,7 @@ This folder contains the database schema and setup scripts for Artami Finance Da
 - Phase 1 multi-tenancy is complete in the app.
 - Phase 2 payment/admin routes, private storage, and admin UI are complete.
 - Phase 3 Feature Gating is complete. Migration `008-phase3-feature-gating.sql` was applied; live RPC/REST auth tests passed; production Free → Pro → Free revocation smoke passed; admin permanent Pro was already verified; `/api/me` and related routes are healthy; the full suite passed with 272 passed and 2 skipped; production build passed.
-- Phase 4 Polish + Hardening is current.
+- Phase 4 Polish + Hardening is implemented locally. Migration `009-phase4-feature-flag-foundation.sql` is applied and read-only verified; complete authenticated live admin/override and release smoke checks before closure.
 
 ## Database Schema
 
@@ -29,8 +29,8 @@ This folder contains the database schema and setup scripts for Artami Finance Da
    - Enforces Phase 3 Free-tier transaction quotas
 
 4. **feature_flags** - Global feature toggles
-   - Enables gradual rollout of features
-   - Admin dashboard toggles are planned; backend flags can be managed directly for now
+   - Enables gradual rollout of user-facing features
+   - Phase 4 adds private per-user overrides, one-time schedules, and admin switchboard control
 
 5. **admins** - Admin user emails
    - Stores admin emails for privileged operations
@@ -63,6 +63,7 @@ Run the SQL files in order:
 6. `006-transaction-tables.sql`
 7. `007-payments-phase2.sql`
 8. `008-phase3-feature-gating.sql`
+9. `009-phase4-feature-flag-foundation.sql`
 
 ### Step 4: Add Environment Variables
 

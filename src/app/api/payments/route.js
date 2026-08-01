@@ -1,4 +1,5 @@
 import { getPaymentUser } from "@/lib/paymentAuth"
+import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { getPaymentWindow, normalizePaymentForClient, PAYMENT_AMOUNT } from "@/lib/payments"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
@@ -21,6 +22,8 @@ export async function GET(request) {
   try {
     const user = await getPaymentUser(request)
     if (!user) return jsonError("Silakan masuk terlebih dahulu.", 401)
+    const blocked = featureUnavailableResponse(user, "paymentQris", request)
+    if (blocked) return blocked
     await expireOldRequests(user.id)
     const url = new URL(request.url)
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 20, 1), 50)
@@ -45,6 +48,8 @@ export async function POST(request) {
   try {
     const user = await getPaymentUser(request)
     if (!user) return jsonError("Silakan masuk terlebih dahulu.", 401)
+    const blocked = featureUnavailableResponse(user, "paymentQris", request)
+    if (blocked) return blocked
     if (user.tier === "paid") return jsonError("Akun Anda sudah memiliki akses Pro.", 409)
     const body = await request.json().catch(() => ({}))
     await expireOldRequests(user.id)

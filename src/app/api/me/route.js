@@ -15,6 +15,7 @@ import {
 } from "@/lib/usage"
 import { batchGetSheetData } from "@/lib/sheets"
 import { countRecordRows, currentWibBudgetPeriod, RECORD_RANGES } from "@/lib/recordQuota"
+import { resolveFeatureAccess, toClientFeatureAccess, toClientFeatureAvailability } from "@/lib/featureFlags"
 
 export const dynamic = "force-dynamic"
 
@@ -59,6 +60,8 @@ export async function GET(request) {
 
   const tier = auth.tier || "free"
   const limits = getTierLimits(tier)
+  const featureAccess = auth.featureAccess || await resolveFeatureAccess({ ...auth.user, tier, isAdmin: auth.isAdmin }, { entitlement: auth })
+  const featureAvailability = auth.featureAvailability || featureAccess.availability || featureAccess
   const period = getCurrentMonthPeriod()
   let transactionCount
   let usageVerified = true
@@ -127,6 +130,8 @@ export async function GET(request) {
     upgrade: "/upgrade",
     usage,
     features: getSmartFeatureFlags(tier),
+    featureAccess: toClientFeatureAccess(featureAccess),
+    featureAvailability: toClientFeatureAvailability(featureAvailability),
     monthlyPdfWatermark: limits.monthlyPdfWatermark,
     history: getHistoryWindow(tier),
   })

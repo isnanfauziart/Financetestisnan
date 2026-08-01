@@ -14,6 +14,7 @@ import CashFlowForecast from "@/components/CashFlowForecast"
 import SavingsRateTrend from "@/components/SavingsRateTrend"
 import AnomalyAlerts from "@/components/AnomalyAlerts"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
+import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 const STATS_SECTIONS = [
@@ -165,7 +166,7 @@ export default function StatsTab({
             </div>
           )}
 
-          {effectiveEntitlement?.features?.anomalyAlerts || effectiveEntitlement?.isAdmin ? <AnomalyAlerts transactions={allTransactions} selectedMonth={selectedMonth} selectedYear={selectedYear} onCategoryClick={onCategoryClick} /> : <LockedFeaturePreview title="Anomaly Alerts" description="Deteksi pola transaksi tidak biasa tersedia di Pro." />}
+          {!isFeatureEnabled(effectiveEntitlement, "anomalyAlerts") ? <LockedFeaturePreview title="Anomaly Alerts" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "anomalyAlerts") ? <AnomalyAlerts transactions={allTransactions} selectedMonth={selectedMonth} selectedYear={selectedYear} onCategoryClick={onCategoryClick} /> : <LockedFeaturePreview title="Anomaly Alerts" description="Deteksi pola transaksi tidak biasa tersedia di Pro." />}
 
           {/* Stat hero */}
           {refreshing ? <ChartSkeleton height={200} /> : (
@@ -340,7 +341,7 @@ export default function StatsTab({
             )
           )}
 
-          {effectiveEntitlement?.features?.cashFlowForecast || effectiveEntitlement?.isAdmin ? <CashFlowForecast monthlyData={monthlyData} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." />}
+          {!isFeatureEnabled(effectiveEntitlement, "cashFlowForecast") ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={monthlyData} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." />}
           <SavingsRateTrend monthlyData={monthlyData} />
 
           {/* Month comparison */}
@@ -497,7 +498,7 @@ export default function StatsTab({
                 allTransactions={allTransactions}
                 entitlement={effectiveEntitlement}
               />
-              {effectiveEntitlement?.features?.yearInReview || effectiveEntitlement?.isAdmin ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." />}
+              {!isFeatureEnabled(effectiveEntitlement, "yearInReview") ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." />}
             </div>
           </div>
           <RecapSection transactions={data?.transactions || []} history={data?.history} onEdit={onEditTx} onDelete={onDeleteTx} />

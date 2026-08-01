@@ -6,6 +6,7 @@ import { formatRp } from "@/app/dashboard/_components/helpers"
 import { useBudgets } from "@/lib/useSharedData"
 import { generateReportPDF } from "@/lib/reportPdf"
 import { computeHealthScore } from "@/lib/healthScore"
+import { hasFeature } from "@/lib/featureAccess"
 
 export default function MonthlyReportButton({
   selectedMonth,
@@ -18,7 +19,7 @@ export default function MonthlyReportButton({
 }) {
   const isSpecificMonth = selectedMonth && selectedMonth !== "Semua Bulan"
   const isSpecificYear = selectedYear && selectedYear !== "Semua Tahun"
-  const canReport = isSpecificMonth && isSpecificYear
+  const canReport = hasFeature(entitlement, "pdfReports") && isSpecificMonth && isSpecificYear
 
   const { budgets } = useBudgets(
     canReport ? selectedMonth : "",
@@ -33,7 +34,7 @@ export default function MonthlyReportButton({
   }, [canReport, monthlyData, selectedMonth, selectedYear])
 
   const healthScore = useMemo(() => {
-    if (!canReport || !(entitlement?.features?.healthScore || entitlement?.isAdmin) || !transactions || transactions.length === 0) return null
+    if (!canReport || !hasFeature(entitlement, "healthScore") || !transactions || transactions.length === 0) return null
     return computeHealthScore({ transactions, monthlyData: monthFilteredData, budgets })
   }, [canReport, transactions, monthFilteredData, budgets, entitlement])
 
