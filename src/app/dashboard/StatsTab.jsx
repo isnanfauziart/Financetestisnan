@@ -67,7 +67,7 @@ export default function StatsTab({
     <div className="px-5 pt-4 space-y-5 animate-bento-in" key="stats-tab">
       {/* Filter bar — glass */}
       <div className="glass rounded-2xl p-3 space-y-2">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-3 gap-2">
           <SelectField value={selectedYear} onChange={setSelectedYear} options={["Semua Tahun", ...availableYears]} placeholder="Tahun" />
           <SelectField value={selectedMonth} onChange={setSelectedMonth} options={["Semua Bulan", ...AVAILABLE_MONTHS]} placeholder="Bulan" />
           <SelectField value={selectedAccount} onChange={setSelectedAccount} options={["Semua Akun", ...availableAccounts]} placeholder="Akun" />
@@ -111,7 +111,7 @@ export default function StatsTab({
       </div>
 
       <div className="glass rounded-2xl p-2" role="tablist" aria-label="Navigasi Statistik">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {STATS_SECTIONS.map((section) => {
             const isActive = activeSection === section.key
             return (
@@ -210,9 +210,9 @@ export default function StatsTab({
         <>
           {/* Pie charts — clickable */}
           {refreshing ? (
-            <div className="grid grid-cols-2 gap-3"><ChartSkeleton height={260} /><ChartSkeleton height={260} /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><ChartSkeleton height={260} /><ChartSkeleton height={260} /></div>
           ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
               <h3 className="text-xs font-bold text-center mb-2 font-display text-earth-800">Komposisi Pemasukan</h3>
               {incomeCategories.length === 0 ? (
@@ -351,7 +351,7 @@ export default function StatsTab({
                 <h3 className="text-sm font-bold font-display text-earth-800">Bandingkan Bulan</h3>
                 <p className="text-[10px] text-earth-500 mt-1">Default: bulan ini vs bulan lalu</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+              <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2 sm:flex sm:items-center">
                 <button
                   type="button"
                   onClick={resetComparePeriods}

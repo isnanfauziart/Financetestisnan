@@ -14,7 +14,7 @@ import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
 const FITrackerCard = dynamic(() => import("@/components/FITrackerCard"), { ssr: false })
 
 const PLAN_SECTIONS = [
-  { key: "goal", label: "Goal" },
+  { key: "goal", label: "Tabungan" },
   { key: "budget", label: "Budget" },
   { key: "tagihan", label: "Tagihan" },
   { key: "utang", label: "Utang" },

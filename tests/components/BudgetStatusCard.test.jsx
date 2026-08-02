@@ -126,41 +126,54 @@ describe("BudgetStatusCard", () => {
     })
   })
 
-  it("click on budget row calls setActiveNav('stats')", async () => {
+  it("click on budget row opens the Budget section in Plan", async () => {
     const setActiveNav = vi.fn()
+    const openPlanSection = vi.fn()
     const budgets = [
       { kategori: "Makanan", limit: 100000, bulan: currentMonth, tahun: currentYear, akun: "" },
     ]
     const txns = [{ type: "expense", category: "Makanan", amount: 95000, account: "", month: currentMonth, year: currentYear }]
     mockBudgetsResponse(budgets)
-    render(<BudgetStatusCard allTransactions={txns} setActiveNav={setActiveNav} />)
+    render(<BudgetStatusCard allTransactions={txns} setActiveNav={setActiveNav} openPlanSection={openPlanSection} />)
     await waitFor(() => {
       expect(screen.getByLabelText(/Open Makanan budget details/i)).toBeInTheDocument()
     })
     fireEvent.click(screen.getByLabelText(/Open Makanan budget details/i))
-    expect(setActiveNav).toHaveBeenCalledWith("stats")
+    expect(setActiveNav).toHaveBeenCalledWith("plan")
+    expect(openPlanSection).toHaveBeenCalledWith("budget")
   })
 
-  it("click on 'Detail' button calls setActiveNav('stats')", async () => {
+  it("click on 'Detail' button opens the Budget section in Plan", async () => {
     const setActiveNav = vi.fn()
+    const openPlanSection = vi.fn()
     const budgets = [
       { kategori: "Makanan", limit: 100000, bulan: currentMonth, tahun: currentYear, akun: "" },
     ]
     const txns = [{ type: "expense", category: "Makanan", amount: 95000, account: "", month: currentMonth, year: currentYear }]
     mockBudgetsResponse(budgets)
-    render(<BudgetStatusCard allTransactions={txns} setActiveNav={setActiveNav} />)
+    render(<BudgetStatusCard allTransactions={txns} setActiveNav={setActiveNav} openPlanSection={openPlanSection} />)
     await waitFor(() => {
-      expect(screen.getByLabelText(/Open budget details in Statistics/i)).toBeInTheDocument()
+      expect(screen.getByLabelText(/Open budget details in Plan/i)).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByLabelText(/Open budget details in Statistics/i))
-    expect(setActiveNav).toHaveBeenCalledWith("stats")
+    fireEvent.click(screen.getByLabelText(/Open budget details in Plan/i))
+    expect(setActiveNav).toHaveBeenCalledWith("plan")
+    expect(openPlanSection).toHaveBeenCalledWith("budget")
   })
 
-  it("handles fetch error gracefully (renders nothing)", async () => {
+  it("shows an inline retry when budget fetch fails", async () => {
     mockFailedResponse()
-    const { container } = render(<BudgetStatusCard allTransactions={[]} setActiveNav={vi.fn()} />)
-    await waitFor(() => {
-      expect(container.firstChild).toBeNull()
-    })
+    render(<BudgetStatusCard allTransactions={[]} setActiveNav={vi.fn()} />)
+    expect(await screen.findByRole("alert")).toHaveTextContent(/gagal memuat budget/i)
+    fireEvent.click(screen.getByRole("button", { name: /coba lagi/i }))
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+  })
+
+  it("shows an inline error when the budget endpoint returns a failure response", async () => {
+    global.fetch = vi.fn(() => Promise.resolve({
+      ok: false,
+      json: () => Promise.resolve({ error: "Budget service unavailable" }),
+    }))
+    render(<BudgetStatusCard allTransactions={[]} setActiveNav={vi.fn()} />)
+    expect(await screen.findByRole("alert")).toHaveTextContent("Budget service unavailable")
   })
 })

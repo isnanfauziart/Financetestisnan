@@ -145,4 +145,18 @@ describe("StatsTab segmented statistik navigation", () => {
 
     expect(screen.queryByText("Event budgets mock")).not.toBeInTheDocument()
   })
+
+  it("keeps filters, section tabs, and category cards readable on narrow screens", () => {
+    render(<StatsTab {...createProps()} />)
+
+    expect(screen.getByRole("button", { name: "Tahun" }).parentElement.parentElement).toHaveClass(
+      "grid-cols-1",
+      "min-[360px]:grid-cols-2",
+      "sm:grid-cols-3",
+    )
+    expect(screen.getByRole("tab", { name: "Ringkasan" }).parentElement).toHaveClass("grid-cols-2", "sm:grid-cols-4")
+
+    fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
+    expect(screen.getByText("Komposisi Pemasukan").closest(".grid")).toHaveClass("grid-cols-1", "sm:grid-cols-2")
+  })
 })

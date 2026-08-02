@@ -11,7 +11,7 @@ import ConfirmSheet from "@/app/dashboard/_components/ConfirmSheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
 
 export default function DebtsSection({ onToast, onUsageChange, transactionUsage }) {
-  const { debts, loading, refetch } = useDebts()
+  const { debts, loading, error, refetch } = useDebts()
   const [setupOpen, setSetupOpen] = useState(false)
   const [editingDebt, setEditingDebt] = useState(null)
   const [payDebt, setPayDebt] = useState(null)
@@ -98,6 +98,28 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
     return (
       <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
         <div className="shimmer-bg rounded-2xl h-24" aria-hidden="true" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+        <div className="flex items-center gap-1.5 mb-3 px-0.5">
+          <CreditCard size={14} color={THEME.primary} aria-hidden="true" />
+          <h3 className="text-sm font-bold font-display text-earth-800">Utang Piutang</h3>
+        </div>
+        <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4" role="alert">
+          <p className="text-sm font-semibold text-rose-800">Gagal memuat utang/piutang</p>
+          <p className="text-xs text-rose-700 mt-1">{error}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-3 text-xs font-bold px-3 py-1.5 rounded-full text-white bg-rose-600 hover:bg-rose-700"
+          >
+            Coba lagi
+          </button>
+        </div>
       </div>
     )
   }

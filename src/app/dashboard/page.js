@@ -1197,6 +1197,10 @@ export default function Dashboard() {
       <GoalPickerModal
         open={goalPickerOpen}
         onClose={() => setGoalPickerOpen(false)}
+        onOpenGoals={() => {
+          setGoalPickerOpen(false)
+          openPlanSection("goal")
+        }}
         transactions={data?.transactions || []}
         transactionUsage={entitlement?.usage?.transactions}
         onSaved={() => {

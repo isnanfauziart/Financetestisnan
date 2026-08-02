@@ -108,6 +108,26 @@ describe("HomeTab priority actions", () => {
     expect(openPlanSection).toHaveBeenNthCalledWith(2, "budget")
   })
 
+  it("routes the Tabungan summary into the goal section", () => {
+    const setActiveNav = vi.fn()
+    const openPlanSection = vi.fn()
+    render(<HomeTab {...createProps({ setActiveNav, openPlanSection })} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Lihat ringkasan tabungan dan goal" }))
+
+    expect(setActiveNav).toHaveBeenCalledWith("plan")
+    expect(openPlanSection).toHaveBeenCalledWith("goal")
+  })
+
+  it("routes the top category summary to Statistik", () => {
+    const setActiveNav = vi.fn()
+    render(<HomeTab {...createProps({ setActiveNav })} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Lihat kategori pengeluaran terbesar di Statistik" }))
+
+    expect(setActiveNav).toHaveBeenCalledWith("stats")
+  })
+
   it("warns when the financial summary is limited to the visible history window", () => {
     render(<HomeTab {...createProps({
       data: {

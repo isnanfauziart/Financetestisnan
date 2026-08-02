@@ -45,7 +45,12 @@ async function fetchBudgets(month, year) {
     try {
       const res = await fetch(url)
       const data = await res.json()
-      budgetCache = data.budgets || []
+      if (res.ok) {
+        budgetCache = data.budgets || []
+      } else {
+        budgetError = data.error || "Gagal memuat budget"
+        budgetCache = []
+      }
       budgetParamsKey = key
     } catch (err) {
       budgetError = err.message

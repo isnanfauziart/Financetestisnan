@@ -10,19 +10,24 @@ import EventDetailModal from "./EventDetailModal"
 export default function EventBudgetsSection({ filteredTransactions, onToast, refreshTrigger, onUsageChange }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [setupState, setSetupState] = useState(null)
   const [detailEvent, setDetailEvent] = useState(null)
   const [detailTransactions, setDetailTransactions] = useState([])
   const [confirmDelete, setConfirmDelete] = useState(null)
 
   const fetchEvents = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
       const res = await fetch("/api/momental?progress=true")
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Gagal memuat event")
       setEvents(data.events || [])
     } catch (err) {
-      onToast?.(err.message, "error")
+      const message = err.message || "Gagal memuat event"
+      setError(message)
+      onToast?.(message, "error")
     } finally {
       setLoading(false)
     }
@@ -75,6 +80,28 @@ export default function EventBudgetsSection({ filteredTransactions, onToast, ref
         </div>
         <div className="bento-tile bg-white border border-earth-100 p-6 shadow-warm text-center">
           <div className="w-8 h-8 mx-auto border-2 border-earth-200 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="mt-6 animate-bento-in">
+        <div className="flex items-center gap-1.5 mb-3 px-1">
+          <CalendarDays size={14} style={{ color: THEME.warning }} aria-hidden="true" />
+          <h3 className="text-sm font-bold font-display text-earth-800">Event Budget</h3>
+        </div>
+        <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
+          <p className="text-sm font-semibold text-rose-800">Gagal memuat event budget</p>
+          <p className="text-xs text-rose-700 mt-1">{error}</p>
+          <button
+            type="button"
+            onClick={() => fetchEvents()}
+            className="mt-3 text-xs font-bold px-3 py-1.5 rounded-full text-white bg-rose-600 hover:bg-rose-700"
+          >
+            Coba lagi
+          </button>
         </div>
       </div>
     )

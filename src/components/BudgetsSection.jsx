@@ -24,7 +24,7 @@ export default function BudgetsSection({
   const monthParam = selectedMonth && selectedMonth !== "Semua Bulan" ? selectedMonth : ""
   const yearParam = selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : ""
 
-  const { budgets, loading, refetch } = useBudgets(monthParam, yearParam)
+  const { budgets, loading, error, refetch } = useBudgets(monthParam, yearParam)
   const { settings } = useSettings()
 
   const visibleBudgets = useMemo(() => {
@@ -131,7 +131,19 @@ export default function BudgetsSection({
         </button>
       </div>
 
-      {loading ? (
+      {error ? (
+        <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
+          <p className="text-sm font-semibold text-rose-800">Gagal memuat budget</p>
+          <p className="text-xs text-rose-700 mt-1">{error}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-3 text-xs font-bold px-3 py-1.5 rounded-full text-white bg-rose-600 hover:bg-rose-700"
+          >
+            Coba lagi
+          </button>
+        </div>
+      ) : loading ? (
         <div className="shimmer-bg rounded-2xl h-24" aria-hidden="true" />
       ) : visibleBudgets.length === 0 ? (
         <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">

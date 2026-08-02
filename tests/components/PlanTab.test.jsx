@@ -45,7 +45,7 @@ describe("PlanTab planning ownership", () => {
   it("shows segmented planning navigation labels", () => {
     render(<PlanTab {...createProps()} />)
 
-    expect(screen.getByRole("button", { name: /goal/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Tabungan" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /budget/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /tagihan/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /utang/i })).toBeInTheDocument()
@@ -113,6 +113,6 @@ describe("PlanTab planning ownership", () => {
     render(<PlanTab {...createProps({ activeSection: "simulasi", onSectionChange: vi.fn() })} />)
 
     expect(screen.getByRole("button", { name: /simulasi/i })).toHaveAttribute("aria-current", "page")
-    expect(screen.getByRole("button", { name: /goal/i })).not.toHaveAttribute("aria-current")
+    expect(screen.getByRole("button", { name: "Tabungan" })).not.toHaveAttribute("aria-current")
   })
 })

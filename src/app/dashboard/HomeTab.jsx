@@ -142,7 +142,10 @@ export default function HomeTab({
       icon: PiggyBank,
       tint: THEME.savingsBg,
       color: THEME.savings,
-      onClick: () => setActiveNav("plan"),
+      onClick: () => {
+        setActiveNav("plan")
+        openPlanSection?.("goal")
+      },
       aria: "Lihat ringkasan tabungan dan goal",
     },
     {
@@ -304,6 +307,7 @@ export default function HomeTab({
       {hasFeature(entitlement, "budgets") && <BudgetStatusCard
         allTransactions={allTransactions}
         setActiveNav={setActiveNav}
+        openPlanSection={openPlanSection}
       />}
 
       {/* Recent transactions */}

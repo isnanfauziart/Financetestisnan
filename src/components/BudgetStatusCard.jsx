@@ -19,11 +19,11 @@ function statusLabel(pct) {
   return "Sehat"
 }
 
-export default function BudgetStatusCard({ allTransactions, setActiveNav }) {
+export default function BudgetStatusCard({ allTransactions, setActiveNav, openPlanSection }) {
   const currentMonth = AVAILABLE_MONTHS[new Date().getMonth()]
   const currentYear = String(new Date().getFullYear())
 
-  const { budgets, loading } = useBudgets(currentMonth, currentYear)
+  const { budgets, loading, error, refetch } = useBudgets(currentMonth, currentYear)
 
   const currentMonthExpenses = useMemo(() => {
     return (allTransactions || []).filter(t =>
@@ -63,6 +63,25 @@ export default function BudgetStatusCard({ allTransactions, setActiveNav }) {
     )
   }
 
+  if (error) {
+    return (
+      <div className="mt-6 bento-tile bg-rose-50 border border-rose-200 p-5 shadow-warm animate-bento-in stagger-7" role="alert">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Target size={14} color={THEME.danger} aria-hidden="true" />
+          <h3 className="text-sm font-bold font-display text-rose-800">Gagal memuat budget</h3>
+        </div>
+        <p className="text-xs text-rose-700">{error}</p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="mt-3 text-xs font-bold px-3 py-1.5 rounded-full text-white bg-rose-600 hover:bg-rose-700"
+        >
+          Coba lagi
+        </button>
+      </div>
+    )
+  }
+
   if (budgets.length === 0) return null
 
   return (
@@ -84,7 +103,10 @@ export default function BudgetStatusCard({ allTransactions, setActiveNav }) {
               {hampirCount} hampir
             </span>
           )}
-          <button onClick={() => setActiveNav("stats")} aria-label="Open budget details in Statistics" className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all">
+          <button onClick={() => {
+            setActiveNav("plan")
+            openPlanSection?.("budget")
+          }} aria-label="Open budget details in Plan" className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all">
             Detail <ArrowRight size={12} aria-hidden="true" />
           </button>
         </div>
@@ -99,7 +121,10 @@ export default function BudgetStatusCard({ allTransactions, setActiveNav }) {
             return (
               <button
                 key={`${b.kategori}|${b.bulan}|${b.tahun}|${b.akun || ""}`}
-                onClick={() => setActiveNav("stats")}
+                onClick={() => {
+                  setActiveNav("plan")
+                  openPlanSection?.("budget")
+                }}
                 aria-label={`Open ${b.kategori} budget details`}
                 className="w-full text-left active:scale-[0.99] transition-transform"
               >
