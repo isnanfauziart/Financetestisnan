@@ -187,7 +187,7 @@ async function handlePayment(auth, body) {
     dateStr,
     txId,
     desc,
-    "Utang",
+    existing.arah === "piutang" ? "Piutang" : "Utang",
     paymentAmount,
     0, // Pajak
     0, // Biaya

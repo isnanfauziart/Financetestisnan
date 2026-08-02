@@ -87,3 +87,24 @@ export const EVENT_COLORS = {
   "lebaran-thr": "#d4a853",
   "custom": "#7c5fcf",
 }
+
+export function getCategoryOptions(categories, type, fallback, current = "") {
+  const configured = categories?.[type]
+  const names = Array.isArray(configured)
+    ? configured.filter(item => item && item.active !== false).map(item => typeof item === "string" ? item : item.name).filter(Boolean)
+    : fallback
+  return current && !names.includes(current) ? [...names, current] : names
+}
+
+const CATEGORY_ALIASES = {
+  Healthcare: ["Kesehatan"],
+  "Monthly Salary": ["Gaji"],
+  Insentif: ["Bonus & THR"],
+  THR: ["Bonus & THR"],
+  Reimbursement: ["Penggantian Biaya"],
+}
+
+export function resolveCategoryName(preferred, options) {
+  if (!preferred || options.includes(preferred)) return preferred
+  return CATEGORY_ALIASES[preferred]?.find(name => options.includes(name)) || preferred
+}

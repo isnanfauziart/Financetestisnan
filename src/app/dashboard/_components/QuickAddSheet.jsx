@@ -1,20 +1,23 @@
 "use client"
 import { useState } from "react"
 import { Plus, Target } from "lucide-react"
-import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS } from "./constants"
+import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS, getCategoryOptions } from "./constants"
 import { formatInputRupiah } from "./helpers"
 import SelectField from "./SelectField"
 import Sheet from "./Sheet"
 import EventTagPicker from "@/components/EventTagPicker"
 import EventSuggestionChip from "@/components/EventSuggestionChip"
 import TransactionQuotaStatus from "@/components/TransactionQuotaStatus"
+import { useSettings } from "@/lib/useSharedData"
 
 export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute, transactionUsage }) {
+  const { settings } = useSettings()
   const [txType, setTxType] = useState(initialType)
   const [formData, setFormData] = useState({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "", eventId: "" })
   const [rawAmount, setRawAmount] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [quotaError, setQuotaError] = useState(null)
+  const categoryOptions = getCategoryOptions(settings?.categories, txType, txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES, formData.kategori)
 
   function handleTypeChange(t) {
     setTxType(t)
@@ -85,7 +88,7 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
               className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none" />
           </div>
           <SelectField label="Kategori" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
-            options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Pilih kategori" />
+            options={categoryOptions} placeholder="Pilih kategori" />
           {formData.kategori && !formData.eventId && (
             <EventSuggestionChip kategori={formData.kategori} eventId={formData.eventId} onSelect={v => setFormData(f => ({ ...f, eventId: v }))} />
           )}

@@ -4,6 +4,7 @@ import MonthlyReportButton from "@/components/MonthlyReportButton"
 
 vi.mock("@/lib/useSharedData", () => ({
   useBudgets: () => ({ budgets: [] }),
+  useSettings: () => ({ settings: {} }),
 }))
 vi.mock("@/lib/reportPdf", () => ({
   generateReportPDF: vi.fn(),

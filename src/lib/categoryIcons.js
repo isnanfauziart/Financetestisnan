@@ -3,6 +3,7 @@ import {
   Beef,
   BookOpen,
   Bus,
+  Car,
   Camera,
   CircleDollarSign,
   Clapperboard,
@@ -16,6 +17,7 @@ import {
   Home,
   Laptop,
   PiggyBank,
+  Plane,
   Popcorn,
   Receipt,
   Scale,
@@ -33,6 +35,13 @@ import {
   Youtube,
   Coins,
 } from "lucide-react"
+
+const ICON_BY_NAME = {
+  BadgeDollarSign, Beef, BookOpen, Bus, Car, Camera, CircleDollarSign, Clapperboard,
+  CreditCard, Droplets, Dumbbell, Gem, Gift, HandCoins, HeartPulse, Home, Laptop,
+  PiggyBank, Plane, Popcorn, Receipt, Scale, Shirt, ShieldPlus, ShoppingBag, Smartphone,
+  Sparkles, Stethoscope, Tv, Utensils, Wallet, WashingMachine, Wifi, Youtube, Coins,
+}
 
 const DEFAULT_ICON = Wallet
 const DEFAULT_TINT = {
@@ -140,9 +149,11 @@ const CATEGORY_TINT_LOOKUP = {
   "Other": "clay",
 }
 
-export function getCategoryVisual(name) {
+export function getCategoryVisual(name, custom = null) {
   return {
-    icon: CATEGORY_ICONS[name] || DEFAULT_ICON,
+    // Legacy fallback entries use Wallet as a neutral placeholder; retain the
+    // established name-based icon until a user explicitly chooses another one.
+    icon: (custom?.icon && custom.icon !== "Wallet" && ICON_BY_NAME[custom.icon]) || CATEGORY_ICONS[name] || DEFAULT_ICON,
     tint: CATEGORY_TINTS[CATEGORY_TINT_LOOKUP[name]] || DEFAULT_TINT,
   }
 }

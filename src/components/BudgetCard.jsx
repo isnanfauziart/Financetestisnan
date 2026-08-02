@@ -12,11 +12,11 @@ function statusLabel(pct) {
   return { text: "Sehat", color: THEME.savings }
 }
 
-export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete }) {
+export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, categoryMeta }) {
   const safeLimit = Math.max(budget.limit, 1)
   const pct = (spent / safeLimit) * 100
   const status = statusLabel(pct)
-  const { icon: CategoryIcon, tint } = getCategoryVisual(budget.kategori)
+  const { icon: CategoryIcon, tint } = getCategoryVisual(budget.kategori, categoryMeta)
 
   return (
     <div

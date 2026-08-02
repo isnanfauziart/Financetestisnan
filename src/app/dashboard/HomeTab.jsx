@@ -7,7 +7,7 @@ import EmptyState from "./_components/EmptyState"
 import BudgetStatusCard from "@/components/BudgetStatusCard"
 import HealthScoreCard from "@/components/HealthScoreCard"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
-import { useBudgets, useBills } from "@/lib/useSharedData"
+import { useBudgets, useBills, useSettings } from "@/lib/useSharedData"
 import { getFocusNote } from "./_components/focusNote"
 import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
 
@@ -36,6 +36,11 @@ export default function HomeTab({
     : String(new Date().getFullYear())
   const { budgets } = useBudgets(budgetMonth, budgetYear)
   const { bills } = useBills()
+  const { settings } = useSettings()
+  const configuredSavings = settings?.categories?.savings
+  const liquidSavingsCategories = Array.isArray(configuredSavings)
+    ? configuredSavings.filter(item => (item.savingsKind || item.kind) === "liquid" && item.active !== false).map(item => typeof item === "string" ? item : item.name)
+    : undefined
 
   const priorityActions = useMemo(() => {
     const actions = []
@@ -282,7 +287,7 @@ export default function HomeTab({
       {!isFeatureEnabled(entitlement, "healthScore") ? (
         <LockedFeaturePreview title="Health Score" description="Fitur sedang tidak tersedia." unavailable />
       ) : hasFeature(entitlement, "healthScore") ? (
-        <HealthScoreCard transactions={data?.transactions} monthlyData={monthlyData} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+        <HealthScoreCard transactions={data?.transactions} monthlyData={monthlyData} selectedMonth={selectedMonth} selectedYear={selectedYear} liquidSavingsCategories={liquidSavingsCategories} />
       ) : (
         <LockedFeaturePreview title="Health Score" description="Ringkasan kesehatan keuangan tersedia di Pro." />
       )}

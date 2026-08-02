@@ -1,5 +1,7 @@
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 
+export const LEGACY_LIQUID_SAVINGS_CATEGORIES = ["Tabungan Cash", "Emas"]
+
 function safeAvg(arr) {
   if (!arr || arr.length === 0) return 0
   const sum = arr.reduce((s, v) => s + (isFinite(v) ? v : 0), 0)
@@ -32,11 +34,13 @@ function computeSavingsRateScore(monthlyData) {
   return (avgRate / 10) * 50
 }
 
-function computeEmergencyFundScore(transactions, monthlyData) {
-  const liquidCategories = ["Tabungan Cash", "Emas"]
+export function computeEmergencyFundScore(transactions, monthlyData, liquidSavingsCategories = LEGACY_LIQUID_SAVINGS_CATEGORIES) {
+  const liquidCategories = new Set(Array.isArray(liquidSavingsCategories)
+    ? liquidSavingsCategories.filter(name => typeof name === "string").map(name => name.trim()).filter(Boolean)
+    : LEGACY_LIQUID_SAVINGS_CATEGORIES)
   let totalLiquid = 0
   for (const t of transactions || []) {
-    if (t.type === "savings" && liquidCategories.includes(t.category)) {
+    if (t.type === "savings" && liquidCategories.has(t.category)) {
       totalLiquid += t.amount
     }
   }
@@ -147,7 +151,7 @@ function computeIncomeStabilityScore(monthlyData) {
  * @param {Array}  params.budgets      — budgets from /api/budgets
  * @returns {{ score: number, grade: string, delta: number, components: Array }}
  */
-export function computeHealthScore({ transactions, monthlyData, budgets }) {
+export function computeHealthScore({ transactions, monthlyData, budgets, liquidSavingsCategories }) {
   const components = [
     {
       key: "savings_rate",
@@ -188,7 +192,7 @@ export function computeHealthScore({ transactions, monthlyData, budgets }) {
         c.rawScore = computeSavingsRateScore(monthlyData)
         break
       case "emergency_fund":
-        c.rawScore = computeEmergencyFundScore(transactions, monthlyData)
+        c.rawScore = computeEmergencyFundScore(transactions, monthlyData, liquidSavingsCategories)
         break
       case "budget_adherence":
         c.rawScore = computeBudgetAdherenceScore(budgets, transactions)
@@ -247,10 +251,12 @@ export function computeHealthScore({ transactions, monthlyData, budgets }) {
         break
       }
       case "emergency_fund": {
-        const liquidCategories = ["Tabungan Cash", "Emas"]
+        const liquidCategories = new Set(Array.isArray(liquidSavingsCategories)
+          ? liquidSavingsCategories.filter(name => typeof name === "string").map(name => name.trim()).filter(Boolean)
+          : LEGACY_LIQUID_SAVINGS_CATEGORIES)
         let totalLiquid = 0
         for (const t of transactions || []) {
-          if (t.type === "savings" && liquidCategories.includes(t.category)) totalLiquid += t.amount
+          if (t.type === "savings" && liquidCategories.has(t.category)) totalLiquid += t.amount
         }
         const expensesByMonth = (monthlyData || []).filter((m) => m.pengeluaran > 0).map((m) => m.pengeluaran)
         const avgExp = safeAvg(expensesByMonth)
@@ -304,7 +310,7 @@ export function computeHealthScore({ transactions, monthlyData, budgets }) {
   let delta = 0
   if (monthlyData && monthlyData.length >= 2) {
     const prev = monthlyData.slice(0, -1)
-    const prevResult = computeHealthScore({ transactions, monthlyData: prev, budgets })
+    const prevResult = computeHealthScore({ transactions, monthlyData: prev, budgets, liquidSavingsCategories })
     delta = score - prevResult.score
   }
 

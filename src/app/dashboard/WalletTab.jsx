@@ -1,13 +1,17 @@
 "use client"
 import { Plus, Target } from "lucide-react"
-import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS } from "./_components/constants"
+import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS, getCategoryOptions } from "./_components/constants"
 import { formatInputRupiah } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
 import EventTagPicker from "@/components/EventTagPicker"
 import EventSuggestionChip from "@/components/EventSuggestionChip"
 import TransactionQuotaStatus from "@/components/TransactionQuotaStatus"
+import { useSettings } from "@/lib/useSharedData"
 
 export default function WalletTab({ txType, formData, rawAmount, submitting, setTxType, setFormData, setRawAmount, handleSubmit, onGoalContribute, transactionUsage, quotaError }) {
+  const { settings } = useSettings()
+  const categoryOptions = getCategoryOptions(settings?.categories, txType, txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES, formData.kategori)
+
   return (
     <div className="px-5 pt-4 animate-bento-in" key="wallet-tab">
       <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
@@ -45,7 +49,7 @@ export default function WalletTab({ txType, formData, rawAmount, submitting, set
             </div>
           </div>
           <SelectField label="Kategori" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
-            options={txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES} placeholder="Pilih kategori" />
+            options={categoryOptions} placeholder="Pilih kategori" />
           {formData.kategori && !formData.eventId && (
             <EventSuggestionChip kategori={formData.kategori} eventId={formData.eventId} onSelect={v => setFormData(f => ({ ...f, eventId: v }))} />
           )}

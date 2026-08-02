@@ -1,12 +1,14 @@
 "use client"
 import { useState, useEffect } from "react"
-import { THEME, BILL_CATEGORIES, BILL_FREQUENCIES, BILL_TO_EXPENSE_MAP, BILL_TO_INCOME_MAP, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS } from "@/app/dashboard/_components/constants"
+import { THEME, BILL_CATEGORIES, BILL_FREQUENCIES, BILL_TO_EXPENSE_MAP, BILL_TO_INCOME_MAP, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS, getCategoryOptions, resolveCategoryName } from "@/app/dashboard/_components/constants"
 import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import QuotaNotice from "./QuotaNotice"
+import { useSettings } from "@/lib/useSharedData"
 
 export default function BillSetupModal({ bill, onClose, onSaved }) {
+  const { settings } = useSettings()
   const isEdit = !!bill
   const [tipe, setTipe] = useState(bill?.tipe || "expense")
   const [nama, setNama] = useState(bill?.nama || "")
@@ -21,14 +23,14 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
-  const transactionCategories = tipe === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+  const transactionCategories = getCategoryOptions(settings?.categories, tipe === "income" ? "income" : "expense", tipe === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES, kategoriTransaksi)
   const autoMap = tipe === "income" ? BILL_TO_INCOME_MAP : BILL_TO_EXPENSE_MAP
 
   useEffect(() => {
     if (kategoriBill && autoMap[kategoriBill]) {
-      setKategoriTransaksi(autoMap[kategoriBill])
+      setKategoriTransaksi(resolveCategoryName(autoMap[kategoriBill], transactionCategories))
     }
-  }, [kategoriBill, tipe, autoMap])
+  }, [kategoriBill, tipe, autoMap, transactionCategories])
 
   const handleSave = async () => {
     if (!nama.trim()) { return }

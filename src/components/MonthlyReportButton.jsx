@@ -3,7 +3,7 @@ import { useMemo, useCallback } from "react"
 import { FileText, Download } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
-import { useBudgets } from "@/lib/useSharedData"
+import { useBudgets, useSettings } from "@/lib/useSharedData"
 import { generateReportPDF } from "@/lib/reportPdf"
 import { computeHealthScore } from "@/lib/healthScore"
 import { hasFeature } from "@/lib/featureAccess"
@@ -25,6 +25,11 @@ export default function MonthlyReportButton({
     canReport ? selectedMonth : "",
     canReport ? selectedYear : ""
   )
+  const { settings } = useSettings()
+  const configuredSavings = settings?.categories?.savings
+  const liquidSavingsCategories = Array.isArray(configuredSavings)
+    ? configuredSavings.filter(item => (item.savingsKind || item.kind) === "liquid" && item.active !== false).map(item => typeof item === "string" ? item : item.name)
+    : undefined
 
   const monthFilteredData = useMemo(() => {
     if (!canReport || !monthlyData) return []
@@ -35,8 +40,8 @@ export default function MonthlyReportButton({
 
   const healthScore = useMemo(() => {
     if (!canReport || !hasFeature(entitlement, "healthScore") || !transactions || transactions.length === 0) return null
-    return computeHealthScore({ transactions, monthlyData: monthFilteredData, budgets })
-  }, [canReport, transactions, monthFilteredData, budgets, entitlement])
+    return computeHealthScore({ transactions, monthlyData: monthFilteredData, budgets, liquidSavingsCategories })
+  }, [canReport, transactions, monthFilteredData, budgets, entitlement, liquidSavingsCategories])
 
   const handleDownload = useCallback(() => {
     generateReportPDF({

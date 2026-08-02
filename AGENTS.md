@@ -161,6 +161,7 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 - `src/app/dashboard/StatsTab.jsx` — Stats tab UI (filters, charts, budgets, calendar, table)
 - `src/app/dashboard/WalletTab.jsx` — Add-transaction form
 - `src/app/dashboard/ProfileTab.jsx` — Profile tab
+- `src/components/CategoryManager.jsx` — Per-user expense, income, and savings category manager
 - `src/app/dashboard/_components/` — Shared components and constants (THEME, categories, banks, helpers, SelectField, modals, goalUtils)
 - `src/components/` — New feature components (NetWorthCard, BudgetCard, BudgetProgressBar, BudgetSetupModal, BudgetDetailModal, BudgetsSection, GoalProgressRing, GoalSetupModal, GoalContributeModal, GoalCelebration, GoalCard, BillsSection, BillsCard, BillSetupModal, BillPayModal)
 - `src/app/api/dashboard/route.js` — Google Sheets aggregation (with netWorth, netWorthMonthlyDelta, netWorthHistory, billsSummary)
@@ -175,6 +176,7 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 - `src/app/api/momental/[id]/route.js` - Single event detail/update/delete
 - `src/app/api/momental/summary/route.js` - Active event summary
 - `src/app/api/settings/route.js` - User settings
+- `src/lib/categories.js` — Starter/legacy category defaults, validation, archival, and savings liquidity metadata
 - `src/app/api/me/route.js` — Effective entitlement, usage metadata, WIB reset dates, history policy, and feature access
 - `src/app/api/health/route.js` — Safe liveness/configuration check
 - `src/app/api/admin/features/route.js`, `src/app/api/admin/users/route.js`, `src/app/api/admin/users/[id]/route.js` — Admin feature controls, schedules, overrides, user directory, and read-only user detail
@@ -185,7 +187,7 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 - `src/lib/notifications.js` — Service worker registration + notification helpers
 - `src/lib/supabase.js` — Browser Supabase client
 - `src/lib/supabaseAdmin.js` — Server-side admin client
-- `src/lib/sheetManager.js` — Creates Google Sheet with 10 tabs for new users
+- `src/lib/sheetManager.js` — Creates Google Sheet with 10 tabs and seeds categories for new users
 - `src/lib/user.js` — getOrCreateUser() helper for Supabase user management
 - `src/lib/apiAuth.js` — getAuthContext() helper replacing getToken() pattern
 - `src/lib/activity.js`, `src/lib/adminUsers.js` — Throttled authenticated activity writes and safe admin user/detail formatting

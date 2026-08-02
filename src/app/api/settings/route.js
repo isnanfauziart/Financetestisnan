@@ -1,5 +1,11 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { getSheetData, parseRupiah } from "@/lib/sheets"
+import {
+  CATEGORIES_KEY,
+  getLegacyCategories,
+  normalizeCategories,
+  parseStoredCategories,
+} from "@/lib/categories"
 
 export const dynamic = 'force-dynamic'
 
@@ -7,8 +13,13 @@ const SHEET_NAME = "Settings"
 const RANGE = `${SHEET_NAME}!A:B`
 
 async function fetchSettings(accessToken, spreadsheetId) {
-  const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
-  const settings = { startingBalance: 0, startingBalanceDate: "" }
+  let rows = []
+  try {
+    rows = await getSheetData(accessToken, RANGE, spreadsheetId) || []
+  } catch {
+    rows = []
+  }
+  const settings = { startingBalance: 0, startingBalanceDate: "", categories: getLegacyCategories() }
   for (let i = 0; i < rows.length; i++) {
     const key = String(rows[i]?.[0] || "").trim().toLowerCase()
     const val = rows[i]?.[1]
@@ -16,9 +27,64 @@ async function fetchSettings(accessToken, spreadsheetId) {
       settings.startingBalance = parseRupiah(val || 0)
     } else if (key === "startingbalancedate") {
       settings.startingBalanceDate = String(val || "").trim()
+    } else if (key === CATEGORIES_KEY.toLowerCase()) {
+      settings.categories = parseStoredCategories(val) || getLegacyCategories()
     }
   }
   return settings
+}
+
+const SETTING_KEYS = {
+  startingbalance: "startingBalance",
+  startingbalancedate: "startingBalanceDate",
+}
+
+function canonicalSettingKey(value) {
+  if (typeof value !== "string") return null
+  return SETTING_KEYS[value.trim().toLowerCase()] || null
+}
+
+function collectUpdates(body) {
+  const entries = []
+  if (body.updates !== undefined) {
+    if (!Array.isArray(body.updates)) throw new Error("Invalid updates")
+    for (const entry of body.updates) {
+      if (!Array.isArray(entry) || entry.length < 2) throw new Error("Invalid update")
+      const key = canonicalSettingKey(entry[0])
+      if (!key) throw new Error("Invalid setting key")
+      entries.push([key, entry[1]])
+    }
+  }
+
+  if (body.key !== undefined) {
+    const key = canonicalSettingKey(body.key)
+    if (!key) throw new Error("Invalid setting key")
+    entries.push([key, body.value])
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "categories")) {
+    const categories = normalizeCategories(body.categories)
+    if (!categories) throw new Error("Invalid categories")
+    entries.push([CATEGORIES_KEY, JSON.stringify(categories)])
+  }
+
+  if (entries.length === 0) throw new Error("No updates provided")
+  return entries
+}
+
+function serializeSettingValue(key, value) {
+  if (key === "startingBalance") {
+    if (value === null || (typeof value !== "string" && typeof value !== "number")) throw new Error("Invalid starting balance")
+    if (typeof value === "number" && (!Number.isFinite(value) || value < 0)) throw new Error("Invalid starting balance")
+    return String(value)
+  }
+  if (key === "startingBalanceDate") {
+    if (value === null || typeof value !== "string") throw new Error("Invalid starting balance date")
+    const date = value.trim()
+    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Invalid starting balance date")
+    return date
+  }
+  return String(value ?? "")
 }
 
 export async function GET(request) {
@@ -45,14 +111,20 @@ export async function PUT(request) {
 
   try {
     const body = await request.json()
-    const { updates } = body
-
-    const entries = updates || (body.key ? [[body.key, body.value]] : [])
-    if (entries.length === 0) {
-      return Response.json({ error: "No updates provided" }, { status: 400 })
+    let entries
+    try {
+      entries = collectUpdates(body || {})
+      entries = entries.map(([key, value]) => [key, serializeSettingValue(key, value)])
+    } catch (error) {
+      return Response.json({ error: error.message }, { status: 400 })
     }
 
-    const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
+    let rows = []
+    try {
+      rows = await getSheetData(accessToken, RANGE, spreadsheetId) || []
+    } catch {
+      rows = []
+    }
     const existingKeys = {}
     for (let i = 0; i < rows.length; i++) {
       const key = String(rows[i]?.[0] || "").trim()
@@ -60,11 +132,7 @@ export async function PUT(request) {
     }
 
     for (const [key, value] of entries) {
-      if (!key) continue
       const targetRow = existingKeys[key.toLowerCase()]
-      const normalizedValue = key.toLowerCase() === "startingbalance"
-        ? String(value ?? "")
-        : String(value ?? "")
 
       if (targetRow) {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${SHEET_NAME}!A${targetRow}:B${targetRow}`)}?valueInputOption=RAW`
@@ -74,7 +142,7 @@ export async function PUT(request) {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ values: [[key, normalizedValue]] }),
+          body: JSON.stringify({ values: [[key, value]] }),
         })
         if (!res.ok) {
           const err = await res.text()
@@ -88,13 +156,13 @@ export async function PUT(request) {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ values: [[key, normalizedValue]] }),
+          body: JSON.stringify({ values: [[key, value]] }),
         })
         if (!res.ok) {
           const err = await res.text()
           throw new Error(`Sheets API error: ${err}`)
         }
-        existingKeys[key] = (rows.length + 1)
+        existingKeys[key.toLowerCase()] = (rows.length + 1)
       }
     }
 

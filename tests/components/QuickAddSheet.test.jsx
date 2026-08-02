@@ -1,12 +1,25 @@
-import { describe, it, expect, vi, afterEach } from "vitest"
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest"
 import { render, screen, cleanup, fireEvent, waitFor, act } from "@testing-library/react"
 import QuickAddSheet from "@/app/dashboard/_components/QuickAddSheet"
+
+vi.mock("@/lib/useSharedData", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useSettings: vi.fn(),
+}))
+const { useSettings } = await import("@/lib/useSharedData")
 
 afterEach(() => cleanup())
 
 const noop = () => {}
 
 describe("QuickAddSheet", () => {
+  beforeEach(() => {
+    useSettings.mockReturnValue({ settings: { categories: {
+      expense: [{ name: "Kopi", icon: "Utensils", active: true }],
+      income: [{ name: "Gaji Baru", icon: "Coins", active: true }],
+    } } })
+  })
+
   it("renders nothing when closed", () => {
     render(<QuickAddSheet open={false} onClose={noop} onSubmit={noop} />)
     expect(screen.queryByText("Transaksi Baru")).toBeNull()
@@ -28,6 +41,13 @@ describe("QuickAddSheet", () => {
   it("expense is selected by default", () => {
     render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
     expect(screen.getByRole("button", { name: "Pilih pengeluaran" })).toHaveAttribute("aria-pressed", "true")
+  })
+
+  it("uses the user category list in the picker", () => {
+    render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
+    fireEvent.click(screen.getByRole("button", { name: "Kategori" }))
+    expect(screen.getByRole("option", { name: "Kopi" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "Transportasi" })).not.toBeInTheDocument()
   })
 
   it("respects initialType prop", () => {

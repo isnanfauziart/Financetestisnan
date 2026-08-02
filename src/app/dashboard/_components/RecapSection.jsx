@@ -13,6 +13,7 @@ import PillButton from "./PillButton"
 import EmptyState from "./EmptyState"
 import RecapMonthGroup from "./RecapMonthGroup"
 import { parseTxDate } from "./helpers"
+import { useSettings } from "@/lib/useSharedData"
 
 const TYPE_OPTIONS = [
   { value: "all", label: "Semua", color: "primary" },
@@ -30,6 +31,7 @@ function getMonthKey(month, year) {
 }
 
 export default function RecapSection({ transactions = [], history, onEdit, onDelete }) {
+  const { settings } = useSettings()
   const [filter, setFilter] = useState({
     month: "all",
     year: "all",
@@ -56,8 +58,9 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
     const all = new Set()
     transactions.forEach(t => { if (t.category) all.add(t.category) })
     ;[...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES, ...SAVINGS_CATEGORIES].forEach(c => all.add(c))
-    return Array.from(all).sort()
-  }, [transactions])
+    Object.values(settings?.categories || {}).flat().forEach(item => all.add(typeof item === "string" ? item : item?.name))
+    return Array.from(all).filter(Boolean).sort()
+  }, [transactions, settings?.categories])
 
   const filtered = useMemo(() => {
     return transactions.filter(t => {

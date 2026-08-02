@@ -1,16 +1,18 @@
 "use client"
 import { useState } from "react"
 import { Target } from "lucide-react"
-import { THEME, EXPENSE_CATEGORIES, BANK_ACCOUNTS, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { THEME, EXPENSE_CATEGORIES, BANK_ACCOUNTS, AVAILABLE_MONTHS, getCategoryOptions } from "@/app/dashboard/_components/constants"
 import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import QuotaNotice from "./QuotaNotice"
+import { useSettings } from "@/lib/useSharedData"
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = [String(CURRENT_YEAR - 1), String(CURRENT_YEAR), String(CURRENT_YEAR + 1)]
 
 export default function BudgetSetupModal({ budget, defaultMonth, defaultYear, prefillKategori, onClose, onSaved }) {
+  const { settings } = useSettings()
   const isEdit = Boolean(budget)
   const [kategori, setKategori] = useState(budget?.kategori || prefillKategori || "")
   const [bulan, setBulan] = useState(budget?.bulan || defaultMonth || AVAILABLE_MONTHS[new Date().getMonth()])
@@ -20,6 +22,7 @@ export default function BudgetSetupModal({ budget, defaultMonth, defaultYear, pr
   const [catatan, setCatatan] = useState(budget?.catatan || "")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const categoryOptions = getCategoryOptions(settings?.categories, "expense", EXPENSE_CATEGORIES, kategori)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -76,7 +79,7 @@ export default function BudgetSetupModal({ budget, defaultMonth, defaultYear, pr
       }
     >
       <form onSubmit={handleSubmit} className="space-y-3">
-        <SelectField label="Kategori" value={kategori} onChange={setKategori} options={EXPENSE_CATEGORIES} placeholder="Pilih kategori" />
+        <SelectField label="Kategori" value={kategori} onChange={setKategori} options={categoryOptions} placeholder="Pilih kategori" />
 
         <div className="grid grid-cols-2 gap-3">
           <SelectField label="Bulan" value={bulan} onChange={setBulan} options={AVAILABLE_MONTHS} placeholder="Bulan" />

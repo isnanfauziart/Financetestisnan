@@ -79,6 +79,13 @@ describe("ProfileTab ownership cleanup", () => {
     expect(screen.queryByText(/ringkasan bulanan/i)).not.toBeInTheDocument()
   })
 
+  it("exposes personal category management from profile preferences", () => {
+    render(<ProfileTab {...createProps()} />)
+
+    expect(screen.getByText("Kategori")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /kelola kategori/i })).toBeInTheDocument()
+  })
+
   it("hides the upgrade CTA and shows Pro benefits for a paid account", () => {
     render(<ProfileTab {...createProps({ entitlement: { tier: "paid", usage: {} }, data: { transactions: [] } })} />)
 

@@ -1,3 +1,5 @@
+import { CATEGORIES_KEY, getStarterCategories } from "@/lib/categories"
+
 const TX_HEADERS = [["Tanggal", "ID", "Keterangan", "Kategori", "Jumlah", "Pajak", "Biaya", "AkunBank", "Net", "Catatan", "M", "Y", "Y2", "EventID", "EventSubKategori"]]
 
 function getLastCol(cols) {
@@ -127,6 +129,24 @@ export async function createUserSheet(accessToken, userName) {
     if (!headerRes.ok) {
       const err = await headerRes.text()
       throw new Error(`Gagal menulis header tab ${tab.name}: ${err}`)
+    }
+
+    if (tab.name === "Settings") {
+      const seedRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("Settings!A2:B2")}?valueInputOption=RAW`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ values: [[CATEGORIES_KEY, JSON.stringify(getStarterCategories())]] }),
+        }
+      )
+      if (!seedRes.ok) {
+        const err = await seedRes.text()
+        throw new Error(`Gagal menulis kategori awal: ${err}`)
+      }
     }
   }
 

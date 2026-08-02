@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach, vi } from "vitest"
 
-import { ALL_TABS, ensureArtamiSheetSchema } from "@/lib/sheetManager"
+import { ALL_TABS, createUserSheet, ensureArtamiSheetSchema } from "@/lib/sheetManager"
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -89,5 +89,19 @@ describe("sheetManager schema contracts", () => {
     const headerUrls = fetchSpy.mock.calls.slice(2).map(([url]) => url)
     expect(headerUrls.every(url => !url.includes("Pemasukan"))).toBe(true)
     expect(headerUrls.some(url => url.includes(encodeURIComponent("Budgets!A1:F1")))).toBe(true)
+  })
+
+  it("seeds starter categories for newly created sheets", async () => {
+    const fetchSpy = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ spreadsheetId: "new-sheet" }) })
+      .mockResolvedValue({ ok: true, json: async () => ({}) })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    await createUserSheet("access-token", "Ari")
+
+    const settingsSeedCall = fetchSpy.mock.calls.find(([url]) => url.includes("Settings!A2%3AB2"))
+    expect(settingsSeedCall).toBeTruthy()
+    expect(settingsSeedCall[1].body).toContain("categories_v1")
+    expect(settingsSeedCall[1].body).toContain("Makan & Minum")
   })
 })

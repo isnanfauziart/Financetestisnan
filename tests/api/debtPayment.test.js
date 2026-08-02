@@ -45,6 +45,28 @@ describe("debt payment", () => {
       "token", "sheet",
       expect.arrayContaining([expect.objectContaining({ range: "Pemasukan!A2:O2" })])
     )
+    const writes = batchUpdateSheetValues.mock.calls[0][2]
+    expect(writes.find(item => item.range === "Pemasukan!A2:O2").values[0][3]).toBe("Piutang")
+  })
+
+  it("records an utang payment with the Utang category", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData, batchUpdateSheetValues } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ user: { id: "u" }, accessToken: "token", spreadsheetId: "sheet", tier: "paid" })
+    getSheetData
+      .mockResolvedValueOnce([["headers"], ["d1", "Ari", 100, "utang", "2026-08-01", "open", 100, "", "2026-07-01"]])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([["Tanggal"]])
+
+    const { POST } = await import("@/app/api/debts/route")
+    const response = await POST(new Request("http://localhost/api/debts", {
+      method: "POST",
+      body: JSON.stringify({ action: "pay", id: "d1", amount: 40, paymentId: "stable-utang" }),
+    }))
+
+    expect(response.status).toBe(200)
+    const writes = batchUpdateSheetValues.mock.calls[0][2]
+    expect(writes.find(item => item.range === "Pengeluaran!A2:O2").values[0][3]).toBe("Utang")
   })
 
   it("treats a stable payment id as idempotent before reserving quota", async () => {

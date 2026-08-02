@@ -3,7 +3,7 @@ import { useState, useMemo } from "react"
 import { Plus, Target, Sparkles } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
-import { useBudgets } from "@/lib/useSharedData"
+import { useBudgets, useSettings } from "@/lib/useSharedData"
 import BudgetCard from "./BudgetCard"
 import BudgetSetupModal from "./BudgetSetupModal"
 import BudgetDetailModal from "./BudgetDetailModal"
@@ -25,6 +25,7 @@ export default function BudgetsSection({
   const yearParam = selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : ""
 
   const { budgets, loading, refetch } = useBudgets(monthParam, yearParam)
+  const { settings } = useSettings()
 
   const visibleBudgets = useMemo(() => {
     if (selectedAccount === "Semua Akun") return budgets
@@ -154,6 +155,7 @@ export default function BudgetsSection({
                 <BudgetCard
                   budget={b}
                   spent={spentByCategoryAccount[b.kategori] || 0}
+                  categoryMeta={settings?.categories?.expense?.find(item => (typeof item === "string" ? item : item?.name) === b.kategori)}
                   onClick={() => setDetailBudget(b)}
                   onEdit={() => openEdit(b)}
                   onDelete={() => handleDelete(b)}

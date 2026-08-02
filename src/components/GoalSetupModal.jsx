@@ -1,11 +1,12 @@
 "use client"
 import { useState } from "react"
 import { X, Target, Sparkles, Shield, Plane, Home, Car, Heart, BookOpen, Gift, Laptop, Camera, PiggyBank, Star, Sun, Moon, Flag, Wallet } from "lucide-react"
-import { THEME, SAVINGS_CATEGORIES, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { THEME, SAVINGS_CATEGORIES, AVAILABLE_MONTHS, getCategoryOptions } from "@/app/dashboard/_components/constants"
 import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import QuotaNotice from "./QuotaNotice"
+import { useSettings } from "@/lib/useSharedData"
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = [String(CURRENT_YEAR), String(CURRENT_YEAR + 1), String(CURRENT_YEAR + 2), String(CURRENT_YEAR + 3)]
@@ -63,6 +64,7 @@ function buildDeadline(month, year) {
 }
 
 export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClose, onSaved }) {
+  const { settings } = useSettings()
   const isEdit = Boolean(goal)
   const initDeadline = parseDeadline(goal?.deadline)
   const [nama, setNama] = useState(goal?.nama || "")
@@ -74,6 +76,7 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
   const [color, setColor] = useState(goal?.color || "#5b8c7a")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const categoryOptions = getCategoryOptions(settings?.categories, "savings", SAVINGS_CATEGORIES, kategori)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -164,7 +167,7 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
           <SelectField label="Tahun" value={year} onChange={setYear} options={YEAR_OPTIONS} placeholder="Tahun" />
         </div>
 
-        <SelectField label="Kategori (auto-link)" value={kategori} onChange={setKategori} options={SAVINGS_CATEGORIES} placeholder="Pilih kategori" />
+        <SelectField label="Kategori (auto-link)" value={kategori} onChange={setKategori} options={categoryOptions} placeholder="Pilih kategori" />
 
         <div>
           <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Icon</label>

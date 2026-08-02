@@ -13,6 +13,7 @@ vi.mock("@/components/BudgetStatusCard", () => ({
 vi.mock("@/lib/useSharedData", () => ({
   useBudgets: vi.fn(),
   useBills: vi.fn(),
+  useSettings: vi.fn(() => ({ settings: {} })),
 }))
 
 const { useBudgets, useBills } = await import("@/lib/useSharedData")

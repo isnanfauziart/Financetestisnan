@@ -496,3 +496,25 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 ### Verification
 - Focused activity, admin API/helper, feature-control, toast, shell, and user-directory tests pass.
 - Full repository suite passed with 72 test files, 326 tests passed, and 2 skipped; the production build passed with the new `/admin` and user-detail routes.
+
+## 2026-08-02 — Per-user categories implemented
+
+### Tasks Completed
+- Added versioned `categories_v1` settings stored in each user's Google Sheet; new Sheets receive Indonesian starter categories while existing Sheets retain legacy lists until customized.
+- Added Profile > Preferensi > Kategori manager for expense, income, and savings categories with icons, archive/restore, recommendations, and savings liquidity classification.
+- Routed configured categories through transaction, budget, goal, bill, recap, and edit pickers; protected `Utang`/`Piutang` for automated debt payments.
+- Updated Health Score and monthly reports to use each user's active liquid savings categories.
+
+### Files Changed
+- `src/lib/categories.js`, `src/app/api/settings/route.js`, `src/lib/sheetManager.js`, `src/lib/useSharedData.js`
+- `src/components/CategoryManager.jsx`, dashboard category pickers, category visuals, Health Score/report components
+- Category/settings/Health Score tests, `docs/sheets-settings.md`, `docs/Flow-system.md`, `AGENTS.md`
+
+### Decisions
+- All three category groups are customizable with no business quota; categories can be added or archived, not renamed/deleted.
+- Existing transaction history remains unchanged; archived categories remain available when editing historical records.
+
+### Verification
+- Focused category/integration suite: 45 tests passed; additional component suites: 12 passed/2 skipped; additional API/lib suites: 41 passed.
+- Full repository suite: 75 test files passed, 340 tests passed, and 2 smoke tests skipped.
+- Production build passed with temporary process-only values for the 11 required environment variable names; no secrets were written.

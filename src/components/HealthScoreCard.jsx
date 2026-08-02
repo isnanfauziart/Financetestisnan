@@ -11,7 +11,7 @@ const ICONS = { PiggyBank, Shield, Target, TrendingDown, TrendingUp }
 
 const FORMULA_ROWS = [
   { label: "Savings Rate", weight: "30%", desc: "Rata-rata (Pemasukan \u2013 Pengeluaran) / Pemasukan. Target: \u2265 20%" },
-  { label: "Emergency Fund", weight: "25%", desc: "(Tabungan Cash + Emas) / rata-rata pengeluaran bulanan. Target: \u2265 6 bulan" },
+  { label: "Emergency Fund", weight: "25%", desc: "Tabungan kategori likuid pilihanmu / rata-rata pengeluaran bulanan. Target: \u2265 6 bulan" },
   { label: "Budget Adherence", weight: "20%", desc: "Kategori di bawah limit / total kategori berbudget. Tanpa budget = tidak aktif" },
   { label: "Expense Trend", weight: "15%", desc: "Tren pengeluaran 6 bulan terakhir (linear regression). Turun = bagus, naik = buruk" },
   { label: "Income Stability", weight: "10%", desc: "Konsistensi pemasukan (1 \u2013 koefisien variasi). Butuh \u2265 2 bulan data" },
@@ -22,6 +22,7 @@ export default function HealthScoreCard({
   monthlyData,
   selectedMonth,
   selectedYear,
+  liquidSavingsCategories,
 }) {
   const [formulaOpen, setFormulaOpen] = useState(false)
   const { budgets } = useBudgets(
@@ -31,8 +32,8 @@ export default function HealthScoreCard({
 
   const healthResult = useMemo(() => {
     if (!transactions || transactions.length === 0) return null
-    return computeHealthScore({ transactions, monthlyData, budgets })
-  }, [transactions, monthlyData, budgets])
+    return computeHealthScore({ transactions, monthlyData, budgets, liquidSavingsCategories })
+  }, [transactions, monthlyData, budgets, liquidSavingsCategories])
 
   const animatedScore = useCountUp(healthResult?.score || 0, 1400)
 

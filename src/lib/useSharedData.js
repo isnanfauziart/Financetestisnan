@@ -1,5 +1,8 @@
 "use client"
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react"
+import { getLegacyCategories } from "@/lib/categories"
+
+const EMPTY_SETTINGS = { startingBalance: 0, startingBalanceDate: "", categories: getLegacyCategories() }
 
 // ─── Budgets shared cache ───────────────────────────────────────────
 let budgetCache = null
@@ -214,15 +217,15 @@ async function fetchSettingsInternal() {
       const res = await fetch("/api/settings")
       const data = await res.json()
       if (res.ok) {
-        settingsCache = data.settings || { startingBalance: 0, startingBalanceDate: "" }
+        settingsCache = data.settings || EMPTY_SETTINGS
       } else {
         settingsError = data.error || "Gagal memuat settings"
-        settingsCache = { startingBalance: 0, startingBalanceDate: "" }
+        settingsCache = EMPTY_SETTINGS
       }
       settingsLoaded = true
     } catch (err) {
       settingsError = err.message
-      settingsCache = { startingBalance: 0, startingBalanceDate: "" }
+      settingsCache = EMPTY_SETTINGS
       settingsLoaded = true
     } finally {
       settingsInFlight = null
@@ -256,7 +259,7 @@ export function useSettings() {
   }, [])
 
   return {
-    settings: parsed.data || { startingBalance: 0, startingBalanceDate: "" },
+    settings: parsed.data || EMPTY_SETTINGS,
     loading: isLoading,
     error: parsed.error,
     refetch,

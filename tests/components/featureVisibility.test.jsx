@@ -36,6 +36,7 @@ vi.mock("@/components/EventBudgetsSection", () => ({ default: () => <div>Events<
 vi.mock("@/lib/useSharedData", () => ({
   useBudgets: () => ({ budgets: [] }),
   useBills: () => ({ bills: [] }),
+  useSettings: () => ({ settings: {} }),
 }))
 
 const freeEntitlement = {

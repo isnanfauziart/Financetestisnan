@@ -11,6 +11,15 @@
 5. API routes read/write that user's sheet by `spreadsheetId`.
 6. Dashboard data is parsed from Google Sheets and rendered in the web app.
 
+## Category Ownership Flow
+
+1. Newly created Artami Sheets receive the Indonesian starter categories in `Settings!categories_v1`.
+2. Existing Sheets without that key keep the legacy category lists until the user changes them.
+3. Profile > Preferensi > Kategori loads the user's expense, income, and savings lists from `/api/settings`.
+4. Users can add, archive, and restore categories and choose an icon; savings categories also choose `Dana likuid` or `Investasi`.
+5. Archived names remain available for history and existing records but are excluded from new-entry pickers. `Utang` and `Piutang` remain protected for automated debt payments.
+6. The same per-user lists drive transaction forms, budgets, Goals, bill transaction mapping, recap filters, and Health Score liquidity calculations.
+
 ## Current Data Storage
 
 | Data | Storage |

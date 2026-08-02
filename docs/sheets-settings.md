@@ -17,6 +17,9 @@ Key-value pairs. Each row is a setting.
 |-----|------|-------------|
 | `startingBalance` | number | User's net worth at the time of entry (Rp) |
 | `startingBalanceDate` | string | Date when startingBalance was recorded (`YYYY-MM-DD`). Only transactions from this date forward count toward net worth. |
+| `categories_v1` | JSON string | Per-user active/archived expense, income, and savings categories. Savings entries include `savingsKind` (`liquid` or `investment`). |
+
+`categories_v1` has the shape `{ expense: [], income: [], savings: [] }`. Each entry contains `name`, `icon`, and `active`; savings entries also contain `savingsKind`. `Utang` and `Piutang` are protected automated categories. New Artami-created Sheets receive the Indonesian starter set. Existing Sheets without this key continue using the legacy category lists until the user changes categories in Profile.
 
 ## How to create
 

@@ -1,14 +1,16 @@
 "use client"
 import { useState } from "react"
-import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, SAVINGS_CATEGORIES, BANK_ACCOUNTS, MONTHS_MAP } from "./constants"
+import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, SAVINGS_CATEGORIES, BANK_ACCOUNTS, MONTHS_MAP, getCategoryOptions } from "./constants"
 import { formatInputRupiah } from "./helpers"
 import SelectField from "./SelectField"
 import Sheet from "./Sheet"
 import EventTagPicker from "@/components/EventTagPicker"
+import { useSettings } from "@/lib/useSharedData"
 
 const SHEET_FOR_TYPE = { income: "Pemasukan", expense: "Pengeluaran", savings: "Tabungan" }
 
 export default function EditTransactionModal({ transaction, onClose, onSaved }) {
+  const { settings } = useSettings()
   const [type] = useState(transaction.type)
   const [tanggal, setTanggal] = useState(toDateInput(transaction.date))
   const [kategori, setKategori] = useState(transaction.category || "")
@@ -52,7 +54,7 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
     setSubmitting(false)
   }
 
-  const catOptions = type === "expense" ? EXPENSE_CATEGORIES : type === "savings" ? SAVINGS_CATEGORIES : INCOME_CATEGORIES
+  const catOptions = getCategoryOptions(settings?.categories, type, type === "expense" ? EXPENSE_CATEGORIES : type === "savings" ? SAVINGS_CATEGORIES : INCOME_CATEGORIES, kategori)
 
   return (
     <Sheet
