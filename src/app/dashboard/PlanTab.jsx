@@ -94,6 +94,7 @@ export default function PlanTab({
 
         {currentSection === "goal" && hasFeature(entitlement, "goals") && (
           <GoalsSection
+            data={data}
             transactions={transactions}
             onToast={onToast}
             refreshTrigger={goalsRefreshTrigger}

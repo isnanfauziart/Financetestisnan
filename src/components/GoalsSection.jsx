@@ -4,13 +4,14 @@ import { Plus, Target, Sparkles, ChevronDown, ChevronRight } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import EmptyState from "@/app/dashboard/_components/EmptyState"
 import { computeAllGoalProgress } from "@/app/dashboard/_components/goalUtils"
+import { formatRpFull } from "@/app/dashboard/_components/helpers"
 import { useGoals } from "@/lib/useSharedData"
 import GoalCard from "./GoalCard"
 import GoalSetupModal from "./GoalSetupModal"
 import GoalContributeModal from "./GoalContributeModal"
 import GoalSettleModal from "./GoalSettleModal"
 
-export default function GoalsSection({ transactions, onToast, refreshTrigger, onUsageChange, transactionUsage }) {
+export default function GoalsSection({ data, transactions, onToast, refreshTrigger, onUsageChange, transactionUsage }) {
   const { goals, loading, error, refetch } = useGoals()
   const [setupState, setSetupState] = useState(null)
   const [contributeGoal, setContributeGoal] = useState(null)
@@ -31,6 +32,12 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger, on
   const progressByGoal = useMemo(() => {
     return computeAllGoalProgress(goals, transactions)
   }, [goals, transactions])
+
+  const netWorth = Number.isFinite(Number(data?.netWorth)) ? Number(data.netWorth) : 0
+  const allocatedSavings = useMemo(() => {
+    return Object.values(progressByGoal).reduce((total, progress) => total + (Number(progress) || 0), 0)
+  }, [progressByGoal])
+  const availableSavings = Math.max(0, netWorth - allocatedSavings)
 
   const activeGoals = useMemo(() => {
     return goals.filter(g => g.status !== "settled")
@@ -74,7 +81,7 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger, on
       <div className="mt-6 animate-bento-in">
         <div className="flex items-center gap-1.5 mb-3 px-1">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Goals</h3>
+          <h3 className="text-sm font-bold font-display text-earth-800">Kantong &amp; Target</h3>
         </div>
         <div className="bento-tile bg-white border border-earth-100 p-6 shadow-warm text-center">
           <div className="w-8 h-8 mx-auto border-2 border-earth-200 border-t-transparent rounded-full animate-spin" />
@@ -88,7 +95,7 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger, on
       <div className="mt-6 animate-bento-in">
         <div className="flex items-center gap-1.5 mb-3 px-1">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Goals</h3>
+          <h3 className="text-sm font-bold font-display text-earth-800">Kantong &amp; Target</h3>
         </div>
         <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
           <p className="text-sm font-semibold text-rose-800">Gagal memuat goals</p>
@@ -110,7 +117,7 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger, on
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-1.5">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Goals</h3>
+          <h3 className="text-sm font-bold font-display text-earth-800">Kantong &amp; Target</h3>
           {activeGoals.length > 0 && (
             <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">
               {activeGoals.length} aktif
@@ -125,6 +132,21 @@ export default function GoalsSection({ transactions, onToast, refreshTrigger, on
           <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah
         </button>
       </div>
+
+      <section className="bento-tile-dark mesh-hero text-white p-5 sm:p-6 shadow-pop" aria-label="Ringkasan tabungan">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/75">Total Tabungan</p>
+        <p className="mt-2 text-3xl sm:text-4xl font-display font-bold tracking-tight break-words">{formatRpFull(netWorth)}</p>
+        <p className="mt-1 text-[11px] font-semibold text-white/75">Sama dengan Kekayaan Bersih di Beranda</p>
+        <div className="mt-4 rounded-2xl px-4 py-3 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }}>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-semibold text-white/80">Tersedia untuk dibagi</span>
+            <strong className="text-sm font-bold text-white">{formatRpFull(availableSavings)}</strong>
+          </div>
+        </div>
+        <p className="mt-3 text-[11px] leading-relaxed text-white/75">
+          Total tabungan diperoleh dari surplus antara pemasukan dikurangi pengeluaran kamu tiap bulan
+        </p>
+      </section>
 
       {goals.length === 0 ? (
         <EmptyState
