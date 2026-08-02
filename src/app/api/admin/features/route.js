@@ -130,8 +130,8 @@ export async function POST(request) {
 
     if (scope === "global") {
       const enabled = booleanValue(body.enabled)
-      await setGlobalFeatureFlag(key, enabled, { ...schedule, updatedBy: admin.email })
-      return response({ ok: true, feature: key, scope, enabled, ...schedule }, 200, request)
+      const metadata = await setGlobalFeatureFlag(key, enabled, { ...schedule, updatedBy: admin.email })
+      return response({ ok: true, feature: key, scope, enabled, ...schedule, ...metadata }, 200, request)
     }
 
     if (!hasOwn(body, "enabled") || (body.enabled !== null && typeof body.enabled !== "boolean")) {
@@ -147,13 +147,15 @@ export async function POST(request) {
     const selectedIds = userIds.filter(id => !clearSet.has(id))
 
     await Promise.all(clearIds.map(userId => clearUserFeatureOverride(userId, key)))
+    let metadata = {}
     if (body.enabled === null) {
       await Promise.all(userIds.filter(id => !clearSet.has(id)).map(userId => clearUserFeatureOverride(userId, key)))
     } else {
-      await Promise.all(selectedIds.map(userId => setUserFeatureOverride(userId, key, body.enabled, {
+      const updates = await Promise.all(selectedIds.map(userId => setUserFeatureOverride(userId, key, body.enabled, {
         ...schedule,
         updatedBy: admin.email,
       })))
+      metadata = updates.filter(Boolean).sort((left, right) => String(left.updatedAt).localeCompare(String(right.updatedAt))).at(-1) || {}
     }
 
     return response({
@@ -164,6 +166,7 @@ export async function POST(request) {
       userIds: selectedIds,
       clearUserIds: clearIds,
       ...schedule,
+      ...metadata,
     }, 200, request)
   } catch (error) {
     return writeError(error, request)

@@ -11,6 +11,7 @@ This folder contains the database schema and setup scripts for Artami Finance Da
 - Phase 2 payment/admin routes, private storage, and admin UI are complete.
 - Phase 3 Feature Gating is complete. Migration `008-phase3-feature-gating.sql` was applied; live RPC/REST auth tests passed; production Free → Pro → Free revocation smoke passed; admin permanent Pro was already verified; `/api/me` and related routes are healthy; the full suite passed with 272 passed and 2 skipped; production build passed.
 - Phase 4 Polish + Hardening is complete. Migration `009-phase4-feature-flag-foundation.sql`, automated verification, public access-boundary checks, and authenticated live admin/override/release smoke checks passed. Phase 5 Testing + Verification is next.
+- Admin workspace revamp adds migration `010-admin-user-activity.sql` for nullable, indexed `users.last_seen_at`; authenticated server requests update it no more than once per five minutes.
 
 ## Database Schema
 
@@ -64,6 +65,7 @@ Run the SQL files in order:
 7. `007-payments-phase2.sql`
 8. `008-phase3-feature-gating.sql`
 9. `009-phase4-feature-flag-foundation.sql`
+10. `010-admin-user-activity.sql`
 
 ### Step 4: Add Environment Variables
 

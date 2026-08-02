@@ -6,6 +6,7 @@ import { supabaseAdmin } from "./supabaseAdmin"
 import { needsLegacySheetConnection } from "./legacySheet"
 import { getEffectiveEntitlement } from "./entitlement"
 import { resolveFeatureAccess } from "./featureFlags"
+import { recordAuthenticatedActivity } from "./activity"
 
 async function withRetry(fn, retries = 2, delayMs = 1000, label = "") {
   for (let i = 0; i <= retries; i++) {
@@ -62,6 +63,13 @@ export async function getAuthContext(request) {
   } catch (err) {
     console.error("[AuthContext] Gagal mengambil/membuat user:", err)
     throw new Error("Gagal mengambil data user dari Supabase")
+  }
+
+  try {
+    const recordedAt = await recordAuthenticatedActivity(user.id, user.last_seen_at)
+    if (recordedAt) user = { ...user, last_seen_at: recordedAt }
+  } catch (err) {
+    console.warn("[AuthContext] Gagal mencatat aktivitas user:", err.message)
   }
 
   // If user has no spreadsheet, create one

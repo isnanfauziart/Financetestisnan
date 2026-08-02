@@ -46,6 +46,10 @@ Supabase does not store the user's finance ledger.
 | `/api/bills/pay` | POST | Pay bill and create transaction |
 | `/api/bills/summary` | GET | Bill reminder summary |
 | `/api/settings` | GET, PUT | User settings |
+| `/api/admin/features` | GET, POST | Admin global and targeted feature controls |
+| `/api/admin/users` | GET | Paginated, filtered admin user directory and summary |
+| `/api/admin/users/[id]` | GET | Read-only account, verified transaction usage, and payment detail sections |
+| `/api/admin/payments/[id]/proof` | GET | Short-lived signed payment-proof response for admins |
 | `/api/migrate` | POST | Migration helper |
 | `/api/download-apk` | GET | APK download |
 
@@ -82,7 +86,7 @@ Implementation surface:
 | `/api/admin/payments/[id]/proof` | Short-lived signed URL for admin review |
 | `/api/admin/users/restore-pro` | Manual Pro restoration for a returning email |
 | `/upgrade` | QRIS checkout and payment history |
-| `/admin` | Admin payments console |
+| `/admin` | Admin workspace with Payments, Users, and Feature Controls tabs |
 | `src/lib/payments.js`, `src/lib/paymentAuth.js` | Payment helpers and owner authorization |
 | `src/lib/adminAuth.js` | Admin allowlist check against the `admins` table |
 | `src/components/PaymentQrisFlow.jsx` | Checkout, proof upload, history UI |
@@ -143,6 +147,14 @@ The approved Phase 3 policy is summarized in this section and in the commerciali
 - `/api/health` reports local liveness/configuration only and does not call Google or Supabase.
 
 Phase 4 code passed 305 tests and a production build. Migration `supabase/009-phase4-feature-flag-foundation.sql` and its public access boundary were verified, followed by live admin/global/override/schedule, disabled-feature, data-preservation, and non-admin smoke checks. The Play Store Phase 4 blocker is cleared; Phase 5 Testing + Verification is now current.
+
+## Admin Workspace Revamp
+
+The `/admin` workspace opens on Payments and keeps the existing review flow in the first tab. The Users tab loads a server-paginated directory automatically and supports name/email search, tier, activity, Sheet connection, registration, and sort filters. Summary cards show total users, Free, Pro, active in seven days, and connected Sheets.
+
+Selecting a user opens a read-only side panel on desktop and a full-width panel on mobile. Account information, verified Supabase transaction usage, payment history, and secure payment-proof links load as separate sections so one failed section can be retried without losing the others. The panel never reads the user's Google Sheet and does not expose `spreadsheet_id` or `proof_url`.
+
+`last_seen_at` means authenticated Artami use, including opening the authenticated dashboard. The server only writes it when the stored value is at least five minutes old; an admin refresh only re-reads the directory and never writes another user's activity. Feature updates show a five-second top-right success toast and retain the last-change timestamp/admin in the feature row.
 
 ## Environment
 

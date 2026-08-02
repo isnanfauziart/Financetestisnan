@@ -177,8 +177,8 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 - `src/app/api/settings/route.js` - User settings
 - `src/app/api/me/route.js` — Effective entitlement, usage metadata, WIB reset dates, history policy, and feature access
 - `src/app/api/health/route.js` — Safe liveness/configuration check
-- `src/app/api/admin/features/route.js`, `src/app/api/admin/users/route.js` — Admin feature controls, schedules, overrides, and user filters
-- `src/app/admin/AdminFeatureControls.jsx` — Admin switchboard UI
+- `src/app/api/admin/features/route.js`, `src/app/api/admin/users/route.js`, `src/app/api/admin/users/[id]/route.js` — Admin feature controls, schedules, overrides, user directory, and read-only user detail
+- `src/app/admin/AdminShell.jsx`, `src/app/admin/AdminUsersClient.jsx`, `src/app/admin/AdminFeatureControls.jsx` — Admin workspace tabs, user directory, and feature switchboard UI
 - `src/lib/featureFlags.js`, `src/lib/featureAccess.js`, `src/lib/featureGuard.js` — Server flag resolution, client-safe access, and disabled-feature responses
 - `src/lib/rateLimit.js`, `src/lib/env.js`, `src/lib/validation.js`, `src/lib/logger.js`, `src/middleware.js` — Phase 4 hardening primitives
 - `src/lib/sheets.js` — Sheet helpers
@@ -188,6 +188,8 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 - `src/lib/sheetManager.js` — Creates Google Sheet with 10 tabs for new users
 - `src/lib/user.js` — getOrCreateUser() helper for Supabase user management
 - `src/lib/apiAuth.js` — getAuthContext() helper replacing getToken() pattern
+- `src/lib/activity.js`, `src/lib/adminUsers.js` — Throttled authenticated activity writes and safe admin user/detail formatting
+- `supabase/010-admin-user-activity.sql` — Nullable indexed `users.last_seen_at` metadata
 - `src/lib/entitlement.js` — shared stored-tier/admin effective entitlement resolver
 - `src/lib/tier.js` — canonical limits, feature access, warnings, and history policy
 - `src/lib/usage.js` — WIB period/reset helpers and Supabase usage RPC wrappers

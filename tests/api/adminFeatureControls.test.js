@@ -32,9 +32,12 @@ function query(rows = [], error = null) {
     select: vi.fn(() => builder),
     or: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    is: vi.fn(() => builder),
+    not: vi.fn(() => builder),
     gte: vi.fn(() => builder),
     lte: vi.fn(() => builder),
     order: vi.fn(() => builder),
+    range: vi.fn(() => builder),
     limit: vi.fn(() => builder),
     then: (resolve, reject) => Promise.resolve({ data: rows, error }).then(resolve, reject),
   }
@@ -99,6 +102,20 @@ describe("admin feature controls", () => {
     })
   })
 
+  it("returns success metadata for the admin confirmation row", async () => {
+    setGlobalFeatureFlagMock.mockResolvedValueOnce({ updatedAt: "2026-08-02T01:02:03.000Z", updatedBy: "admin@example.com" })
+    const { POST } = await import("@/app/api/admin/features/route")
+
+    const response = await POST(request({ key: "budgets", scope: "global", enabled: false }))
+    const body = await response.json()
+
+    expect(body).toEqual(expect.objectContaining({
+      ok: true,
+      updatedAt: "2026-08-02T01:02:03.000Z",
+      updatedBy: "admin@example.com",
+    }))
+  })
+
   it("sets selected user overrides, clears Use global, and leaves empty selection untouched", async () => {
     const userId = "11111111-1111-4111-8111-111111111111"
     const otherUserId = "22222222-2222-4222-8222-222222222222"
@@ -122,7 +139,7 @@ describe("admin feature controls", () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-08-01T00:00:00.000Z"))
     const usersQuery = query([{ id: "user-1", email: "alice@example.com", name: "Alice", tier: "paid", created_at: "2026-06-01T00:00:00.000Z", spreadsheet_id: "secret" }])
-    fromMock.mockReturnValue(usersQuery)
+    fromMock.mockImplementation((table) => table === "admins" ? query([]) : usersQuery)
     const { GET } = await import("@/app/api/admin/users/route")
 
     const response = await GET(new Request("http://localhost/api/admin/users?search=alice&tier=paid&minAgeDays=30&maxAgeDays=90"))
@@ -133,7 +150,15 @@ describe("admin feature controls", () => {
     expect(usersQuery.eq).toHaveBeenCalledWith("tier", "paid")
     expect(usersQuery.lte).toHaveBeenCalledWith("created_at", "2026-07-02T00:00:00.000Z")
     expect(usersQuery.gte).toHaveBeenCalledWith("created_at", "2026-05-03T00:00:00.000Z")
-    expect(body.users).toEqual([{ id: "user-1", email: "alice@example.com", name: "Alice", tier: "paid", created_at: "2026-06-01T00:00:00.000Z" }])
+    expect(body.users).toEqual([expect.objectContaining({
+      id: "user-1",
+      email: "alice@example.com",
+      name: "Alice",
+      tier: "paid",
+      created_at: "2026-06-01T00:00:00.000Z",
+      sheetConnected: true,
+      isAdmin: false,
+    })])
   })
 
   it("rejects protected features, malformed values, and past schedules without writes", async () => {

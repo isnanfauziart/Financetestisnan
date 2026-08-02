@@ -471,3 +471,28 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Next Phase
 - Run Phase 5 API/data-isolation/security verification on the canonical production domain after the planned UI/UX revamp and domain migration sequence.
+
+## 2026-08-02 — Admin workspace revamp implemented
+
+### Tasks Completed
+- Replaced the stacked `/admin` view with a Payments-default workspace containing Payments, Pengguna, and Kontrol Fitur tabs; tab state is preserved in the URL.
+- Added a server-paginated, filterable user directory with summary counts for total, Free, Pro, active-seven-day, and connected-Sheet users.
+- Added a read-only responsive user detail panel with independently loaded account, verified transaction quota, payment history, and secure proof sections plus retry actions.
+- Added throttled authenticated activity tracking through `users.last_seen_at`; opening authenticated Artami usage counts as active, while admin refresh only re-reads data.
+- Added five-second top-right feature-change confirmations and persistent `updated_at`/`updated_by` display in Feature Controls.
+
+### Files Changed
+- `src/app/admin/page.js`, `src/app/admin/AdminShell.jsx`, `src/app/admin/AdminUsersClient.jsx`, `src/app/admin/AdminFeatureControls.jsx`
+- `src/app/api/admin/users/route.js`, `src/app/api/admin/users/[id]/route.js`, `src/app/api/admin/features/route.js`
+- `src/lib/activity.js`, `src/lib/adminUsers.js`, `src/lib/apiAuth.js`, `src/lib/paymentAuth.js`, `src/lib/featureFlags.js`, `src/app/dashboard/_components/Toast.jsx`
+- `supabase/010-admin-user-activity.sql`, `docs/Flow-system.md`, `supabase/README.md`, `AGENTS.md`
+- Admin activity, API, helper, shell, user-directory, feature metadata, and toast tests
+
+### Decisions
+- Activity writes are guarded to one write per user per five minutes; no browser heartbeat or admin-triggered activity write is added.
+- The user panel never reads Google Sheets and never exposes spreadsheet IDs or storage proof paths.
+- Supabase-verifiable transaction usage is shown; Sheet-backed record counts remain explicitly unavailable in this panel.
+
+### Verification
+- Focused activity, admin API/helper, feature-control, toast, shell, and user-directory tests pass.
+- Full repository suite passed with 72 test files, 326 tests passed, and 2 skipped; the production build passed with the new `/admin` and user-detail routes.

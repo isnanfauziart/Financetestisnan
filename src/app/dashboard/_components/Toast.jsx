@@ -25,6 +25,7 @@ export default function Toast({
   onDone,
   variant = "info",
   position = "top",
+  align = "center",
   duration = 5000,
   action,
   noPointerEvents = false,
@@ -75,11 +76,12 @@ export default function Toast({
       : VARIANT_BG[variant] || VARIANT_BG.info
   const Icon = variant === "celebration" ? null : VARIANT_ICON[variant]
   const positionClass = POSITION_CLASS[position] || POSITION_CLASS.top
+  const alignClass = align === "right" ? "right-6" : align === "left" ? "left-6" : "left-1/2"
 
   return (
     <div
-      className={`fixed left-1/2 z-[60] ${positionClass} animate-slide-down ${noPointerEvents ? "pointer-events-none" : ""}`}
-      style={{ transform: "translateX(-50%)" }}
+      className={`fixed ${alignClass} z-[60] ${positionClass} animate-slide-down ${noPointerEvents ? "pointer-events-none" : ""}`}
+      style={align === "center" ? { transform: "translateX(-50%)" } : undefined}
       role="status"
       aria-live="polite"
     >

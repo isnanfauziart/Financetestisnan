@@ -63,6 +63,11 @@ describe("Toast", () => {
     expect(container.querySelector(".bottom-24")).toBeInTheDocument()
   })
 
+  it("supports right-aligned admin toasts", () => {
+    const { container } = renderToast({ align: "right" })
+    expect(container.querySelector(".right-6")).toBeInTheDocument()
+  })
+
   it("applies pointer-events-none for celebration/noPointerEvents", () => {
     const { container } = renderToast({ variant: "celebration", noPointerEvents: true })
     expect(container.querySelector(".pointer-events-none")).toBeInTheDocument()

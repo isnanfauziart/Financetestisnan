@@ -134,19 +134,21 @@ export function toClientFeatureAvailability(access) {
 }
 
 async function writeFlag(table, matchKey, matchValue, values, client) {
+  const updatedAt = new Date().toISOString()
   const result = await client.from(table).upsert({
     [matchKey]: matchValue,
     ...values,
-    updated_at: new Date().toISOString(),
+    updated_at: updatedAt,
   }, { onConflict: matchKey })
   if (result?.error) throw result.error
   invalidateFeatureFlagCache()
+  return { updatedAt, updatedBy: values.updated_by || null }
 }
 
 export async function setGlobalFeatureFlag(key, enabled, { scheduledEnabled = null, scheduledAt = null, updatedBy, client = supabaseAdmin } = {}) {
   const definition = FEATURE_REGISTRY[key]
   if (!definition || definition.protected) throw new Error("invalid_feature_flag")
-  await writeFlag("feature_flags", "key", definition.flagKey, {
+  return writeFlag("feature_flags", "key", definition.flagKey, {
     enabled: Boolean(enabled),
     scheduled_enabled: scheduledEnabled,
     scheduled_at: scheduledAt,
@@ -157,6 +159,7 @@ export async function setGlobalFeatureFlag(key, enabled, { scheduledEnabled = nu
 export async function setUserFeatureOverride(userId, key, enabled, { scheduledEnabled = null, scheduledAt = null, updatedBy, client = supabaseAdmin } = {}) {
   const definition = FEATURE_REGISTRY[key]
   if (!definition || definition.protected) throw new Error("invalid_feature_flag")
+  const updatedAt = new Date().toISOString()
   const result = await client.from("feature_flag_overrides").upsert({
     user_id: userId,
     feature_key: key,
@@ -164,10 +167,11 @@ export async function setUserFeatureOverride(userId, key, enabled, { scheduledEn
     scheduled_enabled: scheduledEnabled,
     scheduled_at: scheduledAt,
     updated_by: updatedBy,
-    updated_at: new Date().toISOString(),
+    updated_at: updatedAt,
   }, { onConflict: "user_id,feature_key" })
   if (result?.error) throw result.error
   invalidateFeatureFlagCache()
+  return { updatedAt, updatedBy: updatedBy || null }
 }
 
 export async function clearUserFeatureOverride(userId, key, { client = supabaseAdmin } = {}) {

@@ -48,7 +48,7 @@ async function jsonResponse(response, fallback) {
   return data
 }
 
-export default function AdminFeatureControls() {
+export default function AdminFeatureControls({ onSuccess }) {
   const [features, setFeatures] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState("")
@@ -91,13 +91,14 @@ export default function AdminFeatureControls() {
     setError("")
     setNotice("")
     try {
-      await jsonResponse(await fetch("/api/admin/features", {
+      const data = await jsonResponse(await fetch("/api/admin/features", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }), "Gagal memperbarui fitur.")
       setNotice(successMessage)
-      return true
+      onSuccess?.(successMessage)
+      return data
     } catch (err) {
       setError(err.message)
       return false
@@ -111,7 +112,14 @@ export default function AdminFeatureControls() {
     if (!enabled && !window.confirm(`Nonaktifkan ${labelFor(feature.key)} untuk semua pengguna? Data pengguna tetap aman dan fitur bisa diaktifkan lagi.`)) return
     const ok = await postFeature({ feature: feature.key, scope: "global", enabled }, `global-${feature.key}`, `${labelFor(feature.key)} ${enabled ? "diaktifkan" : "dinonaktifkan"}.`)
     if (ok) {
-      setFeatures(current => current.map(item => item.key === feature.key ? { ...item, enabled, scheduledAt: null, scheduledEnabled: null } : item))
+      setFeatures(current => current.map(item => item.key === feature.key ? {
+        ...item,
+        enabled,
+        scheduledAt: null,
+        scheduledEnabled: null,
+        updatedAt: ok.updatedAt || new Date().toISOString(),
+        updatedBy: ok.updatedBy || item.updatedBy,
+      } : item))
       setScheduleDrafts(current => ({ ...current, [feature.key]: { ...(current[feature.key] || {}), enabled } }))
     }
   }
@@ -129,7 +137,13 @@ export default function AdminFeatureControls() {
       scheduledAt,
       scheduledEnabled,
     }, `schedule-${feature.key}`, `Perubahan ${labelFor(feature.key)} dijadwalkan.`)
-    if (ok) setFeatures(current => current.map(item => item.key === feature.key ? { ...item, scheduledAt, scheduledEnabled } : item))
+    if (ok) setFeatures(current => current.map(item => item.key === feature.key ? {
+      ...item,
+      scheduledAt,
+      scheduledEnabled,
+      updatedAt: ok.updatedAt || new Date().toISOString(),
+      updatedBy: ok.updatedBy || item.updatedBy,
+    } : item))
   }
 
   const findUsers = async (event) => {
@@ -200,6 +214,7 @@ export default function AdminFeatureControls() {
                   </div>
                   <p className="mt-1 text-xs text-earth-500">{feature.description}</p>
                   {!feature.protected && <p className="mt-1 text-xs font-semibold text-earth-400">Override pengguna: {feature.overrideCount || 0}</p>}
+                  {feature.updatedAt && <p className="mt-1 text-xs text-earth-400">Terakhir diubah {formatWib(feature.updatedAt)}{feature.updatedBy ? ` oleh ${feature.updatedBy}` : ""}</p>}
                   {feature.scheduledAt && <p className="mt-2 text-xs font-semibold text-amber-700">Jadwal: {feature.scheduledEnabled ? "Aktif" : "Nonaktif"} pada {formatWib(feature.scheduledAt)}</p>}
                 </div>
                 <button
