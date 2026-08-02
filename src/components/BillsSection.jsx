@@ -40,8 +40,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, t
 
   const fetchBills = useCallback(async () => {
     try {
-      const url = showInactive ? "/api/bills?all=true" : "/api/bills"
-      const res = await fetch(url)
+      const res = await fetch("/api/bills?all=true")
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Gagal memuat tagihan")
       setBills(data.bills || [])
@@ -50,7 +49,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, t
     } finally {
       setLoading(false)
     }
-  }, [showInactive, onToast])
+  }, [onToast])
 
   useEffect(() => { fetchBills() }, [fetchBills])
 

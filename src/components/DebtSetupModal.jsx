@@ -7,12 +7,13 @@ import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import QuotaNotice from "./QuotaNotice"
 
-export default function DebtSetupModal({ onClose, onSaved }) {
-  const [namaOrang, setNamaOrang] = useState("")
-  const [rawJumlah, setRawJumlah] = useState("")
-  const [arah, setArah] = useState("utang")
-  const [jatuhTempo, setJatuhTempo] = useState("")
-  const [catatan, setCatatan] = useState("")
+export default function DebtSetupModal({ debt, onClose, onSaved }) {
+  const isEditing = Boolean(debt?.id)
+  const [namaOrang, setNamaOrang] = useState(debt?.namaOrang || "")
+  const [rawJumlah, setRawJumlah] = useState(debt?.jumlah ? formatInputRupiah(String(debt.jumlah)) : "")
+  const [arah, setArah] = useState(debt?.arah || "utang")
+  const [jatuhTempo, setJatuhTempo] = useState(debt?.jatuhTempo || "")
+  const [catatan, setCatatan] = useState(debt?.catatan || "")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
@@ -32,9 +33,10 @@ export default function DebtSetupModal({ onClose, onSaved }) {
     setError(null)
     try {
       const res = await fetch("/api/debts", {
-        method: "POST",
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...(isEditing ? { id: debt.id } : {}),
           namaOrang,
           jumlah,
           arah,
@@ -62,7 +64,7 @@ export default function DebtSetupModal({ onClose, onSaved }) {
     <Sheet
       open={true}
       onClose={onClose}
-      subtitle="Tambah Utang/Piutang"
+      subtitle={isEditing ? "Edit Utang/Piutang" : "Tambah Utang/Piutang"}
       size="md"
       maxHeight="90vh"
       closeOnBackdrop={!submitting}
@@ -71,7 +73,7 @@ export default function DebtSetupModal({ onClose, onSaved }) {
         <div className="flex items-center gap-2">
           <CreditCard size={18} color={accentColor} aria-hidden="true" />
           <h3 className="text-lg font-display font-bold text-earth-800">
-            {isUtang ? "Tambah Utang" : "Tambah Piutang"}
+            {isEditing ? "Edit" : "Tambah"} {isUtang ? "Utang" : "Piutang"}
           </h3>
         </div>
       }

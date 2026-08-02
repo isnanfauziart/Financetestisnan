@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { readCache, writeCache, invalidateCache, getLastSyncAgo } from "@/app/dashboard/_components/useDashboardCache"
 
-const KEY = "isnan.dashboard.cache.v2"
+const KEY = "isnan.dashboard.cache.v3"
+const USER_A = "ayu@example.com"
+const USER_B = "budi@example.com"
 
 describe("useDashboardCache", () => {
   beforeEach(() => {
@@ -14,18 +16,21 @@ describe("useDashboardCache", () => {
 
   describe("readCache", () => {
     it("returns null when no cache exists", () => {
-      expect(readCache()).toBeNull()
+      expect(readCache(USER_A)).toBeNull()
     })
 
     it("returns null for malformed JSON", () => {
-      localStorage.setItem(KEY, "{not json")
-      expect(readCache()).toBeNull()
+      localStorage.setItem(`${KEY}:${encodeURIComponent(USER_A)}`, "{not json")
+      expect(readCache(USER_A)).toBeNull()
     })
 
-    it("returns the parsed cache object", () => {
+    it("only returns data for the authenticated cache owner", () => {
       const payload = { data: { totalIncome: 100 }, cachedAt: "2025-06-16T00:00:00.000Z" }
-      localStorage.setItem(KEY, JSON.stringify(payload))
-      expect(readCache()).toEqual(payload)
+      writeCache(payload.data, USER_A)
+      expect(readCache()).toBeNull()
+      expect(readCache(USER_B)).toBeNull()
+      expect(readCache(USER_A)?.data).toEqual(payload.data)
+      expect(readCache(USER_A)?.cachedAt).toEqual(expect.any(String))
     })
   })
 
@@ -34,8 +39,8 @@ describe("useDashboardCache", () => {
       const fixed = new Date("2025-06-16T12:34:56.000Z")
       vi.useFakeTimers()
       vi.setSystemTime(fixed)
-      writeCache({ totalIncome: 200 })
-      const stored = JSON.parse(localStorage.getItem(KEY))
+      writeCache({ totalIncome: 200 }, USER_A)
+      const stored = JSON.parse(localStorage.getItem(`${KEY}:${encodeURIComponent(USER_A)}`))
       expect(stored.data).toEqual({ totalIncome: 200 })
       expect(stored.cachedAt).toBe(fixed.toISOString())
       vi.useRealTimers()
@@ -44,9 +49,9 @@ describe("useDashboardCache", () => {
 
   describe("invalidateCache", () => {
     it("removes the cache entry", () => {
-      localStorage.setItem(KEY, JSON.stringify({ data: {}, cachedAt: "x" }))
-      invalidateCache()
-      expect(localStorage.getItem(KEY)).toBeNull()
+      writeCache({}, USER_A)
+      invalidateCache(USER_A)
+      expect(readCache(USER_A)).toBeNull()
     })
 
     it("is a no-op when no cache exists", () => {

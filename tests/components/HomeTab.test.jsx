@@ -107,4 +107,16 @@ describe("HomeTab priority actions", () => {
     expect(setActiveNav).toHaveBeenNthCalledWith(2, "plan")
     expect(openPlanSection).toHaveBeenNthCalledWith(2, "budget")
   })
+
+  it("warns when the financial summary is limited to the visible history window", () => {
+    render(<HomeTab {...createProps({
+      data: {
+        ...createProps().data,
+        history: { months: 4, limited: true, hasOlderData: true },
+      },
+    })} />)
+
+    expect(screen.getByRole("note")).toHaveTextContent(/4 bulan terakhir/i)
+    expect(screen.getByRole("note")).toHaveTextContent(/tidak dihitung di ringkasan/i)
+  })
 })

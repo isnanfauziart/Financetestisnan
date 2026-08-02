@@ -1,7 +1,47 @@
 "use client"
-import { useEffect, useLayoutEffect, useRef } from "react"
+import { Children, isValidElement, useEffect, useLayoutEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import { X } from "lucide-react"
+
+const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+
+function getFocusableElements(panel) {
+  if (!panel) return []
+  return Array.from(panel.querySelectorAll(FOCUSABLE_SELECTOR)).filter((node) => !node.hasAttribute("disabled"))
+}
+
+function getNodeText(node) {
+  if (node == null || typeof node === "boolean") return ""
+  if (typeof node === "string" || typeof node === "number") return String(node)
+  if (Array.isArray(node)) return node.map(getNodeText).join(" ")
+  if (isValidElement(node)) return getNodeText(node.props.children)
+  return ""
+}
+
+function hasCloseControl(node) {
+  return Children.toArray(node).some((child) => {
+    if (!isValidElement(child)) return false
+    if (child.type === "button") {
+      const label = String(child.props["aria-label"] || "").toLowerCase()
+      if (child.props["data-sheet-close"] || label.includes("close") || label.includes("tutup")) return true
+    }
+    return hasCloseControl(child.props.children)
+  })
+}
+
+function CloseButton({ onClose, closeButtonRef, className = "" }) {
+  return (
+    <button
+      type="button"
+      ref={closeButtonRef}
+      onClick={onClose}
+      aria-label="Close"
+      className={`w-8 h-8 rounded-full bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${className}`}
+    >
+      <X size={14} color="#6b5b4f" aria-hidden="true" />
+    </button>
+  )
+}
 
 function DefaultHeader({ title, subtitle, onClose, closeButtonRef }) {
   return (
@@ -14,14 +54,7 @@ function DefaultHeader({ title, subtitle, onClose, closeButtonRef }) {
         )}
         <h3 className="text-lg font-display font-bold text-earth-800">{title}</h3>
       </div>
-      <button
-        ref={closeButtonRef}
-        onClick={onClose}
-        aria-label="Close"
-        className="w-8 h-8 rounded-full bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
-      >
-        <X size={14} color="#6b5b4f" aria-hidden="true" />
-      </button>
+      <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} />
     </div>
   )
 }
@@ -46,6 +79,10 @@ export default function Sheet({
   const closeButtonRef = useRef(null)
   const previousFocusRef = useRef(null)
   const wasOpenRef = useRef(false)
+  const customHeaderHasClose = header ? hasCloseControl(header) : false
+  const customHeaderText = header ? getNodeText(header).trim() : ""
+  const dialogName = ariaLabel || title || customHeaderText || "Dialog"
+  const sharedCloseNeeded = Boolean(header ? !customHeaderHasClose : !title)
 
   useEffect(() => {
     if (!open || !closeOnEsc) return
@@ -67,14 +104,20 @@ export default function Sheet({
 
   useLayoutEffect(() => {
     if (open) {
-      wasOpenRef.current = true
-      previousFocusRef.current = document.activeElement
-      closeButtonRef.current?.focus()
+      if (!wasOpenRef.current) {
+        wasOpenRef.current = true
+        previousFocusRef.current = document.activeElement
+        const initialFocus = closeButtonRef.current || getFocusableElements(panelRef.current)[0] || panelRef.current
+        initialFocus?.focus()
+      }
       return
     }
 
-    if (wasOpenRef.current && previousFocusRef.current instanceof HTMLElement) {
-      previousFocusRef.current.focus()
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false
+      const previousFocus = previousFocusRef.current
+      previousFocusRef.current = null
+      if (previousFocus instanceof HTMLElement) previousFocus.focus()
     }
   }, [open])
 
@@ -85,10 +128,7 @@ export default function Sheet({
   const trapFocus = (event) => {
     if (event.key !== "Tab" || !panelRef.current) return
 
-    const focusable = panelRef.current.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
-    const items = Array.from(focusable).filter((node) => !node.hasAttribute("disabled"))
+    const items = getFocusableElements(panelRef.current)
     if (items.length === 0) return
 
     const first = items[0]
@@ -123,13 +163,21 @@ export default function Sheet({
         onKeyDown={trapFocus}
         role="dialog"
         aria-modal="true"
-        aria-label={ariaLabel || title}
+        aria-label={dialogName}
+        tabIndex={-1}
       >
         {header ? (
-          <div className="mb-4">{header}</div>
+          <div className={`mb-4 ${sharedCloseNeeded ? "relative pr-10" : ""}`}>
+            {header}
+            {sharedCloseNeeded && <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} className="absolute top-0 right-0" />}
+          </div>
         ) : title ? (
           <DefaultHeader title={title} subtitle={subtitle} onClose={onClose} closeButtonRef={closeButtonRef} />
-        ) : null}
+        ) : (
+          <div className="mb-4 flex justify-end">
+            <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} />
+          </div>
+        )}
         {children}
         {footer && (
           <div className="mt-4 pt-4 border-t border-earth-100">{footer}</div>

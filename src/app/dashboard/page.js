@@ -1,5 +1,5 @@
 "use client"
-import { useSession, signOut } from "next-auth/react"
+import { useSession, signIn, signOut } from "next-auth/react"
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { LogOut, Plus, X, ChevronDown, Activity, User, Home, ArrowUpRight, Wallet, Sparkles, Lightbulb, TrendingUp, TrendingDown, PiggyBank, Target, Calendar, CreditCard } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
@@ -36,22 +36,16 @@ import { hasFeature } from "@/lib/featureAccess"
 export default function Dashboard() {
   const statsDefaults = getStatsPeriodDefaults()
   const { data: session, status } = useSession()
-  const [data, setData] = useState(() => {
-    if (typeof window === "undefined") return null
-    return readCache()?.data || null
-  })
-  const [loading, setLoading] = useState(() => {
-    if (typeof window === "undefined") return true
-    return !readCache()?.data
-  })
+  const sessionKey = session?.user?.email?.trim().toLowerCase() || null
+  const signInRequestedRef = useRef(false)
+  const [storedData, setStoredData] = useState(null)
+  const [storedDataOwner, setStoredDataOwner] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [entitlement, setEntitlement] = useState(null)
   const [needsSheetConnection, setNeedsSheetConnection] = useState(false)
-  const [lastSyncAt, setLastSyncAt] = useState(() => {
-    if (typeof window === "undefined") return null
-    return readCache()?.cachedAt || null
-  })
+  const [storedLastSyncAt, setStoredLastSyncAt] = useState(null)
   const [isOnline, setIsOnline] = useState(() => {
     if (typeof window === "undefined") return true
     return navigator.onLine
@@ -120,6 +114,43 @@ export default function Dashboard() {
   const [fabVisible, setFabVisible] = useState(true)
   const lastScrollYRef = useRef(0)
 
+  const hasSessionData = status === "authenticated" && !!sessionKey && storedDataOwner === sessionKey
+  const data = hasSessionData ? storedData : null
+  const dashboardLoading = status === "authenticated" && !hasSessionData ? true : loading
+  const lastSyncAt = hasSessionData ? storedLastSyncAt : null
+
+  useEffect(() => {
+    if (status !== "authenticated" || !sessionKey) {
+      setStoredDataOwner(null)
+      setStoredData(null)
+      setStoredLastSyncAt(null)
+      setLoading(false)
+      setRefreshing(false)
+      setError(null)
+      setEntitlement(null)
+      setNeedsSheetConnection(false)
+      return
+    }
+
+    const cache = readCache(sessionKey)
+    setStoredDataOwner(sessionKey)
+    setStoredData(cache?.data || null)
+    setStoredLastSyncAt(cache?.cachedAt || null)
+    setLoading(!cache?.data)
+    setRefreshing(false)
+    setError(null)
+    setEntitlement(null)
+    setNeedsSheetConnection(false)
+  }, [status, sessionKey])
+
+  useEffect(() => {
+    if (status === "unauthenticated" && !signInRequestedRef.current) {
+      signInRequestedRef.current = true
+      signIn("google", { callbackUrl: "/dashboard" })
+    }
+    if (status !== "unauthenticated") signInRequestedRef.current = false
+  }, [status])
+
   const fetchEntitlement = useCallback(() => {
     if (!session) return
     fetch("/api/me")
@@ -137,7 +168,8 @@ export default function Dashboard() {
       .then(d => {
         if (d.needsSheetConnection || d.code === "SHEET_CONNECTION_REQUIRED") {
           setNeedsSheetConnection(true)
-          setData(null)
+          setStoredDataOwner(sessionKey)
+          setStoredData(null)
           setError(null)
           return
         }
@@ -145,16 +177,17 @@ export default function Dashboard() {
           setError(d.error)
         } else {
           setNeedsSheetConnection(false)
-          setData(d)
+          setStoredDataOwner(sessionKey)
+          setStoredData(d)
           setError(null)
           const ts = d.serverTimestamp || new Date().toISOString()
-          setLastSyncAt(ts)
-          writeCache(d)
+          setStoredLastSyncAt(ts)
+          writeCache(d, sessionKey)
         }
       })
       .catch(e => { setError(e.message) })
       .finally(() => { setLoading(false); setRefreshing(false) })
-  }, [session, data, fetchEntitlement])
+  }, [session, sessionKey, data, fetchEntitlement])
 
   useEffect(() => { if (session) fetchData() }, [session?.user?.email])
 
@@ -693,17 +726,18 @@ export default function Dashboard() {
     )
   }
 
-  if (needsSheetConnection) {
+  if (status === "unauthenticated") {
     return (
-      <LegacySheetConnector
-        userName={session?.user?.name}
-        onConnected={() => window.location.reload()}
-        onSignOut={() => signOut({ callbackUrl: "/" })}
-      />
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="glass-strong rounded-[32px] p-8 max-w-sm w-full text-center" role="status">
+          <h1 className="text-xl font-bold text-earth-900 mb-2 font-display">Sesi tidak ditemukan</h1>
+          <p className="text-sm text-earth-600">Mengalihkan ke halaman masuk...</p>
+        </div>
+      </div>
     )
   }
 
-  if (loading && !data) {
+  if (dashboardLoading && !data) {
     return (
       <div className="min-h-screen p-5 space-y-4">
         <div className="grid grid-cols-3 gap-3 auto-rows-[110px] pt-6">
@@ -717,6 +751,16 @@ export default function Dashboard() {
         <Skeleton variant="card" />
         <Skeleton variant="card" />
       </div>
+    )
+  }
+
+  if (needsSheetConnection) {
+    return (
+      <LegacySheetConnector
+        userName={session?.user?.name}
+        onConnected={() => window.location.reload()}
+        onSignOut={() => signOut({ callbackUrl: "/" })}
+      />
     )
   }
 

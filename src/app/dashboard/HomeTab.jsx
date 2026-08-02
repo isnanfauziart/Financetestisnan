@@ -191,6 +191,14 @@ export default function HomeTab({
   return (
     <div className="px-5 pt-4 animate-bento-in" key="home-tab">
       <div className="space-y-3">
+        {data?.history?.limited && data?.history?.hasOlderData && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-earth-700" role="note">
+            <p className="font-bold">Ringkasan terbatas</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              Data yang tampil mencakup {data.history.months} bulan terakhir. Transaksi yang lebih lama tetap tersimpan di Google Sheets, tetapi tidak dihitung di ringkasan ini.
+            </p>
+          </div>
+        )}
         <div className="bento-tile-dark mesh-hero text-white p-5 sm:p-6 relative overflow-hidden animate-bento-in stagger-1 min-h-[220px]">
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl animate-glow" style={{ background: "radial-gradient(circle, rgba(159,135,239,0.4) 0%, transparent 70%)" }} />
           <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(212,168,83,0.3) 0%, transparent 70%)" }} />

@@ -20,6 +20,23 @@ function FocusHarness() {
   )
 }
 
+function CustomHeaderFocusHarness() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div>
+      <button onClick={() => setOpen(true)}>Open custom modal</button>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        header={<h3>Custom Header</h3>}
+      >
+        <button>Custom action</button>
+      </Sheet>
+    </div>
+  )
+}
+
 describe("Sheet focus management", () => {
   it("moves focus into the sheet when opened and restores it to the trigger when closed", () => {
     render(<FocusHarness />)
@@ -49,5 +66,20 @@ describe("Sheet focus management", () => {
 
     fireEvent.keyDown(secondAction, { key: "Tab" })
     expect(closeButton).toHaveFocus()
+  })
+
+  it("names custom-header dialogs and gives them a shared close action", () => {
+    render(<CustomHeaderFocusHarness />)
+
+    const trigger = screen.getByRole("button", { name: "Open custom modal" })
+    trigger.focus()
+    fireEvent.click(trigger)
+
+    expect(screen.getByRole("dialog", { name: "Custom Header" })).toBeInTheDocument()
+    const closeButton = screen.getByRole("button", { name: "Close" })
+    expect(closeButton).toHaveFocus()
+
+    fireEvent.keyDown(window, { key: "Escape" })
+    expect(trigger).toHaveFocus()
   })
 })

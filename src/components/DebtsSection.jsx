@@ -13,11 +13,14 @@ import TransactionQuotaStatus from "./TransactionQuotaStatus"
 export default function DebtsSection({ onToast, onUsageChange, transactionUsage }) {
   const { debts, loading, refetch } = useDebts()
   const [setupOpen, setSetupOpen] = useState(false)
+  const [editingDebt, setEditingDebt] = useState(null)
   const [payDebt, setPayDebt] = useState(null)
   const [settleDebt, setSettleDebt] = useState(null)
   const [settling, setSettling] = useState(false)
   const [settlePaymentId, setSettlePaymentId] = useState(null)
   const [settleError, setSettleError] = useState(null)
+  const [deleteDebt, setDeleteDebt] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   const openDebts = useMemo(() => debts.filter(d => d.status === "open"), [debts])
 
@@ -29,6 +32,7 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
 
   const handleSaved = () => {
     setSetupOpen(false)
+    setEditingDebt(null)
     setPayDebt(null)
     refetch()
     onUsageChange?.()
@@ -67,6 +71,27 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
       onToast(err.message, "error")
     }
     setSettling(false)
+  }
+
+  const handleDelete = async () => {
+    if (!deleteDebt) return
+    setDeleting(true)
+    try {
+      const res = await fetch("/api/debts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: deleteDebt.id }),
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || "Gagal menghapus utang")
+      onToast("Utang/piutang dihapus", "success")
+      setDeleteDebt(null)
+      handleSaved()
+    } catch (err) {
+      onToast(err.message, "error")
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (loading) {
@@ -140,16 +165,18 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
         </div>
 
         {/* Debt list */}
-        {openDebts.length === 0 ? (
+        {debts.length === 0 ? (
           <p className="text-[11px] text-earth-500 text-center py-2">Semua utang/piutang sudah lunas 🎉</p>
         ) : (
           <div className="space-y-2.5">
-            {openDebts.map(d => (
+            {debts.map(d => (
               <DebtCard
                 key={d.id}
                 debt={d}
                 onPay={setPayDebt}
                 onSettle={debt => { setSettleDebt(debt); setSettlePaymentId(crypto.randomUUID()); setSettleError(null) }}
+                onEdit={debt => { setEditingDebt(debt); setSetupOpen(true) }}
+                onDelete={setDeleteDebt}
               />
             ))}
           </div>
@@ -159,7 +186,8 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
       {/* Modals */}
       {setupOpen && (
         <DebtSetupModal
-          onClose={() => setSetupOpen(false)}
+          debt={editingDebt}
+          onClose={() => { setSetupOpen(false); setEditingDebt(null) }}
           onSaved={handleSaved}
         />
       )}
@@ -186,6 +214,18 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
         >
           <TransactionQuotaStatus usage={transactionUsage} error={settleError} />
         </ConfirmSheet>
+      )}
+
+      {deleteDebt && (
+        <ConfirmSheet
+          title="Hapus utang/piutang?"
+          message={`${deleteDebt.namaOrang} akan dihapus permanen.`}
+          confirmLabel="Hapus"
+          confirmColor={THEME.danger}
+          onConfirm={handleDelete}
+          onClose={() => { if (!deleting) setDeleteDebt(null) }}
+          confirming={deleting}
+        />
       )}
     </>
   )

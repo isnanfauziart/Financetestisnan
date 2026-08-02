@@ -1,13 +1,25 @@
-const KEY = "isnan.dashboard.cache.v2"
+const KEY_PREFIX = "isnan.dashboard.cache.v3"
+
+function normalizeOwner(owner) {
+  if (typeof owner !== "string") return null
+  const normalized = owner.trim().toLowerCase()
+  return normalized || null
+}
+
+function getKey(owner) {
+  const normalized = normalizeOwner(owner)
+  return normalized ? `${KEY_PREFIX}:${encodeURIComponent(normalized)}` : null
+}
 
 function isBrowser() {
   return typeof window !== "undefined" && typeof localStorage !== "undefined"
 }
 
-export function readCache() {
-  if (!isBrowser()) return null
+export function readCache(owner) {
+  const key = getKey(owner)
+  if (!isBrowser() || !key) return null
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = localStorage.getItem(key)
     if (!raw) return null
     return JSON.parse(raw)
   } catch {
@@ -15,17 +27,19 @@ export function readCache() {
   }
 }
 
-export function writeCache(data) {
-  if (!isBrowser()) return
+export function writeCache(data, owner) {
+  const key = getKey(owner)
+  if (!isBrowser() || !key) return
   try {
-    localStorage.setItem(KEY, JSON.stringify({ data, cachedAt: new Date().toISOString() }))
+    localStorage.setItem(key, JSON.stringify({ data, cachedAt: new Date().toISOString() }))
   } catch {}
 }
 
-export function invalidateCache() {
-  if (!isBrowser()) return
+export function invalidateCache(owner) {
+  const key = getKey(owner)
+  if (!isBrowser() || !key) return
   try {
-    localStorage.removeItem(KEY)
+    localStorage.removeItem(key)
   } catch {}
 }
 

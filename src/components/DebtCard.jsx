@@ -23,7 +23,7 @@ function formatDate(dateStr) {
   return `${parseInt(parts[2], 10)} ${monthName} ${parts[0]}`
 }
 
-export default function DebtCard({ debt, onPay, onSettle }) {
+export default function DebtCard({ debt, onPay, onSettle, onEdit, onDelete }) {
   const isUtang = debt.arah === "utang"
   const accentColor = isUtang ? THEME.expense : THEME.income
   const isSettled = debt.status === "settled"
@@ -112,6 +112,31 @@ export default function DebtCard({ debt, onPay, onSettle }) {
           >
             Settle Lunas
           </button>
+        </div>
+      )}
+
+      {(onEdit || onDelete) && (
+        <div className="flex gap-2 mt-2">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(debt)}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all active:scale-[0.97]"
+              style={{ borderColor: THEME.primary + "40", color: THEME.primary }}
+              aria-label={`Edit ${debt.namaOrang}`}
+            >
+              Edit
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(debt)}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all active:scale-[0.97]"
+              style={{ borderColor: THEME.danger + "40", color: THEME.danger }}
+              aria-label={`Hapus ${debt.namaOrang}`}
+            >
+              Hapus
+            </button>
+          )}
         </div>
       )}
 
