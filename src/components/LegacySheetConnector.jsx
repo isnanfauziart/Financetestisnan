@@ -143,7 +143,7 @@ export default function LegacySheetConnector({ userName, onConnected, onSignOut 
           Hubungkan spreadsheet Artami lama
         </h1>
         <p className="text-sm text-earth-600 leading-relaxed mb-6">
-          Halo{userName ? `, ${userName.split(" ")[0]}` : ""}. Akun ini memakai spreadsheet pribadi yang sudah ada. Pilih file lama sekali saja, lalu Artami akan memakai file itu untuk dashboard ini.
+          Halo{userName ? `, ${userName}` : ""}. Akun ini memakai spreadsheet pribadi yang sudah ada. Pilih file lama sekali saja, lalu Artami akan memakai file itu untuk dashboard ini.
         </p>
 
         {error && (

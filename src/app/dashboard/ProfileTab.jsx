@@ -45,7 +45,7 @@ function SectionCard({ title, children }) {
   )
 }
 
-export default function ProfileTab({ session, data, entitlement, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh }) {
+export default function ProfileTab({ userName, session, data, entitlement, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh }) {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
@@ -56,6 +56,7 @@ export default function ProfileTab({ session, data, entitlement, signOut, soundE
   const [savingSaldo, setSavingSaldo] = useState(false)
   const tierLabel = formatTierLabel(entitlement?.tier || data?.tier)
   const quotaEntries = Object.entries(entitlement?.usage || {})
+  const displayName = userName || session?.user?.name || ""
 
   const handleStartEdit = () => {
     setRawSaldo(formatInputRupiah(String(settings.startingBalance)))
@@ -104,7 +105,7 @@ export default function ProfileTab({ session, data, entitlement, signOut, soundE
         <img src={session?.user?.image} alt="" className="w-24 h-24 rounded-3xl border-4 border-white shadow-pop-lg" />
         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-moss-500 border-2 border-white rounded-2xl" />
       </div>
-      <h2 className="text-2xl font-display font-bold mb-1 text-earth-900">{session?.user?.name}</h2>
+      <h2 className="text-2xl font-display font-bold mb-1 text-earth-900">{displayName}</h2>
       <p className="text-sm font-medium text-earth-500 mb-2">{session?.user?.email}</p>
 
       <SectionCard title="Identitas Akun">
@@ -117,7 +118,7 @@ export default function ProfileTab({ session, data, entitlement, signOut, soundE
           <span className="text-sm font-bold text-earth-800 truncate max-w-[60%] text-right">{session?.user?.email || "—"}</span>
         </div>
         <UserNameSetup
-          initialValue={settings.userName || session?.user?.name || ""}
+          initialValue={settings.userName || displayName}
           open={true}
           mode="settings"
           onSaved={() => refetchSettings()}

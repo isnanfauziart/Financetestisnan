@@ -44,6 +44,7 @@ export function generateReportHTML({
   allTransactions,
   monthlyData,
   healthScore,
+  userName,
 }) {
   const income = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0)
   const expense = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0)
@@ -369,7 +370,7 @@ export function generateReportHTML({
 <div class="header-stripe"></div>
 <div class="header-area">
   <h1>LAPORAN KEUANGAN BULANAN</h1>
-  <p class="subtitle">${esc(month)} ${esc(year)} &mdash; Artami</p>
+  <p class="subtitle">${esc(month)} ${esc(year)} &mdash; Artami${userName ? ` &mdash; ${esc(userName)}` : ""}</p>
 </div>
 <div class="header-divider"></div>
 <div class="content">
@@ -657,7 +658,7 @@ ${prevTx ? `
  * @param {Array}  params.monthlyData — full monthlyData (for trend context)
  * @returns {string} — complete HTML document string
  */
-export function generateAnnualReportHTML({ year, transactions, monthlyData }) {
+export function generateAnnualReportHTML({ year, transactions, monthlyData, userName }) {
   const yearTx = (transactions || []).filter(t => String(t.year) === String(year))
   const yearMonthly = (monthlyData || []).filter(m => String(m.year) === String(year))
 
@@ -828,7 +829,7 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData }) {
 <div class="hero">
   <h1>YEAR IN REVIEW</h1>
   <div class="year">${esc(year)}</div>
-  <p class="subtitle">Artami Finance Dashboard</p>
+  <p class="subtitle">Artami Finance Dashboard${userName ? ` &mdash; ${esc(userName)}` : ""}</p>
 </div>
 <div class="content">
 

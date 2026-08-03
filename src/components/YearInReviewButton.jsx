@@ -4,7 +4,7 @@ import { Calendar, Download } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { generateAnnualReportHTML } from "@/lib/report"
 
-export default function YearInReviewButton({ transactions, monthlyData }) {
+export default function YearInReviewButton({ transactions, monthlyData, userName }) {
   const [generating, setGenerating] = useState(false)
 
   const currentYear = String(new Date().getFullYear())
@@ -27,6 +27,7 @@ export default function YearInReviewButton({ transactions, monthlyData }) {
         year: currentYear,
         transactions: transactions || [],
         monthlyData: monthlyData || [],
+        userName,
       })
 
       const loadHtml2pdf = new Function('return import("html2pdf.js")')
@@ -59,7 +60,7 @@ export default function YearInReviewButton({ transactions, monthlyData }) {
     } finally {
       setGenerating(false)
     }
-  }, [currentYear, transactions, monthlyData])
+  }, [currentYear, transactions, monthlyData, userName])
 
   return (
     <button

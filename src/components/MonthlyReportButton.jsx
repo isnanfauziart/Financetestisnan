@@ -14,6 +14,7 @@ export default function MonthlyReportButton({
   transactions,
   monthlyData,
   allTransactions,
+  userName,
   entitlement,
   monthlyPdfWatermark,
 }) {
@@ -52,8 +53,9 @@ export default function MonthlyReportButton({
       allTransactions: allTransactions || [],
       monthlyData: monthlyData || [],
       healthScore,
+      userName,
     }, { watermark: entitlement?.monthlyPdfWatermark ?? monthlyPdfWatermark === true })
-  }, [selectedMonth, selectedYear, transactions, budgets, allTransactions, monthlyData, healthScore, entitlement, monthlyPdfWatermark])
+  }, [selectedMonth, selectedYear, transactions, budgets, allTransactions, monthlyData, healthScore, userName, entitlement, monthlyPdfWatermark])
 
   return (
     <button

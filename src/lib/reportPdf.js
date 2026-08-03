@@ -318,7 +318,7 @@ class PdfBuilder {
 }
 
 export function generateReportPDF(data, options = {}) {
-  const { month, year, transactions, budgets, allTransactions, monthlyData, healthScore } = data
+  const { month, year, transactions, budgets, allTransactions, monthlyData, healthScore, userName } = data
   const { watermark = Boolean(data?.watermark) } = options
   const b = new PdfBuilder()
   const doc = b.doc
@@ -371,7 +371,11 @@ export function generateReportPDF(data, options = {}) {
   b.text("LAPORAN KEUANGAN BULANAN", PW / 2, b.y, { size: 18, color: C.dark, style: "bold", align: "center" })
   b.y += 7
   b.text(month + " " + year + " \u2014 Artami", PW / 2, b.y, { size: 10, color: C.medium, align: "center" })
-  b.y += 5
+  b.y += userName ? 4 : 5
+  if (userName) {
+    b.text(userName, PW / 2, b.y, { size: 8, color: C.medium, align: "center" })
+    b.y += 4
+  }
   b.line(b.y, C.border, 0.4)
   b.y += 2
 

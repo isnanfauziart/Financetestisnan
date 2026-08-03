@@ -59,4 +59,10 @@ describe("monthly report watermark", () => {
 
     expect(doc.text.mock.calls.some(([value]) => value === "ARTAMI FREE")).toBe(false)
   })
+
+  it("includes the supplied user name in the PDF text", () => {
+    generateReportPDF({ ...reportData(), userName: "Siti Nur Aulia" })
+
+    expect(doc.text.mock.calls.some(([value]) => value === "Siti Nur Aulia")).toBe(true)
+  })
 })

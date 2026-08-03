@@ -56,6 +56,7 @@ export default function StatsTab({
   monthlyData,
   allTransactions,
   onCategoryClick,
+  userName,
   entitlement,
 }) {
   const effectiveEntitlement = entitlement === undefined ? { features: { anomalyAlerts: true, cashFlowForecast: true, yearInReview: true } } : entitlement
@@ -496,9 +497,10 @@ export default function StatsTab({
                 transactions={filteredTransactions}
                 monthlyData={monthlyData}
                 allTransactions={allTransactions}
+                userName={userName}
                 entitlement={effectiveEntitlement}
               />
-              {!isFeatureEnabled(effectiveEntitlement, "yearInReview") ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." />}
+              {!isFeatureEnabled(effectiveEntitlement, "yearInReview") ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} userName={userName} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." />}
             </div>
           </div>
           <RecapSection transactions={data?.transactions || []} history={data?.history} onEdit={onEditTx} onDelete={onDeleteTx} />

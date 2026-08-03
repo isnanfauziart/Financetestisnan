@@ -33,6 +33,7 @@ import PaymentStatusBanner from "./_components/PaymentStatusBanner"
 import { useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
 import { hasFeature } from "@/lib/featureAccess"
+import { getEffectiveUserName } from "@/lib/userDisplayName"
 
 export default function Dashboard() {
   const statsDefaults = getStatsPeriodDefaults()
@@ -110,6 +111,11 @@ export default function Dashboard() {
 
   // Settings
   const { settings, loading: settingsLoading, error: settingsError, refetch: refetchSettings } = useSettings()
+  const effectiveUserName = getEffectiveUserName({
+    savedName: settings.userName,
+    googleName: session?.user?.name,
+    email: session?.user?.email,
+  })
 
   // Scroll Y for P8 parallax
   const [scrollY, setScrollY] = useState(0)
@@ -763,7 +769,7 @@ export default function Dashboard() {
   if (needsSheetConnection) {
     return (
       <LegacySheetConnector
-        userName={session?.user?.name}
+        userName={effectiveUserName}
         onConnected={() => window.location.reload()}
         onSignOut={() => signOut({ callbackUrl: "/" })}
       />
@@ -959,7 +965,7 @@ export default function Dashboard() {
       )}
 
       <UserNameSetup
-        initialValue={settings.userName || session?.user?.name || ""}
+        initialValue={effectiveUserName}
         open={Boolean(
           data &&
           session &&
@@ -991,7 +997,7 @@ export default function Dashboard() {
             </p>
             <h1 className="text-2xl font-display font-bold text-earth-900 tracking-tight leading-tight mt-0.5">
               {activeNav === "home" && (data?.transactions?.[0] ? "Halo 👋" : "Artami")}
-              {activeNav === "home" && session?.user?.name?.split(" ")[0] ? `, ${session.user.name.split(" ")[0]}` : ""}
+              {activeNav === "home" && effectiveUserName ? `, ${effectiveUserName}` : ""}
               {activeNav === "stats" && "Statistik"}
               {activeNav === "plan" && "Rencana"}
               {activeNav === "profile" && "Profil"}
@@ -1097,6 +1103,7 @@ export default function Dashboard() {
              monthlyData={data?.monthlyData || []}
              allTransactions={data?.transactions || []}
              onCategoryClick={handleAnomalyCategoryClick}
+             userName={effectiveUserName}
              entitlement={entitlement}
           />
         )}
@@ -1123,7 +1130,7 @@ export default function Dashboard() {
           />
         )}
         {activeNav === "profile" && (
-          <ProfileTab session={session} data={data} entitlement={entitlement} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} onToast={showToast} onRefresh={fetchData} />
+          <ProfileTab userName={effectiveUserName} session={session} data={data} entitlement={entitlement} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} onToast={showToast} onRefresh={fetchData} />
         )}
       </div>
 
