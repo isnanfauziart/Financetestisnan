@@ -518,3 +518,27 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 - Focused category/integration suite: 45 tests passed; additional component suites: 12 passed/2 skipped; additional API/lib suites: 41 passed.
 - Full repository suite: 75 test files passed, 340 tests passed, and 2 smoke tests skipped.
 - Production build passed with temporary process-only values for the 11 required environment variable names; no secrets were written.
+
+## 2026-08-04 — User name settings implemented
+
+### Tasks Completed
+- Added optional per-user `Nama pengguna` storage in the Google Sheets `Settings` tab with trimmed Unicode validation, clearing behavior, and first-use dismissal state.
+- Added the reusable first-use prompt and Profile > Identitas Akun editor, prefilled from the current Google name and still usable when the Google name is unavailable.
+- Applied the effective name fallback (saved Artami name → Google name → email) across the dashboard greeting, Profile, legacy Sheet connection, monthly PDF, monthly HTML report, and annual HTML report.
+- Documented the user-name flow and cross-device dismissal behavior in `docs/Flow-system.md`.
+
+### Files Changed
+- `src/app/api/settings/route.js`, `src/lib/useSharedData.js`, `src/lib/userDisplayName.js`
+- `src/components/UserNameSetup.jsx`, dashboard `page.js`, `ProfileTab.jsx`, `StatsTab.jsx`, `LegacySheetConnector.jsx`
+- `src/lib/report.js`, `src/lib/reportPdf.js`, report buttons, and related tests
+- `docs/Flow-system.md`, `progress.md`
+
+### Decisions
+- The Artami display name is separate from Google, Supabase, and spreadsheet title identity.
+- The saved name is optional, limited to 60 trimmed Unicode characters, and clearing it restores the fallback while making the first-use prompt eligible again.
+- `Nanti` is persisted in the user's Settings sheet; Settings load errors suppress the prompt and save errors preserve the typed value.
+
+### Verification
+- Focused name-feature suite: 6 files passed, 31 tests passed.
+- Full repository suite: 85 test files passed, 380 tests passed, and 2 existing smoke tests skipped.
+- Production build passed with temporary process-only values for the 11 required environment variable names; no secrets were written.

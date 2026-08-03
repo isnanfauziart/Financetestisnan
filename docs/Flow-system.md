@@ -20,6 +20,13 @@
 5. Archived names remain available for history and existing records but are excluded from new-entry pickers. `Utang` and `Piutang` remain protected for automated debt payments.
 6. The same per-user lists drive transaction forms, budgets, Goals, bill transaction mapping, recap filters, and Health Score liquidity calculations.
 
+## User Name Flow
+
+1. `Settings!userName` is an optional Artami display name; it is separate from the user's Google and Supabase identity.
+2. After the dashboard and Settings data are ready, Artami shows the one-time `Nama pengguna` prompt when no saved name exists. It is prefilled with the current Google name when available. Choosing `Nanti` stores `Settings!userNamePromptDismissed` so the automatic prompt stays dismissed across devices; Profile > Identitas Akun remains available for manual editing.
+3. The effective display name is resolved as saved Artami name, then Google name, then email. The full value is used in the dashboard, Profile, reports, and legacy-sheet connection greeting. Before a legacy Sheet is connected, only the Google/email fallback is available.
+4. Clearing the saved name restores the fallback and makes the automatic prompt eligible again. Names are trimmed and limited to 60 Unicode characters; Settings load failures suppress the prompt, while save failures keep the typed value available for retry.
+
 ## Current Data Storage
 
 | Data | Storage |
