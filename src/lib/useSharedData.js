@@ -2,7 +2,13 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react"
 import { getLegacyCategories } from "@/lib/categories"
 
-const EMPTY_SETTINGS = { startingBalance: 0, startingBalanceDate: "", categories: getLegacyCategories() }
+const EMPTY_SETTINGS = {
+  startingBalance: 0,
+  startingBalanceDate: "",
+  userName: "",
+  userNamePromptDismissed: false,
+  categories: getLegacyCategories(),
+}
 
 // ─── Budgets shared cache ───────────────────────────────────────────
 let budgetCache = null

@@ -19,7 +19,13 @@ async function fetchSettings(accessToken, spreadsheetId) {
   } catch {
     rows = []
   }
-  const settings = { startingBalance: 0, startingBalanceDate: "", categories: getLegacyCategories() }
+  const settings = {
+    startingBalance: 0,
+    startingBalanceDate: "",
+    userName: "",
+    userNamePromptDismissed: false,
+    categories: getLegacyCategories(),
+  }
   for (let i = 0; i < rows.length; i++) {
     const key = String(rows[i]?.[0] || "").trim().toLowerCase()
     const val = rows[i]?.[1]
@@ -27,6 +33,10 @@ async function fetchSettings(accessToken, spreadsheetId) {
       settings.startingBalance = parseRupiah(val || 0)
     } else if (key === "startingbalancedate") {
       settings.startingBalanceDate = String(val || "").trim()
+    } else if (key === "username") {
+      settings.userName = String(val ?? "").trim()
+    } else if (key === "usernamepromptdismissed") {
+      settings.userNamePromptDismissed = val === "true"
     } else if (key === CATEGORIES_KEY.toLowerCase()) {
       settings.categories = parseStoredCategories(val) || getLegacyCategories()
     }
@@ -37,6 +47,8 @@ async function fetchSettings(accessToken, spreadsheetId) {
 const SETTING_KEYS = {
   startingbalance: "startingBalance",
   startingbalancedate: "startingBalanceDate",
+  username: "userName",
+  usernamepromptdismissed: "userNamePromptDismissed",
 }
 
 function canonicalSettingKey(value) {
@@ -83,6 +95,16 @@ function serializeSettingValue(key, value) {
     const date = value.trim()
     if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Invalid starting balance date")
     return date
+  }
+  if (key === "userName") {
+    if (typeof value !== "string") throw new Error("Invalid user name")
+    const name = value.trim()
+    if (Array.from(name).length > 60) throw new Error("Invalid user name")
+    return name
+  }
+  if (key === "userNamePromptDismissed") {
+    if (typeof value !== "boolean") throw new Error("Invalid user name prompt dismissal")
+    return value ? "true" : "false"
   }
   return String(value ?? "")
 }

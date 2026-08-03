@@ -82,6 +82,114 @@ describe("settings route", () => {
     expect(body.settings.categories.savings.every(item => item.savingsKind)).toBe(true)
   })
 
+  it("returns empty user-name settings by default", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData.mockResolvedValue([])
+
+    const { GET } = await import("@/app/api/settings/route")
+    const response = await GET(new Request("http://localhost/api/settings"))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.settings.userName).toBe("")
+    expect(body.settings.userNamePromptDismissed).toBe(false)
+  })
+
+  it("trims a saved user name and allows clearing it", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([["userName", "Siti"]])
+
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}), text: async () => "" })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { PUT } = await import("@/app/api/settings/route")
+    const saveResponse = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["userName", "  Siti  "]] }),
+    }))
+    const clearResponse = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["userName", ""]] }),
+    }))
+
+    expect(saveResponse.status).toBe(200)
+    expect(clearResponse.status).toBe(200)
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("Settings!A%3AB:append"),
+      expect.objectContaining({ body: JSON.stringify({ values: [["userName", "Siti"]] }) })
+    )
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("Settings!A1%3AB1?valueInputOption=RAW"),
+      expect.objectContaining({ body: JSON.stringify({ values: [["userName", ""]] }) })
+    )
+  })
+
+  it("serializes and parses prompt dismissal as a boolean", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([["userNamePromptDismissed", "true"]])
+      .mockResolvedValueOnce([["userNamePromptDismissed", "true"]])
+      .mockResolvedValueOnce([["userNamePromptDismissed", "false"]])
+
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}), text: async () => "" })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { GET, PUT } = await import("@/app/api/settings/route")
+    const trueResponse = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["userNamePromptDismissed", true]] }),
+    }))
+    const falseResponse = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["userNamePromptDismissed", false]] }),
+    }))
+    const parsedTrue = await GET(new Request("http://localhost/api/settings"))
+    const parsedFalse = await GET(new Request("http://localhost/api/settings"))
+
+    expect(trueResponse.status).toBe(200)
+    expect(falseResponse.status).toBe(200)
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("Settings!A%3AB:append"),
+      expect.objectContaining({ body: JSON.stringify({ values: [["userNamePromptDismissed", "true"]] }) })
+    )
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("Settings!A1%3AB1?valueInputOption=RAW"),
+      expect.objectContaining({ body: JSON.stringify({ values: [["userNamePromptDismissed", "false"]] }) })
+    )
+    expect((await parsedTrue.json()).settings.userNamePromptDismissed).toBe(true)
+    expect((await parsedFalse.json()).settings.userNamePromptDismissed).toBe(false)
+  })
+
+  it.each([
+    ["a non-string name", [["userName", 123]]],
+    ["a name longer than 60 characters", [["userName", "😀".repeat(61)]]],
+    ["a non-boolean dismissal value", [["userNamePromptDismissed", "true"]]],
+  ])("rejects %s", async (_description, updates) => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    const { PUT } = await import("@/app/api/settings/route")
+
+    const response = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates }),
+    }))
+
+    expect(response.status).toBe(400)
+  })
+
   it("writes structured categories under the versioned key", async () => {
     const { getAuthContext } = await import("@/lib/apiAuth")
     const { getSheetData } = await import("@/lib/sheets")
