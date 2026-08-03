@@ -7,6 +7,7 @@ import { formatRpFull, formatInputRupiah } from "./_components/helpers"
 import { useSettings } from "@/lib/useSharedData"
 import Sheet from "./_components/Sheet"
 import CategoryManager from "@/components/CategoryManager"
+import UserNameSetup from "@/components/UserNameSetup"
 
 function formatDateDisplay(dateStr) {
   if (!dateStr) return "—"
@@ -115,6 +116,12 @@ export default function ProfileTab({ session, data, entitlement, signOut, soundE
           <span className="text-sm font-medium text-earth-500">Email</span>
           <span className="text-sm font-bold text-earth-800 truncate max-w-[60%] text-right">{session?.user?.email || "—"}</span>
         </div>
+        <UserNameSetup
+          initialValue={settings.userName || session?.user?.name || ""}
+          open={true}
+          mode="settings"
+          onSaved={() => refetchSettings()}
+        />
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium text-earth-500">Total Transaksi</span>
           <span className="text-sm font-bold text-earth-800">{data?.transactions?.length || 0}</span>

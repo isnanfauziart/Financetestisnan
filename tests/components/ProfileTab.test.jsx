@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { afterEach, describe, it, expect, vi, beforeEach } from "vitest"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import ProfileTab from "@/app/dashboard/ProfileTab"
 
 vi.mock("@/lib/useSharedData", () => ({
@@ -7,6 +7,8 @@ vi.mock("@/lib/useSharedData", () => ({
 }))
 
 const { useSettings } = await import("@/lib/useSharedData")
+
+let refetchSettings
 
 function createProps(overrides = {}) {
   return {
@@ -34,13 +36,21 @@ function createProps(overrides = {}) {
 
 describe("ProfileTab ownership cleanup", () => {
   beforeEach(() => {
+    refetchSettings = vi.fn().mockResolvedValue(undefined)
     useSettings.mockReturnValue({
       settings: {
         startingBalance: 2500000,
         startingBalanceDate: "2026-07-01",
+        userName: "",
+        userNamePromptDismissed: false,
       },
-      refetch: vi.fn(),
+      refetch: refetchSettings,
     })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it("keeps identity visible near the top with an account-focused summary", () => {
@@ -50,6 +60,32 @@ describe("ProfileTab ownership cleanup", () => {
     expect(screen.getAllByText("ayu@example.com").length).toBeGreaterThan(0)
     expect(screen.getByText("Identitas Akun")).toBeInTheDocument()
     expect(screen.getByText("Total Transaksi")).toBeInTheDocument()
+  })
+
+  it("shows the name field near account identity and refreshes settings after saving", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true }) })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    render(<ProfileTab {...createProps()} />)
+
+    const identityHeading = screen.getByText("Identitas Akun")
+    const input = screen.getByLabelText("Nama pengguna")
+    const accessHeading = screen.getByText("Paket & Akses")
+    expect(identityHeading.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(input.compareDocumentPosition(accessHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    fireEvent.change(input, { target: { value: "  Nama Profil  " } })
+    fireEvent.click(screen.getByRole("button", { name: "Simpan" }))
+
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1))
+
+    expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toEqual({
+      updates: [
+        ["userName", "Nama Profil"],
+        ["userNamePromptDismissed", true],
+      ],
+    })
+    await waitFor(() => expect(refetchSettings).toHaveBeenCalled())
   })
 
   it("adds paket dan akses near the top before preferences", () => {
