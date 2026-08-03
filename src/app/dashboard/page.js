@@ -28,6 +28,7 @@ import BillPayModal from "@/components/BillPayModal"
 import BillSetupModal from "@/components/BillSetupModal"
 import EventCelebration from "@/components/EventCelebration"
 import LegacySheetConnector from "@/components/LegacySheetConnector"
+import UserNameSetup from "@/components/UserNameSetup"
 import PaymentStatusBanner from "./_components/PaymentStatusBanner"
 import { useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
@@ -105,9 +106,10 @@ export default function Dashboard() {
   const [eventsRefreshTrigger, setEventsRefreshTrigger] = useState(0)
   const [eventCelebration, setEventCelebration] = useState(null)
   const prevEventPctRef = useRef({})
+  const [userNamePromptClosed, setUserNamePromptClosed] = useState(false)
 
   // Settings
-  const { settings, refetch: refetchSettings } = useSettings()
+  const { settings, loading: settingsLoading, error: settingsError, refetch: refetchSettings } = useSettings()
 
   // Scroll Y for P8 parallax
   const [scrollY, setScrollY] = useState(0)
@@ -118,6 +120,10 @@ export default function Dashboard() {
   const data = hasSessionData ? storedData : null
   const dashboardLoading = status === "authenticated" && !hasSessionData ? true : loading
   const lastSyncAt = hasSessionData ? storedLastSyncAt : null
+
+  useEffect(() => {
+    setUserNamePromptClosed(false)
+  }, [sessionKey])
 
   useEffect(() => {
     if (status !== "authenticated" || !sessionKey) {
@@ -951,6 +957,30 @@ export default function Dashboard() {
           {toast.msg}
         </Toast>
       )}
+
+      <UserNameSetup
+        initialValue={settings.userName || session?.user?.name || ""}
+        open={Boolean(
+          data &&
+          session &&
+          !needsSheetConnection &&
+          !settingsLoading &&
+          !settingsError &&
+          !String(settings.userName || "").trim() &&
+          !settings.userNamePromptDismissed &&
+          !userNamePromptClosed,
+        )}
+        mode="prompt"
+        onClose={() => setUserNamePromptClosed(true)}
+        onSaved={async () => {
+          setUserNamePromptClosed(true)
+          await refetchSettings()
+        }}
+        onDismissed={async () => {
+          setUserNamePromptClosed(true)
+          await refetchSettings()
+        }}
+      />
 
       {/* Header with P4 animated gradient */}
       <header className="sticky top-0 z-20 px-5 pt-6 pb-3 glass-nav safe-top">
