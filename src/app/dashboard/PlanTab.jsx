@@ -47,6 +47,7 @@ export default function PlanTab({
   activeSection,
   onSectionChange,
   onUsageChange,
+  onBillsChanged,
   transactionUsage,
   entitlement,
 }) {
@@ -122,6 +123,7 @@ export default function PlanTab({
             onToast={onToast}
             refreshTrigger={billsRefreshTrigger || 0}
             onUsageChange={onUsageChange}
+            onBillsChanged={onBillsChanged}
             transactionUsage={transactionUsage}
           />
         )}

@@ -542,3 +542,29 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 - Focused name-feature suite: 6 files passed, 31 tests passed.
 - Full repository suite: 85 test files passed, 380 tests passed, and 2 existing smoke tests skipped.
 - Production build passed with temporary process-only values for the 11 required environment variable names; no secrets were written.
+
+## 2026-08-07 — Next-month cash-flow forecast implemented
+
+### Tasks Completed
+- Replaced the old short-window forecast with a single expected next-month projection using up to six complete months of history.
+- Added stable/irregular income handling, robust expense baselines, scheduled bill recurrence, bill-payment double-count protection, and minimum-data fallbacks.
+- Wired forecast data, bills, transactions, loading/error state, and refresh behavior through the dashboard and plan surfaces.
+- Hardened transaction update/delete ID validation and preserved untouched transaction columns during edits.
+- Simplified the forecast chart to actual surplus plus one dashed projected connector and added the formula note link.
+
+### Files Changed
+- `src/lib/forecast.js`, `src/lib/bills.js`, `src/lib/useSharedData.js`
+- `src/components/CashFlowForecast.jsx`, `src/components/BillsSection.jsx`
+- `src/app/dashboard/page.js`, `src/app/dashboard/StatsTab.jsx`, `src/app/dashboard/PlanTab.jsx`
+- `src/app/api/transaction/[id]/route.js`
+- Forecast, bill, dashboard, and transaction API tests
+
+### Decisions
+- Forecasts use up to six complete months, excluding the current partial month; gaps are not treated as zero.
+- Stable income requires at least 5 of 6 positive months with CV `<= 0.25`; irregular income uses the median.
+- Scheduled `Cicilan/Kredit` bills are included, while raw `Utang` balances are not.
+- The UI shows one expected forecast without confidence bands or alternative scenarios.
+
+### Verification
+- Full repository suite: 88 test files passed, 436 tests passed, and 2 tests skipped.
+- Production build passed with temporary process-only values for the required environment variable names; no secrets were written.

@@ -5,6 +5,11 @@ import { createUndoToken } from "@/lib/transactionUndo"
 import { getSheetData, updateSheetValues } from "@/lib/sheets"
 
 const ALLOWED_TABS = ["Pemasukan", "Pengeluaran", "Tabungan"]
+const FALLBACK_ID_PREFIXES = { Pemasukan: "in", Pengeluaran: "ex", Tabungan: "sv" }
+
+function getExpectedId(tab, rowIndex, persistedId) {
+  return persistedId || `${FALLBACK_ID_PREFIXES[tab]}-${rowIndex - 1}`
+}
 
 function formatDate(dateStr) {
   const parts = String(dateStr).split("-")
@@ -20,6 +25,13 @@ function getMonthName(dateStr) {
   return AVAILABLE_MONTHS[parseInt(parts[1], 10) - 1] || ""
 }
 
+function isValidIsoDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return false
+  const [year, month, day] = String(value).split("-").map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
+
 export async function PUT(request, { params }) {
   const auth = await getAuthContext(request)
   if (!auth) {
@@ -33,36 +45,42 @@ export async function PUT(request, { params }) {
     const body = await request.json()
     const { tab, type, tanggal, keterangan, kategori, jumlah, akunBank, rowIndex, eventId, eventSubKategori } = body
 
-    if (!ALLOWED_TABS.includes(tab) || !rowIndex || !tanggal || !kategori || !jumlah) {
+    if (!ALLOWED_TABS.includes(tab) || !Number.isInteger(rowIndex) || rowIndex < 2 || !tanggal || !kategori || !jumlah) {
       return Response.json({ error: "Missing required fields" }, { status: 400 })
+    }
+    if (!isValidIsoDate(tanggal)) {
+      return Response.json({ error: "Tanggal tidak valid" }, { status: 400 })
     }
 
     const formattedDate = formatDate(tanggal)
-    const month = getMonthName(tanggal)
-    const year = parseInt(String(tanggal).split("-")[0], 10)
-    const amount = parseFloat(String(jumlah).replace(/[^0-9.]/g, ""))
-
-    // Format: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M | Y | Y2 | EventID | EventSubKategori
-    const row = [
-      formattedDate,
-      "",
-      keterangan || "",
-      kategori,
-      amount,
-      "",
-      "",
-      akunBank || "",
-      amount,
-      "",
-      month,
-      year,
-      year,
-      eventId || "",
-      eventSubKategori || "",
-    ]
+    const rawAmount = String(jumlah).trim()
+    const amount = Number(rawAmount.replace(/[^0-9.]/g, ""))
+    if (rawAmount.includes("-") || !Number.isFinite(amount) || amount <= 0 || amount > 999999999999) {
+      return Response.json({ error: "Jumlah harus antara 1 dan 999.999.999.999" }, { status: 400 })
+    }
 
     // Update row at specific index: A{rowIndex}:O{rowIndex}
     const range = `${tab}!A${rowIndex}:O${rowIndex}`
+    const existingRows = await getSheetData(accessToken, range, spreadsheetId)
+    const existingRow = Array.from({ length: 15 }, (_, index) => existingRows[0]?.[index] ?? "")
+    if (!existingRow.some(cell => String(cell).trim())) {
+      return Response.json({ error: "Transaksi tidak ditemukan" }, { status: 404 })
+    }
+    const requestedId = String(params?.id || "").trim()
+    const existingId = String(existingRow[1]).trim()
+    if (requestedId !== getExpectedId(tab, rowIndex, existingId)) {
+      return Response.json({ error: "Transaksi tidak ditemukan" }, { status: 404 })
+    }
+    const row = existingRow.slice()
+    row[0] = formattedDate
+    row[1] = existingRow[1]
+    row[2] = keterangan || ""
+    row[3] = kategori
+    row[4] = amount
+    row[7] = akunBank || ""
+    row[8] = amount
+    if (Object.prototype.hasOwnProperty.call(body, "eventId")) row[13] = eventId || ""
+    if (Object.prototype.hasOwnProperty.call(body, "eventSubKategori")) row[14] = eventSubKategori || ""
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
 
     const res = await fetch(url, {
@@ -107,6 +125,11 @@ export async function DELETE(request, { params }) {
     const rows = await getSheetData(accessToken, range, spreadsheetId)
     const row = Array.from({ length: 15 }, (_, index) => rows[0]?.[index] ?? "")
     if (!row.some(cell => String(cell).trim())) {
+      return Response.json({ error: "Transaksi tidak ditemukan" }, { status: 404 })
+    }
+    const requestedId = String(params?.id || "").trim()
+    const existingId = String(row[1]).trim()
+    if (requestedId !== getExpectedId(tab, rowIndex, existingId)) {
       return Response.json({ error: "Transaksi tidak ditemukan" }, { status: 404 })
     }
     const undoToken = createUndoToken({

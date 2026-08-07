@@ -368,6 +368,7 @@ let billsLoaded = false
 let billsListeners = new Set()
 let billsInFlight = null
 let billsError = null
+let billsRequestVersion = 0
 
 function subscribeBills(listener) {
   billsListeners.add(listener)
@@ -382,6 +383,15 @@ function notifyBills() {
   billsListeners.forEach((fn) => fn())
 }
 
+function clearBillsCache() {
+  billsRequestVersion += 1
+  billsCache = null
+  billsLoaded = false
+  billsError = null
+  billsInFlight = null
+  notifyBills()
+}
+
 async function fetchBillsInternal() {
   if (billsLoaded && billsCache !== null) return
 
@@ -393,10 +403,12 @@ async function fetchBillsInternal() {
   billsError = null
   notifyBills()
 
+  const requestVersion = billsRequestVersion
   billsInFlight = (async () => {
     try {
       const res = await fetch("/api/bills")
       const data = await res.json()
+      if (requestVersion !== billsRequestVersion) return
       if (res.ok) {
         billsCache = data.bills || []
       } else {
@@ -405,33 +417,44 @@ async function fetchBillsInternal() {
       }
       billsLoaded = true
     } catch (err) {
+      if (requestVersion !== billsRequestVersion) return
       billsError = err.message
       billsCache = []
       billsLoaded = true
     } finally {
-      billsInFlight = null
-      notifyBills()
+      if (requestVersion === billsRequestVersion) {
+        billsInFlight = null
+        notifyBills()
+      }
     }
   })()
 
   await billsInFlight
 }
 
-export function useBills() {
+export function useBills(enabled = true) {
   useEffect(() => {
+    if (!enabled) {
+      clearBillsCache()
+      return
+    }
     fetchBillsInternal()
-  }, [])
+  }, [enabled])
 
   const snapshot = useSyncExternalStore(subscribeBills, getBillsSnapshot, getBillsSnapshot)
   const parsed = JSON.parse(snapshot)
-  const isLoading = !parsed.loaded && parsed.data === null && parsed.error === null
+  const isLoading = enabled && !parsed.loaded && parsed.data === null && parsed.error === null
 
   const refetch = useCallback(async () => {
+    if (!enabled) return
     billsLoaded = false
     billsCache = null
     billsError = null
+    billsInFlight = null
+    billsRequestVersion += 1
+    notifyBills()
     await fetchBillsInternal()
-  }, [])
+  }, [enabled])
 
   return {
     bills: parsed.data || [],

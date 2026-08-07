@@ -55,6 +55,10 @@ export default function StatsTab({
   hapticsEnabled,
   monthlyData,
   allTransactions,
+  now,
+  bills,
+  billsLoading,
+  billsError,
   onCategoryClick,
   userName,
   entitlement,
@@ -342,7 +346,7 @@ export default function StatsTab({
             )
           )}
 
-          {!isFeatureEnabled(effectiveEntitlement, "cashFlowForecast") ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={monthlyData} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." />}
+          {!isFeatureEnabled(effectiveEntitlement, "cashFlowForecast") ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={monthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." />}
           <SavingsRateTrend monthlyData={monthlyData} />
 
           {/* Month comparison */}

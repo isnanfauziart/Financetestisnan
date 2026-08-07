@@ -30,7 +30,7 @@ const FREQ_LABELS = {
   yearly: "Tahunan",
 }
 
-export default function BillsSection({ onToast, refreshTrigger, onUsageChange, transactionUsage }) {
+export default function BillsSection({ onToast, refreshTrigger, onUsageChange, onBillsChanged, transactionUsage }) {
   const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -62,10 +62,11 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, t
     if (refreshTrigger > 0) fetchBills()
   }, [refreshTrigger, fetchBills])
 
-  const handlePaySuccess = (result) => {
+  const handlePaySuccess = async (result) => {
     setPayBill(null)
     onToast?.(`Tagihan dibayar! Transaksi ${result.transaction?.kategori} · ${formatRpFull(result.transaction?.jumlah)} dibuat ✓`)
-    fetchBills()
+    await fetchBills()
+    await onBillsChanged?.()
     onUsageChange?.()
   }
 
@@ -81,7 +82,8 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, t
         throw new Error(data.error || "Gagal")
       }
       onToast?.(bill.aktif ? "Tagihan dinonaktifkan" : "Tagihan diaktifkan")
-      fetchBills()
+      await fetchBills()
+      await onBillsChanged?.()
       onUsageChange?.()
     } catch (err) {
       onToast?.(err.message, "error")
@@ -101,7 +103,8 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, t
       }
       setConfirmDelete(null)
       onToast?.("Tagihan dihapus", "success")
-      fetchBills()
+      await fetchBills()
+      await onBillsChanged?.()
       onUsageChange?.()
     } catch (err) {
       onToast?.(err.message, "error")
@@ -361,10 +364,11 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, t
         <BillSetupModal
           bill={setupState.goal}
           onClose={() => setSetupState(null)}
-          onSaved={() => {
+          onSaved={async () => {
             setSetupState(null)
             onToast?.(setupState.mode === "edit" ? "Tagihan diperbarui ✓" : "Tagihan dibuat ✓", "success")
-            fetchBills()
+            await fetchBills()
+            await onBillsChanged?.()
             onUsageChange?.()
           }}
         />

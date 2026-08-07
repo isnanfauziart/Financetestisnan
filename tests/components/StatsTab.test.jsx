@@ -2,11 +2,18 @@ import { describe, it, expect, vi } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import StatsTab from "@/app/dashboard/StatsTab"
 
+const forecastProps = vi.hoisted(() => ({ current: null }))
+
 vi.mock("@/components/BudgetsSection", () => ({ default: () => <div>Budgets mock</div> }))
 vi.mock("@/components/EventBudgetsSection", () => ({ default: () => <div>Event budgets mock</div> }))
 vi.mock("@/components/MonthlyReportButton", () => ({ default: () => <button type="button">Monthly report</button> }))
 vi.mock("@/components/YearInReviewButton", () => ({ default: () => <button type="button">Year in review</button> }))
-vi.mock("@/components/CashFlowForecast", () => ({ default: () => <div>Forecast mock</div> }))
+vi.mock("@/components/CashFlowForecast", () => ({
+  default: (props) => {
+    forecastProps.current = props
+    return <div>Forecast mock</div>
+  },
+}))
 vi.mock("@/components/SavingsRateTrend", () => ({ default: () => <div>Savings trend mock</div> }))
 vi.mock("@/components/AnomalyAlerts", () => ({ default: () => <div>Anomaly mock</div> }))
 
@@ -69,8 +76,12 @@ function createProps(overrides = {}) {
     onDeleteTx: vi.fn(),
     haptics: { tap: vi.fn() },
     hapticsEnabled: false,
-    monthlyData: [],
-    allTransactions: [],
+  monthlyData: [],
+  allTransactions: [],
+  bills: [],
+  billsLoading: false,
+  billsError: null,
+    now: 1722470400000,
     eventsRefreshTrigger: 0,
     onCategoryClick: vi.fn(),
     ...overrides,
@@ -158,5 +169,27 @@ describe("StatsTab segmented statistik navigation", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
     expect(screen.getByText("Komposisi Pemasukan").closest(".grid")).toHaveClass("grid-cols-1", "sm:grid-cols-2")
+  })
+})
+
+describe("StatsTab forecast inputs", () => {
+  it("passes global transactions and bills to the cash-flow forecast", () => {
+    const allTransactions = [{ id: "billpay:bill-1:2026-06-01", type: "expense", amount: 100 }]
+    const bills = [{ id: "bill-1", nama: "Internet", jumlah: 100, aktif: true }]
+
+    render(<StatsTab {...createProps({ allTransactions, bills })} />)
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+
+    expect(forecastProps.current.transactions).toBe(allTransactions)
+    expect(forecastProps.current.bills).toBe(bills)
+  })
+
+  it("passes the dashboard clock to the cash-flow forecast", () => {
+    const now = 1754006400000
+
+    render(<StatsTab {...createProps({ now })} />)
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+
+    expect(forecastProps.current.now).toBe(now)
   })
 })

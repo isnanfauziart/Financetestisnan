@@ -11,7 +11,11 @@ vi.mock("next/dynamic", () => ({
 vi.mock("@/components/GoalsSection", () => ({ default: () => <div>Goals section mock</div> }))
 vi.mock("@/components/DebtsSection", () => ({ default: () => <div>Debts section mock</div> }))
 vi.mock("@/components/BudgetsSection", () => ({ default: () => <div>Budgets section mock</div> }))
-vi.mock("@/components/BillsSection", () => ({ default: () => <div>Bills section mock</div> }))
+vi.mock("@/components/BillsSection", () => ({
+  default: ({ onBillsChanged }) => (
+    <button type="button" onClick={onBillsChanged}>Bills section mock</button>
+  ),
+}))
 vi.mock("@/components/EventBudgetsSection", () => ({ default: () => <div>Event budgets section mock</div> }))
 
 function createProps(overrides = {}) {
@@ -77,6 +81,15 @@ describe("PlanTab planning ownership", () => {
 
     expect(screen.getByText("Bills section mock")).toBeInTheDocument()
     expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
+  })
+
+  it("forwards the bill-change callback to the Tagihan section", () => {
+    const onBillsChanged = vi.fn()
+    render(<PlanTab {...createProps({ activeSection: "tagihan", onBillsChanged })} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Bills section mock" }))
+
+    expect(onBillsChanged).toHaveBeenCalledTimes(1)
   })
 
   it("supports deep-linking directly into a plan section from shared routing state", () => {

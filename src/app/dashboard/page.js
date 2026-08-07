@@ -30,7 +30,7 @@ import EventCelebration from "@/components/EventCelebration"
 import LegacySheetConnector from "@/components/LegacySheetConnector"
 import UserNameSetup from "@/components/UserNameSetup"
 import PaymentStatusBanner from "./_components/PaymentStatusBanner"
-import { useSettings } from "@/lib/useSharedData"
+import { useBills, useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
 import { hasFeature } from "@/lib/featureAccess"
 import { getEffectiveUserName } from "@/lib/userDisplayName"
@@ -110,6 +110,7 @@ export default function Dashboard() {
   const [userNamePromptClosed, setUserNamePromptClosed] = useState(false)
 
   // Settings
+  const { bills, loading: billsLoading, error: billsError, refetch: refetchBills } = useBills(status === "authenticated")
   const { settings, loading: settingsLoading, error: settingsError, refetch: refetchSettings } = useSettings()
   const effectiveUserName = getEffectiveUserName({
     savedName: settings.userName,
@@ -918,23 +919,29 @@ export default function Dashboard() {
 
   // Bill handlers
   const handleBillPay = (bill) => setBillPayTarget(bill)
-  const handleBillPaid = (result) => {
+  const handleBillsChanged = async () => {
+    await refetchBills()
+    fetchData()
+  }
+  const handleBillPaid = async (result) => {
     setBillPayTarget(null)
     if (hapticsEnabled) haptics.success()
     if (soundEnabled) playSuccessSound()
     showToast(`Tagihan dibayar! ${result.transaction?.kategori} · ${formatRp(result.transaction?.jumlah)} ✓`)
     fetchData()
     setBillsRefreshTrigger(t => t + 1)
+    await refetchBills()
   }
   const handleBillEditFromPay = (bill) => {
     setBillPayTarget(null)
     setBillEditTarget(bill)
   }
-  const handleBillEditSaved = () => {
+  const handleBillEditSaved = async () => {
     setBillEditTarget(null)
     showToast("Tagihan diperbarui ✓")
     fetchData()
     setBillsRefreshTrigger(t => t + 1)
+    await refetchBills()
   }
 
   const topCategory = expenseCategories[0] || { name: "—", value: 0 }
@@ -1099,10 +1106,15 @@ export default function Dashboard() {
             onEditTx={handleEditTx}
              onDeleteTx={handleDelete}
              haptics={haptics}
-             hapticsEnabled={hapticsEnabled}
-             monthlyData={data?.monthlyData || []}
-             allTransactions={data?.transactions || []}
-             onCategoryClick={handleAnomalyCategoryClick}
+              hapticsEnabled={hapticsEnabled}
+              monthlyData={data?.monthlyData || []}
+              allTransactions={data?.transactions || []}
+              now={syncNow}
+              bills={bills}
+              billsLoading={billsLoading}
+              billsError={billsError}
+              refetchBills={refetchBills}
+              onCategoryClick={handleAnomalyCategoryClick}
              userName={effectiveUserName}
              entitlement={entitlement}
           />
@@ -1125,6 +1137,7 @@ export default function Dashboard() {
             activeSection={activePlanSection}
             onSectionChange={setActivePlanSection}
             onUsageChange={fetchEntitlement}
+            onBillsChanged={handleBillsChanged}
             transactionUsage={entitlement?.usage?.transactions}
             entitlement={entitlement}
           />

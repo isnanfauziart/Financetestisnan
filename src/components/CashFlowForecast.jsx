@@ -1,10 +1,13 @@
 "use client"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { TrendingUp, Info } from "lucide-react"
 import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp, useCountUp } from "@/app/dashboard/_components/helpers"
 import { computeForecast } from "@/lib/forecast"
+import Sheet from "@/app/dashboard/_components/Sheet"
+
+const FORMULA_COPY = "Proyeksi ini dihitung berdasarkan hingga enam bulan lengkap terakhir, dengan mempertimbangkan pola pemasukan, pengeluaran, tagihan, dan pembayaran terjadwal."
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) return null
@@ -26,12 +29,46 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
-export default function CashFlowForecast({ monthlyData }) {
-  const forecast = useMemo(() => computeForecast(monthlyData || []), [monthlyData])
+export default function CashFlowForecast({ monthlyData, transactions, bills, billsLoading, billsError, now }) {
+  const [isInfoOpen, setIsInfoOpen] = useState(false)
+  const forecast = useMemo(
+    () => computeForecast(monthlyData || [], { transactions: transactions || [], bills: bills || [], now: new Date(now) }),
+    [monthlyData, transactions, bills, now]
+  )
 
-  const animatedIncome = useCountUp(forecast.projectedIncome, 1000)
-  const animatedExpense = useCountUp(forecast.projectedExpense, 1000)
-  const animatedSurplus = useCountUp(forecast.projectedSurplus, 1000)
+  const animatedIncome = useCountUp(forecast.projectedIncome ?? 0, 1000)
+  const animatedExpense = useCountUp(forecast.projectedExpense ?? 0, 1000)
+  const animatedSurplus = useCountUp(forecast.projectedSurplus ?? 0, 1000)
+
+  const handleChartKeyDown = (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return
+    event.preventDefault()
+    setIsInfoOpen(true)
+  }
+
+  if (billsLoading) {
+    return (
+      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in" role="status" aria-live="polite">
+        <div className="flex items-center gap-1.5 mb-2">
+          <TrendingUp size={14} className="text-earth-400" aria-hidden="true" />
+          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Proyeksi Arus Kas</p>
+        </div>
+        <p className="text-sm text-earth-500">Memuat tagihan terjadwal…</p>
+      </div>
+    )
+  }
+
+  if (billsError) {
+    return (
+      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in" role="status" aria-live="polite">
+        <div className="flex items-center gap-1.5 mb-2">
+          <TrendingUp size={14} className="text-earth-400" aria-hidden="true" />
+          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Proyeksi Arus Kas</p>
+        </div>
+        <p className="text-sm text-earth-500">Proyeksi arus kas belum tersedia.</p>
+      </div>
+    )
+  }
 
   if (forecast.insufficientData) {
     return (
@@ -40,7 +77,7 @@ export default function CashFlowForecast({ monthlyData }) {
           <TrendingUp size={14} className="text-earth-400" aria-hidden="true" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Proyeksi Arus Kas</p>
         </div>
-        <p className="text-sm text-earth-500">Butuh minimal 2 bulan data untuk proyeksi.</p>
+        <p className="text-sm text-earth-500">Butuh minimal 3 bulan lengkap untuk proyeksi.</p>
       </div>
     )
   }
@@ -55,9 +92,19 @@ export default function CashFlowForecast({ monthlyData }) {
           <TrendingUp size={14} className="text-violet-500" aria-hidden="true" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Proyeksi Arus Kas</p>
         </div>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">
-          {forecast.projectionMonth} (proyeksi)
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">
+            {forecast.projectionMonth} (proyeksi)
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsInfoOpen(true)}
+            aria-label="Info proyeksi arus kas"
+            className="w-7 h-7 rounded-full bg-earth-50 text-earth-500 hover:bg-earth-100 transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+          >
+            <Info size={14} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {/* KPI cards */}
@@ -85,17 +132,21 @@ export default function CashFlowForecast({ monthlyData }) {
       </div>
 
       {/* Chart */}
-      <div className="rounded-2xl p-3 mb-3" style={{ background: THEME.surfaceMuted }}>
+      <div
+        className="rounded-2xl p-3 mb-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+        style={{ background: THEME.surfaceMuted }}
+        role="button"
+        tabIndex={0}
+        aria-label="Buka rumus proyeksi arus kas"
+        onClick={() => setIsInfoOpen(true)}
+        onKeyDown={handleChartKeyDown}
+      >
         <ResponsiveContainer width="100%" height={180}>
           <AreaChart data={forecast.chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
             <defs>
               <linearGradient id="cfActualGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={THEME.primary} stopOpacity={0.2} />
                 <stop offset="100%" stopColor={THEME.primary} stopOpacity={0.02} />
-              </linearGradient>
-              <linearGradient id="cfConfGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={THEME.warning} stopOpacity={0.18} />
-                <stop offset="100%" stopColor={THEME.warning} stopOpacity={0.04} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.surfaceWarm} vertical={false} />
@@ -108,29 +159,6 @@ export default function CashFlowForecast({ monthlyData }) {
             <YAxis hide />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={0} stroke={THEME.surfaceWarm} strokeDasharray="4 4" />
-            {/* Confidence band (projected area) */}
-            {forecast.chartData.some((d) => d.isProjected) && (
-              <>
-                <Area
-                  type="monotone"
-                  dataKey="surplusHigh"
-                  stroke="none"
-                  fill="url(#cfConfGrad)"
-                  fillOpacity={1}
-                  animationBegin={400}
-                  animationDuration={800}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="surplusLow"
-                  stroke="none"
-                  fill="#ffffff"
-                  fillOpacity={1}
-                  animationBegin={400}
-                  animationDuration={800}
-                />
-              </>
-            )}
             {/* Actual surplus area + line */}
             <Area
               type="monotone"
@@ -154,11 +182,13 @@ export default function CashFlowForecast({ monthlyData }) {
             {/* Projected surplus dashed line */}
             <Line
               type="monotone"
-              dataKey="surplusProjected"
+              dataKey="surplusForecast"
               stroke={THEME.warning}
               strokeWidth={2}
               strokeDasharray="6 4"
-              dot={{ r: 4, fill: THEME.warning, strokeWidth: 2, stroke: "#fff", strokeDasharray: "none" }}
+              dot={({ cx, cy, payload }) => payload?.isProjected ? (
+                <circle cx={cx} cy={cy} r={4} fill={THEME.warning} stroke="#fff" strokeWidth={2} />
+              ) : null}
               connectNulls={false}
               animationBegin={600}
               animationDuration={800}
@@ -180,9 +210,13 @@ export default function CashFlowForecast({ monthlyData }) {
           </div>
         </div>
         <p className="text-[9px] text-earth-500">
-          Rata-rata {forecast.monthsUsed} bulan terakhir
+          Berdasarkan {forecast.monthsUsed} bulan lengkap
         </p>
       </div>
+
+      <Sheet open={isInfoOpen} onClose={() => setIsInfoOpen(false)} title="Rumus Proyeksi Arus Kas">
+        <p className="text-sm leading-relaxed text-earth-600">{FORMULA_COPY}</p>
+      </Sheet>
     </div>
   )
 }
