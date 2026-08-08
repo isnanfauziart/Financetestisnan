@@ -111,7 +111,7 @@ function readAmount(value) {
 
 function hasFiniteValue(value) {
   if (value === null || value === undefined || String(value).trim?.() === "") return false
-  return Number.isFinite(Number(value)) || Number.isFinite(toFiniteNumber(value))
+  return Number.isFinite(Number(value))
 }
 
 function readRoutineExpense(entry) {

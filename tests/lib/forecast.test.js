@@ -57,6 +57,28 @@ describe("computeForecast", () => {
     expect(result.specialHistoryExcluded).toBe(true)
   })
 
+  it("falls back to legacy surplus when surplusRutin is non-numeric", () => {
+    const monthlyData = monthData(
+      ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"],
+      2_000_000,
+      10_700_000,
+    ).map((entry) => ({
+      ...entry,
+      pengeluaranRutin: 700_000,
+      surplusRutin: "not-a-number",
+      surplus: 1_300_000,
+    }))
+
+    const result = computeForecast(monthlyData, {
+      now: new Date("2026-07-15T00:00:00.000Z"),
+    })
+
+    expect(result.chartData.at(-2)).toMatchObject({
+      pengeluaran: 700_000,
+      surplus: 1_300_000,
+    })
+  })
+
   it("uses recency weights for six stable income months", () => {
     const result = computeForecast(
       monthData(["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"], [100, 110, 100, 110, 100, 110], 40),
