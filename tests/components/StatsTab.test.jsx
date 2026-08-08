@@ -178,7 +178,7 @@ describe("StatsTab segmented statistik navigation", () => {
     expect(screen.getByRole("button", { name: "Tahun" }).parentElement.parentElement).toHaveClass(
       "grid-cols-1",
       "min-[360px]:grid-cols-2",
-      "sm:grid-cols-3",
+      "sm:grid-cols-4",
     )
     expect(screen.getByRole("tab", { name: "Ringkasan" }).parentElement).toHaveClass("grid-cols-2", "sm:grid-cols-4")
 
@@ -235,7 +235,16 @@ describe("StatsTab routine/actual analysis mode", () => {
       ],
     })} />)
 
-    expect(screen.getByRole("button", { name: "Mode analisis Rutin" })).toHaveAttribute("aria-pressed", "true")
+    const analysisModeSelect = screen.getByRole("button", { name: "Mode Analisis" })
+    expect(analysisModeSelect).toHaveTextContent("Rutin")
+    expect(analysisModeSelect).toHaveAttribute("aria-expanded", "false")
+
+    fireEvent.click(analysisModeSelect)
+
+    expect(analysisModeSelect).toHaveAttribute("aria-expanded", "true")
+    expect(screen.getByRole("option", { name: "Rutin" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "Aktual" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("option", { name: "Rutin" }))
     expect(screen.getByText(/6\.000\.000/)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
@@ -243,7 +252,9 @@ describe("StatsTab routine/actual analysis mode", () => {
     expect(screen.getByText("Makan")).toBeInTheDocument()
     expect(screen.queryByText("Laptop")).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("button", { name: "Mode analisis Aktual" }))
+    fireEvent.click(analysisModeSelect)
+    fireEvent.click(screen.getByRole("option", { name: "Aktual" }))
+    expect(analysisModeSelect).toHaveTextContent("Aktual")
     expect(screen.getByText("Laptop")).toBeInTheDocument()
   })
 })
