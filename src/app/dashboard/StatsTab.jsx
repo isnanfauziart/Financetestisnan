@@ -553,11 +553,12 @@ export default function StatsTab({
                 selectedYear={selectedYear}
                 transactions={filteredTransactions}
                 monthlyData={monthlyData}
+                routineMonthlyData={routineMonthlyData}
                 allTransactions={allTransactions}
                 userName={userName}
                 entitlement={effectiveEntitlement}
               />
-              {!isFeatureEnabled(effectiveEntitlement, "yearInReview") ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} userName={userName} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." />}
+              {!isFeatureEnabled(effectiveEntitlement, "yearInReview") ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} routineMonthlyData={routineMonthlyData} userName={userName} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." />}
             </div>
           </div>
           <RecapSection transactions={data?.transactions || []} history={data?.history} onEdit={onEditTx} onDelete={onDeleteTx} />
