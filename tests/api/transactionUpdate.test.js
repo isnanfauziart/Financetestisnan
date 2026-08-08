@@ -16,7 +16,7 @@ describe("transaction update route", () => {
     vi.clearAllMocks()
   })
 
-  it("preserves untouched columns when updating a bill payment", async () => {
+  it("preserves the existing expense class and untouched columns when updating a bill payment", async () => {
     const auth = { user: { id: "u1" }, spreadsheetId: "sheet-1", accessToken: "token-1" }
     const fetchMock = vi.fn(async () => new Response(null, { status: 200 }))
     vi.stubGlobal("fetch", fetchMock)
@@ -26,7 +26,7 @@ describe("transaction update route", () => {
     getAuthContext.mockResolvedValue(auth)
     getSheetData.mockResolvedValue([[
       "6 Agu 2026", "billpay:bill-1:2026-08-06", "Internet", "Internet/WiFi", 200000,
-      5000, 2500, "BCA", 192500, "paid manually", "Agu", 2026, 2026, "event-1", "subscription",
+      5000, 2500, "BCA", 192500, "paid manually", "Agu", 2026, 2026, "event-1", "subscription", "Spesial",
     ]])
 
     const { PUT } = await import("@/app/api/transaction/[id]/route")
@@ -45,11 +45,77 @@ describe("transaction update route", () => {
       }), { params: { id: "billpay:bill-1:2026-08-06" } })
 
     expect(response.status).toBe(200)
-    expect(getSheetData).toHaveBeenCalledWith("token-1", "Pengeluaran!A2:O2", "sheet-1")
+    expect(getSheetData).toHaveBeenCalledWith("token-1", "Pengeluaran!A2:P2", "sheet-1")
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).values[0]).toEqual([
       "6 Agu 2026", "billpay:bill-1:2026-08-06", "Internet diperbarui", "Internet/WiFi", 250000,
-      5000, 2500, "BCA", 250000, "paid manually", "Agu", 2026, 2026, "event-1", "subscription",
+      5000, 2500, "BCA", 250000, "paid manually", "Agu", 2026, 2026, "event-1", "subscription", "Spesial",
     ])
+  })
+
+  it("replaces the existing expense class when sifat is provided", async () => {
+    const auth = { user: { id: "u1" }, spreadsheetId: "sheet-1", accessToken: "token-1" }
+    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue(auth)
+    getSheetData.mockResolvedValue([[
+      "6 Agu 2026", "expense-1", "Kondangan", "Kondangan", 200000,
+      "", "", "BCA", 200000, "", "Agu", 2026, 2026, "", "", "Rutin",
+    ]])
+
+    const { PUT } = await import("@/app/api/transaction/[id]/route")
+    const response = await PUT(new Request("http://localhost/api/transaction/expense-1", {
+      method: "PUT",
+      body: JSON.stringify({
+        tab: "Pengeluaran",
+        type: "expense",
+        tanggal: "2026-08-06",
+        keterangan: "Kondangan diperbarui",
+        kategori: "Kondangan",
+        jumlah: "250000",
+        akunBank: "BCA",
+        sifat: "Spesial",
+        rowIndex: 2,
+      }),
+    }), { params: { id: "expense-1" } })
+
+    expect(response.status).toBe(200)
+    expect(getSheetData).toHaveBeenCalledWith("token-1", "Pengeluaran!A2:P2", "sheet-1")
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).values[0]).toHaveLength(16)
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).values[0][15]).toBe("Spesial")
+  })
+
+  it("rejects an invalid expense class before reading or writing the row", async () => {
+    const auth = { user: { id: "u1" }, spreadsheetId: "sheet-1", accessToken: "token-1" }
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue(auth)
+    getSheetData.mockResolvedValue([[
+      "6 Agu 2026", "expense-1", "Kondangan", "Kondangan", 200000,
+      "", "", "BCA", 200000, "", "Agu", 2026, 2026, "", "", "Rutin",
+    ]])
+
+    const { PUT } = await import("@/app/api/transaction/[id]/route")
+    const response = await PUT(new Request("http://localhost/api/transaction/expense-1", {
+      method: "PUT",
+      body: JSON.stringify({
+        tab: "Pengeluaran",
+        tanggal: "2026-08-06",
+        kategori: "Kondangan",
+        jumlah: "250000",
+        sifat: "TidakDikenal",
+        rowIndex: 2,
+      }),
+    }), { params: { id: "expense-1" } })
+
+    expect(response.status).toBe(400)
+    expect(getSheetData).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -212,7 +278,7 @@ describe("transaction update route", () => {
     const { getAuthContext } = await import("@/lib/apiAuth")
     const { getSheetData, updateSheetValues } = await import("@/lib/sheets")
     getAuthContext.mockResolvedValue(auth)
-    getSheetData.mockResolvedValue([['6 Aug 2026', 'actual-id', 'Internet']])
+    getSheetData.mockResolvedValue([['6 Aug 2026', 'actual-id', 'Internet', '', '', '', '', '', '', '', '', '', '', '', '', 'Spesial']])
 
     const { DELETE } = await import("@/app/api/transaction/[id]/route")
     const response = await DELETE(new Request("http://localhost/api/transaction/actual-id", {
@@ -223,8 +289,8 @@ describe("transaction update route", () => {
     expect(response.status).toBe(200)
     expect(updateSheetValues).toHaveBeenCalledWith(
       "token-1",
-      "Pengeluaran!A2:O2",
-      [Array(15).fill("")],
+      "Pengeluaran!A2:P2",
+      [Array(16).fill("")],
       "sheet-1",
       "RAW",
     )

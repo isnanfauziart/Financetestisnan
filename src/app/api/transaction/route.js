@@ -1,7 +1,8 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
-import { appendSheetValues, getSheetData, updateSheetValues } from "@/lib/sheets"
+import { appendSheetValues, ensureExpenseClassHeader, getSheetData, updateSheetValues } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { expenseClassToSheet } from "@/lib/expenseClass"
 import { quotaErrorResponse, releaseTransaction, reserveTransaction } from "@/lib/transactionQuota"
 import { verifyUndoToken } from "@/lib/transactionUndo"
 import { claimFeatureWrite, releaseFeatureWrite } from "@/lib/writeClaims"
@@ -48,7 +49,8 @@ export async function POST(request) {
       if (!undo.jti || !await claimFeatureWrite(auth.user.id, writeKey)) {
         return Response.json({ error: "Undo sudah digunakan" }, { status: 409 })
       }
-      const range = `${undo.tab}!A${undo.rowIndex}:O${undo.rowIndex}`
+      const rangeEnd = undo.tab === "Pengeluaran" ? "P" : "O"
+      const range = `${undo.tab}!A${undo.rowIndex}:${rangeEnd}${undo.rowIndex}`
       let current
       try {
         current = await getSheetData(auth.accessToken, range, auth.spreadsheetId)
@@ -68,12 +70,16 @@ export async function POST(request) {
       return Response.json({ success: true, restored: true })
     }
 
-    const { type = "expense", tanggal, keterangan, kategori, jumlah, akunBank, catatan, eventId, eventSubKategori } = body
+    const { type = "expense", tanggal, keterangan, kategori, jumlah, akunBank, catatan, eventId, eventSubKategori, sifat } = body
     if (!tanggal || !kategori || !jumlah) {
       return Response.json({ error: "Tanggal, kategori, dan jumlah wajib diisi" }, { status: 400 })
     }
     if (!isValidIsoDate(tanggal)) return Response.json({ error: "Tanggal tidak valid" }, { status: 400 })
     if (!ALLOWED_TYPES.includes(type)) return Response.json({ error: "Tipe transaksi tidak valid" }, { status: 400 })
+    const expenseClass = String(sifat ?? "").trim()
+    if (type === "expense" && expenseClass && !["Rutin", "Spesial"].includes(expenseClass)) {
+      return Response.json({ error: "Sifat pengeluaran tidak valid" }, { status: 400 })
+    }
     const amount = Number(String(jumlah).replace(/[^0-9.]/g, ""))
     if (!Number.isFinite(amount) || amount <= 0 || amount > 999999999999) {
       return Response.json({ error: "Jumlah harus antara 1 dan 999.999.999.999" }, { status: 400 })
@@ -90,10 +96,15 @@ export async function POST(request) {
       amount, catatan || "", AVAILABLE_MONTHS[Number(monthNumber) - 1] || "", Number(year), Number(year),
       eventId || "", eventSubKategori || "",
     ]
+    if (type === "expense") {
+      row.push(expenseClassToSheet(expenseClass))
+      await ensureExpenseClassHeader(auth.accessToken, auth.spreadsheetId)
+    }
     reservation = await reserveTransaction(auth)
     let result
     try {
-      result = await appendSheetValues(auth.accessToken, `${sheetName}!A:O`, [row], auth.spreadsheetId, "RAW")
+      const rangeEnd = type === "expense" ? "P" : "O"
+      result = await appendSheetValues(auth.accessToken, `${sheetName}!A:${rangeEnd}`, [row], auth.spreadsheetId, "RAW")
     } catch (error) {
       await releaseTransaction(reservation)
       reservation = null

@@ -1,6 +1,6 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
-import { batchUpdateSheetValues, getSheetData, parseRupiah } from "@/lib/sheets"
+import { batchUpdateSheetValues, ensureExpenseClassHeader, getSheetData, parseRupiah } from "@/lib/sheets"
 import { quotaErrorResponse, releaseTransaction, reserveTransaction } from "@/lib/transactionQuota"
 import { claimFeatureWrite, releaseFeatureWrite } from "@/lib/writeClaims"
 import { runRecordCreation } from "@/lib/recordQuota"
@@ -200,6 +200,10 @@ async function handlePayment(auth, body) {
     "",
     "",
   ]
+  if (txSheet === "Pengeluaran") {
+    await ensureExpenseClassHeader(accessToken, spreadsheetId)
+    txRow.push("Rutin")
+  }
   const debtRow = [[
     existing.id, existing.namaOrang, existing.jumlah, existing.arah, existing.jatuhTempo,
     newStatus, Math.max(0, newSisa), existing.catatan, existing.createdAt,
@@ -222,7 +226,7 @@ async function handlePayment(auth, body) {
   try {
     await batchUpdateSheetValues(accessToken, spreadsheetId, [
       { range: `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, values: debtRow },
-      { range: `${txSheet}!A${nextRow}:O${nextRow}`, values: [txRow] },
+      { range: `${txSheet}!A${nextRow}:${txSheet === "Pengeluaran" ? "P" : "O"}${nextRow}`, values: [txRow] },
     ])
   } catch (error) {
     await releaseTransaction(reservation)

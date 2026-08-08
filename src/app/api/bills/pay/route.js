@@ -1,6 +1,6 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
-import { batchUpdateSheetValues, getSheetData } from "@/lib/sheets"
+import { batchUpdateSheetValues, ensureExpenseClassHeader, getSheetData } from "@/lib/sheets"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { rowToBill } from "@/lib/bills"
 import { quotaErrorResponse, releaseTransaction, reserveTransaction } from "@/lib/transactionQuota"
@@ -121,6 +121,10 @@ export async function POST(request) {
       "",
       "",
     ]
+    if (targetSheet === "Pengeluaran") {
+      await ensureExpenseClassHeader(accessToken, spreadsheetId)
+      txRow.push("Rutin")
+    }
 
     writeKey = `bill:${txId}`
     if (!await claimFeatureWrite(auth.user.id, writeKey)) {
@@ -135,7 +139,7 @@ export async function POST(request) {
     }
     try {
       await batchUpdateSheetValues(accessToken, spreadsheetId, [
-        { range: `${targetSheet}!A${targetRow}:O${targetRow}`, values: [txRow] },
+        { range: `${targetSheet}!A${targetRow}:${targetSheet === "Pengeluaran" ? "P" : "O"}${targetRow}`, values: [txRow] },
         { range: `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, values: [billRow] },
       ])
     } catch (error) {

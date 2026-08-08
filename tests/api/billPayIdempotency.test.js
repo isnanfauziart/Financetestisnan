@@ -7,6 +7,7 @@ vi.mock("@/lib/apiAuth", () => ({
 vi.mock("@/lib/sheets", () => ({
   getSheetData: vi.fn(),
   batchUpdateSheetValues: vi.fn(),
+  ensureExpenseClassHeader: vi.fn(),
   parseRupiah: vi.fn(value => Number(value) || 0),
 }))
 
@@ -83,6 +84,40 @@ describe("bill payment idempotency", () => {
     expect(response.status).toBe(200)
     expect(batchUpdateSheetValues).toHaveBeenCalledTimes(1)
     expect(reserveTransaction).not.toHaveBeenCalled()
+  })
+
+  it("writes an automated expense bill payment as routine through Pengeluaran A:P", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData, batchUpdateSheetValues, ensureExpenseClassHeader } = await import("@/lib/sheets")
+    const { claimFeatureWrite } = await import("@/lib/writeClaims")
+    const { reserveTransaction } = await import("@/lib/transactionQuota")
+    getAuthContext.mockResolvedValue({ user: { id: "u" }, accessToken: "token", spreadsheetId: "sheet-123", tier: "paid" })
+    getSheetData
+      .mockResolvedValueOnce([[
+        "headers",
+      ], ["bill-1", "Internet", 300000, "expense", "Internet", "Tagihan", "monthly", "7", "BCA", "TRUE", "", "", "2026-01-01"]])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([["Tanggal"]])
+    claimFeatureWrite.mockResolvedValue(true)
+    reserveTransaction.mockResolvedValue({ userId: "u", period: "2026-08", current: 1 })
+    ensureExpenseClassHeader.mockResolvedValue(undefined)
+    batchUpdateSheetValues.mockResolvedValue({})
+
+    const { POST } = await import("@/app/api/bills/pay/route")
+    const response = await POST(new Request("http://localhost/api/bills/pay", {
+      method: "POST",
+      body: JSON.stringify({ billId: "bill-1" }),
+    }))
+
+    expect(response.status).toBe(200)
+    expect(ensureExpenseClassHeader).toHaveBeenCalledWith("token", "sheet-123")
+    const writes = batchUpdateSheetValues.mock.calls[0][2]
+    const transactionWrite = writes.find(item => item.range.startsWith("Pengeluaran!"))
+    expect(transactionWrite.range).toBe("Pengeluaran!A2:P2")
+    expect(transactionWrite.values[0]).toHaveLength(16)
+    expect(transactionWrite.values[0][15]).toBe("Rutin")
+    expect(ensureExpenseClassHeader.mock.invocationCallOrder[0])
+      .toBeLessThan(reserveTransaction.mock.invocationCallOrder[0])
   })
 
   it("releases both quota and write claim when the batch fails", async () => {

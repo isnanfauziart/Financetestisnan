@@ -5,6 +5,7 @@ vi.mock("@/lib/sheets", () => ({
   getSheetData: vi.fn(),
   parseRupiah: vi.fn(value => Number(value) || 0),
   batchUpdateSheetValues: vi.fn(),
+  ensureExpenseClassHeader: vi.fn(),
 }))
 vi.mock("@/lib/transactionQuota", () => ({
   reserveTransaction: vi.fn(),
@@ -51,8 +52,9 @@ describe("debt payment", () => {
 
   it("records an utang payment with the Utang category", async () => {
     const { getAuthContext } = await import("@/lib/apiAuth")
-    const { getSheetData, batchUpdateSheetValues } = await import("@/lib/sheets")
+    const { getSheetData, batchUpdateSheetValues, ensureExpenseClassHeader } = await import("@/lib/sheets")
     getAuthContext.mockResolvedValue({ user: { id: "u" }, accessToken: "token", spreadsheetId: "sheet", tier: "paid" })
+    ensureExpenseClassHeader.mockResolvedValue(undefined)
     getSheetData
       .mockResolvedValueOnce([["headers"], ["d1", "Ari", 100, "utang", "2026-08-01", "open", 100, "", "2026-07-01"]])
       .mockResolvedValueOnce([])
@@ -66,7 +68,14 @@ describe("debt payment", () => {
 
     expect(response.status).toBe(200)
     const writes = batchUpdateSheetValues.mock.calls[0][2]
-    expect(writes.find(item => item.range === "Pengeluaran!A2:O2").values[0][3]).toBe("Utang")
+    expect(writes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ range: "Pengeluaran!A2:P2", values: [expect.any(Array)] }),
+    ]))
+    const transactionWrite = writes.find(item => item.range === "Pengeluaran!A2:P2")
+    expect(transactionWrite.values[0][3]).toBe("Utang")
+    expect(transactionWrite.values[0]).toHaveLength(16)
+    expect(transactionWrite.values[0][15]).toBe("Rutin")
+    expect(ensureExpenseClassHeader).toHaveBeenCalledWith("token", "sheet")
   })
 
   it("treats a stable payment id as idempotent before reserving quota", async () => {

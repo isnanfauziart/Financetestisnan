@@ -1,11 +1,13 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { expenseClassToSheet } from "@/lib/expenseClass"
 import { createUndoToken } from "@/lib/transactionUndo"
 import { getSheetData, updateSheetValues } from "@/lib/sheets"
 
 const ALLOWED_TABS = ["Pemasukan", "Pengeluaran", "Tabungan"]
 const FALLBACK_ID_PREFIXES = { Pemasukan: "in", Pengeluaran: "ex", Tabungan: "sv" }
+const ALLOWED_EXPENSE_CLASSES = ["Rutin", "Spesial"]
 
 function getExpectedId(tab, rowIndex, persistedId) {
   return persistedId || `${FALLBACK_ID_PREFIXES[tab]}-${rowIndex - 1}`
@@ -43,13 +45,19 @@ export async function PUT(request, { params }) {
 
   try {
     const body = await request.json()
-    const { tab, type, tanggal, keterangan, kategori, jumlah, akunBank, rowIndex, eventId, eventSubKategori } = body
+    const { tab, type, tanggal, keterangan, kategori, jumlah, akunBank, rowIndex, eventId, eventSubKategori, sifat } = body
 
     if (!ALLOWED_TABS.includes(tab) || !Number.isInteger(rowIndex) || rowIndex < 2 || !tanggal || !kategori || !jumlah) {
       return Response.json({ error: "Missing required fields" }, { status: 400 })
     }
     if (!isValidIsoDate(tanggal)) {
       return Response.json({ error: "Tanggal tidak valid" }, { status: 400 })
+    }
+    const isExpense = tab === "Pengeluaran"
+    const requestedExpenseClass = String(sifat ?? "").trim()
+    if (isExpense && Object.prototype.hasOwnProperty.call(body, "sifat")
+      && requestedExpenseClass && !ALLOWED_EXPENSE_CLASSES.includes(requestedExpenseClass)) {
+      return Response.json({ error: "Sifat pengeluaran tidak valid" }, { status: 400 })
     }
 
     const formattedDate = formatDate(tanggal)
@@ -59,10 +67,11 @@ export async function PUT(request, { params }) {
       return Response.json({ error: "Jumlah harus antara 1 dan 999.999.999.999" }, { status: 400 })
     }
 
-    // Update row at specific index: A{rowIndex}:O{rowIndex}
-    const range = `${tab}!A${rowIndex}:O${rowIndex}`
+    const rowWidth = isExpense ? 16 : 15
+    const rangeEnd = isExpense ? "P" : "O"
+    const range = `${tab}!A${rowIndex}:${rangeEnd}${rowIndex}`
     const existingRows = await getSheetData(accessToken, range, spreadsheetId)
-    const existingRow = Array.from({ length: 15 }, (_, index) => existingRows[0]?.[index] ?? "")
+    const existingRow = Array.from({ length: rowWidth }, (_, index) => existingRows[0]?.[index] ?? "")
     if (!existingRow.some(cell => String(cell).trim())) {
       return Response.json({ error: "Transaksi tidak ditemukan" }, { status: 404 })
     }
@@ -81,6 +90,11 @@ export async function PUT(request, { params }) {
     row[8] = amount
     if (Object.prototype.hasOwnProperty.call(body, "eventId")) row[13] = eventId || ""
     if (Object.prototype.hasOwnProperty.call(body, "eventSubKategori")) row[14] = eventSubKategori || ""
+    if (isExpense) {
+      row[15] = Object.prototype.hasOwnProperty.call(body, "sifat")
+        ? expenseClassToSheet(requestedExpenseClass)
+        : expenseClassToSheet(existingRow[15])
+    }
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
 
     const res = await fetch(url, {
@@ -121,9 +135,12 @@ export async function DELETE(request, { params }) {
       return Response.json({ error: "Missing tab or rowIndex" }, { status: 400 })
     }
 
-    const range = `${tab}!A${rowIndex}:O${rowIndex}`
+    const isExpense = tab === "Pengeluaran"
+    const rowWidth = isExpense ? 16 : 15
+    const rangeEnd = isExpense ? "P" : "O"
+    const range = `${tab}!A${rowIndex}:${rangeEnd}${rowIndex}`
     const rows = await getSheetData(accessToken, range, spreadsheetId)
-    const row = Array.from({ length: 15 }, (_, index) => rows[0]?.[index] ?? "")
+    const row = Array.from({ length: rowWidth }, (_, index) => rows[0]?.[index] ?? "")
     if (!row.some(cell => String(cell).trim())) {
       return Response.json({ error: "Transaksi tidak ditemukan" }, { status: 404 })
     }
@@ -135,7 +152,7 @@ export async function DELETE(request, { params }) {
     const undoToken = createUndoToken({
       userId: auth.user.id, spreadsheetId, tab, rowIndex, row,
     })
-    await updateSheetValues(accessToken, range, [Array(15).fill("")], spreadsheetId, "RAW")
+    await updateSheetValues(accessToken, range, [Array(rowWidth).fill("")], spreadsheetId, "RAW")
     return Response.json({ success: true, message: "Transaksi dihapus", undoToken })
   } catch (err) {
     console.error("[TransactionId]", err)

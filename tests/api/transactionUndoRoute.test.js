@@ -31,7 +31,10 @@ describe("transaction undo route", () => {
     getAuthContext.mockResolvedValue(auth)
     claimFeatureWrite.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
     const { createUndoToken } = await import("@/lib/transactionUndo")
-    const row = ["1 Jul 2026", "id", "Kopi"]
+    const row = [
+      "1 Jul 2026", "id", "Kopi", "Jajan", 15000, "", "", "BCA", 15000,
+      "", "Jul", 2026, 2026, "", "", "Spesial",
+    ]
     const token = createUndoToken({ userId: "u1", spreadsheetId: "s1", tab: "Pengeluaran", rowIndex: 2, row })
     const { POST } = await import("@/app/api/transaction/route")
 
@@ -41,7 +44,7 @@ describe("transaction undo route", () => {
     }))
     expect(first.status).toBe(200)
     expect(updateSheetValues).toHaveBeenCalledWith(
-      "token", "Pengeluaran!A2:O2", [row], "s1", "RAW"
+      "token", "Pengeluaran!A2:P2", [row], "s1", "RAW"
     )
 
     const replay = await POST(new Request("http://localhost/api/transaction", {
