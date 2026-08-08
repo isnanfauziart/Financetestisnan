@@ -21,6 +21,14 @@ export async function getSheetData(accessToken, range, spreadsheetId) {
   return data.values || []
 }
 
+export async function ensureExpenseClassHeader(accessToken, spreadsheetId) {
+  const rows = await getSheetData(accessToken, "Pengeluaran!P1", spreadsheetId)
+  const header = String(rows?.[0]?.[0] || "").trim()
+  if (header === "Sifat") return
+  if (header) throw new Error("Kolom Sifat tidak dapat dimigrasikan")
+  await updateSheetValues(accessToken, "Pengeluaran!P1", [["Sifat"]], spreadsheetId, "RAW")
+}
+
 export async function batchGetSheetData(accessToken, ranges, spreadsheetId) {
   if (!spreadsheetId) throw new Error("spreadsheetId is required")
   const query = ranges.map(range => `ranges=${encodeURIComponent(range)}`).join("&")

@@ -1,6 +1,7 @@
 import { CATEGORIES_KEY, getStarterCategories } from "@/lib/categories"
 
 const TX_HEADERS = [["Tanggal", "ID", "Keterangan", "Kategori", "Jumlah", "Pajak", "Biaya", "AkunBank", "Net", "Catatan", "M", "Y", "Y2", "EventID", "EventSubKategori"]]
+const EXPENSE_HEADERS = [[...TX_HEADERS[0], "Sifat"]]
 
 function getLastCol(cols) {
   let n = cols
@@ -14,9 +15,9 @@ function getLastCol(cols) {
 }
 
 export const ALL_TABS = [
-  // Transaction tabs (A-O, 15 columns)
+  // Transaction tabs: Pemasukan/Tabungan A:O, Pengeluaran A:P
   { name: "Pemasukan", headers: TX_HEADERS, cols: 15 },
-  { name: "Pengeluaran", headers: TX_HEADERS, cols: 15 },
+  { name: "Pengeluaran", headers: EXPENSE_HEADERS, cols: 16 },
   { name: "Tabungan", headers: TX_HEADERS, cols: 15 },
   // Budgets (A-F, 6 columns)
   { name: "Budgets", headers: [["Kategori", "Bulan", "Tahun", "Limit", "Akun", "Catatan"]], cols: 6 },
