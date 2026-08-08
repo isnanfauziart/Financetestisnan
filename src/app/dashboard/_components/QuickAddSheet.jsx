@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { Plus, Target } from "lucide-react"
+import { Plus, Target, X } from "lucide-react"
 import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS, getCategoryOptions } from "./constants"
 import { formatInputRupiah } from "./helpers"
 import SelectField from "./SelectField"
@@ -10,30 +10,79 @@ import EventSuggestionChip from "@/components/EventSuggestionChip"
 import TransactionQuotaStatus from "@/components/TransactionQuotaStatus"
 import { useSettings } from "@/lib/useSharedData"
 
-export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute, transactionUsage }) {
+const DEFAULT_FORM_DATA = () => ({
+  tanggal: new Date().toISOString().split("T")[0],
+  keterangan: "",
+  kategori: "",
+  jumlah: "",
+  akunBank: "",
+  catatan: "",
+  eventId: "",
+  sifat: "Rutin",
+})
+
+const SPECIAL_HELPER_COPY = "Tetap masuk total dan saldo, tetapi tidak memengaruhi tren rutinitas."
+
+function parseRawAmount(rawAmount) {
+  return Number(String(rawAmount || "").replace(/[^0-9]/g, "")) || 0
+}
+
+function shouldShowSpecialSuggestion({ specialSuggestion, rawAmount, txType, sifat, dismissed }) {
+  const threshold = Number(specialSuggestion?.threshold || 0)
+  return txType === "expense"
+    && sifat !== "Spesial"
+    && !dismissed
+    && threshold > 0
+    && parseRawAmount(rawAmount) >= threshold
+}
+
+export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute, transactionUsage, specialSuggestion }) {
   const { settings } = useSettings()
   const [txType, setTxType] = useState(initialType)
-  const [formData, setFormData] = useState({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "", eventId: "" })
+  const [formData, setFormData] = useState(DEFAULT_FORM_DATA)
   const [rawAmount, setRawAmount] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [quotaError, setQuotaError] = useState(null)
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false)
   const categoryOptions = getCategoryOptions(settings?.categories, txType, txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES, formData.kategori)
+  const showSpecialSuggestion = shouldShowSpecialSuggestion({
+    specialSuggestion,
+    rawAmount,
+    txType,
+    sifat: formData.sifat,
+    dismissed: suggestionDismissed,
+  })
 
   function handleTypeChange(t) {
     setTxType(t)
-    setFormData(f => ({ ...f, kategori: "" }))
+    setFormData(f => ({ ...f, kategori: "", sifat: "Rutin" }))
+    setSuggestionDismissed(false)
   }
 
   function handleReset() {
-    setFormData({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "", eventId: "" })
+    setFormData(DEFAULT_FORM_DATA())
     setRawAmount("")
+    setSuggestionDismissed(false)
+  }
+
+  function handleSpecialChange(checked) {
+    setFormData(f => ({ ...f, sifat: checked ? "Spesial" : "Rutin" }))
+  }
+
+  function getSubmitPayload() {
+    const { sifat, ...rest } = formData
+    if (txType !== "expense") {
+      return { formData: rest, rawAmount, txType }
+    }
+    const expenseFormData = { ...rest, sifat: sifat === "Spesial" ? "Spesial" : "Rutin" }
+    return { formData: expenseFormData, rawAmount, txType, sifat: expenseFormData.sifat }
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
     setQuotaError(null)
-    const result = await onSubmit({ formData, rawAmount, txType })
+    const result = await onSubmit(getSubmitPayload())
     const ok = result === true || result?.ok
     setSubmitting(false)
     if (ok) {
@@ -95,6 +144,50 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
           <EventTagPicker value={formData.eventId || ""} onChange={v => setFormData(f => ({ ...f, eventId: v }))} />
           <SelectField label="Akun" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
             options={BANK_ACCOUNTS} placeholder="Pilih akun" />
+          {txType === "expense" && (
+            <div className="rounded-2xl border border-earth-100 bg-earth-50/70 px-3.5 py-3 space-y-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.sifat === "Spesial"}
+                  onChange={e => handleSpecialChange(e.target.checked)}
+                  aria-label="Pengeluaran Spesial"
+                  aria-describedby="qa-special-helper"
+                  className="mt-0.5 h-4 w-4 rounded border-earth-300 text-violet-600 focus:ring-violet-300"
+                />
+                <span className="min-w-0">
+                  <span className="block text-xs font-bold text-earth-800">Pengeluaran Spesial</span>
+                  <span id="qa-special-helper" className="mt-0.5 block text-[11px] leading-relaxed text-earth-500">
+                    {SPECIAL_HELPER_COPY}
+                  </span>
+                </span>
+              </label>
+              {showSpecialSuggestion && (
+                <div className="flex flex-col gap-2 rounded-xl bg-white/80 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[11px] font-semibold leading-relaxed text-earth-600">
+                    Jumlah ini melewati baseline rutin {specialSuggestion.baselineMonths || 3} bulan terakhir.
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSpecialChange(true)}
+                      className="rounded-full bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-700 hover:bg-violet-100"
+                    >
+                      Tandai Spesial
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSuggestionDismissed(true)}
+                      aria-label="Tutup saran Pengeluaran Spesial"
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-earth-400 hover:bg-earth-100 hover:text-earth-700"
+                    >
+                      <X size={12} strokeWidth={3} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <div>
             <label htmlFor="qa-note" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Keterangan</label>
             <input id="qa-note" type="text" placeholder="Tulis keterangan transaksi" value={formData.keterangan} onChange={e => setFormData(f => ({ ...f, keterangan: e.target.value }))} aria-label="Keterangan transaksi"

@@ -23,6 +23,10 @@ const STATS_SECTIONS = [
   { key: "tren", label: "Tren" },
   { key: "recap", label: "Recap" },
 ]
+const ANALYSIS_MODES = [
+  { key: "routine", label: "Rutin", helper: "Grafik perilaku rutin" },
+  { key: "actual", label: "Aktual", helper: "Grafik semua transaksi" },
+]
 
 function ChartSkeleton({ height = 180 }) {
   return (
@@ -39,8 +43,13 @@ export default function StatsTab({
   selectedMonth, selectedYear, selectedAccount, categoryFilter, dateFrom, dateTo,
   setSelectedMonth, setSelectedYear, setSelectedAccount, setCategoryFilter, setDateFrom, setDateTo,
   clientMonthlyData,
+  routineClientMonthlyData,
   top5Categories, trendData,
+  routineExpenseCategories,
+  routineTop5Categories,
+  routineTrendData,
   compareMode, compareMonthA, compareYearA, compareMonthB, compareYearB, compareDataA, compareDataB, compareChartData,
+  routineCompareDataA, routineCompareDataB, routineCompareChartData,
   compareLabelA, compareLabelB,
   setCompareMode, setCompareMonthA, setCompareYearA, setCompareMonthB, setCompareYearB,
   resetComparePeriods,
@@ -67,8 +76,17 @@ export default function StatsTab({
   const effectiveEntitlement = entitlement === undefined ? { features: { anomalyAlerts: true, cashFlowForecast: true, yearInReview: true } } : entitlement
   const [showDateRange, setShowDateRange] = useState(false)
   const [activeSection, setActiveSection] = useState("ringkasan")
+  const [analysisMode, setAnalysisMode] = useState("routine")
   const hasDateRange = dateFrom || dateTo
   const routineAnalyticsMonthlyData = routineMonthlyData || monthlyData
+  const isRoutineMode = analysisMode === "routine"
+  const chartExpenseCategories = isRoutineMode ? (routineExpenseCategories || expenseCategories) : expenseCategories
+  const chartClientMonthlyData = isRoutineMode ? (routineClientMonthlyData || clientMonthlyData) : clientMonthlyData
+  const chartTop5Categories = isRoutineMode ? (routineTop5Categories || top5Categories) : top5Categories
+  const chartTrendData = isRoutineMode ? (routineTrendData || trendData) : trendData
+  const activeCompareDataA = isRoutineMode ? (routineCompareDataA || compareDataA) : compareDataA
+  const activeCompareDataB = isRoutineMode ? (routineCompareDataB || compareDataB) : compareDataB
+  const activeCompareChartData = isRoutineMode ? (routineCompareChartData || compareChartData) : compareChartData
 
   return (
     <div className="px-5 pt-4 space-y-5 animate-bento-in" key="stats-tab">
@@ -115,6 +133,39 @@ export default function StatsTab({
             )}
           </div>
         )}
+      </div>
+
+      <div className="glass rounded-2xl p-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="px-1">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">Mode Analisis</p>
+            <p className="text-[11px] font-semibold text-earth-600">
+              {isRoutineMode ? "Grafik fokus pada pengeluaran rutin." : "Grafik memakai semua transaksi aktual."}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-earth-50 p-1">
+            {ANALYSIS_MODES.map((mode) => {
+              const active = analysisMode === mode.key
+              return (
+                <button
+                  key={mode.key}
+                  type="button"
+                  aria-label={`Mode analisis ${mode.label}`}
+                  aria-pressed={active}
+                  title={mode.helper}
+                  onClick={() => setAnalysisMode(mode.key)}
+                  className={`rounded-xl px-3 py-2 text-xs font-bold transition-all ${
+                    active
+                      ? "bg-white text-earth-800 shadow-warm"
+                      : "text-earth-500 hover:bg-white/70 hover:text-earth-800"
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="glass rounded-2xl p-2" role="tablist" aria-label="Navigasi Statistik">
@@ -263,13 +314,13 @@ export default function StatsTab({
             </div>
             <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
               <h3 className="text-xs font-bold text-center mb-2 font-display text-earth-800">Komposisi Pengeluaran</h3>
-              {expenseCategories.length === 0 ? (
+              {chartExpenseCategories.length === 0 ? (
                 <EmptyState icon={<Wallet size={18} />} title="Belum ada" />
               ) : (
                 <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
                     <Pie
-                      data={expenseCategories} cx="50%" cy="50%" innerRadius={42} outerRadius={64}
+                      data={chartExpenseCategories} cx="50%" cy="50%" innerRadius={42} outerRadius={64}
                       paddingAngle={2} dataKey="value" stroke="none"
                       onClick={(d) => { if (hapticsEnabled) haptics.tap(); setCategoryFilter(d.name) }}
                       labelLine={false}
@@ -277,17 +328,17 @@ export default function StatsTab({
                       style={{ fontSize: '10px', fontWeight: 700 }}
                       animationBegin={200} animationDuration={800}
                     >
-                      {expenseCategories.map((_, i) => <Cell key={(i+3) % COLORS.length} fill={COLORS[(i+3) % COLORS.length]} />)}
+                      {chartExpenseCategories.map((_, i) => <Cell key={(i+3) % COLORS.length} fill={COLORS[(i+3) % COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
               {(() => {
-                const expTotal = expenseCategories.reduce((s, c) => s + c.value, 0) || 1
+                const expTotal = chartExpenseCategories.reduce((s, c) => s + c.value, 0) || 1
                 return (
                   <div className="mt-2 space-y-1.5">
-                    {expenseCategories.slice(0, 6).map((c, i) => {
+                    {chartExpenseCategories.slice(0, 6).map((c, i) => {
                       const pct = ((c.value / expTotal) * 100).toFixed(1)
                       return (
                         <div key={c.name} className="flex items-center gap-2 text-[10px]">
@@ -306,17 +357,17 @@ export default function StatsTab({
           )}
 
           {/* Top categories trend */}
-          {top5Categories.length > 0 && (
+          {chartTop5Categories.length > 0 && (
             refreshing ? <ChartSkeleton height={270} /> : (
             <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
               <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Top Kategori Pengeluaran</h3>
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={trendData}>
+                <LineChart data={chartTrendData}>
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
                   <YAxis hide />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: "11px" }} />
-                  {top5Categories.map((cat, i) => (
+                  {chartTop5Categories.map((cat, i) => (
                     <Line key={cat} type="monotone" dataKey={cat} name={cat} stroke={COLORS[i % COLORS.length]} strokeWidth={2.5} dot={{ r: 3, fill: COLORS[i % COLORS.length] }} connectNulls animationBegin={i * 150} animationDuration={800} />
                   ))}
                 </LineChart>
@@ -335,7 +386,7 @@ export default function StatsTab({
             <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
               <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Tren Bulanan</h3>
               <ResponsiveContainer width="100%" height={220}>
-                <ComposedChart data={clientMonthlyData}>
+                <ComposedChart data={chartClientMonthlyData}>
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
                   <YAxis hide />
                   <Tooltip content={<CustomTooltip />} />
@@ -392,9 +443,9 @@ export default function StatsTab({
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {[
-                    { label: "Pemasukan", a: compareDataA.income, b: compareDataB.income, color: THEME.income },
-                    { label: "Pengeluaran", a: compareDataA.expense, b: compareDataB.expense, color: THEME.expense },
-                    { label: "Surplus", a: compareDataA.surplus, b: compareDataB.surplus, color: THEME.savings },
+                    { label: "Pemasukan", a: activeCompareDataA.income, b: activeCompareDataB.income, color: THEME.income },
+                    { label: "Pengeluaran", a: activeCompareDataA.expense, b: activeCompareDataB.expense, color: THEME.expense },
+                    { label: "Surplus", a: activeCompareDataA.surplus, b: activeCompareDataB.surplus, color: THEME.savings },
                   ].map((item) => {
                     const delta = item.b > 0 ? ((item.a - item.b) / item.b * 100) : 0
                     const isUp = delta > 0
@@ -412,11 +463,11 @@ export default function StatsTab({
                     )
                   })}
                 </div>
-                {compareChartData.length > 0 && (
+                {activeCompareChartData.length > 0 && (
                   <div>
                     <p className="text-[10px] font-bold text-earth-500 mb-2">Perbandingan per Kategori</p>
-                    <ResponsiveContainer width="100%" height={Math.max(150, compareChartData.length * 30)}>
-                      <BarChart data={compareChartData} layout="vertical" barCategoryGap="30%">
+                    <ResponsiveContainer width="100%" height={Math.max(150, activeCompareChartData.length * 30)}>
+                      <BarChart data={activeCompareChartData} layout="vertical" barCategoryGap="30%">
                         <XAxis type="number" hide />
                         <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
                         <Tooltip content={<CustomTooltip />} />

@@ -1,14 +1,23 @@
-import { describe, it, expect, vi } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import StatsTab from "@/app/dashboard/StatsTab"
 
 const forecastProps = vi.hoisted(() => ({ current: null }))
 const savingsTrendProps = vi.hoisted(() => ({ current: null }))
 
+beforeEach(() => {
+  global.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+})
+
 vi.mock("@/components/BudgetsSection", () => ({ default: () => <div>Budgets mock</div> }))
 vi.mock("@/components/EventBudgetsSection", () => ({ default: () => <div>Event budgets mock</div> }))
 vi.mock("@/components/MonthlyReportButton", () => ({ default: () => <button type="button">Monthly report</button> }))
 vi.mock("@/components/YearInReviewButton", () => ({ default: () => <button type="button">Year in review</button> }))
+vi.mock("@/app/dashboard/_components/RecapSection", () => ({ default: () => <div>Recap Bulanan</div> }))
 vi.mock("@/components/CashFlowForecast", () => ({
   default: (props) => {
     forecastProps.current = props
@@ -208,5 +217,33 @@ describe("StatsTab forecast inputs", () => {
 
     expect(forecastProps.current.monthlyData).toBe(routineMonthlyData)
     expect(savingsTrendProps.current.monthlyData).toBe(routineMonthlyData)
+  })
+})
+
+describe("StatsTab routine/actual analysis mode", () => {
+  it("defaults chart analysis to routine while preserving the actual headline", () => {
+    render(<StatsTab {...createProps({
+      statIncome: 5_000_000,
+      statExpense: 11_000_000,
+      statSurplus: -6_000_000,
+      expenseCategories: [
+        { name: "Laptop", value: 10_000_000 },
+        { name: "Makan", value: 1_000_000 },
+      ],
+      routineExpenseCategories: [
+        { name: "Makan", value: 1_000_000 },
+      ],
+    })} />)
+
+    expect(screen.getByRole("button", { name: "Mode analisis Rutin" })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByText(/6\.000\.000/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
+
+    expect(screen.getByText("Makan")).toBeInTheDocument()
+    expect(screen.queryByText("Laptop")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Mode analisis Aktual" }))
+    expect(screen.getByText("Laptop")).toBeInTheDocument()
   })
 })

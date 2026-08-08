@@ -10,6 +10,15 @@ import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import { useBudgets, useBills, useSettings } from "@/lib/useSharedData"
 import { getFocusNote } from "./_components/focusNote"
 import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
+import { isSpecialExpense } from "@/lib/expenseClass"
+
+function SpecialBadge() {
+  return (
+    <span className="inline-flex flex-shrink-0 items-center rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-700">
+      Spesial
+    </span>
+  )
+}
 
 export default function HomeTab({
   data,
@@ -333,6 +342,7 @@ export default function HomeTab({
           <div className="bento-tile bg-white border border-earth-100 shadow-warm p-2">
             {recent5.map((t, i) => {
               const borderColor = t.type === "income" ? THEME.income : t.type === "savings" ? THEME.savings : THEME.expense
+              const special = isSpecialExpense(t)
               return (
                 <div key={i} className={`flex items-center justify-between p-3 pl-4 rounded-2xl border-l-4 hover:bg-earth-50/60 transition-colors animate-fade-in-up stagger-${i + 1}`} style={{ borderLeftColor: borderColor }}>
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -341,7 +351,10 @@ export default function HomeTab({
                       {t.type === "income" ? <ArrowDownRight size={16} color={THEME.income} aria-hidden="true" /> : t.type === "savings" ? <PiggyBank size={16} color={THEME.savings} aria-hidden="true" /> : <ArrowUpRight size={16} color={THEME.expense} aria-hidden="true" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
+                        {special && <SpecialBadge />}
+                      </div>
                       <p className="text-[11px] text-earth-500 mt-0.5 truncate">
                         {t.desc || "—"} · {t.date}
                       </p>

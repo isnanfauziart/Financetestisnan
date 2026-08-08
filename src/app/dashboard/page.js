@@ -36,6 +36,118 @@ import { hasFeature } from "@/lib/featureAccess"
 import { getEffectiveUserName } from "@/lib/userDisplayName"
 import { isSpecialExpense } from "@/lib/expenseClass"
 
+const SPECIAL_SUGGESTION_MIN_MONTHS = 3
+const SPECIAL_SUGGESTION_MAX_MONTHS = 6
+
+function createTransactionFormData() {
+  return {
+    tanggal: new Date().toISOString().split("T")[0],
+    keterangan: "",
+    kategori: "",
+    jumlah: "",
+    akunBank: "",
+    catatan: "",
+    eventId: "",
+    sifat: "Rutin",
+  }
+}
+
+function monthSortIndex(month, year) {
+  const monthIndex = AVAILABLE_MONTHS.indexOf(month)
+  const numericYear = Number(year)
+  if (!Number.isFinite(numericYear) || monthIndex < 0) return NaN
+  return numericYear * 12 + monthIndex
+}
+
+function median(values) {
+  const sorted = values.filter(value => Number.isFinite(value) && value > 0).sort((a, b) => a - b)
+  if (sorted.length === 0) return 0
+  const middle = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
+}
+
+function getSpecialExpenseSuggestion(transactions = [], now = Date.now()) {
+  const current = new Date(now)
+  const currentMonthIndex = current.getFullYear() * 12 + current.getMonth()
+  const monthlyRoutineExpense = new Map()
+
+  for (const transaction of transactions) {
+    if (transaction?.type !== "expense" || isSpecialExpense(transaction)) continue
+    const monthIndex = monthSortIndex(transaction.month, transaction.year)
+    if (!Number.isFinite(monthIndex) || monthIndex >= currentMonthIndex) continue
+    const key = `${transaction.year}-${String(AVAILABLE_MONTHS.indexOf(transaction.month) + 1).padStart(2, "0")}`
+    monthlyRoutineExpense.set(key, (monthlyRoutineExpense.get(key) || 0) + (Number(transaction.amount) || 0))
+  }
+
+  const recent = Array.from(monthlyRoutineExpense.entries())
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, SPECIAL_SUGGESTION_MAX_MONTHS)
+    .map(([, value]) => value)
+    .filter(value => value > 0)
+
+  if (recent.length < SPECIAL_SUGGESTION_MIN_MONTHS) return null
+
+  return {
+    threshold: median(recent),
+    baselineMonths: recent.length,
+  }
+}
+
+function getSubmitFormDataForType(formData, txType) {
+  const { sifat, ...rest } = formData || {}
+  if (txType !== "expense") return rest
+  return { ...rest, sifat: sifat === "Spesial" ? "Spesial" : "Rutin" }
+}
+
+function buildMonthlyDataFromTransactions(transactions, isAllMonths) {
+  if (!isAllMonths) return []
+  return AVAILABLE_MONTHS.map(m => {
+    const monthTx = transactions.filter(t => t.month === m)
+    const pemasukan = monthTx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
+    const pengeluaran = monthTx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+    const tabungan = monthTx.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
+    return { month: m, pemasukan, pengeluaran, tabungan, surplus: pemasukan - pengeluaran }
+  }).filter(d => d.pemasukan > 0 || d.pengeluaran > 0 || d.tabungan > 0)
+}
+
+function getMonthDataFromTransactions(transactions, month, year) {
+  const tx = transactions.filter(t => t.month === month && t.year === year)
+  const income = tx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
+  const expense = tx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+  const savings = tx.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
+  const catMap = {}
+  tx.filter(t => t.type === "expense").forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + t.amount })
+  const categories = Object.entries(catMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+  return { income, expense, savings, surplus: income - expense, categories }
+}
+
+function getTopExpenseCategories(transactions) {
+  return Object.entries(
+    transactions.filter(t => t.type === "expense").reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + t.amount
+      return acc
+    }, {})
+  ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name]) => name)
+}
+
+function buildExpenseTrendData(transactions, categories) {
+  return AVAILABLE_MONTHS.map(m => {
+    const row = { month: m }
+    categories.forEach(cat => {
+      row[cat] = transactions.filter(t => t.month === m && t.type === "expense" && t.category === cat).reduce((s, t) => s + t.amount, 0)
+    })
+    return row
+  })
+}
+
+function SpecialBadge() {
+  return (
+    <span className="inline-flex flex-shrink-0 items-center rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-700">
+      Spesial
+    </span>
+  )
+}
+
 export default function Dashboard() {
   const statsDefaults = getStatsPeriodDefaults()
   const { data: session, status } = useSession()
@@ -62,7 +174,7 @@ export default function Dashboard() {
 
   // Form state
   const [txType, setTxType] = useState("expense")
-  const [formData, setFormData] = useState({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "", eventId: "" })
+  const [formData, setFormData] = useState(createTransactionFormData)
   const [rawAmount, setRawAmount] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
@@ -441,6 +553,10 @@ export default function Dashboard() {
       .sort((a, b) => String(a.sortKey || "").localeCompare(String(b.sortKey || "")))
   }, [data, routineTransactions])
 
+  const specialSuggestion = useMemo(() => (
+    getSpecialExpenseSuggestion(data?.transactions || [], syncNow)
+  ), [data?.transactions, syncNow])
+
   const statIncome = filteredTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
   const statExpense = filteredTransactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
   const statSavings = filteredTransactions.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
@@ -664,10 +780,11 @@ export default function Dashboard() {
       return { ok: false }
     }
     try {
+      const requestFormData = getSubmitFormDataForType(formData, txType)
       const res = await fetch("/api/transaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, jumlah: rawAmount.replace(/\./g, ""), type: txType }),
+        body: JSON.stringify({ ...requestFormData, jumlah: rawAmount.replace(/\./g, ""), type: txType }),
       })
       const result = await res.json()
       if (result.success) {
@@ -702,7 +819,7 @@ export default function Dashboard() {
     setSubmitting(true)
     submitTransaction(data).then((result) => {
       if (result.ok) {
-        setFormData({ tanggal: new Date().toISOString().split("T")[0], keterangan: "", kategori: "", jumlah: "", akunBank: "", catatan: "" })
+        setFormData(createTransactionFormData())
         setRawAmount("")
       }
       setSubmitting(false)
@@ -856,16 +973,8 @@ export default function Dashboard() {
   }
 
   // --- Non-hook derivations (depend on hooks defined above) ---
-  let clientMonthlyData = []
-  if (isAllMonths) {
-    clientMonthlyData = AVAILABLE_MONTHS.map(m => {
-      const monthTx = routineFilteredTransactions.filter(t => t.month === m)
-      const pemasukan = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-      const pengeluaran = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-      const tabungan = monthTx.filter(t => t.type === 'savings').reduce((s, t) => s + t.amount, 0)
-      return { month: m, pemasukan, pengeluaran, tabungan, surplus: pemasukan - pengeluaran }
-    }).filter(d => d.pemasukan > 0 || d.pengeluaran > 0 || d.tabungan > 0)
-  }
+  const clientMonthlyData = buildMonthlyDataFromTransactions(filteredTransactions, isAllMonths)
+  const routineClientMonthlyData = buildMonthlyDataFromTransactions(routineFilteredTransactions, isAllMonths)
 
   const availableYears = Array.from(new Set(data?.transactions?.map(t => t.year).filter(Boolean) || [])).sort((a,b) => b.localeCompare(a))
   if (availableYears.length === 0) availableYears.push(new Date().getFullYear().toString())
@@ -876,18 +985,10 @@ export default function Dashboard() {
 
   const availableAccounts = Array.from(new Set((data?.transactions || []).map(t => t.account).filter(Boolean))).sort()
 
-  const getMonthData = (month, year) => {
-    const tx = routineTransactions.filter(t => t.month === month && t.year === year)
-    const income = tx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
-    const expense = tx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
-    const savings = tx.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
-    const catMap = {}
-    tx.filter(t => t.type === "expense").forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + t.amount })
-    const categories = Object.entries(catMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-    return { income, expense, savings, surplus: income - expense, categories }
-  }
-  const compareDataA = getMonthData(compareMonthA, compareYearA)
-  const compareDataB = getMonthData(compareMonthB, compareYearB)
+  const compareDataA = getMonthDataFromTransactions(data?.transactions || [], compareMonthA, compareYearA)
+  const compareDataB = getMonthDataFromTransactions(data?.transactions || [], compareMonthB, compareYearB)
+  const routineCompareDataA = getMonthDataFromTransactions(routineTransactions, compareMonthA, compareYearA)
+  const routineCompareDataB = getMonthDataFromTransactions(routineTransactions, compareMonthB, compareYearB)
   const { compareLabelA, compareLabelB } = getCompareSeriesLabels(compareMonthA, compareYearA, compareMonthB, compareYearB)
 
   const allCompareCategories = Array.from(new Set([...compareDataA.categories.map(c => c.name), ...compareDataB.categories.map(c => c.name)]))
@@ -897,20 +998,17 @@ export default function Dashboard() {
     [compareLabelB]: compareDataB.categories.find(c => c.name === cat)?.value || 0,
   })).sort((a,b) => (b[compareLabelA] + b[compareLabelB]) - (a[compareLabelA] + a[compareLabelB]))
 
-  const top5Categories = Object.entries(
-    routineTransactions.filter(t => t.type === "expense").reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount
-      return acc
-    }, {})
-  ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name]) => name)
+  const routineCompareCategories = Array.from(new Set([...routineCompareDataA.categories.map(c => c.name), ...routineCompareDataB.categories.map(c => c.name)]))
+  const routineCompareChartData = routineCompareCategories.map(cat => ({
+    category: cat,
+    [compareLabelA]: routineCompareDataA.categories.find(c => c.name === cat)?.value || 0,
+    [compareLabelB]: routineCompareDataB.categories.find(c => c.name === cat)?.value || 0,
+  })).sort((a,b) => (b[compareLabelA] + b[compareLabelB]) - (a[compareLabelA] + a[compareLabelB]))
 
-  const trendData = AVAILABLE_MONTHS.map(m => {
-    const row = { month: m }
-    top5Categories.forEach(cat => {
-      row[cat] = routineTransactions.filter(t => t.month === m && t.type === "expense" && t.category === cat).reduce((s, t) => s + t.amount, 0)
-    })
-    return row
-  })
+  const top5Categories = getTopExpenseCategories(data?.transactions || [])
+  const routineTop5Categories = getTopExpenseCategories(routineTransactions)
+  const trendData = buildExpenseTrendData(data?.transactions || [], top5Categories)
+  const routineTrendData = buildExpenseTrendData(routineTransactions, routineTop5Categories)
 
   const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
   const calMonthIdx = AVAILABLE_MONTHS.indexOf(calMonth)
@@ -1148,10 +1246,14 @@ export default function Dashboard() {
             setSelectedMonth={setSelectedMonth} setSelectedYear={setSelectedYear} setSelectedAccount={setSelectedAccount} setCategoryFilter={setCategoryFilter}
             setDateFrom={setDateFrom} setDateTo={setDateTo}
              clientMonthlyData={clientMonthlyData}
+             routineClientMonthlyData={routineClientMonthlyData}
              top5Categories={top5Categories} trendData={trendData}
+             routineExpenseCategories={routineExpenseCategories}
+             routineTop5Categories={routineTop5Categories} routineTrendData={routineTrendData}
              compareMode={compareMode} compareMonthA={compareMonthA} compareYearA={compareYearA} compareMonthB={compareMonthB} compareYearB={compareYearB}
              compareLabelA={compareLabelA} compareLabelB={compareLabelB}
              compareDataA={compareDataA} compareDataB={compareDataB} compareChartData={compareChartData}
+             routineCompareDataA={routineCompareDataA} routineCompareDataB={routineCompareDataB} routineCompareChartData={routineCompareChartData}
              setCompareMode={setCompareMode} setCompareMonthA={setCompareMonthA} setCompareYearA={setCompareYearA} setCompareMonthB={setCompareMonthB} setCompareYearB={setCompareYearB}
              resetComparePeriods={resetComparePeriods}
              calMonth={calMonth} calYear={calYear} calMonthIdx={calMonthIdx} calWeeks={calWeeks} calendarDayTotals={calendarDayTotals}
@@ -1219,7 +1321,10 @@ export default function Dashboard() {
               {selectedDayTx.transactions.map((t, i) => (
                 <div key={i} className="flex justify-between items-center pb-3 border-b border-earth-100 last:border-b-0">
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm text-earth-800">{t.category}</p>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
+                      {isSpecialExpense(t) && <SpecialBadge />}
+                    </div>
                     {t.desc && <p className="text-xs text-earth-500 mt-0.5 truncate">{t.desc}</p>}
                   </div>
                   <p className="font-bold text-sm text-clay-500 ml-3">-{formatRp(t.amount)}</p>
@@ -1277,6 +1382,7 @@ export default function Dashboard() {
         onSubmit={submitTransaction}
         onGoalContribute={openGoalPicker}
         transactionUsage={entitlement?.usage?.transactions}
+        specialSuggestion={specialSuggestion}
       />
 
       {/* Goal celebration */}

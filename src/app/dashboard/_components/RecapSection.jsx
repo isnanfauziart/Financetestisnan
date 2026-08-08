@@ -14,12 +14,19 @@ import EmptyState from "./EmptyState"
 import RecapMonthGroup from "./RecapMonthGroup"
 import { parseTxDate } from "./helpers"
 import { useSettings } from "@/lib/useSharedData"
+import { isSpecialExpense } from "@/lib/expenseClass"
 
 const TYPE_OPTIONS = [
   { value: "all", label: "Semua", color: "primary" },
   { value: "income", label: "Pemasukan", color: "income" },
   { value: "expense", label: "Pengeluaran", color: "expense" },
   { value: "savings", label: "Tabungan", color: "savings" },
+]
+
+const CLASS_OPTIONS = [
+  { value: "all", label: "Semua" },
+  { value: "routine", label: "Rutin" },
+  { value: "special", label: "Spesial" },
 ]
 
 function monthIndex(monthName) {
@@ -38,6 +45,7 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
     account: "all",
     category: "all",
     type: "all",
+    class: "all",
   })
   const [expanded, setExpanded] = useState({})
   const [pages, setPages] = useState({})
@@ -69,6 +77,11 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
       if (filter.account !== "all" && (t.account || "") !== filter.account) return false
       if (filter.category !== "all" && t.category !== filter.category) return false
       if (filter.type !== "all" && t.type !== filter.type) return false
+      if (filter.class !== "all" && t.type === "expense") {
+        const special = isSpecialExpense(t)
+        if (filter.class === "special" && !special) return false
+        if (filter.class === "routine" && special) return false
+      }
       return true
     })
   }, [transactions, filter])
@@ -83,14 +96,19 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
           month: t.month,
           year: String(t.year),
           transactions: [],
-          totals: { income: 0, expense: 0, savings: 0, net: 0 },
+          totals: { income: 0, expense: 0, savings: 0, net: 0, actualExpense: 0, routineExpense: 0, specialExpense: 0 },
         })
       }
       const g = map.get(key)
       g.transactions.push(t)
       if (t.type === "income") g.totals.income += t.amount
       else if (t.type === "savings") g.totals.savings += t.amount
-      else g.totals.expense += t.amount
+      else {
+        g.totals.expense += t.amount
+        g.totals.actualExpense += t.amount
+        if (isSpecialExpense(t)) g.totals.specialExpense += t.amount
+        else g.totals.routineExpense += t.amount
+      }
     })
 
     const sorted = Array.from(map.values()).map(g => {
@@ -113,10 +131,11 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
     filter.year !== "all" ||
     filter.account !== "all" ||
     filter.category !== "all" ||
-    filter.type !== "all"
+    filter.type !== "all" ||
+    filter.class !== "all"
 
   const clearFilter = () =>
-    setFilter({ month: "all", year: "all", account: "all", category: "all", type: "all" })
+    setFilter({ month: "all", year: "all", account: "all", category: "all", type: "all", class: "all" })
 
   if (transactions.length === 0) {
     return (
@@ -194,6 +213,17 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
               active={filter.type === opt.value}
               onClick={() => setFilter(f => ({ ...f, type: opt.value }))}
               color={opt.color}
+            >
+              {opt.label}
+            </PillButton>
+          ))}
+          <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider ml-1 mr-1">Kelas:</span>
+          {CLASS_OPTIONS.map(opt => (
+            <PillButton
+              key={opt.value}
+              active={filter.class === opt.value}
+              onClick={() => setFilter(f => ({ ...f, class: opt.value }))}
+              color={opt.value === "special" ? "primary" : "expense"}
             >
               {opt.label}
             </PillButton>

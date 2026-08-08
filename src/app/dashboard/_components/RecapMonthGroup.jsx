@@ -2,6 +2,7 @@
 import { ChevronDown } from "lucide-react"
 import { THEME } from "./constants"
 import { formatRp, formatShortDate } from "./helpers"
+import { isSpecialExpense } from "@/lib/expenseClass"
 
 const PAGE_SIZE = 10
 
@@ -25,6 +26,14 @@ function SummaryChip({ label, value, color, bg }) {
       </p>
       <p className="text-[11px] font-bold truncate" style={{ color }}>{formatRp(value)}</p>
     </div>
+  )
+}
+
+function SpecialBadge() {
+  return (
+    <span className="inline-flex flex-shrink-0 items-center rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-700">
+      Spesial
+    </span>
   )
 }
 
@@ -115,9 +124,8 @@ export default function RecapMonthGroup({
 
       {expanded && (
         <div className="px-4 pb-4 animate-slide-down">
-          <div className="flex gap-1.5 mb-3">
+          <div className="grid grid-cols-2 gap-1.5 mb-2 sm:grid-cols-4">
             <SummaryChip label="Income" value={totals.income} color={THEME.income} bg={THEME.incomeBg} />
-            <SummaryChip label="Expense" value={totals.expense} color={THEME.expense} bg={THEME.expenseBg} />
             <SummaryChip label="Savings" value={totals.savings} color={THEME.savings} bg={THEME.savingsBg} />
             <SummaryChip
               label="Net"
@@ -125,6 +133,11 @@ export default function RecapMonthGroup({
               color={totals.net >= 0 ? THEME.income : THEME.danger}
               bg={THEME.surfaceWarm}
             />
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 mb-3">
+            <SummaryChip label="Aktual" value={totals.actualExpense ?? totals.expense} color={THEME.expense} bg={THEME.expenseBg} />
+            <SummaryChip label="Rutin" value={totals.routineExpense ?? totals.expense} color={THEME.textPrimary} bg={THEME.surfaceWarm} />
+            <SummaryChip label="Spesial" value={totals.specialExpense ?? 0} color={THEME.primary} bg={THEME.primaryBg} />
           </div>
 
           {visible.length === 0 ? (
@@ -134,6 +147,7 @@ export default function RecapMonthGroup({
               {visible.map((t, i) => {
                 const borderColor = typeColor(t.type)
                 const bg = typeBg(t.type)
+                const special = isSpecialExpense(t)
                 return (
                   <div
                     key={`${t.id}-${i}`}
@@ -145,7 +159,10 @@ export default function RecapMonthGroup({
                         {formatShortDate(t.date)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
+                          {special && <SpecialBadge />}
+                        </div>
                         <p className="text-[10px] text-earth-500 mt-0.5 truncate">
                           {t.desc || (t.type === "income" ? "Pemasukan" : t.type === "savings" ? "Tabungan" : "Pengeluaran")}
                           {t.account ? ` · ${t.account}` : ""}
