@@ -1265,7 +1265,8 @@ export default function Dashboard() {
              onDeleteTx={handleDelete}
              haptics={haptics}
               hapticsEnabled={hapticsEnabled}
-              monthlyData={routineAnalysisMonthlyData}
+              monthlyData={data?.monthlyData || []}
+              routineMonthlyData={routineAnalysisMonthlyData}
               allTransactions={data?.transactions || []}
               now={syncNow}
               bills={bills}
