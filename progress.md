@@ -605,3 +605,30 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - Implementation is paused until the user reviews the written specification.
+
+## 2026-08-08 - Special expense analytics implemented and verified
+
+### Tasks Completed
+- Added the `Pengeluaran!P:P` `Sifat` schema, lazy header migration, normalized class handling, and expense-only API persistence with default `Rutin` behavior.
+- Preserved actual dashboard accounting while adding routine aggregates; routed anomaly alerts, forecasts, selected Health Score factors, savings trends, and stable insights to routine expenses.
+- Added expense entry/edit controls, opt-in special suggestions, recap class filters and totals, special badges, and Stats `Rutin | Aktual` analysis mode.
+- Added actual/routine/special monthly and annual HTML/PDF report sections, including visible special-purchase sections and actual budget spending.
+- Synchronized the active schema and actual-versus-routine rules in the project flow documentation.
+
+### Files Changed
+- Expense schema/API/analytics: `src/lib/expenseClass.js`, Sheet helpers, transaction routes, dashboard aggregation, routine smart analytics, and focused tests.
+- Dashboard UI/report surfaces: entry/edit/recap/Stats/Home components, report generators/buttons, and focused tests.
+- Documentation: `AGENTS.md`, `docs/Flow-system.md`, `docs/sheets-momental.md`, and this progress record.
+
+### Decisions
+- `Pemasukan` and `Tabungan` remain A:O; `Pengeluaran` is A:P with `Sifat` in P.
+- Actual totals, balances, net worth, budgets, quota, calendar totals, and ledger visibility include `Spesial`; routine behavioral analytics exclude it.
+- Classification is manual with a non-binding suggestion; blank or unknown legacy values normalize to `Rutin`.
+
+### Verification
+- Feature-focused suite: 13 files passed, 94 tests passed.
+- Full repository suite: 95 files passed, 471 tests passed, 2 tests skipped; 1 smoke file skipped by design.
+- Production build passed with process-only placeholder environment values; no secrets were written.
+
+### Blockers
+- `docs/commercialization-prompts.md` had a pre-existing large dirty rewrite. Its single stale expense-schema line was updated in place but was intentionally not staged, so the unrelated rewrite remains preserved for its owner.

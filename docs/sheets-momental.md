@@ -57,12 +57,16 @@
 
 # Transaction Sheet Extensions
 
-Add columns N and O to `Pemasukan`, `Pengeluaran`, `Tabungan`:
+Add columns N and O to `Pemasukan`, `Pengeluaran`, and `Tabungan`:
 
 | Col | Header | Type | Notes |
 |-----|--------|------|-------|
 | N | `EventID` | string | References `Momental.ID`. Empty = not tagged to any event. |
 | O | `EventSubKategori` | string | Sub-category within the event. Empty if no event. |
+
+`Pengeluaran` additionally uses column P, `Sifat`, with `Rutin` or `Spesial`.
+Blank or unknown legacy values mean `Rutin`; `Pemasukan` and `Tabungan` remain
+A:O.
 
 ---
 

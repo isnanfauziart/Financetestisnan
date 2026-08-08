@@ -74,7 +74,7 @@ Supabase does not store the user's finance ledger.
 | Tab | Columns | Schema doc |
 |---|---|---|
 | `Pemasukan` | A-O | `AGENTS.md` |
-| `Pengeluaran` | A-O | `AGENTS.md` |
+| `Pengeluaran` | A-P (`Sifat` in P) | `AGENTS.md` |
 | `Tabungan` | A-O | `AGENTS.md` |
 | `Budgets` | A-F | `docs/sheets-budgets.md` |
 | `Goals` | A-I | `docs/sheets-goals.md` |
@@ -83,6 +83,14 @@ Supabase does not store the user's finance ledger.
 | `EventBudgets` | A-F | `docs/sheets-momental.md` |
 | `Tagihan` | A-M | `docs/sheets-tagihan.md` |
 | `Settings` | A-B | `docs/sheets-settings.md` |
+
+Expense classification is stored only in `Pengeluaran!P:P`: new expenses
+default to `Rutin`, and blank or unknown legacy values are treated as `Rutin`.
+`Spesial` expenses remain in actual totals, balances, net worth, budgets,
+quota, calendar totals, and the visible ledger. Routine trends, averages,
+anomaly alerts, forecast baselines, selected Health Score factors, and stable
+insights use routine expenses only. The entry control is labeled
+`Pengeluaran Spesial` and is manual/opt-in.
 
 ## Phase 2: Payments + Admin
 

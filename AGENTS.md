@@ -102,12 +102,18 @@ Required runtime vars:
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase server-side service role key (secret, never expose to client)
 
 ## Google Sheets structure
-Three required tabs with columns A-O (transaction data):
-- `Pemasukan` — income transactions
-- `Pengeluaran` — expense transactions
-- `Tabungan` — savings transactions
+Three required tabs use the common A-O transaction columns. `Pengeluaran`
+adds P=`Sifat` for expense classification:
+- `Pemasukan` — income transactions, A:O
+- `Pengeluaran` — expense transactions, A:P (`Sifat` in P)
+- `Tabungan` — savings transactions, A:O
 
 Column layout: Tanggal | ID | Keterangan | Kategori | Jumlah | Pajak | Biaya | AkunBank | Net | Catatan | M(bulan) | Y(tahun) | Y2 | EventID | EventSubKategori
+`Pengeluaran!P:P` stores `Rutin` or `Spesial`; blank or unknown legacy values
+normalize to `Rutin`. Actual accounting totals, net worth, budgets, quota,
+calendar totals, and ledger visibility include both classes. Routine trends,
+averages, anomaly alerts, forecast baselines, selected Health Score factors,
+and stable insights exclude `Spesial` expenses.
 
 One optional tab for the Budgets feature (Phase A):
 - `Budgets` — per-category monthly limits. Schema in `docs/sheets-budgets.md`. Columns A–F: Kategori | Bulan | Tahun | Limit | Akun | Catatan.
@@ -125,7 +131,7 @@ Google OAuth must request `https://www.googleapis.com/auth/drive.file` only for 
 
 ## Data flow
 - `src/app/api/auth/[...nextauth]/route.js` - NextAuth config, stores `accessToken` in the JWT, not the client session
-- `src/app/api/dashboard/route.js` — reads all 3 sheets, returns aggregated data (includes `netWorth`, `netWorthMonthlyDelta`, `netWorthHistory`)
+- `src/app/api/dashboard/route.js` — reads all 3 sheets, returns actual aggregates plus routine expense aggregates (includes `netWorth`, `netWorthMonthlyDelta`, `netWorthHistory`)
 - `src/app/api/transaction/route.js` — appends rows to sheets via Sheets API (now uses find-empty-row + `values.update` instead of `:append` to avoid table-end detection issues)
 - `src/app/api/transaction/[id]/route.js` — update (PUT) and clear (DELETE) transaction rows
 - `src/app/api/budgets/route.js` — CRUD on the Budgets tab (`GET ?month&year`, `POST`, `PUT`, `DELETE`)
