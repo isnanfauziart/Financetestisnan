@@ -87,6 +87,16 @@ export default function StatsTab({
   const activeCompareDataA = isRoutineMode ? (routineCompareDataA || compareDataA) : compareDataA
   const activeCompareDataB = isRoutineMode ? (routineCompareDataB || compareDataB) : compareDataB
   const activeCompareChartData = isRoutineMode ? (routineCompareChartData || compareChartData) : compareChartData
+  const summaryStatus = statSurplus > 0 ? "Surplus" : statSurplus < 0 ? "Defisit" : "Seimbang"
+  const summaryPeriod = [
+    selectedMonth || (isAllMonths ? "Semua Bulan" : "Periode"),
+    selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : null,
+  ].filter(Boolean).join(" ")
+  const summaryStatusStyle = statSurplus > 0
+    ? { background: "rgba(122,171,154,0.2)", color: "#d9efe7" }
+    : statSurplus < 0
+      ? { background: "rgba(217,154,125,0.2)", color: "#ffd8c7" }
+      : { background: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.88)" }
 
   return (
     <div className="px-5 pt-4 space-y-5 animate-bento-in" key="stats-tab">
@@ -167,6 +177,34 @@ export default function StatsTab({
 
       {activeSection === "ringkasan" && (
         <>
+          {/* Financial summary */}
+          {refreshing ? <ChartSkeleton height={160} /> : (
+            <section className="bento-tile-dark mesh-hero text-white p-4 sm:p-5 shadow-pop relative overflow-hidden" role="region" aria-label="Ringkasan keuangan">
+              <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(159,135,239,0.3) 0%, transparent 70%)" }} />
+              <div className="relative z-10">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider opacity-80">Ringkasan Keuangan · {summaryPeriod}</p>
+                    <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                      <h2 className="text-2xl sm:text-3xl font-display font-bold tabular-nums">{formatRpFull(Math.abs(statSurplus))}</h2>
+                      <span className="rounded-full px-2.5 py-1 text-[10px] font-bold" style={summaryStatusStyle}>{summaryStatus}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-4 border-t border-white/15 pt-3">
+                  <div className="rounded-2xl p-3" style={{ background: "rgba(255,255,255,0.1)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Pemasukan</p>
+                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums">{formatRp(statIncome)}</p>
+                  </div>
+                  <div className="rounded-2xl p-3" style={{ background: "rgba(255,255,255,0.1)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Pengeluaran</p>
+                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums">{formatRp(statExpense)}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Smart Insights (compact) */}
           {insights.length > 0 && (
             <div>
@@ -198,42 +236,6 @@ export default function StatsTab({
           )}
 
           {!isFeatureEnabled(effectiveEntitlement, "anomalyAlerts") ? <LockedFeaturePreview title="Anomaly Alerts" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "anomalyAlerts") ? <AnomalyAlerts transactions={allTransactions} selectedMonth={selectedMonth} selectedYear={selectedYear} onCategoryClick={onCategoryClick} /> : <LockedFeaturePreview title="Anomaly Alerts" description="Deteksi pola transaksi tidak biasa tersedia di Pro." />}
-
-          {/* Stat hero */}
-          {refreshing ? <ChartSkeleton height={200} /> : (
-          <div className="bento-tile-dark mesh-hero text-white p-5 shadow-pop relative overflow-hidden">
-        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(159,135,239,0.3) 0%, transparent 70%)" }} />
-        <div className="relative z-10">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-1">Ringkasan Keuangan · {isAllMonths ? "Semua Bulan" : selectedMonth}</p>
-              <h2 className="text-3xl font-display font-bold">{formatRpFull(statSurplus)}</h2>
-              <p className="mt-2 text-[11px] font-semibold text-white/80">Surplus bersih untuk periode yang sedang kamu lihat</p>
-            </div>
-          </div>
-          <div className="space-y-3 border-t border-white/15 pt-4">
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1.5">
-                <span className="opacity-80">Pemasukan</span>
-                <span>{formatRp(statIncome)}</span>
-              </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, (statIncome / (statIncome + statExpense || 1)) * 100)}%`, background: THEME.savings }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-xs font-semibold mb-1.5">
-                <span className="opacity-80">Pengeluaran</span>
-                <span>{formatRp(statExpense)}</span>
-              </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, (statExpense / (statIncome + statExpense || 1)) * 100)}%`, background: THEME.expense }} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-          )}
         </>
       )}
 

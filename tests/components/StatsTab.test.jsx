@@ -187,6 +187,88 @@ describe("StatsTab segmented statistik navigation", () => {
   })
 })
 
+describe("StatsTab financial summary", () => {
+  it("places the summary immediately after the section tabs and before insights and anomaly alerts", () => {
+    render(<StatsTab {...createProps({
+      statIncome: 12_000_000,
+      statExpense: 8_000_000,
+      statSurplus: 4_000_000,
+      insights: [{ icon: () => null, type: "positive", color: "#2f855a", text: "Pemasukan stabil" }],
+    })} />)
+
+    const tablist = screen.getByRole("tablist", { name: "Navigasi Statistik" })
+    const summary = screen.getByRole("region", { name: "Ringkasan keuangan" })
+    const insightsHeading = screen.getByRole("heading", { name: "Insights" })
+    const anomaly = screen.getByText("Anomaly mock")
+
+    expect(tablist.nextElementSibling).toBe(summary)
+    expect(summary.compareDocumentPosition(insightsHeading) & 4).toBe(4)
+    expect(summary.compareDocumentPosition(anomaly) & 4).toBe(4)
+  })
+
+  it("shows the selected period, surplus status, and supporting income and expense metrics", () => {
+    render(<StatsTab {...createProps({
+      selectedMonth: "Agu",
+      selectedYear: "2026",
+      statIncome: 12_000_000,
+      statExpense: 8_000_000,
+      statSurplus: 4_000_000,
+    })} />)
+
+    const summary = screen.getByRole("region", { name: "Ringkasan keuangan" })
+
+    expect(summary).toHaveTextContent("Agu 2026")
+    expect(summary).toHaveTextContent("Surplus")
+    expect(summary.querySelector("h2")).toHaveTextContent("4.000.000")
+    expect(summary).toHaveTextContent("Pemasukan")
+    expect(summary).toHaveTextContent("Rp 12.0 jt")
+    expect(summary).toHaveTextContent("Pengeluaran")
+    expect(summary).toHaveTextContent("Rp 8.0 jt")
+  })
+
+  it("shows Defisit with an absolute deficit amount", () => {
+    render(<StatsTab {...createProps({
+      statIncome: 5_000_000,
+      statExpense: 11_000_000,
+      statSurplus: -6_000_000,
+    })} />)
+
+    const summary = screen.getByRole("region", { name: "Ringkasan keuangan" })
+    const mainAmount = summary.querySelector("h2")
+
+    expect(summary).toHaveTextContent("Defisit")
+    expect(mainAmount).toHaveTextContent("6.000.000")
+    expect(mainAmount).not.toHaveTextContent("-")
+  })
+
+  it("shows Seimbang when income and expenses are equal", () => {
+    render(<StatsTab {...createProps({
+      statIncome: 5_000_000,
+      statExpense: 5_000_000,
+      statSurplus: 0,
+    })} />)
+
+    expect(screen.getByRole("region", { name: "Ringkasan keuangan" })).toHaveTextContent("Seimbang")
+  })
+
+  it("keeps the summary scoped to the Ringkasan section", () => {
+    render(<StatsTab {...createProps()} />)
+
+    expect(screen.getByRole("region", { name: "Ringkasan keuangan" })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
+
+    expect(screen.queryByRole("region", { name: "Ringkasan keuangan" })).not.toBeInTheDocument()
+    expect(screen.getByText("Komposisi Pemasukan")).toBeInTheDocument()
+  })
+
+  it("uses a compact loading skeleton for the summary", () => {
+    const { container } = render(<StatsTab {...createProps({ refreshing: true })} />)
+
+    expect(container.querySelector(".shimmer-bg")).toHaveStyle({ height: "160px" })
+  })
+})
+
 describe("StatsTab top filter labels", () => {
   it("shows a visible matching label for every top filter", () => {
     render(<StatsTab {...createProps()} />)

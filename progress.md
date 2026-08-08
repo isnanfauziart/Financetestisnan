@@ -632,3 +632,27 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - `docs/commercialization-prompts.md` had a pre-existing large dirty rewrite. Its single stale expense-schema line was updated in place but was intentionally not staged, so the unrelated rewrite remains preserved for its owner.
+
+## 2026-08-08 - Move and refine Statistik financial summary
+
+### Tasks Completed
+- Moved the financial summary to the first content position after the Statistik section tabs within Ringkasan.
+- Reworked the hero into a compact dark summary card with a dominant result, clear Pemasukan/Pengeluaran cells, and dynamic Surplus, Defisit, or Seimbang states.
+- Added focused coverage for placement, period context, financial states, scoped rendering, and compact loading behavior.
+
+### Files Changed
+- `src/app/dashboard/StatsTab.jsx`
+- `tests/components/StatsTab.test.jsx`
+- `progress.md`
+
+### Decisions
+- Kept the existing filter and analysis-mode sections unchanged.
+- Deficit values display as absolute amounts because the Defisit label communicates direction.
+- The summary remains scoped to the Ringkasan subsection; Insights and Anomaly Alerts follow it.
+
+### Verification
+- Focused StatsTab suite: 19 tests passed.
+- Full repository suite: 95 files passed, 1 skipped; 478 tests passed, 2 skipped.
+
+### Blockers
+- Production build stopped at the existing fail-fast environment check because `LEGACY_SHEET_OWNER_EMAIL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`, and `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` are not configured in this workspace.
