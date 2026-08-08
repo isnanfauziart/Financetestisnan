@@ -8,6 +8,7 @@ import { computeForecast } from "@/lib/forecast"
 import Sheet from "@/app/dashboard/_components/Sheet"
 
 const FORMULA_COPY = "Proyeksi ini dihitung berdasarkan hingga enam bulan lengkap terakhir, dengan mempertimbangkan pola pemasukan, pengeluaran, tagihan, dan pembayaran terjadwal."
+const SPECIAL_HISTORY_NOTE = "Riwayat Spesial tidak masuk baseline rutin."
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) return null
@@ -29,11 +30,12 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
-export default function CashFlowForecast({ monthlyData, transactions, bills, billsLoading, billsError, now }) {
+export default function CashFlowForecast({ monthlyData, routineMonthlyData, transactions, bills, billsLoading, billsError, now }) {
   const [isInfoOpen, setIsInfoOpen] = useState(false)
+  const forecastMonthlyData = routineMonthlyData || monthlyData || []
   const forecast = useMemo(
-    () => computeForecast(monthlyData || [], { transactions: transactions || [], bills: bills || [], now: new Date(now) }),
-    [monthlyData, transactions, bills, now]
+    () => computeForecast(forecastMonthlyData, { transactions: transactions || [], bills: bills || [], now: new Date(now) }),
+    [forecastMonthlyData, transactions, bills, now]
   )
 
   const animatedIncome = useCountUp(forecast.projectedIncome ?? 0, 1000)
@@ -216,6 +218,9 @@ export default function CashFlowForecast({ monthlyData, transactions, bills, bil
 
       <Sheet open={isInfoOpen} onClose={() => setIsInfoOpen(false)} title="Rumus Proyeksi Arus Kas">
         <p className="text-sm leading-relaxed text-earth-600">{FORMULA_COPY}</p>
+        {forecast.specialHistoryExcluded && (
+          <p className="mt-3 text-xs leading-relaxed text-earth-500">{SPECIAL_HISTORY_NOTE}</p>
+        )}
       </Sheet>
     </div>
   )

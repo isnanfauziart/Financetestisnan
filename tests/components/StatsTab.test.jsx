@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import StatsTab from "@/app/dashboard/StatsTab"
 
 const forecastProps = vi.hoisted(() => ({ current: null }))
+const savingsTrendProps = vi.hoisted(() => ({ current: null }))
 
 vi.mock("@/components/BudgetsSection", () => ({ default: () => <div>Budgets mock</div> }))
 vi.mock("@/components/EventBudgetsSection", () => ({ default: () => <div>Event budgets mock</div> }))
@@ -14,7 +15,12 @@ vi.mock("@/components/CashFlowForecast", () => ({
     return <div>Forecast mock</div>
   },
 }))
-vi.mock("@/components/SavingsRateTrend", () => ({ default: () => <div>Savings trend mock</div> }))
+vi.mock("@/components/SavingsRateTrend", () => ({
+  default: (props) => {
+    savingsTrendProps.current = props
+    return <div>Savings trend mock</div>
+  },
+}))
 vi.mock("@/components/AnomalyAlerts", () => ({ default: () => <div>Anomaly mock</div> }))
 
 function createProps(overrides = {}) {
@@ -191,5 +197,16 @@ describe("StatsTab forecast inputs", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
 
     expect(forecastProps.current.now).toBe(now)
+  })
+
+  it("passes routine monthly data to routine analytics widgets when provided", () => {
+    const actualMonthlyData = [{ month: "Agu", year: "2026", pemasukan: 5_000_000, pengeluaran: 11_000_000 }]
+    const routineMonthlyData = [{ month: "Agu", year: "2026", pemasukan: 5_000_000, pengeluaranRutin: 1_000_000 }]
+
+    render(<StatsTab {...createProps({ monthlyData: actualMonthlyData, routineMonthlyData })} />)
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+
+    expect(forecastProps.current.monthlyData).toBe(routineMonthlyData)
+    expect(savingsTrendProps.current.monthlyData).toBe(routineMonthlyData)
   })
 })

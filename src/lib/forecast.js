@@ -109,6 +109,21 @@ function readAmount(value) {
   return Number.isFinite(amount) && amount > 0 ? amount : 0
 }
 
+function hasFiniteValue(value) {
+  if (value === null || value === undefined || String(value).trim?.() === "") return false
+  return Number.isFinite(Number(value)) || Number.isFinite(toFiniteNumber(value))
+}
+
+function readRoutineExpense(entry) {
+  return entry?.pengeluaranRutin ?? entry?.pengeluaran
+}
+
+function readRoutineSurplus(entry, income, expense) {
+  if (hasFiniteValue(entry?.surplusRutin)) return toFiniteNumber(entry.surplusRutin)
+  if (hasFiniteValue(entry?.surplus)) return toFiniteNumber(entry.surplus)
+  return income - expense
+}
+
 function average(values) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0
 }
@@ -188,6 +203,8 @@ function emptyForecast(projectionMonth, monthsUsed, dataGapCount) {
     scheduledIncome: 0,
     scheduledExpense: 0,
     dataGapCount,
+    specialHistoryExcluded: false,
+    specialHistoryExcludedCount: 0,
     insufficientData: true,
     chartData: [],
   }
@@ -214,17 +231,23 @@ export function computeForecast(monthlyData, { transactions = [], bills = [], no
       pemasukan: 0,
       pengeluaran: 0,
       surplus: 0,
+      specialHistoryExcludedCount: 0,
     }
-    existing.pemasukan += toFiniteNumber(entry?.pemasukan)
-    existing.pengeluaran += toFiniteNumber(entry?.pengeluaran)
-    existing.surplus += Number.isFinite(Number(entry?.surplus))
-      ? toFiniteNumber(entry.surplus)
-      : toFiniteNumber(entry?.pemasukan) - toFiniteNumber(entry?.pengeluaran)
+    const income = toFiniteNumber(entry?.pemasukan)
+    const expense = toFiniteNumber(readRoutineExpense(entry))
+    const actualExpense = toFiniteNumber(entry?.pengeluaran)
+    existing.pemasukan += income
+    existing.pengeluaran += expense
+    existing.surplus += readRoutineSurplus(entry, income, expense)
+    if (hasFiniteValue(entry?.pengeluaranRutin)) {
+      existing.specialHistoryExcludedCount += 1
+    }
     grouped.set(key, existing)
   }
 
   const observed = [...grouped.values()].sort((a, b) => a.key - b.key)
   const recent = observed.slice(-6)
+  const specialHistoryExcludedCount = recent.reduce((sum, entry) => sum + entry.specialHistoryExcludedCount, 0)
   const dataGapCount = recent.length < 2
     ? 0
     : Math.max(0, recent[recent.length - 1].key - recent[0].key + 1 - recent.length)
@@ -291,6 +314,8 @@ export function computeForecast(monthlyData, { transactions = [], bills = [], no
     scheduledIncome,
     scheduledExpense,
     dataGapCount,
+    specialHistoryExcluded: specialHistoryExcludedCount > 0,
+    specialHistoryExcludedCount,
     insufficientData: false,
     chartData,
   }

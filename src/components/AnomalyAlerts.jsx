@@ -3,6 +3,7 @@ import { useMemo } from "react"
 import { AlertTriangle, TrendingUp, ChevronRight } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
+import { isSpecialExpense } from "@/lib/expenseClass"
 
 function getPrevMonths(month, year, count) {
   const idx = AVAILABLE_MONTHS.indexOf(month)
@@ -51,6 +52,7 @@ export default function AnomalyAlerts({ transactions, selectedMonth, selectedYea
 
     for (const t of transactions) {
       if (t.type !== "expense") continue
+      if (isSpecialExpense(t)) continue
       const key = `${t.month} ${t.year}`
       const isCurrent = t.month === currentMonth && t.year === currentYear
       if (isCurrent) {

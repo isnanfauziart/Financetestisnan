@@ -5,6 +5,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp, useCountUp } from "@/app/dashboard/_components/helpers"
 
+function getRoutineExpense(month) {
+  return month?.pengeluaranRutin ?? month?.pengeluaran ?? 0
+}
+
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) return null
   const d = payload[0]?.payload
@@ -29,12 +33,15 @@ export default function SavingsRateTrend({ monthlyData }) {
     return monthlyData
       .filter(m => m.pemasukan > 0)
       .slice(-12)
-      .map(m => ({
-        label: m.year ? `${m.month} ${m.year}` : m.month,
-        rate: ((m.pemasukan - m.pengeluaran) / m.pemasukan) * 100,
-        income: m.pemasukan,
-        expense: m.pengeluaran,
-      }))
+      .map(m => {
+        const expense = getRoutineExpense(m)
+        return {
+          label: m.year ? `${m.month} ${m.year}` : m.month,
+          rate: ((m.pemasukan - expense) / m.pemasukan) * 100,
+          income: m.pemasukan,
+          expense,
+        }
+      })
   }, [monthlyData])
 
   const currentRate = chartData.length > 0 ? chartData[chartData.length - 1].rate : 0

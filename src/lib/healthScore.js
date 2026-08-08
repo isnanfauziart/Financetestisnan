@@ -19,6 +19,29 @@ function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val))
 }
 
+function hasFiniteValue(value) {
+  if (value === null || value === undefined || String(value).trim?.() === "") return false
+  return Number.isFinite(Number(value))
+}
+
+function toRoutineMonthlyData(monthlyData) {
+  return (monthlyData || []).map((month) => {
+    const expense = hasFiniteValue(month?.pengeluaranRutin)
+      ? Number(month.pengeluaranRutin)
+      : (month?.pengeluaran || 0)
+    const surplus = hasFiniteValue(month?.surplusRutin)
+      ? Number(month.surplusRutin)
+      : hasFiniteValue(month?.surplus)
+        ? Number(month.surplus)
+        : (month?.pemasukan || 0) - expense
+    return {
+      ...month,
+      pengeluaran: expense,
+      surplus,
+    }
+  })
+}
+
 // --- Component scores (return null when data is insufficient → excluded from calculation) ---
 
 function computeSavingsRateScore(monthlyData) {
@@ -151,7 +174,12 @@ function computeIncomeStabilityScore(monthlyData) {
  * @param {Array}  params.budgets      — budgets from /api/budgets
  * @returns {{ score: number, grade: string, delta: number, components: Array }}
  */
-export function computeHealthScore({ transactions, monthlyData, budgets, liquidSavingsCategories }) {
+export function computeHealthScore({ transactions, monthlyData, routineMonthlyData, budgets, liquidSavingsCategories }) {
+  const routineFactorMonthlyData = toRoutineMonthlyData(
+    Array.isArray(routineMonthlyData) && routineMonthlyData.length > 0
+      ? routineMonthlyData
+      : monthlyData
+  )
   const components = [
     {
       key: "savings_rate",
@@ -189,16 +217,16 @@ export function computeHealthScore({ transactions, monthlyData, budgets, liquidS
   for (const c of components) {
     switch (c.key) {
       case "savings_rate":
-        c.rawScore = computeSavingsRateScore(monthlyData)
+        c.rawScore = computeSavingsRateScore(routineFactorMonthlyData)
         break
       case "emergency_fund":
-        c.rawScore = computeEmergencyFundScore(transactions, monthlyData, liquidSavingsCategories)
+        c.rawScore = computeEmergencyFundScore(transactions, routineFactorMonthlyData, liquidSavingsCategories)
         break
       case "budget_adherence":
         c.rawScore = computeBudgetAdherenceScore(budgets, transactions)
         break
       case "expense_trend":
-        c.rawScore = computeExpenseTrendScore(monthlyData)
+        c.rawScore = computeExpenseTrendScore(routineFactorMonthlyData)
         break
       case "income_stability":
         c.rawScore = computeIncomeStabilityScore(monthlyData)
@@ -243,7 +271,7 @@ export function computeHealthScore({ transactions, monthlyData, budgets, liquidS
     }
     switch (c.key) {
       case "savings_rate": {
-        const incomes = (monthlyData || []).filter((m) => m.pemasukan > 0)
+        const incomes = (routineFactorMonthlyData || []).filter((m) => m.pemasukan > 0)
         const avgRate = incomes.length > 0
           ? safeAvg(incomes.map((m) => ((m.pemasukan - m.pengeluaran) / m.pemasukan) * 100))
           : 0
@@ -258,7 +286,7 @@ export function computeHealthScore({ transactions, monthlyData, budgets, liquidS
         for (const t of transactions || []) {
           if (t.type === "savings" && liquidCategories.has(t.category)) totalLiquid += t.amount
         }
-        const expensesByMonth = (monthlyData || []).filter((m) => m.pengeluaran > 0).map((m) => m.pengeluaran)
+        const expensesByMonth = (routineFactorMonthlyData || []).filter((m) => m.pengeluaran > 0).map((m) => m.pengeluaran)
         const avgExp = safeAvg(expensesByMonth)
         const months = avgExp > 0 ? totalLiquid / avgExp : 0
         c.detail = `${months.toFixed(1)} bulan cadangan`
@@ -275,7 +303,7 @@ export function computeHealthScore({ transactions, monthlyData, budgets, liquidS
         break
       }
       case "expense_trend": {
-        const recent = (monthlyData || []).slice(-6)
+        const recent = (routineFactorMonthlyData || []).slice(-6)
         const expenses = recent.map((d) => d.pengeluaran || 0)
         if (expenses.length < 2) { c.detail = "Data kurang"; break }
         const n = expenses.length
@@ -310,7 +338,8 @@ export function computeHealthScore({ transactions, monthlyData, budgets, liquidS
   let delta = 0
   if (monthlyData && monthlyData.length >= 2) {
     const prev = monthlyData.slice(0, -1)
-    const prevResult = computeHealthScore({ transactions, monthlyData: prev, budgets, liquidSavingsCategories })
+    const prevRoutine = routineFactorMonthlyData.slice(0, -1)
+    const prevResult = computeHealthScore({ transactions, monthlyData: prev, routineMonthlyData: prevRoutine, budgets, liquidSavingsCategories })
     delta = score - prevResult.score
   }
 

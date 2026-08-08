@@ -132,13 +132,21 @@ describe("CashFlowForecast", () => {
   })
 
   it("opens the approved formula sheet from the chart, Info button, and keyboard activation", () => {
-    renderForecast()
+    renderForecast({
+      monthlyData: createMonthlyData().map((entry) => ({
+        ...entry,
+        pengeluaran: entry.pengeluaran + 10_000_000,
+        pengeluaranRutin: entry.pengeluaran,
+        surplusRutin: entry.surplus,
+      })),
+    })
     const chart = screen.getByRole("button", { name: "Buka rumus proyeksi arus kas" })
     const infoButton = screen.getByRole("button", { name: "Info proyeksi arus kas" })
 
     fireEvent.click(infoButton)
     expect(screen.getByRole("dialog")).toHaveTextContent("Rumus Proyeksi Arus Kas")
     expect(screen.getByText("Proyeksi ini dihitung berdasarkan hingga enam bulan lengkap terakhir, dengan mempertimbangkan pola pemasukan, pengeluaran, tagihan, dan pembayaran terjadwal.")).toBeInTheDocument()
+    expect(screen.getByText("Riwayat Spesial tidak masuk baseline rutin.")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "Close" }))
     fireEvent.click(chart)

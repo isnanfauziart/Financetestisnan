@@ -20,6 +20,7 @@ const FORMULA_ROWS = [
 export default function HealthScoreCard({
   transactions,
   monthlyData,
+  routineMonthlyData,
   selectedMonth,
   selectedYear,
   liquidSavingsCategories,
@@ -32,8 +33,8 @@ export default function HealthScoreCard({
 
   const healthResult = useMemo(() => {
     if (!transactions || transactions.length === 0) return null
-    return computeHealthScore({ transactions, monthlyData, budgets, liquidSavingsCategories })
-  }, [transactions, monthlyData, budgets, liquidSavingsCategories])
+    return computeHealthScore({ transactions, monthlyData, routineMonthlyData, budgets, liquidSavingsCategories })
+  }, [transactions, monthlyData, routineMonthlyData, budgets, liquidSavingsCategories])
 
   const animatedScore = useCountUp(healthResult?.score || 0, 1400)
 

@@ -15,6 +15,48 @@ function monthData(months, incomes = 1000, expenses = 500) {
 }
 
 describe("computeForecast", () => {
+  it("uses routine expense history while preserving scheduled bill double-count protection", () => {
+    const monthlyData = monthData(
+      ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"],
+      2_000_000,
+      10_700_000,
+    ).map((entry) => ({
+      ...entry,
+      pengeluaranRutin: 700_000,
+      surplusRutin: 1_300_000,
+    }))
+    const transactions = monthlyData.map((entry) => ({
+      id: `billpay:rent:${entry.year}-${String(MONTHS.indexOf(entry.month) + 1).padStart(2, "0")}-01`,
+      type: "expense",
+      amount: 200_000,
+      month: entry.month,
+      year: entry.year,
+    }))
+
+    const result = computeForecast(monthlyData, {
+      now: new Date("2026-07-15T00:00:00.000Z"),
+      transactions,
+      bills: [{
+        id: "rent",
+        tipe: "expense",
+        jumlah: 200_000,
+        frekuensi: "monthly",
+        tanggalJatuhTempo: 1,
+        aktif: true,
+        createdAt: "2026-01-01",
+      }],
+    })
+
+    expect(result.variableExpenseBaseline).toBe(500_000)
+    expect(result.scheduledExpense).toBe(200_000)
+    expect(result.projectedExpense).toBe(700_000)
+    expect(result.chartData.at(-2)).toMatchObject({
+      pengeluaran: 700_000,
+      surplus: 1_300_000,
+    })
+    expect(result.specialHistoryExcluded).toBe(true)
+  })
+
   it("uses recency weights for six stable income months", () => {
     const result = computeForecast(
       monthData(["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"], [100, 110, 100, 110, 100, 110], 40),

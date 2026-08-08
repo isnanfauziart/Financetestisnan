@@ -54,6 +54,7 @@ export default function StatsTab({
   haptics,
   hapticsEnabled,
   monthlyData,
+  routineMonthlyData,
   allTransactions,
   now,
   bills,
@@ -67,6 +68,7 @@ export default function StatsTab({
   const [showDateRange, setShowDateRange] = useState(false)
   const [activeSection, setActiveSection] = useState("ringkasan")
   const hasDateRange = dateFrom || dateTo
+  const routineAnalyticsMonthlyData = routineMonthlyData || monthlyData
 
   return (
     <div className="px-5 pt-4 space-y-5 animate-bento-in" key="stats-tab">
@@ -346,8 +348,8 @@ export default function StatsTab({
             )
           )}
 
-          {!isFeatureEnabled(effectiveEntitlement, "cashFlowForecast") ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={monthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." />}
-          <SavingsRateTrend monthlyData={monthlyData} />
+          {!isFeatureEnabled(effectiveEntitlement, "cashFlowForecast") ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={routineAnalyticsMonthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." />}
+          <SavingsRateTrend monthlyData={routineAnalyticsMonthlyData} />
 
           {/* Month comparison */}
           <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
