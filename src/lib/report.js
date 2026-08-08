@@ -1,4 +1,5 @@
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { isSpecialExpense } from "@/lib/expenseClass"
 
 function formatRpFull(amount) {
   return new Intl.NumberFormat("id-ID", {
@@ -23,6 +24,52 @@ function prevMonth(month, year) {
   return { month: AVAILABLE_MONTHS[idx - 1], year }
 }
 
+function routineExpenseFromRow(row) {
+  if (!row) return 0
+  const routine = Number(row.pengeluaranRutin)
+  return Number.isFinite(routine) ? routine : Number(row.pengeluaran) || 0
+}
+
+function buildRoutineMonthlyData(transactions = []) {
+  const rows = new Map()
+
+  for (const transaction of transactions) {
+    if (!transaction?.month || transaction.year === undefined || transaction.year === null) continue
+    const key = `${transaction.month} ${transaction.year}`
+    if (!rows.has(key)) {
+      rows.set(key, {
+        month: transaction.month,
+        year: transaction.year,
+        sortKey: `${transaction.year}-${String(AVAILABLE_MONTHS.indexOf(transaction.month) + 1).padStart(2, "0")}`,
+        pemasukan: 0,
+        pengeluaranRutin: 0,
+        pengeluaranSpesial: 0,
+        pengeluaranAktual: 0,
+        surplusRutin: 0,
+        tabungan: 0,
+      })
+    }
+
+    const row = rows.get(key)
+    if (transaction.type === "income") row.pemasukan += Number(transaction.amount) || 0
+    if (transaction.type === "savings") row.tabungan += Number(transaction.amount) || 0
+    if (transaction.type === "expense") {
+      const amount = Number(transaction.amount) || 0
+      row.pengeluaranAktual += amount
+      if (isSpecialExpense(transaction)) row.pengeluaranSpesial += amount
+      else row.pengeluaranRutin += amount
+    }
+  }
+
+  return Array.from(rows.values())
+    .map(row => ({ ...row, surplusRutin: row.pemasukan - row.pengeluaranRutin }))
+    .sort((a, b) => String(a.sortKey).localeCompare(String(b.sortKey)))
+}
+
+function findMonthlyRow(rows, month, year) {
+  return (rows || []).find(row => row.month === month && String(row.year || "") === String(year))
+}
+
 /**
  * Generate a printable HTML monthly report.
  *
@@ -33,6 +80,7 @@ function prevMonth(month, year) {
  * @param {Array}  params.budgets — filtered to month/year
  * @param {Array}  params.allTransactions — all transactions
  * @param {Array}  params.monthlyData — full monthlyData (for trend context)
+ * @param {Array}  params.routineMonthlyData — routine monthlyData for behavioral comparisons
  * @param {Object} [params.healthScore] — { score, grade } from computeHealthScore
  * @returns {string} — complete HTML document string
  */
@@ -43,35 +91,49 @@ export function generateReportHTML({
   budgets,
   allTransactions,
   monthlyData,
+  routineMonthlyData,
   healthScore,
   userName,
 }) {
-  const income = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0)
-  const expense = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0)
-  const savings = transactions.filter((t) => t.type === "savings").reduce((s, t) => s + t.amount, 0)
+  const reportTransactions = transactions || []
+  const expenseTransactions = reportTransactions.filter((t) => t.type === "expense")
+  const routineTransactions = expenseTransactions.filter((t) => !isSpecialExpense(t))
+  const specialTransactions = expenseTransactions.filter((t) => isSpecialExpense(t))
+  const income = reportTransactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0)
+  const expense = expenseTransactions.reduce((s, t) => s + t.amount, 0)
+  const routineExpense = routineTransactions.reduce((s, t) => s + t.amount, 0)
+  const specialExpense = specialTransactions.reduce((s, t) => s + t.amount, 0)
+  const savings = reportTransactions.filter((t) => t.type === "savings").reduce((s, t) => s + t.amount, 0)
   const surplus = income - expense
   const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0
 
   // Expense by category
   const expenseByCategory = {}
-  for (const t of transactions) {
+  for (const t of reportTransactions) {
     if (t.type !== "expense") continue
     expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + t.amount
   }
   const sortedCategories = Object.entries(expenseByCategory).sort((a, b) => b[1] - a[1])
 
   // Top 10 transactions
-  const top10 = transactions
-    .filter((t) => t.type === "expense")
+  const top10 = expenseTransactions
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 10)
 
   // Previous month comparison
   const prev = prevMonth(month, year)
-  const prevTx = (monthlyData || []).find((m) => m.month === prev.month && String(m.year || "") === prev.year)
+  const prevTx = findMonthlyRow(monthlyData, prev.month, prev.year)
+  const reportRoutineMonthlyData = Array.isArray(routineMonthlyData) && routineMonthlyData.length > 0
+    ? routineMonthlyData
+    : buildRoutineMonthlyData(Array.isArray(allTransactions) && allTransactions.length > 0 ? allTransactions : reportTransactions)
+  const currentRoutineTx = findMonthlyRow(reportRoutineMonthlyData, month, year)
+  const prevRoutineTx = findMonthlyRow(reportRoutineMonthlyData, prev.month, prev.year)
   const prevIncome = prevTx ? prevTx.pemasukan : 0
-  const prevExpense = prevTx ? prevTx.pengeluaran : 0
+  const comparisonIncome = currentRoutineTx ? currentRoutineTx.pemasukan : income
+  const prevExpense = prevRoutineTx ? routineExpenseFromRow(prevRoutineTx) : (prevTx ? prevTx.pengeluaran : 0)
+  const comparisonExpense = currentRoutineTx ? routineExpenseFromRow(currentRoutineTx) : routineExpense
   const prevSurplus = prevIncome - prevExpense
+  const comparisonSurplus = comparisonIncome - comparisonExpense
 
   // Budget adherence
   const budgetRows = (budgets || []).map((b) => {
@@ -429,7 +491,30 @@ ${healthScore ? `
       <div class="summary-card" style="border-left:3pt solid #9c8978; background:#f6efe5;">
         <div class="summary-emoji">📋</div>
         <div class="summary-label">Jumlah Transaksi</div>
-        <div class="summary-value">${transactions.length}</div>
+        <div class="summary-value">${reportTransactions.length}</div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<table class="summary-table">
+  <tr>
+    <td width="33%" style="padding-right:4pt;">
+      <div class="summary-card" style="border-left:3pt solid #c47d5a; background:#fbf0e9;">
+        <div class="summary-label">Aktual</div>
+        <div class="summary-value negative">${formatRpFull(expense)}</div>
+      </div>
+    </td>
+    <td width="33%" style="padding-left:2pt; padding-right:2pt;">
+      <div class="summary-card" style="border-left:3pt solid #5b8c7a; background:#ebf3f0;">
+        <div class="summary-label">Rutin</div>
+        <div class="summary-value positive">${formatRpFull(routineExpense)}</div>
+      </div>
+    </td>
+    <td width="33%" style="padding-left:4pt;">
+      <div class="summary-card" style="border-left:3pt solid #7c5fcf; background:#f3effc;">
+        <div class="summary-label">Spesial</div>
+        <div class="summary-value" style="color:#7c5fcf;">${formatRpFull(specialExpense)}</div>
       </div>
     </td>
   </tr>
@@ -524,9 +609,33 @@ ${top10.length > 0 ? `
     </tr>
   </thead>
   <tbody>
-    ${top10.map((t, i) => `
+  ${top10.map((t, i) => `
     <tr>
       <td>${i + 1}</td>
+      <td>${esc(t.category)}</td>
+      <td>${esc(t.desc || "\u2014")}</td>
+      <td>${esc(t.date || "")}</td>
+      <td class="num negative">-${formatRpFull(t.amount)}</td>
+    </tr>`).join("")}
+  </tbody>
+</table>
+` : ""}
+
+${specialTransactions.length > 0 ? `
+<h2 class="section-title"><span class="section-title-bar"></span>Pengeluaran Spesial</h2>
+<hr class="section-hr">
+<table>
+  <thead>
+    <tr>
+      <th>Kategori</th>
+      <th>Keterangan</th>
+      <th>Tanggal</th>
+      <th class="num">Jumlah</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${[...specialTransactions].sort((a, b) => b.amount - a.amount).slice(0, 10).map((t) => `
+    <tr>
       <td>${esc(t.category)}</td>
       <td>${esc(t.desc || "\u2014")}</td>
       <td>${esc(t.date || "")}</td>
@@ -542,8 +651,8 @@ ${prevTx ? `
 <table class="compare-table">
   ${(() => {
     const maxInc = Math.max(income, prevIncome) || 1
-    const maxExp = Math.max(expense, prevExpense) || 1
-    const maxSur = Math.max(Math.abs(surplus), Math.abs(prevSurplus)) || 1
+    const maxExp = Math.max(comparisonExpense, prevExpense) || 1
+    const maxSur = Math.max(Math.abs(comparisonSurplus), Math.abs(prevSurplus)) || 1
     return `
   <tr>
     <td width="33%" style="padding-right:4pt;">
@@ -567,7 +676,7 @@ ${prevTx ? `
     </td>
     <td width="33%" style="padding-left:4pt; padding-right:4pt;">
       <div class="compare-card" style="border-left:3pt solid #c47d5a;">
-        <div class="summary-label">Pengeluaran</div>
+        <div class="summary-label">Pengeluaran Rutin</div>
         <table class="compare-bar-table" style="margin-top:6pt;">
           <tr>
             <td width="50%">
@@ -577,8 +686,8 @@ ${prevTx ? `
             </td>
             <td width="50%">
               <div class="compare-label">${esc(month)}</div>
-              <div class="compare-bar" style="height:${(expense / maxExp) * 28}pt; background:#c47d5a;"></div>
-              <div class="compare-value">${formatRpFull(expense)}</div>
+              <div class="compare-bar" style="height:${(comparisonExpense / maxExp) * 28}pt; background:#c47d5a;"></div>
+              <div class="compare-value">${formatRpFull(comparisonExpense)}</div>
             </td>
           </tr>
         </table>
@@ -586,7 +695,7 @@ ${prevTx ? `
     </td>
     <td width="33%" style="padding-left:4pt;">
       <div class="compare-card" style="border-left:3pt solid ${surplus >= 0 ? '#5b8c7a' : '#c47d5a'};">
-        <div class="summary-label">Surplus</div>
+        <div class="summary-label">Surplus Rutin</div>
         <table class="compare-bar-table" style="margin-top:6pt;">
           <tr>
             <td width="50%">
@@ -596,8 +705,8 @@ ${prevTx ? `
             </td>
             <td width="50%">
               <div class="compare-label">${esc(month)}</div>
-              <div class="compare-bar" style="height:${(Math.abs(surplus) / maxSur) * 28}pt; background:${surplus >= 0 ? '#5b8c7a' : '#c47d5a'};"></div>
-              <div class="compare-value">${formatRpFull(surplus)}</div>
+              <div class="compare-bar" style="height:${(Math.abs(comparisonSurplus) / maxSur) * 28}pt; background:${comparisonSurplus >= 0 ? '#5b8c7a' : '#c47d5a'};"></div>
+              <div class="compare-value">${formatRpFull(comparisonSurplus)}</div>
             </td>
           </tr>
         </table>
@@ -623,16 +732,16 @@ ${prevTx ? `
       <td class="num ${income >= prevIncome ? 'delta-positive' : 'delta-negative'}">${income >= prevIncome ? "\u2191" : "\u2193"} ${prevIncome > 0 ? Math.abs(((income - prevIncome) / prevIncome) * 100).toFixed(0) : "0"}%</td>
     </tr>
     <tr>
-      <td>Pengeluaran</td>
+      <td>Pengeluaran Rutin</td>
       <td class="num">${formatRpFull(prevExpense)}</td>
-      <td class="num">${formatRpFull(expense)}</td>
-      <td class="num ${expense <= prevExpense ? 'delta-positive' : 'delta-negative'}">${expense <= prevExpense ? "\u2193" : "\u2191"} ${prevExpense > 0 ? Math.abs(((expense - prevExpense) / prevExpense) * 100).toFixed(0) : "0"}%</td>
+      <td class="num">${formatRpFull(comparisonExpense)}</td>
+      <td class="num ${comparisonExpense <= prevExpense ? 'delta-positive' : 'delta-negative'}">${comparisonExpense <= prevExpense ? "\u2193" : "\u2191"} ${prevExpense > 0 ? Math.abs(((comparisonExpense - prevExpense) / prevExpense) * 100).toFixed(0) : "0"}%</td>
     </tr>
     <tr>
-      <td>Surplus</td>
+      <td>Surplus Rutin</td>
       <td class="num ${prevSurplus >= 0 ? 'positive' : 'negative'}">${formatRpFull(prevSurplus)}</td>
-      <td class="num ${surplus >= 0 ? 'positive' : 'negative'}">${formatRpFull(surplus)}</td>
-      <td class="num ${surplus >= prevSurplus ? 'delta-positive' : 'delta-negative'}">${surplus >= prevSurplus ? "\u2191" : "\u2193"} ${formatRpFull(Math.abs(surplus - prevSurplus))}</td>
+      <td class="num ${comparisonSurplus >= 0 ? 'positive' : 'negative'}">${formatRpFull(comparisonSurplus)}</td>
+      <td class="num ${comparisonSurplus >= prevSurplus ? 'delta-positive' : 'delta-negative'}">${comparisonSurplus >= prevSurplus ? "\u2191" : "\u2193"} ${formatRpFull(Math.abs(comparisonSurplus - prevSurplus))}</td>
     </tr>
   </tbody>
 </table>
@@ -658,12 +767,21 @@ ${prevTx ? `
  * @param {Array}  params.monthlyData — full monthlyData (for trend context)
  * @returns {string} — complete HTML document string
  */
-export function generateAnnualReportHTML({ year, transactions, monthlyData, userName }) {
+export function generateAnnualReportHTML({ year, transactions, monthlyData, routineMonthlyData, userName }) {
   const yearTx = (transactions || []).filter(t => String(t.year) === String(year))
   const yearMonthly = (monthlyData || []).filter(m => String(m.year) === String(year))
+  const reportRoutineMonthlyData = Array.isArray(routineMonthlyData) && routineMonthlyData.length > 0
+    ? routineMonthlyData
+    : buildRoutineMonthlyData(transactions || [])
+  const yearRoutineMonthly = reportRoutineMonthlyData.filter(m => String(m.year) === String(year))
 
   const income = yearTx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
-  const expense = yearTx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+  const expenseTransactions = yearTx.filter(t => t.type === "expense")
+  const routineTransactions = expenseTransactions.filter(t => !isSpecialExpense(t))
+  const specialTransactions = expenseTransactions.filter(t => isSpecialExpense(t))
+  const expense = expenseTransactions.reduce((s, t) => s + t.amount, 0)
+  const routineExpense = routineTransactions.reduce((s, t) => s + t.amount, 0)
+  const specialExpense = specialTransactions.reduce((s, t) => s + t.amount, 0)
   const savings = yearTx.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
   const surplus = income - expense
   const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0
@@ -677,20 +795,22 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData, user
   const sortedCategories = Object.entries(expenseByCategory).sort((a, b) => b[1] - a[1])
 
   // Biggest transaction
-  const biggestTx = yearTx.filter(t => t.type === "expense").sort((a, b) => b.amount - a.amount)[0]
+  const biggestTx = [...expenseTransactions].sort((a, b) => b.amount - a.amount)[0]
 
   // Most expensive month
   const monthExpense = {}
-  for (const m of yearMonthly) {
-    if (m.pengeluaran > 0) monthExpense[`${m.month} ${m.year || year}`] = m.pengeluaran
+  for (const m of yearRoutineMonthly) {
+    const routineAmount = routineExpenseFromRow(m)
+    if (routineAmount > 0) monthExpense[`${m.month} ${m.year || year}`] = routineAmount
   }
   const sortedMonths = Object.entries(monthExpense).sort((a, b) => b[1] - a[1])
   const worstMonth = sortedMonths[0]
 
   // Best savings month
   const monthSavings = {}
-  for (const m of yearMonthly) {
-    const sr = m.pemasukan > 0 ? ((m.pemasukan - m.pengeluaran) / m.pemasukan) * 100 : 0
+  for (const m of yearRoutineMonthly) {
+    const routineAmount = routineExpenseFromRow(m)
+    const sr = m.pemasukan > 0 ? ((m.pemasukan - routineAmount) / m.pemasukan) * 100 : 0
     monthSavings[`${m.month} ${m.year || year}`] = sr
   }
   const sortedSavingsMonths = Object.entries(monthSavings).sort((a, b) => b[1] - a[1])
@@ -698,8 +818,8 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData, user
 
   // Daily stats
   const dailySpend = {}
-  for (const t of yearTx) {
-    if (t.type !== "expense" || !t.date) continue
+  for (const t of routineTransactions) {
+    if (!t.date) continue
     const dayKey = t.date
     dailySpend[dayKey] = (dailySpend[dayKey] || 0) + t.amount
   }
@@ -727,8 +847,9 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData, user
   const netWorthGrowth = netWorthStart > 0 ? ((netWorthEnd - netWorthStart) / Math.abs(netWorthStart)) * 100 : 0
 
   // Savings rate by month (for inline chart)
-  const monthlyRates = sortedYearMonthly.map(m => {
-    const sr = m.pemasukan > 0 ? ((m.pemasukan - m.pengeluaran) / m.pemasukan) * 100 : 0
+  const monthlyRates = yearRoutineMonthly.map(m => {
+    const routineAmount = routineExpenseFromRow(m)
+    const sr = m.pemasukan > 0 ? ((m.pemasukan - routineAmount) / m.pemasukan) * 100 : 0
     return { month: m.month, rate: sr }
   })
   const maxRate = Math.max(...monthlyRates.map(r => Math.abs(r.rate)), 1)
@@ -870,6 +991,29 @@ export function generateAnnualReportHTML({ year, transactions, monthlyData, user
   </tr>
 </table>
 
+<table class="grid-table">
+  <tr>
+    <td width="33%" style="padding-right:4pt;">
+      <div class="card" style="border-left:3pt solid #c47d5a; background:#fbf0e9;">
+        <div class="label">Aktual</div>
+        <div class="value negative">${formatRpFull(expense)}</div>
+      </div>
+    </td>
+    <td width="33%" style="padding-left:2pt; padding-right:2pt;">
+      <div class="card" style="border-left:3pt solid #5b8c7a; background:#ebf3f0;">
+        <div class="label">Rutin</div>
+        <div class="value positive">${formatRpFull(routineExpense)}</div>
+      </div>
+    </td>
+    <td width="33%" style="padding-left:4pt;">
+      <div class="card" style="border-left:3pt solid #7c5fcf; background:#f3effc;">
+        <div class="label">Spesial</div>
+        <div class="value" style="color:#7c5fcf;">${formatRpFull(specialExpense)}</div>
+      </div>
+    </td>
+  </tr>
+</table>
+
 <h2 class="section-title"><span class="section-title-bar"></span>Highlights</h2>
 <hr class="section-hr">
 ${biggestTx ? `
@@ -896,6 +1040,30 @@ ${worstDay ? `
   <div class="value" style="color:#c47d5a">${formatRpFull(worstDay[1])}</div>
   <div class="detail" style="color:#6b5b4f;">${esc(worstDay[0])}</div>
 </div>` : ""}
+
+${specialTransactions.length > 0 ? `
+<h2 class="section-title"><span class="section-title-bar"></span>Pengeluaran Spesial</h2>
+<hr class="section-hr">
+<table>
+  <thead>
+    <tr>
+      <th>Kategori</th>
+      <th>Keterangan</th>
+      <th>Tanggal</th>
+      <th class="num">Jumlah</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${[...specialTransactions].sort((a, b) => b.amount - a.amount).slice(0, 10).map((t) => `
+    <tr>
+      <td>${esc(t.category)}</td>
+      <td>${esc(t.desc || "\u2014")}</td>
+      <td>${esc(t.date || "")}</td>
+      <td class="num negative">-${formatRpFull(t.amount)}</td>
+    </tr>`).join("")}
+  </tbody>
+</table>
+` : ""}
 
 <h2 class="section-title"><span class="section-title-bar"></span>Savings Rate per Bulan</h2>
 <hr class="section-hr">

@@ -1,18 +1,56 @@
 "use client"
 import { useMemo, useCallback } from "react"
 import { FileText, Download } from "lucide-react"
-import { THEME } from "@/app/dashboard/_components/constants"
+import { AVAILABLE_MONTHS, THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import { useBudgets, useSettings } from "@/lib/useSharedData"
 import { generateReportPDF } from "@/lib/reportPdf"
 import { computeHealthScore } from "@/lib/healthScore"
 import { hasFeature } from "@/lib/featureAccess"
+import { isSpecialExpense } from "@/lib/expenseClass"
+
+function buildRoutineMonthlyData(transactions = []) {
+  const rows = new Map()
+
+  for (const transaction of transactions) {
+    if (!transaction?.month || transaction.year === undefined || transaction.year === null) continue
+    const key = `${transaction.month} ${transaction.year}`
+    if (!rows.has(key)) {
+      rows.set(key, {
+        month: transaction.month,
+        year: transaction.year,
+        sortKey: `${transaction.year}-${String(AVAILABLE_MONTHS.indexOf(transaction.month) + 1).padStart(2, "0")}`,
+        pemasukan: 0,
+        pengeluaranRutin: 0,
+        pengeluaranSpesial: 0,
+        pengeluaranAktual: 0,
+        surplusRutin: 0,
+        tabungan: 0,
+      })
+    }
+
+    const row = rows.get(key)
+    if (transaction.type === "income") row.pemasukan += Number(transaction.amount) || 0
+    if (transaction.type === "savings") row.tabungan += Number(transaction.amount) || 0
+    if (transaction.type === "expense") {
+      const amount = Number(transaction.amount) || 0
+      row.pengeluaranAktual += amount
+      if (isSpecialExpense(transaction)) row.pengeluaranSpesial += amount
+      else row.pengeluaranRutin += amount
+    }
+  }
+
+  return Array.from(rows.values())
+    .map(row => ({ ...row, surplusRutin: row.pemasukan - row.pengeluaranRutin }))
+    .sort((a, b) => String(a.sortKey).localeCompare(String(b.sortKey)))
+}
 
 export default function MonthlyReportButton({
   selectedMonth,
   selectedYear,
   transactions,
   monthlyData,
+  routineMonthlyData,
   allTransactions,
   userName,
   entitlement,
@@ -39,10 +77,23 @@ export default function MonthlyReportButton({
     )
   }, [canReport, monthlyData, selectedMonth, selectedYear])
 
+  const reportRoutineMonthlyData = useMemo(() => {
+    if (Array.isArray(routineMonthlyData) && routineMonthlyData.length > 0) return routineMonthlyData
+    const sourceTransactions = Array.isArray(allTransactions) && allTransactions.length > 0 ? allTransactions : transactions
+    return buildRoutineMonthlyData(sourceTransactions || [])
+  }, [routineMonthlyData, allTransactions, transactions])
+
+  const routineMonthFilteredData = useMemo(() => {
+    if (!canReport) return []
+    return reportRoutineMonthlyData.filter(
+      (m) => m.month === selectedMonth && String(m.year) === String(selectedYear)
+    )
+  }, [canReport, reportRoutineMonthlyData, selectedMonth, selectedYear])
+
   const healthScore = useMemo(() => {
     if (!canReport || !hasFeature(entitlement, "healthScore") || !transactions || transactions.length === 0) return null
-    return computeHealthScore({ transactions, monthlyData: monthFilteredData, budgets, liquidSavingsCategories })
-  }, [canReport, transactions, monthFilteredData, budgets, entitlement, liquidSavingsCategories])
+    return computeHealthScore({ transactions, monthlyData: monthFilteredData, routineMonthlyData: routineMonthFilteredData, budgets, liquidSavingsCategories })
+  }, [canReport, transactions, monthFilteredData, routineMonthFilteredData, budgets, entitlement, liquidSavingsCategories])
 
   const handleDownload = useCallback(() => {
     generateReportPDF({
@@ -52,10 +103,11 @@ export default function MonthlyReportButton({
       budgets: budgets || [],
       allTransactions: allTransactions || [],
       monthlyData: monthlyData || [],
+      routineMonthlyData: reportRoutineMonthlyData,
       healthScore,
       userName,
     }, { watermark: entitlement?.monthlyPdfWatermark ?? monthlyPdfWatermark === true })
-  }, [selectedMonth, selectedYear, transactions, budgets, allTransactions, monthlyData, healthScore, userName, entitlement, monthlyPdfWatermark])
+  }, [selectedMonth, selectedYear, transactions, budgets, allTransactions, monthlyData, reportRoutineMonthlyData, healthScore, userName, entitlement, monthlyPdfWatermark])
 
   return (
     <button

@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { isSpecialExpense } from "@/lib/expenseClass"
 
 const C = {
   violet: [124, 95, 207],
@@ -40,6 +41,52 @@ function prevMonth(month, year) {
   const idx = AVAILABLE_MONTHS.indexOf(month)
   if (idx <= 0) return { month: AVAILABLE_MONTHS[11], year: String(Number(year) - 1) }
   return { month: AVAILABLE_MONTHS[idx - 1], year }
+}
+
+function routineExpenseFromRow(row) {
+  if (!row) return 0
+  const routine = Number(row.pengeluaranRutin)
+  return Number.isFinite(routine) ? routine : Number(row.pengeluaran) || 0
+}
+
+function buildRoutineMonthlyData(transactions = []) {
+  const rows = new Map()
+
+  for (const transaction of transactions) {
+    if (!transaction?.month || transaction.year === undefined || transaction.year === null) continue
+    const key = `${transaction.month} ${transaction.year}`
+    if (!rows.has(key)) {
+      rows.set(key, {
+        month: transaction.month,
+        year: transaction.year,
+        sortKey: `${transaction.year}-${String(AVAILABLE_MONTHS.indexOf(transaction.month) + 1).padStart(2, "0")}`,
+        pemasukan: 0,
+        pengeluaranRutin: 0,
+        pengeluaranSpesial: 0,
+        pengeluaranAktual: 0,
+        surplusRutin: 0,
+        tabungan: 0,
+      })
+    }
+
+    const row = rows.get(key)
+    if (transaction.type === "income") row.pemasukan += Number(transaction.amount) || 0
+    if (transaction.type === "savings") row.tabungan += Number(transaction.amount) || 0
+    if (transaction.type === "expense") {
+      const amount = Number(transaction.amount) || 0
+      row.pengeluaranAktual += amount
+      if (isSpecialExpense(transaction)) row.pengeluaranSpesial += amount
+      else row.pengeluaranRutin += amount
+    }
+  }
+
+  return Array.from(rows.values())
+    .map(row => ({ ...row, surplusRutin: row.pemasukan - row.pengeluaranRutin }))
+    .sort((a, b) => String(a.sortKey).localeCompare(String(b.sortKey)))
+}
+
+function findMonthlyRow(rows, month, year) {
+  return (rows || []).find(row => row.month === month && String(row.year || "") === String(year))
 }
 
 class PdfBuilder {
@@ -318,31 +365,45 @@ class PdfBuilder {
 }
 
 export function generateReportPDF(data, options = {}) {
-  const { month, year, transactions, budgets, allTransactions, monthlyData, healthScore, userName } = data
+  const { month, year, transactions, budgets, allTransactions, monthlyData, routineMonthlyData, healthScore, userName } = data
   const { watermark = Boolean(data?.watermark) } = options
   const b = new PdfBuilder()
   const doc = b.doc
 
-  const income = transactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
-  const expense = transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
-  const savings = transactions.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
+  const reportTransactions = transactions || []
+  const expenseTransactions = reportTransactions.filter(t => t.type === "expense")
+  const routineTransactions = expenseTransactions.filter(t => !isSpecialExpense(t))
+  const specialTransactions = expenseTransactions.filter(t => isSpecialExpense(t))
+  const income = reportTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
+  const expense = expenseTransactions.reduce((s, t) => s + t.amount, 0)
+  const routineExpense = routineTransactions.reduce((s, t) => s + t.amount, 0)
+  const specialExpense = specialTransactions.reduce((s, t) => s + t.amount, 0)
+  const savings = reportTransactions.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
   const surplus = income - expense
   const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0
 
   const expenseByCategory = {}
-  for (const t of transactions) {
+  for (const t of reportTransactions) {
     if (t.type !== "expense") continue
     expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + t.amount
   }
   const sortedCategories = Object.entries(expenseByCategory).sort((a, b) => b[1] - a[1])
 
-  const top10 = transactions.filter(t => t.type === "expense").sort((a, b) => b.amount - a.amount).slice(0, 10)
+  const top10 = [...expenseTransactions].sort((a, b) => b.amount - a.amount).slice(0, 10)
 
   const prev = prevMonth(month, year)
-  const prevTx = (monthlyData || []).find(m => m.month === prev.month && String(m.year || "") === prev.year)
+  const prevTx = findMonthlyRow(monthlyData, prev.month, prev.year)
+  const reportRoutineMonthlyData = Array.isArray(routineMonthlyData) && routineMonthlyData.length > 0
+    ? routineMonthlyData
+    : buildRoutineMonthlyData(Array.isArray(allTransactions) && allTransactions.length > 0 ? allTransactions : reportTransactions)
+  const currentRoutineTx = findMonthlyRow(reportRoutineMonthlyData, month, year)
+  const prevRoutineTx = findMonthlyRow(reportRoutineMonthlyData, prev.month, prev.year)
   const prevIncome = prevTx ? prevTx.pemasukan : 0
-  const prevExpense = prevTx ? prevTx.pengeluaran : 0
+  const comparisonIncome = currentRoutineTx ? currentRoutineTx.pemasukan : income
+  const prevExpense = prevRoutineTx ? routineExpenseFromRow(prevRoutineTx) : (prevTx ? prevTx.pengeluaran : 0)
+  const comparisonExpense = currentRoutineTx ? routineExpenseFromRow(currentRoutineTx) : routineExpense
   const prevSurplus = prevIncome - prevExpense
+  const comparisonSurplus = comparisonIncome - comparisonExpense
 
   const budgetRows = (budgets || []).map(bk => {
     const spent = expenseByCategory[bk.kategori] || 0
@@ -407,7 +468,10 @@ export function generateReportPDF(data, options = {}) {
     { label: "Total Tabungan", value: fmtRp(savings), accent: C.teal, bg: C.lightTeal, valueColor: C.teal },
     { label: "Surplus", value: fmtRp(surplus), accent: surplus >= 0 ? C.teal : C.terracotta, bg: surplus >= 0 ? C.lightTeal : C.lightTerracotta, valueColor: surplus >= 0 ? C.teal : C.terracotta },
     { label: "Savings Rate", value: savingsRate.toFixed(1) + "%", accent: C.violet, bg: C.lightViolet },
-    { label: "Jumlah Transaksi", value: String(transactions.length), accent: C.light, bg: C.surface },
+    { label: "Jumlah Transaksi", value: String(reportTransactions.length), accent: C.light, bg: C.surface },
+    { label: "Aktual", value: fmtRp(expense), accent: C.terracotta, bg: C.lightTerracotta, valueColor: C.terracotta },
+    { label: "Rutin", value: fmtRp(routineExpense), accent: C.teal, bg: C.lightTeal, valueColor: C.teal },
+    { label: "Spesial", value: fmtRp(specialExpense), accent: C.violet, bg: C.lightViolet, valueColor: C.violet },
   ])
 
   if (sortedCategories.length > 0) {
@@ -439,6 +503,17 @@ export function generateReportPDF(data, options = {}) {
     b.drawTable(["#", "Kategori", "Keterangan", "Tanggal", "Jumlah"], rows, [8, 38, 52, 35, 47])
   }
 
+  if (specialTransactions.length > 0) {
+    b.sectionHeader("Pengeluaran Spesial")
+    const rows = [...specialTransactions].sort((a, b) => b.amount - a.amount).slice(0, 10).map(t => [
+      t.category,
+      t.desc || "\u2014",
+      t.date || "",
+      { text: "-" + fmtRp(t.amount), color: C.terracotta },
+    ])
+    b.drawTable(["Kategori", "Keterangan", "Tanggal", "Jumlah"], rows, [42, 63, 35, 40])
+  }
+
   if (prevTx) {
     b.sectionHeader("PERBANDINGAN BULAN LALU (" + prev.month.toUpperCase() + ")")
     b.drawComparisonCards([
@@ -447,14 +522,14 @@ export function generateReportPDF(data, options = {}) {
         accent: C.sage, prevColor: [180, 192, 158], curColor: C.sage,
       },
       {
-        label: "Pengeluaran", prevVal: prevExpense, curVal: expense,
+        label: "Pengeluaran Rutin", prevVal: prevExpense, curVal: comparisonExpense,
         accent: C.terracotta, prevColor: [218, 180, 160], curColor: C.terracotta,
       },
       {
-        label: "Surplus", prevVal: prevSurplus, curVal: surplus,
-        accent: surplus >= 0 ? C.teal : C.terracotta,
+        label: "Surplus Rutin", prevVal: prevSurplus, curVal: comparisonSurplus,
+        accent: comparisonSurplus >= 0 ? C.teal : C.terracotta,
         prevColor: prevSurplus >= 0 ? [180, 200, 190] : [218, 180, 160],
-        curColor: surplus >= 0 ? C.teal : C.terracotta,
+        curColor: comparisonSurplus >= 0 ? C.teal : C.terracotta,
       },
     ], prev.month, month)
 
@@ -467,8 +542,8 @@ export function generateReportPDF(data, options = {}) {
       ["Metrik", prev.month + " " + prev.year, month + " " + year, "Perubahan"],
       [
         ["Pemasukan", fmtRp(prevIncome), fmtRp(income), { text: deltaText(income, prevIncome), color: income >= prevIncome ? C.teal : C.terracotta }],
-        ["Pengeluaran", fmtRp(prevExpense), fmtRp(expense), { text: deltaText(expense, prevExpense), color: expense <= prevExpense ? C.teal : C.terracotta }],
-        ["Surplus", fmtRp(prevSurplus), fmtRp(surplus), { text: fmtRp(Math.abs(surplus - prevSurplus)), color: surplus >= prevSurplus ? C.teal : C.terracotta }],
+        ["Pengeluaran Rutin", fmtRp(prevExpense), fmtRp(comparisonExpense), { text: deltaText(comparisonExpense, prevExpense), color: comparisonExpense <= prevExpense ? C.teal : C.terracotta }],
+        ["Surplus Rutin", fmtRp(prevSurplus), fmtRp(comparisonSurplus), { text: fmtRp(Math.abs(comparisonSurplus - prevSurplus)), color: comparisonSurplus >= prevSurplus ? C.teal : C.terracotta }],
       ],
       [40, 45, 45, 50],
     )

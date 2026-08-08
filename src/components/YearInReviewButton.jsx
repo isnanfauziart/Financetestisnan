@@ -1,10 +1,47 @@
 "use client"
 import { useMemo, useCallback, useState } from "react"
 import { Calendar, Download } from "lucide-react"
-import { THEME } from "@/app/dashboard/_components/constants"
+import { AVAILABLE_MONTHS, THEME } from "@/app/dashboard/_components/constants"
 import { generateAnnualReportHTML } from "@/lib/report"
+import { isSpecialExpense } from "@/lib/expenseClass"
 
-export default function YearInReviewButton({ transactions, monthlyData, userName }) {
+function buildRoutineMonthlyData(transactions = []) {
+  const rows = new Map()
+
+  for (const transaction of transactions) {
+    if (!transaction?.month || transaction.year === undefined || transaction.year === null) continue
+    const key = `${transaction.month} ${transaction.year}`
+    if (!rows.has(key)) {
+      rows.set(key, {
+        month: transaction.month,
+        year: transaction.year,
+        sortKey: `${transaction.year}-${String(AVAILABLE_MONTHS.indexOf(transaction.month) + 1).padStart(2, "0")}`,
+        pemasukan: 0,
+        pengeluaranRutin: 0,
+        pengeluaranSpesial: 0,
+        pengeluaranAktual: 0,
+        surplusRutin: 0,
+        tabungan: 0,
+      })
+    }
+
+    const row = rows.get(key)
+    if (transaction.type === "income") row.pemasukan += Number(transaction.amount) || 0
+    if (transaction.type === "savings") row.tabungan += Number(transaction.amount) || 0
+    if (transaction.type === "expense") {
+      const amount = Number(transaction.amount) || 0
+      row.pengeluaranAktual += amount
+      if (isSpecialExpense(transaction)) row.pengeluaranSpesial += amount
+      else row.pengeluaranRutin += amount
+    }
+  }
+
+  return Array.from(rows.values())
+    .map(row => ({ ...row, surplusRutin: row.pemasukan - row.pengeluaranRutin }))
+    .sort((a, b) => String(a.sortKey).localeCompare(String(b.sortKey)))
+}
+
+export default function YearInReviewButton({ transactions, monthlyData, routineMonthlyData, userName }) {
   const [generating, setGenerating] = useState(false)
 
   const currentYear = String(new Date().getFullYear())
@@ -20,6 +57,11 @@ export default function YearInReviewButton({ transactions, monthlyData, userName
     return transactions.filter(t => String(t.year) === currentYear).length
   }, [transactions, currentYear])
 
+  const reportRoutineMonthlyData = useMemo(() => {
+    if (Array.isArray(routineMonthlyData) && routineMonthlyData.length > 0) return routineMonthlyData
+    return buildRoutineMonthlyData(transactions || [])
+  }, [routineMonthlyData, transactions])
+
   const handleDownload = useCallback(async () => {
     setGenerating(true)
     try {
@@ -27,6 +69,7 @@ export default function YearInReviewButton({ transactions, monthlyData, userName
         year: currentYear,
         transactions: transactions || [],
         monthlyData: monthlyData || [],
+        routineMonthlyData: reportRoutineMonthlyData,
         userName,
       })
 
@@ -60,7 +103,7 @@ export default function YearInReviewButton({ transactions, monthlyData, userName
     } finally {
       setGenerating(false)
     }
-  }, [currentYear, transactions, monthlyData, userName])
+  }, [currentYear, transactions, monthlyData, reportRoutineMonthlyData, userName])
 
   return (
     <button
