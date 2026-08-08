@@ -187,6 +187,17 @@ describe("StatsTab segmented statistik navigation", () => {
   })
 })
 
+describe("StatsTab top filter labels", () => {
+  it("shows a visible matching label for every top filter", () => {
+    render(<StatsTab {...createProps()} />)
+
+    expect(screen.getByText("Tahun", { selector: "label" })).toBeVisible()
+    expect(screen.getByText("Bulan", { selector: "label" })).toBeVisible()
+    expect(screen.getByText("Akun", { selector: "label" })).toBeVisible()
+    expect(screen.getByText("Mode Analisis", { selector: "label" })).toBeVisible()
+  })
+})
+
 describe("StatsTab forecast inputs", () => {
   it("passes global transactions and bills to the cash-flow forecast", () => {
     const allTransactions = [{ id: "billpay:bill-1:2026-06-01", type: "expense", amount: 100 }]
