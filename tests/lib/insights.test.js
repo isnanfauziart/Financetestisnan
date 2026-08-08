@@ -30,4 +30,20 @@ describe("stable weekly insights", () => {
       limit: 3,
     })).toEqual([])
   })
+
+  it("excludes special expenses from spending ratio, category, and account insights", () => {
+    const insights = selectStableInsights({
+      transactions: [
+        { id: "income", type: "income", amount: 5_000_000, category: "Gaji", account: "BCA", month: "Agu", year: "2026" },
+        { id: "routine", type: "expense", amount: 1_500_000, category: "Makan", account: "BCA", month: "Agu", year: "2026", expenseClass: "routine" },
+        { id: "special", type: "expense", amount: 10_000_000, category: "Laptop", account: "Mandiri", month: "Agu", year: "2026", expenseClass: "special" },
+      ],
+      weekPeriod: "2026-W32",
+      limit: 3,
+    })
+
+    expect(insights.find(card => card.key === "spending-ratio")?.text).toContain("30%")
+    expect(insights.find(card => card.key === "top-category")?.text).toContain("Makan (100%")
+    expect(insights.find(card => card.key === "top-account")?.text).toContain("BCA")
+  })
 })

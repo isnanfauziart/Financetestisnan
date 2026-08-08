@@ -1,3 +1,5 @@
+import { isSpecialExpense } from "@/lib/expenseClass"
+
 const COLORS = {
   sage: "#7c8c5a",
   amber: "#d4a853",
@@ -28,7 +30,7 @@ export function selectStableInsights({ transactions = [], weekPeriod = "", limit
     const amount = Number(transaction.amount) || 0
     if (transaction.type === "income") income += amount
     if (transaction.type === "savings") savings += amount
-    if (transaction.type === "expense") {
+    if (transaction.type === "expense" && !isSpecialExpense(transaction)) {
       expense += amount
       const category = transaction.category || "Lainnya"
       const account = transaction.account || "Tanpa akun"

@@ -12,7 +12,7 @@ vi.mock("@/lib/sheets", async () => {
   }
 })
 
-function transactionRow({ id, month, year, amount, category = "Lainnya" }) {
+function transactionRow({ id, month, year, amount, category = "Lainnya", expenseClass = "" }) {
   return [
     `15 ${month} ${year}`,
     id,
@@ -29,6 +29,7 @@ function transactionRow({ id, month, year, amount, category = "Lainnya" }) {
     "",
     "",
     "",
+    expenseClass,
   ]
 }
 
@@ -50,7 +51,7 @@ const sheetRows = {
   ],
 }
 
-async function loadDashboard(tier) {
+async function loadDashboard(tier, rowsByTab = sheetRows) {
   vi.useFakeTimers()
   vi.setSystemTime(new Date("2026-08-15T02:00:00.000Z"))
 
@@ -66,7 +67,7 @@ async function loadDashboard(tier) {
   })
   getSheetData.mockImplementation(async (_token, range) => {
     const tab = range.split("!")[0]
-    return sheetRows[tab] || []
+    return rowsByTab[tab] || []
   })
 
   const { GET } = await import("@/app/api/dashboard/route")
@@ -124,5 +125,53 @@ describe("/api/dashboard history gating", () => {
       limited: false,
       hasOlderData: false,
     })
+  })
+
+  it("keeps actual monthly totals while exposing routine expense aggregates", async () => {
+    const rows = {
+      Pemasukan: [
+        [],
+        transactionRow({ id: "income-aug", month: "Agu", year: "2026", amount: 5_000_000, category: "Gaji" }),
+      ],
+      Pengeluaran: [
+        [],
+        transactionRow({ id: "routine-aug", month: "Agu", year: "2026", amount: 1_500_000, category: "Makan", expenseClass: "Rutin" }),
+        transactionRow({ id: "special-aug", month: "Agu", year: "2026", amount: 10_000_000, category: "Laptop", expenseClass: "Spesial" }),
+      ],
+      Tabungan: [
+        [],
+      ],
+    }
+
+    const { response, body } = await loadDashboard("paid", rows)
+    const { getSheetData } = await import("@/lib/sheets")
+
+    expect(response.status).toBe(200)
+    expect(getSheetData).toHaveBeenCalledWith("token", "Pengeluaran!A:P", "sheet-1")
+    expect(body.monthlyData).toEqual([
+      {
+        month: "Agu",
+        year: "2026",
+        sortKey: "2026-08",
+        pemasukan: 5_000_000,
+        pengeluaran: 11_500_000,
+        surplus: -6_500_000,
+        tabungan: 0,
+      },
+    ])
+    expect(body.routineMonthlyData).toEqual([
+      {
+        month: "Agu",
+        year: "2026",
+        sortKey: "2026-08",
+        pemasukan: 5_000_000,
+        pengeluaranRutin: 1_500_000,
+        pengeluaranSpesial: 10_000_000,
+        pengeluaranAktual: 11_500_000,
+        surplusRutin: 3_500_000,
+      },
+    ])
+    expect(body.transactions.find(transaction => transaction.id === "routine-aug").expenseClass).toBe("routine")
+    expect(body.transactions.find(transaction => transaction.id === "special-aug").expenseClass).toBe("special")
   })
 })

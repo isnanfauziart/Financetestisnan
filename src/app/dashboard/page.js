@@ -34,6 +34,7 @@ import { useBills, useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
 import { hasFeature } from "@/lib/featureAccess"
 import { getEffectiveUserName } from "@/lib/userDisplayName"
+import { isSpecialExpense } from "@/lib/expenseClass"
 
 export default function Dashboard() {
   const statsDefaults = getStatsPeriodDefaults()
@@ -395,16 +396,71 @@ export default function Dashboard() {
     return true
   }), [data, isAllYears, isAllMonths, isAllAccounts, selectedYear, selectedMonth, selectedAccount, categoryFilter, dateFrom, dateTo, hasDateRange])
 
+  const routineTransactions = useMemo(() => (
+    (data?.transactions || []).filter(t => !isSpecialExpense(t))
+  ), [data])
+
+  const routineFilteredTransactions = useMemo(() => (
+    filteredTransactions.filter(t => !isSpecialExpense(t))
+  ), [filteredTransactions])
+
+  const routineAnalysisMonthlyData = useMemo(() => {
+    if (Array.isArray(data?.routineMonthlyData) && data.routineMonthlyData.length > 0) {
+      return data.routineMonthlyData.map(row => ({
+        ...row,
+        pengeluaran: row.pengeluaranRutin || 0,
+        surplus: row.surplusRutin ?? ((row.pemasukan || 0) - (row.pengeluaranRutin || 0)),
+        tabungan: row.tabungan || 0,
+      }))
+    }
+
+    const monthly = {}
+    for (const transaction of routineTransactions) {
+      if (!transaction?.month) continue
+      const key = `${transaction.month} ${transaction.year || ""}`.trim()
+      if (!monthly[key]) {
+        monthly[key] = {
+          month: transaction.month,
+          year: transaction.year,
+          sortKey: transaction.year
+            ? `${transaction.year}-${String(AVAILABLE_MONTHS.indexOf(transaction.month) + 1).padStart(2, "0")}`
+            : transaction.month,
+          pemasukan: 0,
+          pengeluaran: 0,
+          tabungan: 0,
+          surplus: 0,
+        }
+      }
+      if (transaction.type === "income") monthly[key].pemasukan += transaction.amount
+      if (transaction.type === "expense") monthly[key].pengeluaran += transaction.amount
+      if (transaction.type === "savings") monthly[key].tabungan += transaction.amount
+    }
+
+    return Object.values(monthly)
+      .map(row => ({ ...row, surplus: row.pemasukan - row.pengeluaran }))
+      .sort((a, b) => String(a.sortKey || "").localeCompare(String(b.sortKey || "")))
+  }, [data, routineTransactions])
+
   const statIncome = filteredTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
   const statExpense = filteredTransactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
   const statSavings = filteredTransactions.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
   const statSurplus = statIncome - statExpense
+
+  const routineStatIncome = routineFilteredTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
+  const routineStatExpense = routineFilteredTransactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+  const routineStatSavings = routineFilteredTransactions.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
 
   const expenseCategories = useMemo(() => {
     const map = {}
     filteredTransactions.filter(t => t.type === "expense").forEach(t => { map[t.category] = (map[t.category] || 0) + t.amount })
     return Object.entries(map).map(([name, value]) => ({name, value})).sort((a,b) => b.value - a.value)
   }, [filteredTransactions])
+
+  const routineExpenseCategories = useMemo(() => {
+    const map = {}
+    routineFilteredTransactions.filter(t => t.type === "expense").forEach(t => { map[t.category] = (map[t.category] || 0) + t.amount })
+    return Object.entries(map).map(([name, value]) => ({name, value})).sort((a,b) => b.value - a.value)
+  }, [routineFilteredTransactions])
 
   const incomeCategories = useMemo(() => {
     const map = {}
@@ -427,11 +483,11 @@ export default function Dashboard() {
       }))
     }
     const out = []
-    const tx = filteredTransactions
+    const tx = routineFilteredTransactions
     if (tx.length === 0) return out
 
-    if (statIncome > 0) {
-      const ratio = (statExpense / statIncome) * 100
+    if (routineStatIncome > 0) {
+      const ratio = (routineStatExpense / routineStatIncome) * 100
       out.push({
         type: ratio < 50 ? "positive" : ratio < 80 ? "info" : "warning",
         icon: ratio < 50 ? Target : Activity,
@@ -442,9 +498,9 @@ export default function Dashboard() {
       })
     }
 
-    if (expenseCategories.length > 0) {
-      const top = expenseCategories[0]
-      const pct = (top.value / (statExpense || 1)) * 100
+    if (routineExpenseCategories.length > 0) {
+      const top = routineExpenseCategories[0]
+      const pct = (top.value / (routineStatExpense || 1)) * 100
       if (pct > 10) {
         out.push({
           type: "info",
@@ -456,8 +512,8 @@ export default function Dashboard() {
     }
 
     if (!isAllMonths) {
-      const allTx = data?.transactions || []
-      const monthExpense = statExpense
+      const allTx = routineTransactions
+      const monthExpense = routineStatExpense
       if (allTx.length > 0) {
         const monthGroups = {}
         allTx.filter(t => t.type === "expense").forEach(t => {
@@ -484,7 +540,7 @@ export default function Dashboard() {
       }
     }
 
-    const allTx = data?.transactions || []
+    const allTx = routineTransactions
 
     if (!isAllMonths) {
       const monthIdx = AVAILABLE_MONTHS.indexOf(selectedMonth)
@@ -492,8 +548,8 @@ export default function Dashboard() {
       const prevYear = monthIdx === 0 ? String(Number(selectedYear) - 1) : selectedYear
       const prevTx = allTx.filter(t => t.month === prevMonth && t.year === prevYear)
       const prevExp = prevTx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
-      if (prevExp > 0 && statExpense > 0) {
-        const delta = ((statExpense - prevExp) / prevExp) * 100
+      if (prevExp > 0 && routineStatExpense > 0) {
+        const delta = ((routineStatExpense - prevExp) / prevExp) * 100
         if (Math.abs(delta) > 5) {
           out.push({
             type: delta > 0 ? "warning" : "positive",
@@ -506,11 +562,11 @@ export default function Dashboard() {
         }
       }
 
-      if (statSavings > 0) {
+      if (routineStatSavings > 0) {
         out.push({
           type: "positive",
           icon: PiggyBank,
-          text: `Tabungan ${selectedMonth}: ${formatRp(statSavings)}`,
+          text: `Tabungan ${selectedMonth}: ${formatRp(routineStatSavings)}`,
           color: THEME.moss
         })
       }
@@ -523,7 +579,7 @@ export default function Dashboard() {
         const sorted = Object.entries(acctMap).sort((a, b) => b[1] - a[1])
         if (sorted.length > 0) {
           const [name, val] = sorted[0]
-          const pct = (val / (statExpense || 1)) * 100
+          const pct = (val / (routineStatExpense || 1)) * 100
           out.push({
             type: "info",
             icon: User,
@@ -552,7 +608,7 @@ export default function Dashboard() {
         }
       }
 
-      if (statSavings > 0) {
+      if (routineStatSavings > 0) {
         const savingsPerMonth = {}
         tx.filter(t => t.type === "savings").forEach(t => {
           const k = `${t.month} ${t.year}`
@@ -592,7 +648,7 @@ export default function Dashboard() {
     }
 
     return out.slice(0, 3)
-  }, [filteredTransactions, isAllMonths, isAllAccounts, selectedMonth, selectedYear, statIncome, statExpense, statSavings, expenseCategories, data])
+  }, [routineFilteredTransactions, isAllMonths, isAllAccounts, selectedMonth, selectedYear, routineStatIncome, routineStatExpense, routineStatSavings, routineExpenseCategories, data, routineTransactions])
 
   const showToast = (msg, type = "success", action = null, options = {}) => {
     setToast({ msg, type, action, duration: options.duration })
@@ -803,7 +859,7 @@ export default function Dashboard() {
   let clientMonthlyData = []
   if (isAllMonths) {
     clientMonthlyData = AVAILABLE_MONTHS.map(m => {
-      const monthTx = filteredTransactions.filter(t => t.month === m)
+      const monthTx = routineFilteredTransactions.filter(t => t.month === m)
       const pemasukan = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
       const pengeluaran = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
       const tabungan = monthTx.filter(t => t.type === 'savings').reduce((s, t) => s + t.amount, 0)
@@ -821,7 +877,7 @@ export default function Dashboard() {
   const availableAccounts = Array.from(new Set((data?.transactions || []).map(t => t.account).filter(Boolean))).sort()
 
   const getMonthData = (month, year) => {
-    const tx = (data?.transactions || []).filter(t => t.month === month && t.year === year)
+    const tx = routineTransactions.filter(t => t.month === month && t.year === year)
     const income = tx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0)
     const expense = tx.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
     const savings = tx.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0)
@@ -842,7 +898,7 @@ export default function Dashboard() {
   })).sort((a,b) => (b[compareLabelA] + b[compareLabelB]) - (a[compareLabelA] + a[compareLabelB]))
 
   const top5Categories = Object.entries(
-    (data?.transactions || []).filter(t => t.type === "expense").reduce((acc, t) => {
+    routineTransactions.filter(t => t.type === "expense").reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount
       return acc
     }, {})
@@ -851,7 +907,7 @@ export default function Dashboard() {
   const trendData = AVAILABLE_MONTHS.map(m => {
     const row = { month: m }
     top5Categories.forEach(cat => {
-      row[cat] = (data?.transactions || []).filter(t => t.month === m && t.type === "expense" && t.category === cat).reduce((s, t) => s + t.amount, 0)
+      row[cat] = routineTransactions.filter(t => t.month === m && t.type === "expense" && t.category === cat).reduce((s, t) => s + t.amount, 0)
     })
     return row
   })
@@ -1075,7 +1131,7 @@ export default function Dashboard() {
             setActiveNav={setActiveNav} openPlanSection={openPlanSection} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
             allTransactions={data?.transactions || []}
             selectedMonth={selectedMonth} selectedYear={selectedYear}
-            monthlyData={data?.monthlyData || []}
+            monthlyData={routineAnalysisMonthlyData}
             insights={insights}
             entitlement={entitlement}
           />
@@ -1107,7 +1163,7 @@ export default function Dashboard() {
              onDeleteTx={handleDelete}
              haptics={haptics}
               hapticsEnabled={hapticsEnabled}
-              monthlyData={data?.monthlyData || []}
+              monthlyData={routineAnalysisMonthlyData}
               allTransactions={data?.transactions || []}
               now={syncNow}
               bills={bills}

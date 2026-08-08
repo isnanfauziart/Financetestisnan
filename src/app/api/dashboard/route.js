@@ -12,6 +12,7 @@ import {
 import { getHistoryWindow } from "@/lib/tier"
 import { selectStableInsights } from "@/lib/insights"
 import { getCurrentWeekPeriod } from "@/lib/usage"
+import { normalizeExpenseClass } from "@/lib/expenseClass"
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +42,7 @@ export async function GET(request) {
 
   try {
     const incomeRows = await getSheetData(accessToken, "Pemasukan!A:O", spreadsheetId)
-    const expenseRows = await getSheetData(accessToken, "Pengeluaran!A:O", spreadsheetId)
+    const expenseRows = await getSheetData(accessToken, "Pengeluaran!A:P", spreadsheetId)
     const savingsRows = await getSheetData(accessToken, "Tabungan!A:O", spreadsheetId).catch(() => [])
 
     const transactions = []
@@ -80,6 +81,8 @@ export async function GET(request) {
     }
 
     const monthlyExpense = {}
+    const monthlyRoutineExpense = {}
+    const monthlySpecialExpense = {}
     const categoryMap = {}
     for (let i = 1; i < expenseRows.length; i++) {
       const row = expenseRows[i]
@@ -88,6 +91,7 @@ export async function GET(request) {
       const year = String(row[11] || new Date().getFullYear()).trim()
       const cat = String(row[3] || "Lainnya").trim()
       const amount = pickAmount(row)
+      const expenseClass = normalizeExpenseClass(row[15])
       if (amount > 0) {
         if (!isVisibleMonth(month, year)) {
           hasOlderData = true
@@ -95,6 +99,11 @@ export async function GET(request) {
         }
         const key = `${month} ${year}`
         monthlyExpense[key] = (monthlyExpense[key] || 0) + amount
+        if (expenseClass === "special") {
+          monthlySpecialExpense[key] = (monthlySpecialExpense[key] || 0) + amount
+        } else {
+          monthlyRoutineExpense[key] = (monthlyRoutineExpense[key] || 0) + amount
+        }
         categoryMap[cat] = (categoryMap[cat] || 0) + amount
         transactions.push({
           id: row[1] || `ex-${i}`,
@@ -104,6 +113,7 @@ export async function GET(request) {
           category: cat,
           amount: amount,
           type: "expense",
+          expenseClass,
           month: month,
           year: year,
           account: String(row[7] || "").trim(),
@@ -159,6 +169,29 @@ export async function GET(request) {
           pengeluaran: monthlyExpense[k] || 0,
           surplus: (monthlyIncome[k] || 0) - (monthlyExpense[k] || 0),
           tabungan: monthlySavings[k] || 0,
+        }
+      })
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+
+    const routineKeys = new Set([...Object.keys(monthlyIncome), ...Object.keys(monthlyExpense)])
+    const routineMonthlyData = Array.from(routineKeys)
+      .map(k => {
+        const parts = k.split(" ")
+        const month = parts[0]
+        const year = parts[1]
+        const pemasukan = monthlyIncome[k] || 0
+        const pengeluaranRutin = monthlyRoutineExpense[k] || 0
+        const pengeluaranSpesial = monthlySpecialExpense[k] || 0
+        const pengeluaranAktual = monthlyExpense[k] || 0
+        return {
+          month,
+          year,
+          sortKey: mkKey(month, year),
+          pemasukan,
+          pengeluaranRutin,
+          pengeluaranSpesial,
+          pengeluaranAktual,
+          surplusRutin: pemasukan - pengeluaranRutin,
         }
       })
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
@@ -246,6 +279,7 @@ export async function GET(request) {
       totalSavings,
       profitMargin,
       monthlyData,
+      routineMonthlyData,
       categories,
       transactions,
       netWorth,
