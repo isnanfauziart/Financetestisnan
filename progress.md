@@ -585,3 +585,23 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 - Name-feature regression suite: 6 files passed, 32 tests passed.
 - Full repository suite passed with exit code 0.
 - Production build passed with temporary process-only values for the required environment variable names; no secrets were written.
+
+## 2026-08-08 - Special expense analytics design approved
+
+### Tasks Completed
+- Explored the existing transaction, recap, Stats, anomaly, forecast, Health Score, insight, Goal, and report flows.
+- Defined the approved `Pengeluaran Spesial` model: actual accounting remains complete while routine behavioral analytics exclude special expenses.
+- Wrote the implementation-ready design specification.
+
+### Files Changed
+- `docs/superpowers/specs/2026-08-08-special-expense-analytics-design.md`
+- `progress.md`
+
+### Decisions
+- Store `Rutin` or `Spesial` in `Pengeluaran!P:P`; blank legacy cells mean `Rutin`.
+- Actual totals, net worth, budgets, quota, and ledger visibility include Spesial expenses.
+- Routine trends, averages, anomaly alerts, forecast baselines, selected Health Score factors, and stable insights exclude them.
+- Classification is manual with a non-binding suggestion only; Goals are not involved.
+
+### Blockers
+- Implementation is paused until the user reviews the written specification.
