@@ -568,3 +568,20 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 ### Verification
 - Full repository suite: 88 test files passed, 436 tests passed, and 2 tests skipped.
 - Production build passed with temporary process-only values for the required environment variable names; no secrets were written.
+
+## 2026-08-08 — Prevent repeated user-name prompt after Settings read errors
+
+### Tasks Completed
+- Fixed `/api/settings` so Google Sheets read failures return an error instead of an empty settings object.
+- Preserved the dashboard guard that suppresses the `Nama pengguna` prompt when Settings cannot be loaded; a saved name is never treated as missing because of a transient read failure.
+- Added a regression test covering the failed Settings read path.
+
+### Files Changed
+- `src/app/api/settings/route.js`
+- `tests/api/settingsRoute.test.js`
+- `progress.md`
+
+### Verification
+- Name-feature regression suite: 6 files passed, 32 tests passed.
+- Full repository suite passed with exit code 0.
+- Production build passed with temporary process-only values for the required environment variable names; no secrets were written.

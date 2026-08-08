@@ -13,12 +13,7 @@ const SHEET_NAME = "Settings"
 const RANGE = `${SHEET_NAME}!A:B`
 
 async function fetchSettings(accessToken, spreadsheetId) {
-  let rows = []
-  try {
-    rows = await getSheetData(accessToken, RANGE, spreadsheetId) || []
-  } catch {
-    rows = []
-  }
+  const rows = await getSheetData(accessToken, RANGE, spreadsheetId) || []
   const settings = {
     startingBalance: 0,
     startingBalanceDate: "",

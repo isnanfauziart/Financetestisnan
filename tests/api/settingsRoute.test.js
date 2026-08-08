@@ -97,6 +97,19 @@ describe("settings route", () => {
     expect(body.settings.userNamePromptDismissed).toBe(false)
   })
 
+  it("does not turn a Settings read failure into empty user-name settings", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData.mockRejectedValue(new Error("Sheets unavailable"))
+
+    const { GET } = await import("@/app/api/settings/route")
+    const response = await GET(new Request("http://localhost/api/settings"))
+
+    expect(response.status).toBe(500)
+    expect((await response.json()).error).toBe("Terjadi kesalahan internal")
+  })
+
   it("trims a saved user name and allows clearing it", async () => {
     const { getAuthContext } = await import("@/lib/apiAuth")
     const { getSheetData } = await import("@/lib/sheets")
