@@ -4,14 +4,14 @@ const fs = require('fs');
 
 async function generateTwa() {
   const projectDir = path.join(__dirname, '..', 'android');
-  const manifestUrl = 'https://financedashv1.vercel.app/manifest.json';
+  const manifestUrl = 'https://artami.web.id/manifest.json';
   
   console.log('Fetching manifest from:', manifestUrl);
   
   // Create TWA manifest manually
   const twaManifest = {
     packageId: 'com.artami.app',
-    host: 'financedashv1.vercel.app',
+    host: 'artami.web.id',
     name: 'Artami',
     launcherName: 'Artami',
     display: 'standalone',
@@ -19,9 +19,9 @@ async function generateTwa() {
     themeColor: '#9f87ef',
     backgroundColor: '#fdf8f3',
     startUrl: '/dashboard',
-    iconUrl: 'https://financedashv1.vercel.app/icons/icon-512.png',
-    maskableIconUrl: 'https://financedashv1.vercel.app/icons/icon-512.png',
-    monochromeIconUrl: 'https://financedashv1.vercel.app/icons/icon-512.png',
+    iconUrl: 'https://artami.web.id/icons/icon-512.png',
+    maskableIconUrl: 'https://artami.web.id/icons/icon-512.png',
+    monochromeIconUrl: 'https://artami.web.id/icons/icon-512.png',
     appVersionCode: 1,
     appVersionName: '1.0.0',
     signingKey: {

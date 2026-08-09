@@ -110,11 +110,11 @@ writeFile(path.join(projectDir, 'app', 'src', 'main', 'AndroidManifest.xml'), `<
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="financedashv1.vercel.app" />
+                <data android:scheme="https" android:host="artami.web.id" />
             </intent-filter>
             <meta-data
                 android:name="android.support.customtabs.trusted.DEFAULT_URL"
-                android:value="https://financedashv1.vercel.app/dashboard" />
+                android:value="https://artami.web.id/dashboard" />
             <meta-data
                 android:name="android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE"
                 android:resource="@drawable/splash" />
@@ -159,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        String url = "https://financedashv1.vercel.app/dashboard";
+        String url = "https://artami.web.id/dashboard";
         
         CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
         builder.setShowTitle(true);
@@ -219,7 +219,7 @@ writeFile(path.join(projectDir, 'app', 'src', 'main', 'res', 'drawable', 'splash
 writeFile(path.join(projectDir, 'app', 'src', 'main', 'res', 'xml', 'network_security_config.xml'), `<?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">financedashv1.vercel.app</domain>
+        <domain includeSubdomains="true">artami.web.id</domain>
     </domain-config>
 </network-security-config>
 `);

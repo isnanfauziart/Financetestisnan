@@ -685,3 +685,37 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - Browser visual verification was unavailable because the `agent-browser` command is not installed in this workspace.
+
+## 2026-08-09 - Prepare Netlify and Artami domain migration
+
+### Tasks Completed
+- Added host-specific Netlify redirects for HTTP and HTTPS requests from `ultah.biz.id` and `www.ultah.biz.id` to `https://artami.web.id`.
+- Updated active TWA and Android source references to use `artami.web.id`.
+- Added the complete Netlify, Google OAuth/Picker, IDwebhost DNS, acceptance, rollback, Vercel retirement, and Free-plan monitoring guide.
+
+### Files Changed
+- `netlify.toml`
+- `twa-manifest.json`
+- `scripts/generate-twa.js`
+- `scripts/create-android-project.js`
+- `android/app/src/main/AndroidManifest.xml`
+- `android/app/src/main/java/com/artami/app/MainActivity.java`
+- `android/app/src/main/res/xml/network_security_config.xml`
+- `docs/netlify-migration-guide.md`
+- `progress.md`
+
+### Decisions
+- Use Netlify Free with GitHub `main` deployment and Netlify DNS.
+- Use `https://artami.web.id` as the canonical apex URL; redirect `www` to the apex.
+- Retain Vercel/default-host compatibility for previously released TWA builds until they are no longer supported.
+- Do not modify generated Android build artifacts or unrelated existing worktree changes.
+
+### Verification
+- Phase 1 migration validator passed.
+- Full repository suite: 97 files passed, 488 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder values for the four variables absent from local `.env.local`; no secrets were written.
+- Guide ASCII check and `git diff --check` passed.
+
+### Blockers
+- Netlify project creation, environment-variable entry, Google Cloud updates, IDwebhost nameserver delegation, DNS propagation, and production acceptance remain manual deployment steps.
+- A plain local production build still fails fast until the four missing local environment variables are configured; this does not affect the committed migration files.

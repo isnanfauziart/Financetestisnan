@@ -12,6 +12,6 @@ public class MainActivity extends LauncherActivity {
 
     @Override
     protected Uri getLaunchingUrl() {
-        return Uri.parse("https://financedashv1.vercel.app/dashboard");
+        return Uri.parse("https://artami.web.id/dashboard");
     }
 }

@@ -1,0 +1,23 @@
+[[redirects]]
+  from = "http://ultah.biz.id/*"
+  to = "https://artami.web.id/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://ultah.biz.id/*"
+  to = "https://artami.web.id/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.ultah.biz.id/*"
+  to = "https://artami.web.id/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.ultah.biz.id/*"
+  to = "https://artami.web.id/:splat"
+  status = 301
+  force = true
