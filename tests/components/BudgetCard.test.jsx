@@ -40,8 +40,8 @@ describe("BudgetCard", () => {
 
   it("edit and delete buttons are always present in DOM (touch device fix)", () => {
     render(<BudgetCard budget={baseBudget} spent={500000} onClick={() => {}} onEdit={() => {}} onDelete={() => {}} />)
-    expect(screen.getByLabelText("Edit Makanan budget")).toBeInTheDocument()
-    expect(screen.getByLabelText("Delete Makanan budget")).toBeInTheDocument()
+    expect(screen.getByLabelText("Edit Makanan budget")).toHaveClass("min-h-11", "min-w-11")
+    expect(screen.getByLabelText("Delete Makanan budget")).toHaveClass("min-h-11", "min-w-11")
   })
 
   it("calls onEdit when edit button clicked", () => {

@@ -17,7 +17,7 @@ vi.mock("@/components/BudgetsSection", () => ({ default: () => <div>Budgets mock
 vi.mock("@/components/EventBudgetsSection", () => ({ default: () => <div>Event budgets mock</div> }))
 vi.mock("@/components/MonthlyReportButton", () => ({ default: () => <button type="button">Monthly report</button> }))
 vi.mock("@/components/YearInReviewButton", () => ({ default: () => <button type="button">Year in review</button> }))
-vi.mock("@/app/dashboard/_components/RecapSection", () => ({ default: () => <div>Recap Bulanan</div> }))
+vi.mock("@/app/dashboard/_components/RecapSection", () => ({ default: () => <div>Laporan Bulanan</div> }))
 vi.mock("@/components/CashFlowForecast", () => ({
   default: (props) => {
     forecastProps.current = props
@@ -141,29 +141,29 @@ describe("StatsTab segmented statistik navigation", () => {
     expect(screen.getByRole("tab", { name: "Ringkasan" })).toBeInTheDocument()
     expect(screen.getByRole("tab", { name: "Kategori" })).toBeInTheDocument()
     expect(screen.getByRole("tab", { name: "Tren" })).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: "Recap" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Laporan" })).toBeInTheDocument()
   })
 
-  it("moves report actions into the Recap section", () => {
+  it("moves report actions into the Laporan section", () => {
     render(<StatsTab {...createProps()} />)
 
     expect(screen.queryByText("Monthly report")).not.toBeInTheDocument()
     expect(screen.queryByText("Year in review")).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("tab", { name: "Recap" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Laporan" }))
 
     expect(screen.getByText("Monthly report")).toBeInTheDocument()
     expect(screen.getByText("Year in review")).toBeInTheDocument()
   })
 
-  it("shows recap content only after the Recap segment is selected", () => {
+  it("shows report content only after the Laporan segment is selected", () => {
     render(<StatsTab {...createProps()} />)
 
-    expect(screen.queryByText("Recap Bulanan")).not.toBeInTheDocument()
+    expect(screen.queryByText("Laporan Bulanan")).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("tab", { name: "Recap" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Laporan" }))
 
-    expect(screen.getByText("Recap Bulanan")).toBeInTheDocument()
+    expect(screen.getByText("Laporan Bulanan")).toBeInTheDocument()
   })
 
   it("does not render event budgeting ownership inside Statistik", () => {
@@ -183,12 +183,12 @@ describe("StatsTab segmented statistik navigation", () => {
     expect(screen.getByRole("tab", { name: "Ringkasan" }).parentElement).toHaveClass("grid-cols-2", "sm:grid-cols-4")
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
-    expect(screen.getByText("Komposisi Pemasukan").closest(".grid")).toHaveClass("grid-cols-1", "sm:grid-cols-2")
+    expect(screen.getByRole("heading", { name: "Peringkat Pemasukan" }).closest(".grid")).toHaveClass("grid-cols-1", "sm:grid-cols-2")
   })
 })
 
 describe("StatsTab financial summary", () => {
-  it("places the summary immediately after the section tabs and before insights and anomaly alerts", () => {
+  it("places the takeaway before section tabs and the summary inside Ringkasan", () => {
     render(<StatsTab {...createProps({
       statIncome: 12_000_000,
       statExpense: 8_000_000,
@@ -196,14 +196,84 @@ describe("StatsTab financial summary", () => {
       insights: [{ icon: () => null, type: "positive", color: "#2f855a", text: "Pemasukan stabil" }],
     })} />)
 
+    const filters = screen.getByLabelText("Filter Statistik")
+    const takeaway = screen.getByRole("region", { name: "Kesimpulan periode" })
     const tablist = screen.getByRole("tablist", { name: "Navigasi Statistik" })
     const summary = screen.getByRole("region", { name: "Ringkasan keuangan" })
-    const insightsHeading = screen.getByRole("heading", { name: "Insights" })
+    const insightsHeading = screen.getByRole("heading", { name: "Wawasan" })
     const anomaly = screen.getByText("Anomaly mock")
 
+    expect(filters.nextElementSibling).toBe(takeaway)
+    expect(takeaway.nextElementSibling).toBe(tablist)
     expect(tablist.nextElementSibling).toBe(summary)
     expect(summary.compareDocumentPosition(insightsHeading) & 4).toBe(4)
     expect(summary.compareDocumentPosition(anomaly) & 4).toBe(4)
+  })
+
+  it("summarizes the selected period and analysis mode before the sections", () => {
+    render(<StatsTab {...createProps({
+      statIncome: 12_000_000,
+      statExpense: 8_000_000,
+      statSurplus: 4_000_000,
+    })} />)
+
+    const takeaway = screen.getByRole("region", { name: "Kesimpulan periode" })
+
+    expect(takeaway).toHaveTextContent("Jul 2026")
+    expect(takeaway).toHaveTextContent("Rutin")
+    expect(takeaway).toHaveTextContent("Pemasukan")
+    expect(takeaway).toHaveTextContent("Pengeluaran")
+    expect(takeaway).toHaveTextContent("Surplus")
+  })
+
+  it("uses routine totals for the default routine takeaway while keeping actual summary totals", () => {
+    render(<StatsTab {...createProps({
+      statIncome: 5_000_000,
+      statExpense: 11_000_000,
+      statSurplus: -6_000_000,
+      routineStatIncome: 5_000_000,
+      routineStatExpense: 1_000_000,
+      routineStatSurplus: 4_000_000,
+    })} />)
+
+    expect(screen.getByRole("region", { name: "Kesimpulan periode" })).toHaveTextContent("Surplus Rp 4.0 jt")
+    expect(screen.getByRole("region", { name: "Kesimpulan periode" })).toHaveTextContent("Pengeluaran Rp 1.0 jt")
+    expect(screen.getByRole("region", { name: "Ringkasan keuangan" })).toHaveTextContent("Defisit")
+  })
+
+  it("provides text alternatives for category and monthly trend charts", () => {
+    render(<StatsTab {...createProps({
+      isAllMonths: true,
+      expenseCategories: [{ name: "Makan", value: 800_000 }],
+      routineExpenseCategories: [{ name: "Makan", value: 800_000 }],
+      incomeCategories: [{ name: "Gaji", value: 5_000_000 }],
+      routineTop5Categories: ["Makan"],
+      routineTrendData: [{ month: "Jul", Makan: 800_000 }],
+      clientMonthlyData: [{ month: "Jul", pemasukan: 5_000_000, pengeluaran: 800_000, surplus: 4_200_000 }],
+    })} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
+    expect(screen.getByText(/Peringkat Pengeluaran: Makan/i)).toBeInTheDocument()
+    expect(screen.getByText(/Peringkat Pemasukan: Gaji/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+    expect(screen.getByText(/Tren Bulanan: 1 periode/i)).toBeInTheDocument()
+  })
+
+  it("uses the latest populated period for the category trend alternative", () => {
+    render(<StatsTab {...createProps({
+      isAllMonths: true,
+      routineTop5Categories: ["Makan"],
+      routineTrendData: [
+        { month: "Jul", Makan: 800_000 },
+        { month: "Des", Makan: 0 },
+      ],
+    })} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
+
+    expect(screen.getByText(/Tren kategori pengeluaran: Jul/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Tren kategori pengeluaran: Des/i)).not.toBeInTheDocument()
   })
 
   it("shows the selected period, surplus status, and supporting income and expense metrics", () => {
@@ -259,7 +329,7 @@ describe("StatsTab financial summary", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
 
     expect(screen.queryByRole("region", { name: "Ringkasan keuangan" })).not.toBeInTheDocument()
-    expect(screen.getByText("Komposisi Pemasukan")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Peringkat Pemasukan" })).toBeInTheDocument()
   })
 
   it("uses a compact loading skeleton for the summary", () => {

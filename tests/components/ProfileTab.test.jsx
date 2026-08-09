@@ -70,8 +70,13 @@ describe("ProfileTab ownership cleanup", () => {
 
     const identityHeading = screen.getByText("Identitas Akun")
     const input = screen.getByLabelText("Nama pengguna")
-    const accessHeading = screen.getByText("Paket & Akses")
+    const ownershipHeading = screen.getByText("Data Milikmu")
+    const accessHeading = screen.getByText("Paket & Pemakaian")
     expect(identityHeading.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(identityHeading.compareDocumentPosition(ownershipHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByText(/Catatan keuanganmu tetap berada di Google Sheets milikmu/i)).toBeInTheDocument()
+    expect(screen.getByText(/Artami tidak menghubungkan rekening bank/i)).toBeInTheDocument()
+    expect(screen.getByText(/Tidak ada iklan/i)).toBeInTheDocument()
     expect(input.compareDocumentPosition(accessHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
     fireEvent.change(input, { target: { value: "  Nama Profil  " } })
@@ -91,7 +96,7 @@ describe("ProfileTab ownership cleanup", () => {
   it("adds paket dan akses near the top before preferences", () => {
     render(<ProfileTab {...createProps()} />)
 
-    const accessHeading = screen.getByText("Paket & Akses")
+    const accessHeading = screen.getByText("Paket & Pemakaian")
     const preferencesHeading = screen.getByText("Preferensi")
 
     expect(screen.getByText("Paket Saat Ini")).toBeInTheDocument()
@@ -104,11 +109,13 @@ describe("ProfileTab ownership cleanup", () => {
     render(<ProfileTab {...createProps()} />)
 
     expect(screen.getByText("Preferensi")).toBeInTheDocument()
-    expect(screen.getByLabelText("Sound effects on")).toBeInTheDocument()
-    expect(screen.getByLabelText("Haptic feedback off")).toBeInTheDocument()
+    expect(screen.getByText("Efek Suara")).toBeInTheDocument()
+    expect(screen.getByText("Umpan Balik Getar")).toBeInTheDocument()
+    expect(screen.getByLabelText("Efek suara aktif")).toBeInTheDocument()
+    expect(screen.getByLabelText("Umpan balik getar nonaktif")).toBeInTheDocument()
     expect(screen.getByText("Data & Sesi")).toBeInTheDocument()
     expect(screen.getByText("Saldo Awal")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Keluar" })).toBeInTheDocument()
 
     expect(screen.queryByText(/Bills section mock/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/laporan/i)).not.toBeInTheDocument()
@@ -136,15 +143,19 @@ describe("ProfileTab ownership cleanup", () => {
         tier: "free",
         usage: {
           transactions: { current: 60, limit: 75, warning: "near" },
+          budgets: { current: 1, limit: 3, warning: null },
           goals: { current: 1, limit: 1, warning: "reached" },
         },
       },
     })} />)
 
     expect(screen.getByText("Transaksi bulan ini")).toBeInTheDocument()
+    expect(screen.getByText("Anggaran bulan ini")).toBeInTheDocument()
+    expect(screen.getByText("Target")).toBeInTheDocument()
     expect(screen.getByText("60 / 75")).toBeInTheDocument()
     expect(screen.getByRole("status")).toHaveTextContent("Mendekati batas")
     expect(screen.getByRole("alert")).toHaveTextContent("Batas tercapai")
     expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveAttribute("href", "/upgrade")
+    expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveClass("bg-violet-600")
   })
 })

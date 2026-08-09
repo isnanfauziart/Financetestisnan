@@ -7,7 +7,7 @@ import { useBudgets, useSettings } from "@/lib/useSharedData"
 import BudgetCard from "./BudgetCard"
 import BudgetSetupModal from "./BudgetSetupModal"
 import BudgetDetailModal from "./BudgetDetailModal"
-import EmptyState from "@/app/dashboard/_components/EmptyState"
+import FeatureEducation from "./FeatureEducation"
 
 export default function BudgetsSection({
   selectedMonth,
@@ -96,7 +96,7 @@ export default function BudgetsSection({
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || "Gagal menghapus")
-      onToast?.("Budget dihapus ✓", "success")
+       onToast?.("Anggaran dihapus ✓", "success")
       refetch()
       onUsageChange?.()
     } catch (err) {
@@ -105,7 +105,7 @@ export default function BudgetsSection({
   }
 
   function handleSaved() {
-    onToast?.(setupState?.mode === "edit" ? "Budget diperbarui ✓" : "Budget dibuat ✓", "success")
+     onToast?.(setupState?.mode === "edit" ? "Anggaran diperbarui ✓" : "Anggaran dibuat ✓", "success")
     closeSetup()
     refetch()
     onUsageChange?.()
@@ -116,29 +116,28 @@ export default function BudgetsSection({
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-1.5">
           <Target size={14} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Budgets</h3>
+          <h3 className="text-sm font-bold font-display text-earth-800">Anggaran</h3>
           {selectedMonth && selectedMonth !== "Semua Bulan" && (
             <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">· {selectedMonth} {selectedYear}</span>
           )}
         </div>
         <button
           onClick={() => openCreate("")}
-          aria-label="Add new budget"
-          className="text-[11px] font-bold py-1.5 px-3 rounded-full text-white flex items-center gap-1 shadow-pop active:scale-95 transition-transform"
-          style={{ background: "linear-gradient(135deg, #4a3d33, #7c5fcf)" }}
+          aria-label="Tambah anggaran baru"
+          className="min-h-11 min-w-11 text-[11px] font-bold py-1.5 px-3 rounded-xl text-white flex items-center gap-1 shadow-pop active:scale-95 transition-transform bg-sage-500 hover:bg-sage-600"
         >
-          <Plus size={12} aria-hidden="true" /> Add
+          <Plus size={12} aria-hidden="true" /> Tambah Anggaran
         </button>
       </div>
 
       {error ? (
         <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
-          <p className="text-sm font-semibold text-rose-800">Gagal memuat budget</p>
+          <p className="text-sm font-semibold text-rose-800">Gagal memuat anggaran</p>
           <p className="text-xs text-rose-700 mt-1">{error}</p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="mt-3 text-xs font-bold px-3 py-1.5 rounded-full text-white bg-rose-600 hover:bg-rose-700"
+            className="mt-3 min-h-11 min-w-11 text-xs font-bold px-3 py-1.5 rounded-xl text-white bg-rose-600 hover:bg-rose-700"
           >
             Coba lagi
           </button>
@@ -146,18 +145,26 @@ export default function BudgetsSection({
       ) : loading ? (
         <div className="shimmer-bg rounded-2xl h-24" aria-hidden="true" />
       ) : visibleBudgets.length === 0 ? (
-        <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
-          <EmptyState
-            icon={<Target size={20} />}
-            title="Belum ada budget bulan ini"
-            hint="Tetapkan limit per kategori agar pengeluaran lebih terkontrol"
-            action={
-              <button onClick={() => openCreate("")} className="text-xs font-bold px-4 py-2 rounded-full text-white mesh-violet shadow-pop">
-                Buat Budget
-              </button>
-            }
-          />
-        </div>
+        <FeatureEducation
+          title="Atur batas pengeluaran bulanan"
+          description="Tetapkan batas yang membantu kamu menjaga pengeluaran tetap tenang sepanjang bulan."
+          steps={[
+            { icon: <Target size={16} aria-hidden="true" />, title: "Pilih kategori", description: "Mulai dari kebutuhan yang paling penting." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Tentukan limit", description: "Isi batas pengeluaran untuk bulan ini." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Catat seperti biasa", description: "Transaksi tetap berjalan seperti biasanya." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Pantau sisa", description: "Lihat ruang yang masih tersedia." },
+          ]}
+          example="Jajan / Transportasi"
+          action={
+            <button
+              type="button"
+              onClick={() => openCreate("")}
+              className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-4 py-2 text-xs font-bold text-white shadow-pop transition-colors hover:bg-sage-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
+            >
+              Buat Anggaran
+            </button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {visibleBudgets.map((b, i) => {
@@ -182,15 +189,15 @@ export default function BudgetsSection({
         <div className="mt-3 px-1 animate-fade-in">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Sparkles size={11} className="text-amber-500" aria-hidden="true" />
-            <p className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Saran budget</p>
+            <p className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Saran anggaran</p>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {unbudgetedCategories.map(name => (
               <button
                 key={name}
                 onClick={() => openCreate(name)}
-                className="text-[10px] font-bold py-1 px-2.5 rounded-full bg-earth-50 hover:bg-violet-100 text-earth-600 hover:text-violet-700 transition-colors"
-                aria-label={`Set budget for ${name}`}
+                className="min-h-11 min-w-11 text-[10px] font-bold py-1 px-2.5 rounded-xl bg-earth-50 hover:bg-sage-100 text-earth-600 hover:text-sage-700 transition-colors"
+                aria-label={`Atur anggaran untuk ${name}`}
               >
                 + {name}
               </button>

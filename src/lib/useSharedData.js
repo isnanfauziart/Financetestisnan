@@ -11,11 +11,9 @@ const EMPTY_SETTINGS = {
 }
 
 // ─── Budgets shared cache ───────────────────────────────────────────
-let budgetCache = null
-let budgetParamsKey = null
+const budgetEntries = new Map()
 let budgetListeners = new Set()
-let budgetInFlight = null
-let budgetError = null
+let budgetSnapshotVersion = 0
 
 function subscribeBudgets(listener) {
   budgetListeners.add(listener)
@@ -23,10 +21,20 @@ function subscribeBudgets(listener) {
 }
 
 function getBudgetSnapshot() {
-  return JSON.stringify({ data: budgetCache, key: budgetParamsKey, error: budgetError })
+  return budgetSnapshotVersion
+}
+
+function getBudgetEntry(key) {
+  let entry = budgetEntries.get(key)
+  if (!entry) {
+    entry = { data: null, error: null, inFlight: null, requestVersion: 0 }
+    budgetEntries.set(key, entry)
+  }
+  return entry
 }
 
 function notifyBudgets() {
+  budgetSnapshotVersion += 1
   budgetListeners.forEach((fn) => fn())
 }
 
@@ -36,39 +44,46 @@ async function fetchBudgets(month, year) {
   if (year) params.set("year", year)
   const url = `/api/budgets?${params.toString()}`
   const key = `${month || ""}|${year || ""}`
+  const entry = getBudgetEntry(key)
 
-  if (budgetParamsKey === key && budgetCache !== null) return
+  if (entry.data !== null) return
 
-  if (budgetInFlight) {
-    await budgetInFlight
-    if (budgetParamsKey === key) return
+  if (entry.inFlight) {
+    await entry.inFlight
+    return
   }
 
-  budgetError = null
-  notifyBudgets()
+  if (entry.error !== null) {
+    entry.error = null
+    notifyBudgets()
+  }
 
-  budgetInFlight = (async () => {
+  const requestVersion = entry.requestVersion
+  const request = (async () => {
     try {
       const res = await fetch(url)
       const data = await res.json()
+      if (requestVersion !== entry.requestVersion) return
       if (res.ok) {
-        budgetCache = data.budgets || []
+        entry.data = data.budgets || []
       } else {
-        budgetError = data.error || "Gagal memuat budget"
-        budgetCache = []
+        entry.error = data.error || "Gagal memuat budget"
+        entry.data = []
       }
-      budgetParamsKey = key
     } catch (err) {
-      budgetError = err.message
-      budgetCache = []
-      budgetParamsKey = key
+      if (requestVersion !== entry.requestVersion) return
+      entry.error = err.message
+      entry.data = []
     } finally {
-      budgetInFlight = null
-      notifyBudgets()
+      if (requestVersion === entry.requestVersion) {
+        entry.inFlight = null
+        notifyBudgets()
+      }
     }
   })()
+  entry.inFlight = request
 
-  await budgetInFlight
+  await request
 }
 
 /**
@@ -89,20 +104,23 @@ export function useBudgets(month, year) {
   }, [monthParam, yearParam])
 
   const snapshot = useSyncExternalStore(subscribeBudgets, getBudgetSnapshot, getBudgetSnapshot)
-  const parsed = JSON.parse(snapshot)
-  const isLoading = parsed.key !== `${monthParam}|${yearParam}` || (parsed.data === null && parsed.error === null)
+  const entry = budgetEntries.get(`${monthParam}|${yearParam}`)
+  const isLoading = !entry || (entry.data === null && entry.error === null)
 
   const refetch = useCallback(async () => {
-    budgetParamsKey = null
-    budgetCache = null
-    budgetError = null
+    const entry = getBudgetEntry(`${monthParam}|${yearParam}`)
+    entry.requestVersion += 1
+    entry.data = null
+    entry.error = null
+    entry.inFlight = null
+    notifyBudgets()
     await fetchBudgets(monthParam, yearParam)
   }, [monthParam, yearParam])
 
   return {
-    budgets: parsed.data || [],
+    budgets: entry?.data || [],
     loading: isLoading,
-    error: parsed.error,
+    error: entry?.error ?? null,
     refetch,
   }
 }
@@ -467,10 +485,7 @@ export function useBills(enabled = true) {
 // ─── Test helpers ───────────────────────────────────────────────────
 // Reset caches between test runs. Not used in production.
 export function _resetBudgetCache() {
-  budgetCache = null
-  budgetParamsKey = null
-  budgetError = null
-  budgetInFlight = null
+  budgetEntries.clear()
   notifyBudgets()
 }
 

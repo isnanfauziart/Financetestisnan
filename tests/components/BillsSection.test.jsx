@@ -51,6 +51,21 @@ describe("BillsSection record reachability", () => {
   })
   afterEach(() => vi.unstubAllGlobals())
 
+  it("explains the bill setup flow before showing the create CTA", async () => {
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ bills: [] }), { status: 200 }))
+
+    render(<BillsSection onToast={vi.fn()} />)
+
+    expect(await screen.findByRole("heading", { name: "Jangan lewatkan tanggal penting" })).toBeInTheDocument()
+    expect(screen.getByText("Tambah tagihan")).toBeInTheDocument()
+    expect(screen.getByText("Pilih tanggal jatuh tempo")).toBeInTheDocument()
+    expect(screen.getByText("Dapatkan pengingat")).toBeInTheDocument()
+    expect(screen.getByText("Tandai dibayar dan catat")).toBeInTheDocument()
+    expect(screen.getByText("Contoh")).toBeInTheDocument()
+    expect(screen.getByText("Listrik / Internet / Cicilan")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Tambah Tagihan" })).toHaveClass("min-h-11", "min-w-11")
+  })
+
   it("loads inactive bills so a user can discover and reactivate them", async () => {
     const onBillsChanged = vi.fn()
     render(<BillsSection onToast={vi.fn()} onBillsChanged={onBillsChanged} />)
@@ -61,6 +76,7 @@ describe("BillsSection record reachability", () => {
     expect(fetch).toHaveBeenCalledWith("/api/bills?all=true")
 
     fireEvent.click(screen.getByRole("button", { name: /nonaktif \(1\)/i }))
+    expect(screen.getByRole("button", { name: /aktifkan internet/i })).toHaveClass("min-h-11", "min-w-11")
     fireEvent.click(screen.getByRole("button", { name: /aktifkan internet/i }))
 
     await waitFor(() => expect(onBillsChanged).toHaveBeenCalledTimes(1))
@@ -88,6 +104,9 @@ describe("BillsSection record reachability", () => {
     render(<BillsSection onToast={vi.fn()} onBillsChanged={onBillsChanged} />)
 
     await waitFor(() => expect(screen.getByRole("button", { name: /bayar internet/i })).toBeInTheDocument())
+    expect(screen.getByRole("button", { name: /bayar internet/i })).toHaveClass("min-h-11", "min-w-11")
+    expect(screen.getByRole("button", { name: /nonaktifkan internet/i })).toHaveClass("min-h-11", "min-w-11")
+    expect(screen.getByRole("button", { name: /hapus internet/i })).toHaveClass("min-h-11", "min-w-11")
     fireEvent.click(screen.getByRole("button", { name: /bayar internet/i }))
     fireEvent.click(screen.getByRole("button", { name: "Mock bayar" }))
 
@@ -128,6 +147,7 @@ describe("BillsSection record reachability", () => {
     render(<BillsSection onToast={vi.fn()} onBillsChanged={onBillsChanged} />)
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Tambah tagihan baru" })).toBeInTheDocument())
+    expect(screen.getByRole("button", { name: "Tambah tagihan baru" })).toHaveClass("min-h-11", "min-w-11")
     fireEvent.click(screen.getByRole("button", { name: "Tambah tagihan baru" }))
     fireEvent.click(screen.getByRole("button", { name: "Mock simpan baru" }))
 

@@ -38,14 +38,14 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
   const deadline = deadlineLabel(goal.deadline)
 
   return (
-    <div className={`bento-tile bg-white border border-earth-100 p-4 shadow-warm transition-all hover:shadow-pop group ${settled ? "opacity-70" : ""}`}>
+    <div className={`bento-tile bg-white border border-earth-100 p-4 shadow-warm transition-[box-shadow,opacity] hover:shadow-pop group ${settled ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-1">
             <h4 className="text-sm font-bold text-earth-800 truncate">{goal.nama}</h4>
             {settled && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: THEME.incomeBg, color: THEME.income }}>
-                ✓ Terealisasi
+                 ✓ Selesai
               </span>
             )}
             {!settled && achieved && (
@@ -57,10 +57,10 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
           <p className="text-[10px] text-earth-500">{goal.kategori}</p>
         </div>
         <div className="flex gap-0.5 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity flex-shrink-0">
-          <button onClick={onEdit} aria-label={`Edit ${goal.nama} goal`} className="w-6 h-6 rounded-lg bg-earth-50 hover:bg-violet-100 flex items-center justify-center text-earth-500 hover:text-violet-600">
+          <button onClick={onEdit} aria-label={`Edit ${goal.nama} goal`} className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-sage-100 flex items-center justify-center text-earth-500 hover:text-sage-600 transition-colors">
             <Pencil size={11} aria-hidden="true" />
           </button>
-          <button onClick={onDelete} aria-label={`Delete ${goal.nama} goal`} className="w-6 h-6 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-500 hover:text-rose-500">
+          <button onClick={onDelete} aria-label={`Delete ${goal.nama} goal`} className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-500 hover:text-rose-500 transition-colors">
             <Trash2 size={11} aria-hidden="true" />
           </button>
         </div>
@@ -75,7 +75,7 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
           </p>
           {deadline && (
             <p className="text-[10px] text-earth-500 flex items-center gap-1 mt-1">
-              <Calendar size={9} aria-hidden="true" /> by {deadline}
+              <Calendar size={9} aria-hidden="true" /> sampai {deadline}
             </p>
           )}
           {eta && (
@@ -85,11 +85,11 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
           )}
           {!settled && achieved && (
             <p className="text-[10px] font-semibold mt-0.5" style={{ color: "#d4a853" }}>
-              Goal tercapai
+              Target tercapai
             </p>
           )}
           {settled && (
-            <p className="text-[10px] text-earth-400 mt-0.5">Goal tercapai dan terealisasi</p>
+            <p className="text-[10px] text-earth-400 mt-0.5">Target tercapai dan selesai</p>
           )}
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
       {/* Active goal at 100% — show Settle button */}
       {!settled && achieved && onSettle && (
         <button onClick={onSettle}
-          className="w-full mt-3 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+          className="w-full min-h-11 mt-3 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-[0.98]"
           style={{ background: THEME.incomeBg, color: THEME.income }}
           aria-label={`Settle ${goal.nama}`}>
           <Check size={12} strokeWidth={3} aria-hidden="true" /> Tandai Terealisasi
@@ -107,7 +107,7 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
       {/* Active goal not yet 100% — show Contribute button */}
       {!settled && !achieved && (
         <button onClick={onContribute}
-          className="w-full mt-3 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+          className="w-full min-h-11 mt-3 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-[0.98]"
           style={{ background: color + "18", color }}
           aria-label={`Contribute to ${goal.nama}`}>
           <Plus size={12} strokeWidth={3} aria-hidden="true" /> Kontribusi

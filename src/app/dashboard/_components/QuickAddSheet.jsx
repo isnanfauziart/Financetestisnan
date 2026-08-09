@@ -107,11 +107,11 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
       <div className="space-y-4">
         <div className="flex gap-2 p-1.5 rounded-2xl" style={{ background: THEME.surfaceWarm }}>
           <button onClick={() => handleTypeChange("expense")} aria-label="Pilih pengeluaran" aria-pressed={txType === "expense"}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${txType === "expense" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-[background-color,color,box-shadow] ${txType === "expense" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
             Pengeluaran
           </button>
           <button onClick={() => handleTypeChange("income")} aria-label="Pilih pemasukan" aria-pressed={txType === "income"}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${txType === "income" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-[background-color,color,box-shadow] ${txType === "income" ? "bg-white text-earth-800 shadow-warm" : "text-earth-500"}`}>
             Pemasukan
           </button>
         </div>
@@ -194,12 +194,12 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
               className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-medium outline-none" />
           </div>
           <button type="submit" disabled={submitting} aria-label="Simpan transaksi"
-            className="w-full py-3.5 mt-1 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
-            style={{ background: submitting ? "#ccc" : "linear-gradient(135deg, #4a3d33, #7c5fcf)" }}>
+            className="w-full py-3.5 mt-1 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-[background-color,opacity,transform] duration-200 active:scale-[0.97] disabled:opacity-50"
+            style={{ backgroundColor: submitting ? "#ccc" : THEME.primary }}>
             {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Plus size={16} aria-hidden="true" /> Simpan Transaksi</>}
           </button>
           <button type="button" onClick={() => { onClose(); onGoalContribute?.() }} aria-label="Kontribusi ke goal"
-            className="w-full py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+            className="w-full py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-transform active:scale-[0.97]"
             style={{ background: THEME.savingsBg, color: THEME.savings }}>
             <Target size={14} aria-hidden="true" /> Kontribusi ke Goal
           </button>

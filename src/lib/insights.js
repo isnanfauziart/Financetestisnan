@@ -1,12 +1,12 @@
 import { isSpecialExpense } from "@/lib/expenseClass"
 
 const COLORS = {
-  sage: "#7c8c5a",
-  amber: "#d4a853",
-  danger: "#c44545",
-  primary: "#7c5fcf",
-  savings: "#5b8c7a",
-  primaryDeep: "#6349a8",
+  sage: "#2F6B57",
+  amber: "#8A5A00",
+  danger: "#B33A3A",
+  primary: "#6E59B5",
+  savings: "#2D6A62",
+  primaryDeep: "#255344",
 }
 
 function hash(value) {

@@ -44,7 +44,7 @@ describe("GoalsSection savings summary", () => {
       />,
     )
 
-    expect(screen.getByRole("heading", { name: "Kantong & Target" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Target" })).toBeInTheDocument()
     const summary = screen.getByRole("region", { name: "Ringkasan tabungan" })
     expect(summary).toHaveTextContent("Total Tabungan")
     expect(summary).toHaveTextContent("10.000.000")
@@ -62,5 +62,25 @@ describe("GoalsSection savings summary", () => {
     )
 
     expect(screen.getByRole("region", { name: "Ringkasan tabungan" })).toHaveTextContent("Rp 0")
+  })
+
+  it("explains how to start a target before showing the create CTA", () => {
+    hookState.goals = []
+
+    render(
+      <GoalsSection
+        data={{ netWorth: 0 }}
+        transactions={[]}
+      />,
+    )
+
+    expect(screen.getByRole("heading", { name: "Bangun target sedikit demi sedikit" })).toBeInTheDocument()
+    expect(screen.getByText("Pilih target")).toBeInTheDocument()
+    expect(screen.getByText("Tentukan jumlah dan tenggat")).toBeInTheDocument()
+    expect(screen.getByText("Catat kontribusi")).toBeInTheDocument()
+    expect(screen.getByText("Ikuti progres")).toBeInTheDocument()
+    expect(screen.getByText("Contoh")).toBeInTheDocument()
+    expect(screen.getByText("Dana Darurat / Liburan")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buat Target" })).toHaveClass("min-h-11", "min-w-11")
   })
 })

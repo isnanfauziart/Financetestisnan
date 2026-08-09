@@ -719,3 +719,80 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 ### Blockers
 - Netlify project creation, environment-variable entry, Google Cloud updates, IDwebhost nameserver delegation, DNS propagation, and production acceptance remain manual deployment steps.
 - A plain local production build still fails fast until the four missing local environment variables are configured; this does not affect the committed migration files.
+
+## 2026-08-09 - Calm Living Ledger Batch 2 implemented
+
+### Tasks Completed
+- Added reusable `FeatureEducation` cards and wired the Target, Anggaran, and Tagihan empty states to explain their setup flow before the primary CTA.
+- Normalized visible planning labels and completion copy while preserving internal section keys, callbacks, loading/error behavior, feature gates, and modal flows.
+- Added the `Data Milikmu` profile section, Indonesian preference/account labels, and forest/neutral ordinary actions while keeping the Pro upgrade CTA violet.
+- Raised touched planning controls to 44px minimum targets and replaced touched `transition-all` utilities with explicit transitions.
+
+### Files Changed
+- `src/components/FeatureEducation.jsx`
+- `src/components/GoalsSection.jsx`
+- `src/components/BudgetsSection.jsx`
+- `src/components/BillsSection.jsx`
+- `src/components/GoalCard.jsx`
+- `src/components/BudgetCard.jsx`
+- `src/app/dashboard/PlanTab.jsx`
+- `src/app/dashboard/ProfileTab.jsx`
+- Focused component tests under `tests/components/`
+- `progress.md`
+
+### Verification
+- TDD red run completed before implementation: 8 focused files failed as expected.
+- Focused component suite: 8 files passed, 47 tests passed.
+- Focused regression suite: 4 files passed, 24 tests passed; one pre-existing `act(...)` warning remains in `BudgetStatusCard.test.jsx`.
+- Full suite and production build were intentionally not run per task instructions.
+
+### Blockers
+- None.
+
+## 2026-08-09 - Calm Living Ledger final verification and review fixes
+
+### Tasks Completed
+- Completed the Calm Living Ledger dashboard revamp across Beranda, Statistik, Rencana, Profil, sync status, education states, and visual tokens.
+- Fixed feature access to fail closed while dashboard entitlement is unresolved or unverifiable.
+- Fixed Statistik routine takeaways to use routine totals and made category trend text alternatives choose the latest populated period.
+- Wrapped shared budget-cache test resets in `act()` so the new cache test is warning-free.
+
+### Files Changed
+- Dashboard UI and shared access: `src/app/dashboard/page.js`, `src/app/dashboard/StatsTab.jsx`, `src/lib/featureAccess.js`
+- Regression coverage: `tests/components/StatsTab.test.jsx`, `tests/components/featureVisibility.test.jsx`, `tests/lib/featureAccess.test.js`, `tests/lib/useSharedData.test.js`
+- `progress.md`
+
+### Decisions
+- Kept the existing Recharts animation behavior unchanged per owner instruction; the reduced-motion review suggestion was explicitly declined.
+- Preserved legacy behavior for isolated components that omit the entitlement prop while failing closed for the dashboard's `null` or unverified entitlement state.
+
+### Verification
+- Adjacent dashboard suite: 7 files passed, 63 tests passed, with no cache-test act warnings.
+- Full repository suite: 102 files passed, 526 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder environment values; no secrets were written.
+- `git diff --check` passed; only existing CRLF conversion warnings were reported.
+- Independent final diff review confirmed no remaining blocking findings in the accepted scope.
+
+### Blockers
+- None for this task. Unrelated pre-existing worktree changes and the unrelated `BudgetStatusCard` act warning remain untouched.
+
+## 2026-08-09 - Lean implementation workflow policy
+
+### Tasks Completed
+- Added a scope-controlled implementation workflow to `AGENTS.md`.
+- Defined instruction precedence between project rules, skills, and agent defaults.
+- Added risk tiers, batch ownership, focused verification, one final review, and one integration gate.
+- Added explicit handling for unrelated findings, pre-existing failures, and preserving completed work.
+
+### Files Changed
+- `AGENTS.md`
+- `progress.md`
+
+### Decisions
+- Apply the lean workflow to all implementation work by default.
+- Require exactly one independent final diff review for every implementation task.
+- Keep stricter focused checks for finance, auth, payments, quotas, migrations, tenant isolation, and security.
+- Do not allow skills to expand scope or duplicate reviews, tests, builds, agents, or commits.
+
+### Blockers
+- None.

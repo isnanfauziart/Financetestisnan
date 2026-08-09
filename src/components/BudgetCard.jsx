@@ -20,13 +20,13 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
 
   return (
     <div
-      className="bento-tile bg-white border border-earth-100 p-4 shadow-warm transition-all hover:shadow-pop group"
+      className="bento-tile bg-white border border-earth-100 p-4 shadow-warm transition-[box-shadow] hover:shadow-pop group"
     >
       <div className="flex items-start justify-between gap-3 mb-2.5">
         <button
           onClick={onClick}
           aria-label={`View ${budget.kategori} transactions`}
-          className="flex-1 min-w-0 text-left"
+          className="flex-1 min-w-0 min-h-11 text-left"
         >
           <div className="flex items-start gap-3">
             <div
@@ -55,16 +55,16 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
             {status.text}
           </span>
           <div className="flex gap-0.5 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
-            <button onClick={onEdit} aria-label={`Edit ${budget.kategori} budget`} className="w-6 h-6 rounded-lg bg-earth-50 hover:bg-violet-100 flex items-center justify-center text-earth-500 hover:text-violet-600">
+            <button onClick={onEdit} aria-label={`Edit ${budget.kategori} budget`} className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-sage-100 flex items-center justify-center text-earth-500 hover:text-sage-600 transition-colors">
               <Pencil size={11} aria-hidden="true" />
             </button>
-            <button onClick={onDelete} aria-label={`Delete ${budget.kategori} budget`} className="w-6 h-6 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-500 hover:text-rose-500">
+            <button onClick={onDelete} aria-label={`Delete ${budget.kategori} budget`} className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-500 hover:text-rose-500 transition-colors">
               <Trash2 size={11} aria-hidden="true" />
             </button>
           </div>
         </div>
       </div>
-      <button onClick={onClick} className="w-full text-left" aria-label={`Open ${budget.kategori} drill-down`}>
+      <button onClick={onClick} className="w-full min-h-11 text-left" aria-label={`Open ${budget.kategori} drill-down`}>
         <BudgetProgressBar spent={spent} limit={budget.limit} />
         <p className="text-[10px] text-earth-500 mt-1.5 text-right font-semibold">{Math.round(pct)}% used</p>
       </button>

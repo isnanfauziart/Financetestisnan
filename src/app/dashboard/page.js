@@ -19,6 +19,7 @@ import Sheet from "./_components/Sheet"
 import Toast from "./_components/Toast"
 import Skeleton from "./_components/Skeleton"
 import QuickAddSheet from "./_components/QuickAddSheet"
+import SyncStatus from "./_components/SyncStatus"
 import { readCache, writeCache, getLastSyncAgo } from "./_components/useDashboardCache"
 import GoalCelebration from "@/components/GoalCelebration"
 import GoalPickerModal from "@/components/GoalPickerModal"
@@ -167,7 +168,7 @@ export default function Dashboard() {
   })
   const [syncNow, setSyncNow] = useState(() => Date.now())
   const [activeNav, setActiveNav] = useState("home")
-  const [activePlanSection, setActivePlanSection] = useState("goal")
+  const [activePlanSection, setActivePlanSection] = useState("overview")
   const [soundEnabled, setSoundEnabled] = useSoundPref()
   const [hapticsEnabled, setHapticsEnabled] = useHapticsPref()
   const haptics = useHaptics()
@@ -235,6 +236,12 @@ export default function Dashboard() {
   const [scrollY, setScrollY] = useState(0)
   const [fabVisible, setFabVisible] = useState(true)
   const lastScrollYRef = useRef(0)
+  const fabRef = useRef(null)
+
+  const setFabVisibility = useCallback((visible) => {
+    if (!visible && fabRef.current === document.activeElement) fabRef.current.blur()
+    setFabVisible(visible)
+  }, [])
 
   const hasSessionData = status === "authenticated" && !!sessionKey && storedDataOwner === sessionKey
   const data = hasSessionData ? storedData : null
@@ -422,9 +429,9 @@ export default function Dashboard() {
           const currentY = window.scrollY
           setScrollY(currentY)
           if (currentY > 100) {
-            setFabVisible(currentY < lastScrollYRef.current || currentY < lastScrollYRef.current + 10)
+            setFabVisibility(currentY < lastScrollYRef.current || currentY < lastScrollYRef.current + 10)
           } else {
-            setFabVisible(true)
+            setFabVisibility(true)
           }
           lastScrollYRef.current = currentY
           ticking = false
@@ -765,6 +772,7 @@ export default function Dashboard() {
 
     return out.slice(0, 3)
   }, [routineFilteredTransactions, isAllMonths, isAllAccounts, selectedMonth, selectedYear, routineStatIncome, routineStatExpense, routineStatSavings, routineExpenseCategories, data, routineTransactions])
+  const gatedInsights = hasFeature(entitlement, "insights") ? insights : []
 
   const showToast = (msg, type = "success", action = null, options = {}) => {
     setToast({ msg, type, action, duration: options.duration })
@@ -1149,7 +1157,7 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Header with P4 animated gradient */}
+      {/* Header */}
       <header className="sticky top-0 z-20 px-5 pt-6 pb-3 glass-nav safe-top">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
           <div className="flex-1 min-w-0">
@@ -1163,19 +1171,17 @@ export default function Dashboard() {
               {activeNav === "plan" && "Rencana"}
               {activeNav === "profile" && "Profil"}
             </h1>
-            {activeNav === "home" && lastSyncAt && (
-              <button
-                onClick={() => fetchData()}
-                disabled={refreshing}
-                className="text-[10px] font-bold text-earth-500 mt-1 tracking-wide active:opacity-60 transition-opacity"
-                aria-label="Perbarui data"
-              >
-                {!isOnline
-                  ? `Offline · ${getLastSyncAgo(lastSyncAt, syncNow)}`
-                  : refreshing
-                    ? "Memperbarui..."
-                    : `Tersinkron ${getLastSyncAgo(lastSyncAt, syncNow)} · Ketuk untuk perbarui`}
-              </button>
+            {activeNav === "home" && (
+              <SyncStatus
+                lastSyncAt={lastSyncAt}
+                refreshing={refreshing}
+                isOnline={isOnline}
+                onRefresh={fetchData}
+                getLastSyncAgo={getLastSyncAgo}
+                now={syncNow}
+                haptics={haptics}
+                hapticsEnabled={hapticsEnabled}
+              />
             )}
           </div>
           {activeNav === "home" && (
@@ -1185,15 +1191,13 @@ export default function Dashboard() {
             </button>
           )}
         </div>
-        {/* P4: Animated gradient bar */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-0.5 rounded-full mesh-aurora animate-gradient opacity-60" aria-hidden="true" />
       </header>
 
       {/* Pull-to-refresh indicator */}
       {(pullDistance > 0 || pullRefreshing) && (
-        <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-center transition-all duration-300 overflow-hidden"
+        <div className="pull-to-refresh-indicator fixed top-0 left-0 right-0 z-30 flex items-center justify-center transition-[height,background-color] duration-300 overflow-hidden"
           style={{ height: pullRefreshing ? 48 : pullDistance, background: pullDistance >= 80 ? THEME.surfaceWarm : "transparent" }} aria-hidden="true">
-          <div className={`flex items-center gap-2 text-xs font-bold text-earth-500 transition-all duration-300 ${pullRefreshing ? "opacity-100" : pullDistance >= 80 ? "opacity-100" : "opacity-0"}`}>
+          <div className={`flex items-center gap-2 text-xs font-bold text-earth-500 transition-opacity duration-300 ${pullRefreshing ? "opacity-100" : pullDistance >= 80 ? "opacity-100" : "opacity-0"}`}>
             {pullRefreshing ? (
               <><div className="w-4 h-4 border-2 border-earth-400 border-t-transparent rounded-full animate-spin" /> Memperbarui...</>
             ) : (
@@ -1208,7 +1212,7 @@ export default function Dashboard() {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="relative z-10 max-w-3xl mx-auto"
+        className="pull-to-refresh-content relative z-10 max-w-3xl mx-auto"
         style={{ transform: `translateY(${pullDistance}px)`, transition: pullDistance === 0 ? "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" : "none" }}
       >
         <PaymentStatusBanner enabled={hasFeature(entitlement, "paymentQris")} />
@@ -1228,9 +1232,10 @@ export default function Dashboard() {
             recent5={recent5}
             setActiveNav={setActiveNav} openPlanSection={openPlanSection} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
             allTransactions={data?.transactions || []}
+            filteredTransactions={filteredTransactions}
             selectedMonth={selectedMonth} selectedYear={selectedYear}
             monthlyData={routineAnalysisMonthlyData}
-            insights={insights}
+            insights={gatedInsights}
             entitlement={entitlement}
           />
         )}
@@ -1238,8 +1243,9 @@ export default function Dashboard() {
           <StatsTab
             data={data}
             filteredTransactions={filteredTransactions}
-            statIncome={statIncome} statExpense={statExpense} statSavings={statSavings} statSurplus={statSurplus}
-            expenseCategories={expenseCategories} incomeCategories={incomeCategories}
+             statIncome={statIncome} statExpense={statExpense} statSavings={statSavings} statSurplus={statSurplus}
+             routineStatIncome={routineStatIncome} routineStatExpense={routineStatExpense} routineStatSurplus={routineStatIncome - routineStatExpense}
+             expenseCategories={expenseCategories} incomeCategories={incomeCategories}
              availableYears={availableYears} compareYearOptions={compareYearOptions} availableAccounts={availableAccounts}
              selectedMonth={selectedMonth} selectedYear={selectedYear} selectedAccount={selectedAccount} categoryFilter={categoryFilter}
             dateFrom={dateFrom} dateTo={dateTo}
@@ -1258,7 +1264,7 @@ export default function Dashboard() {
              resetComparePeriods={resetComparePeriods}
              calMonth={calMonth} calYear={calYear} calMonthIdx={calMonthIdx} calWeeks={calWeeks} calendarDayTotals={calendarDayTotals}
             navigateCalendar={navigateCalendar} handleDayClick={handleDayClick}
-            insights={insights}
+             insights={gatedInsights}
             isAllMonths={isAllMonths} refreshing={refreshing}
             onToast={showToast}
             onEditTx={handleEditTx}
@@ -1456,14 +1462,17 @@ export default function Dashboard() {
 
       {/* Floating Action Button */}
       {hasFeature(entitlement, "transactions") && <button
-          onClick={() => { if (hapticsEnabled) haptics.tap(); openQuickAdd("expense") }}
-          aria-label="Tambah transaksi baru"
-          aria-haspopup="dialog"
-          className={`fixed bottom-24 sm:bottom-20 right-4 sm:right-5 z-40 max-w-md transition-all duration-300 ease-out ${fabVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0"}`}
-        >
-        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl mesh-aurora shadow-pop flex items-center justify-center active:scale-90 transition-transform" style={{ boxShadow: "0 12px 32px rgba(124,95,207,0.4)" }}>
-          <Plus size={22} color="white" strokeWidth={2.5} aria-hidden="true" />
-        </div>
+           onClick={() => { if (hapticsEnabled) haptics.tap(); openQuickAdd("expense") }}
+           aria-label="Tambah transaksi baru"
+           aria-haspopup="dialog"
+           aria-hidden={!fabVisible}
+           tabIndex={fabVisible ? 0 : -1}
+           ref={fabRef}
+           className={`fixed bottom-24 sm:bottom-20 right-4 sm:right-5 z-40 max-w-md transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-opacity ${fabVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none motion-safe:translate-y-24 opacity-0"}`}
+         >
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shadow-pop flex items-center justify-center motion-safe:active:scale-90 transition-transform duration-[140ms] motion-reduce:transition-none" style={{ backgroundColor: THEME.primary, boxShadow: "0 12px 32px rgba(47,107,87,0.28)" }}>
+           <Plus size={22} color="white" strokeWidth={2.5} aria-hidden="true" />
+         </div>
       </button>}
 
       {/* Bottom Navigation */}
@@ -1485,18 +1494,18 @@ export default function Dashboard() {
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => {
                   if (hapticsEnabled) haptics.tap()
-                  if (nav.id === "plan") setActivePlanSection("goal")
+                   if (nav.id === "plan") setActivePlanSection("overview")
                   setActiveNav(nav.id)
                 }}
-                className="flex flex-col items-center gap-0.5 group relative px-3 py-1 rounded-2xl transition-all"
-              >
-                {isActive && (
-                  <span className="absolute inset-0 rounded-2xl animate-scale-in" style={{ background: THEME.surfaceWarm }} />
+                  className="flex flex-col items-center gap-0.5 group relative px-3 py-1 rounded-2xl transition-[background-color,color,opacity] duration-200"
+               >
+               {isActive && (
+                   <span className="absolute inset-0 rounded-2xl animate-scale-in motion-reduce:animate-none" style={{ background: THEME.surfaceWarm }} />
                 )}
-                <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${isActive ? '-translate-y-0.5' : ''}`}>
-                  <nav.icon size={20} color={isActive ? THEME.textPrimary : THEME.textTertiary} strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
-                </div>
-                <span className={`relative text-[9px] font-bold tracking-wide transition-all ${isActive ? 'text-earth-800' : 'text-earth-500'}`}>
+                  <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-transform duration-200 motion-reduce:transition-none ${isActive ? 'motion-safe:-translate-y-0.5' : ''}`}>
+                   <nav.icon size={20} color={isActive ? THEME.textPrimary : THEME.textTertiary} strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
+                 </div>
+                  <span className={`relative text-[9px] font-bold tracking-wide transition-[color,opacity] duration-200 ${isActive ? 'text-earth-800' : 'text-earth-500'}`}>
                   {nav.label}
                 </span>
               </button>
@@ -1509,10 +1518,10 @@ export default function Dashboard() {
 }
 
 function DrillDownModal({ drillDown, data, onClose, onEdit, onDelete }) {
-  const txs = useMemo(() => (data?.transactions || [])
+  const txs = useMemo(() => (drillDown.transactions ?? data?.transactions ?? [])
     .filter(t => t.type === drillDown.type)
     .sort((a, b) => b.amount - a.amount)
-    .slice(0, 10), [data, drillDown.type])
+    .slice(0, 10), [data, drillDown.transactions, drillDown.type])
 
   const total = useMemo(() => txs.reduce((s, t) => s + t.amount, 0), [txs])
   const animatedTotal = useCountUp(total)

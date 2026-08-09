@@ -43,7 +43,7 @@ function CloseButton({ onClose, closeButtonRef, className = "" }) {
   )
 }
 
-function DefaultHeader({ title, subtitle, onClose, closeButtonRef }) {
+function DefaultHeader({ title, subtitle, onClose, closeButtonRef, closeButtonClassName }) {
   return (
     <div className="flex justify-between items-start mb-4">
       <div className="min-w-0 flex-1">
@@ -54,7 +54,7 @@ function DefaultHeader({ title, subtitle, onClose, closeButtonRef }) {
         )}
         <h3 className="text-lg font-display font-bold text-earth-800">{title}</h3>
       </div>
-      <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} />
+      <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} className={closeButtonClassName} />
     </div>
   )
 }
@@ -73,6 +73,7 @@ export default function Sheet({
   children,
   ariaLabel,
   position = "bottom",
+  closeButtonClassName = "",
 }) {
   const backdropRef = useRef(null)
   const panelRef = useRef(null)
@@ -169,13 +170,19 @@ export default function Sheet({
         {header ? (
           <div className={`mb-4 ${sharedCloseNeeded ? "relative pr-10" : ""}`}>
             {header}
-            {sharedCloseNeeded && <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} className="absolute top-0 right-0" />}
+            {sharedCloseNeeded && <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} className={`absolute top-0 right-0 ${closeButtonClassName}`} />}
           </div>
         ) : title ? (
-          <DefaultHeader title={title} subtitle={subtitle} onClose={onClose} closeButtonRef={closeButtonRef} />
+          <DefaultHeader
+            title={title}
+            subtitle={subtitle}
+            onClose={onClose}
+            closeButtonRef={closeButtonRef}
+            closeButtonClassName={closeButtonClassName}
+          />
         ) : (
           <div className="mb-4 flex justify-end">
-            <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} />
+            <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} className={closeButtonClassName} />
           </div>
         )}
         {children}

@@ -1,4 +1,6 @@
 export function isFeatureEnabled(entitlement, key) {
+  if (entitlement === null || entitlement?.entitlementVerified === false) return false
+
   const availability = entitlement?.featureAvailability
   if (availability && Object.prototype.hasOwnProperty.call(availability, key)) return Boolean(availability[key])
 

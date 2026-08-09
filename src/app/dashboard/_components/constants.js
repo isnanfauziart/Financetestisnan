@@ -1,30 +1,33 @@
 export const THEME = {
-  bg: "#fefaf3",
-  surface: "#ffffff",
-  surfaceMuted: "#fdf6ea",
-  surfaceWarm: "#f6efe5",
-  textPrimary: "#2a2018",
-  textSecondary: "#6b5b4f",
-  textTertiary: "#756558",
-  income: "#647348",
-  incomeBg: "#f4f6ec",
-  expense: "#a36548",
-  expenseBg: "#fbf0e9",
-  savings: "#3f6b5b",
-  savingsBg: "#ebf3f0",
-  primary: "#7c5fcf",
-  primaryBg: "#f3effc",
-  primaryDeep: "#6349a8",
-  warning: "#856514",
-  warningBg: "#fdf7e8",
-  danger: "#c44545",
-  dangerBg: "#fbecec",
-  heroBg: "#4a3d33",
-  heroMid: "#6b5b4f",
-  heroLight: "#8c7b6a",
+  bg: "#FBF8F1",
+  surface: "#FFFFFF",
+  surfaceMuted: "#F7F2EA",
+  surfaceWarm: "#F3ECE2",
+  border: "#E2D9CC",
+  textPrimary: "#29231E",
+  textSecondary: "#6B625A",
+  textTertiary: "#7A7168",
+  income: "#2F6B57",
+  incomeBg: "#E5F0EB",
+  expense: "#A45343",
+  expenseBg: "#F8E8E4",
+  savings: "#2D6A62",
+  savingsBg: "#E6F2EF",
+  primary: "#2F6B57",
+  primaryBg: "#E5F0EB",
+  primaryDeep: "#255344",
+  smart: "#6E59B5",
+  smartBg: "#F0EBFA",
+  warning: "#8A5A00",
+  warningBg: "#FFF1CC",
+  danger: "#B33A3A",
+  dangerBg: "#FCE8E8",
+  heroBg: "#1F2D28",
+  heroMid: "#255344",
+  heroLight: "#8EB5A5",
 }
 
-export const COLORS = ["#7c8c5a", "#c47d5a", "#5b8c7a", "#9f87ef", "#d4a853", "#5069cc", "#c44545", "#7aab9a", "#d99a7d", "#a8b3e6"]
+export const COLORS = ["#2F6B57", "#A45343", "#2D6A62", "#6E59B5", "#8A5A00", "#5B7F9A", "#B33A3A", "#8FBAB2", "#CB796B", "#B9AADE"]
 
 export const EXPENSE_CATEGORIES = [
   "Transportasi","Sedekah","Elektronik","Healthcare","Utang","Body Care",
@@ -83,9 +86,9 @@ export const EVENT_MODES = ["independent", "exempt"]
 export const EVENT_STATUSES = ["planning", "active", "completed", "archived"]
 
 export const EVENT_COLORS = {
-  "anak-sekolah": "#5069cc",
-  "lebaran-thr": "#d4a853",
-  "custom": "#7c5fcf",
+  "anak-sekolah": "#5B7F9A",
+  "lebaran-thr": "#8A5A00",
+  "custom": "#6E59B5",
 }
 
 export function getCategoryOptions(categories, type, fallback, current = "") {

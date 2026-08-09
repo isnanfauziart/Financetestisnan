@@ -26,8 +26,8 @@ function formatTierLabel(tier) {
 
 const QUOTA_LABELS = {
   transactions: "Transaksi bulan ini",
-  budgets: "Budget bulan ini",
-  goals: "Goal",
+  budgets: "Anggaran bulan ini",
+  goals: "Target",
   debts: "Utang & piutang",
   momental: "Event budget",
   bills: "Tagihan",
@@ -129,7 +129,15 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         </div>
       </SectionCard>
 
-      <SectionCard title="Paket & Akses">
+      <SectionCard title="Data Milikmu">
+        <div className="space-y-3 text-sm leading-relaxed text-earth-600">
+          <p>Catatan keuanganmu tetap berada di Google Sheets milikmu.</p>
+          <p>Artami tidak menghubungkan rekening bank.</p>
+          <p>Tidak ada iklan.</p>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Paket & Pemakaian">
         <div className="flex justify-between items-center border-b border-earth-100 pb-3">
           <span className="text-sm font-medium text-earth-500">Paket Saat Ini</span>
           <span className="text-sm font-bold text-earth-800">{tierLabel}</span>
@@ -170,7 +178,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
             </p>
             <ul className="mt-3 space-y-1 text-xs font-semibold text-moss-700">
               <li>✓ Transaksi dan riwayat tanpa batas</li>
-              <li>✓ Budget, goal, tagihan, dan fitur pintar</li>
+              <li>✓ Anggaran, target, tagihan, dan fitur pintar</li>
               <li>✓ Akses Pro seumur hidup</li>
             </ul>
           </div>
@@ -190,36 +198,44 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
             <p className="text-sm font-medium text-earth-800">Kategori</p>
             <p className="mt-0.5 text-xs leading-relaxed text-earth-500">Sesuaikan kategori pengeluaran, pemasukan, dan tabunganmu.</p>
           </div>
-          <button type="button" onClick={() => setShowCategoryManager(true)} className="rounded-xl bg-violet-100 px-3 py-2 text-xs font-bold text-violet-700">Kelola kategori</button>
+          <button type="button" onClick={() => setShowCategoryManager(true)} className="min-h-11 min-w-11 rounded-xl bg-sage-100 px-3 py-2 text-xs font-bold text-sage-700 hover:bg-sage-200 transition-colors">Kelola kategori</button>
         </div>
         <div className="flex justify-between items-center border-b border-earth-100 pb-3">
-          <span className="text-sm font-medium text-earth-500">Sound Effects</span>
+          <span className="text-sm font-medium text-earth-500">Efek Suara</span>
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            aria-label={`Sound effects ${soundEnabled ? "on" : "off"}`}
+            aria-label={`Efek suara ${soundEnabled ? "aktif" : "nonaktif"}`}
             aria-pressed={soundEnabled}
-            className="relative w-11 h-6 rounded-full transition-colors"
-            style={{ background: soundEnabled ? THEME.primary : THEME.surfaceWarm }}
+            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
           >
             <span
-              className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-warm transition-transform"
-              style={{ transform: soundEnabled ? "translateX(22px)" : "translateX(2px)" }}
-            />
+              className="relative block h-6 w-11 rounded-full transition-colors"
+              style={{ background: soundEnabled ? THEME.primary : THEME.surfaceWarm }}
+            >
+              <span
+                className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-warm transition-transform"
+                style={{ transform: `translateX(${soundEnabled ? "22px" : "0"})` }}
+              />
+            </span>
           </button>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-earth-500">Haptic Feedback</span>
+          <span className="text-sm font-medium text-earth-500">Umpan Balik Getar</span>
           <button
             onClick={() => setHapticsEnabled(!hapticsEnabled)}
-            aria-label={`Haptic feedback ${hapticsEnabled ? "on" : "off"}`}
+            aria-label={`Umpan balik getar ${hapticsEnabled ? "aktif" : "nonaktif"}`}
             aria-pressed={hapticsEnabled}
-            className="relative w-11 h-6 rounded-full transition-colors"
-            style={{ background: hapticsEnabled ? THEME.primary : THEME.surfaceWarm }}
+            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
           >
             <span
-              className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-warm transition-transform"
-              style={{ transform: hapticsEnabled ? "translateX(22px)" : "translateX(2px)" }}
-            />
+              className="relative block h-6 w-11 rounded-full transition-colors"
+              style={{ background: hapticsEnabled ? THEME.primary : THEME.surfaceWarm }}
+            >
+              <span
+                className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-warm transition-transform"
+                style={{ transform: `translateX(${hapticsEnabled ? "22px" : "0"})` }}
+              />
+            </span>
           </button>
         </div>
       </SectionCard>
@@ -265,7 +281,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
             <button
               onClick={handleSaveSaldo}
               disabled={savingSaldo}
-              className="w-full py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+              className="w-full min-h-11 py-2.5 rounded-xl text-sm font-bold text-white transition-transform active:scale-[0.97] disabled:opacity-50"
               style={{ background: savingSaldo ? "#ccc" : THEME.primary }}
             >
               {savingSaldo ? "Menyimpan..." : "Simpan"}
@@ -277,7 +293,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
               <span className="text-sm font-medium text-earth-500">Saldo Awal</span>
               <button
                 onClick={handleStartEdit}
-                className="text-sm font-bold text-earth-800 hover:text-violet-600 transition-colors flex items-center gap-1"
+                className="min-h-11 text-sm font-bold text-earth-800 hover:text-sage-600 transition-colors flex items-center gap-1"
               >
                 <Wallet size={12} />
                 {formatRpFull(settings.startingBalance)}
@@ -294,14 +310,14 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
             )}
           </div>
         )}
-        <button onClick={() => signOut({ callbackUrl: "/" })} aria-label="Log out" className="w-full pt-2 flex items-center justify-between group">
-          <span className="text-sm font-bold text-rose-500 group-hover:opacity-80 transition-opacity">Log Out</span>
+        <button onClick={() => signOut({ callbackUrl: "/" })} aria-label="Keluar" className="w-full min-h-11 pt-2 flex items-center justify-between group">
+          <span className="text-sm font-bold text-rose-500 group-hover:opacity-80 transition-opacity">Keluar</span>
           <LogOut size={16} color={THEME.danger} aria-hidden="true" className="group-hover:translate-x-1 transition-transform" />
         </button>
         <button
           type="button"
           onClick={() => setShowDeleteAccount(true)}
-          className="w-full pt-3 text-left text-sm font-bold text-rose-600"
+          className="w-full min-h-11 pt-3 text-left text-sm font-bold text-rose-600"
         >
           Hapus Akun
         </button>

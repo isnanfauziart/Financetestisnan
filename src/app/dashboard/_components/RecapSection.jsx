@@ -141,7 +141,7 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
     return (
       <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
         <h3 className="text-sm font-bold mb-3 font-display text-earth-800 flex items-center gap-1.5">
-          <ListFilter size={14} aria-hidden="true" /> Recap Bulanan
+          <ListFilter size={14} aria-hidden="true" /> Laporan Bulanan
         </h3>
         {history?.limited && (
           <p className="mb-3 text-xs leading-relaxed text-earth-500">
@@ -151,7 +151,7 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
         <EmptyState
           icon={<ListFilter size={20} />}
           title="Belum ada transaksi"
-          hint="Tambah transaksi untuk mulai melihat recap per bulan"
+          hint="Tambah transaksi untuk mulai melihat laporan per bulan"
         />
       </div>
     )
@@ -164,7 +164,7 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
       <div className="flex items-center gap-1.5 px-1">
         <ListFilter size={14} className="text-violet-600" aria-hidden="true" />
         <h3 className="text-sm font-bold font-display text-earth-800 uppercase tracking-wider">
-          Recap Bulanan
+          Laporan Bulanan
         </h3>
         <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider ml-1">
           · {groups.length} bulan · {totalTx} tx
@@ -232,7 +232,7 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
             <button
               onClick={clearFilter}
               className="ml-auto text-[10px] font-bold text-violet-600 hover:underline flex items-center gap-1"
-              aria-label="Atur ulang filter recap"
+                aria-label="Atur ulang filter laporan"
             >
               <X size={10} strokeWidth={3} aria-hidden="true" /> Atur Ulang
             </button>

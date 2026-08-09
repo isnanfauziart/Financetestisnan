@@ -18,7 +18,7 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
     if (!Array.isArray(monthlyData) || monthlyData.length < 2) {
       return {
         ready: false,
-        message: "Catat transaksi selama minimal 2 bulan untuk melihat estimasi FI.",
+         message: "Catat transaksi selama minimal 2 bulan untuk melihat estimasi Financial Freedom.",
       }
     }
 
@@ -36,7 +36,7 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
     if (expenseMonths.length === 0) {
       return {
         ready: false,
-        message: "Tambahkan pengeluaran agar target FI dapat dihitung.",
+         message: "Tambahkan pengeluaran agar target Financial Freedom dapat dihitung.",
       }
     }
 
@@ -88,7 +88,7 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
       isFIAchieved,
       isNetWorthNegative: netWorth < 0,
       yearsToFI: yearsToFI !== null ? yearsToFI.toFixed(1) : null,
-      fiDate: isFIAchieved ? "Target FI tercapai" : monthsToFI !== null ? formatMonthYear(fiDate) : "Belum terproyeksi",
+       fiDate: isFIAchieved ? "Target Financial Freedom tercapai" : monthsToFI !== null ? formatMonthYear(fiDate) : "Belum terproyeksi",
       avgMonthlySurplus: Math.round(avgMonthlySurplus),
       hasPositiveSurplus,
       scenarios,
@@ -102,7 +102,7 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
       <section className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in" aria-labelledby="fi-card-title-empty">
         <div className="flex items-center gap-1.5 mb-2">
           <Target size={14} className="text-earth-400" aria-hidden="true" />
-          <h2 id="fi-card-title-empty" className="text-xs font-bold uppercase tracking-wider text-earth-700">Financial Independence</h2>
+           <h2 id="fi-card-title-empty" className="text-xs font-bold uppercase tracking-wider text-earth-700">Financial Freedom</h2>
         </div>
         <p className="text-sm text-earth-700">{fi?.message}</p>
         <p className="text-xs text-earth-600 mt-3 flex items-center gap-1">
@@ -122,7 +122,7 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 mb-1">
               <Target size={14} color={THEME.primary} aria-hidden="true" />
-              <p className="text-xs font-bold uppercase tracking-wider text-earth-700">Financial Independence</p>
+               <p className="text-xs font-bold uppercase tracking-wider text-earth-700">Financial Freedom</p>
             </div>
             <h2 id="fi-card-title" className="text-lg font-display font-bold text-earth-800">Target Kebebasan Finansial</h2>
             <p className="text-xs text-earth-600 mt-1">Berdasarkan rata-rata {fi.windowSize} bulan terakhir.</p>
@@ -133,7 +133,7 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
         </div>
 
         <div className="rounded-2xl p-4 mb-4" style={{ background: THEME.surfaceMuted }}>
-          <p className="text-xs font-bold uppercase tracking-wider text-earth-700 mb-1">FI Number (25x pengeluaran tahunan)</p>
+           <p className="text-xs font-bold uppercase tracking-wider text-earth-700 mb-1">Financial Freedom Number (25x pengeluaran tahunan)</p>
           <p className="text-2xl font-display font-bold" style={{ color: progressColor }}>
             {formatRpFull(fi.fiNumber)}
           </p>
@@ -148,7 +148,7 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
             className="h-3 rounded-full overflow-hidden"
             style={{ background: THEME.surfaceWarm }}
             role="progressbar"
-            aria-label="Progres menuju Financial Independence"
+             aria-label="Progres menuju Financial Freedom"
             aria-valuemin="0"
             aria-valuemax="100"
             aria-valuenow={String(Math.round(progressValue))}
@@ -185,8 +185,8 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
             <p className="text-sm font-bold" style={{ color: THEME.primary }}>
               {fi.fiDate}
             </p>
-            {fi.isFIAchieved ? (
-              <p className="text-[11px] text-earth-700 mt-1">Target FI tercapai.</p>
+             {fi.isFIAchieved ? (
+               <p className="text-[11px] text-earth-700 mt-1">Target Financial Freedom tercapai.</p>
             ) : fi.yearsToFI ? (
               <p className="text-[11px] text-earth-700 mt-1">{fi.yearsToFI} tahun lagi</p>
             ) : (
@@ -249,9 +249,9 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
             onClick={() => setFormulaOpen(true)}
             className="rounded-xl px-3 py-2 text-xs font-bold text-white transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
             style={{ background: THEME.primary }}
-            aria-label="Pelajari rumus FI"
-          >
-            Pelajari rumus FI
+             aria-label="Pelajari rumus Financial Freedom"
+           >
+             Pelajari rumus Financial Freedom
           </button>
         </div>
       </section>
@@ -259,21 +259,21 @@ export default function FITrackerCard({ netWorth, monthlyData }) {
       <Sheet
         open={formulaOpen}
         onClose={() => setFormulaOpen(false)}
-        title="Rumus Financial Independence"
+         title="Rumus Financial Freedom"
         subtitle="Penjelasan"
         size="md"
         maxHeight="85vh"
         position="center"
       >
         <p className="text-sm text-earth-700 mb-4 leading-relaxed">
-          Financial Independence (FI) di sini adalah estimasi edukatif berdasarkan aturan 4% atau target 25x pengeluaran tahunan.
+           Financial Freedom di sini adalah estimasi edukatif berdasarkan aturan 4% atau target 25x pengeluaran tahunan.
         </p>
         <div className="space-y-3">
           {[
-            { label: "FI Number", weight: "25x", desc: "Rata-rata pengeluaran bulanan dalam periode observasi dikali 12, lalu dikali 25. Ini adalah target aset yang dipakai sebagai patokan FI di kartu ini." },
-            { label: "FI Progress", weight: "%", desc: "Net worth saat ini dibagi target FI. Progress visual dibatasi antara 0% sampai 100% agar mudah dibaca." },
-            { label: "Estimasi FI", weight: "Tanggal", desc: "Perkiraan kasar kapan target FI tercapai berdasarkan surplus arus kas rata-rata per bulan. Jika surplus belum positif, tanggal belum bisa diproyeksikan." },
-            { label: "Sensitivity", weight: "+10/20/30%", desc: "Simulasi sederhana jika surplus bulanan naik 10/20/30%. Ini bukan proyeksi investasi penuh." },
+             { label: "Financial Freedom Number", weight: "25x", desc: "Rata-rata pengeluaran bulanan dalam periode observasi dikali 12, lalu dikali 25. Ini adalah target aset yang dipakai sebagai patokan Financial Freedom di kartu ini." },
+             { label: "Financial Freedom Progress", weight: "%", desc: "Net worth saat ini dibagi target Financial Freedom. Progress visual dibatasi antara 0% sampai 100% agar mudah dibaca." },
+             { label: "Estimasi Financial Freedom", weight: "Tanggal", desc: "Perkiraan kasar kapan target Financial Freedom tercapai berdasarkan surplus arus kas rata-rata per bulan. Jika surplus belum positif, tanggal belum bisa diproyeksikan." },
+             { label: "Sensitivitas", weight: "+10/20/30%", desc: "Simulasi sederhana jika surplus bulanan naik 10/20/30%. Ini bukan proyeksi investasi penuh." },
           ].map((row, i) => (
             <div key={i} className="rounded-2xl p-3" style={{ background: THEME.surfaceWarm }}>
               <div className="flex items-center justify-between mb-1">

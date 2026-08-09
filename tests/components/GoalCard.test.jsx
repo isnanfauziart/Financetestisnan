@@ -37,8 +37,8 @@ describe("GoalCard", () => {
 
   it("edit and delete buttons are always present in DOM (touch device fix)", () => {
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={() => {}} onEdit={() => {}} onDelete={() => {}} />)
-    expect(screen.getByLabelText("Edit Beli Laptop goal")).toBeInTheDocument()
-    expect(screen.getByLabelText("Delete Beli Laptop goal")).toBeInTheDocument()
+    expect(screen.getByLabelText("Edit Beli Laptop goal")).toHaveClass("min-h-11", "min-w-11")
+    expect(screen.getByLabelText("Delete Beli Laptop goal")).toHaveClass("min-h-11", "min-w-11")
   })
 
   it("calls onEdit when edit button clicked", () => {
@@ -58,6 +58,7 @@ describe("GoalCard", () => {
   it("calls onContribute when contribute button clicked", () => {
     const onContribute = vi.fn()
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={onContribute} onEdit={() => {}} onDelete={() => {}} />)
+    expect(screen.getByLabelText("Contribute to Beli Laptop")).toHaveClass("min-h-11")
     fireEvent.click(screen.getByLabelText("Contribute to Beli Laptop"))
     expect(onContribute).toHaveBeenCalledTimes(1)
   })

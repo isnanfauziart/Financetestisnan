@@ -10,6 +10,17 @@ function contrastAgainstWhite(hex) {
 }
 
 describe("dashboard foreground tokens", () => {
+  it("uses the approved forest-violet foundation tokens", () => {
+    expect(THEME.bg).toBe("#FBF8F1")
+    expect(THEME.primary).toBe("#2F6B57")
+    expect(THEME.primaryDeep).toBe("#255344")
+    expect(THEME.primaryBg).toBe("#E5F0EB")
+    expect(THEME.smart).toBe("#6E59B5")
+    expect(THEME.border).toBe("#E2D9CC")
+    expect(THEME.textPrimary).toBe("#29231E")
+    expect(THEME.textSecondary).toBe("#6B625A")
+  })
+
   it("keep semantic finance colors readable on light surfaces", () => {
     for (const token of ["textTertiary", "income", "expense", "savings", "primary", "warning"]) {
       expect(contrastAgainstWhite(THEME[token]), token).toBeGreaterThanOrEqual(4.5)

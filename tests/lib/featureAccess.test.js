@@ -13,4 +13,11 @@ describe("effective feature access", () => {
     expect(hasFeature({ features: { healthScore: false }, isAdmin: true }, "healthScore")).toBe(true)
     expect(hasFeature({}, "budgets")).toBe(true)
   })
+
+  it("fails closed while entitlement is unresolved or unverifiable", async () => {
+    const { hasFeature } = await import("@/lib/featureAccess")
+
+    expect(hasFeature(null, "healthScore")).toBe(false)
+    expect(hasFeature({ entitlementVerified: false, features: { healthScore: true } }, "healthScore")).toBe(false)
+  })
 })

@@ -222,8 +222,167 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 
 These rules are persistent and apply to every chat session.
 
+### Instruction Precedence and Lean Implementation Workflow
+
+These rules override conflicting workflow, subagent, review, testing, and
+verification instructions elsewhere in this file.
+
+When instructions conflict, apply this order:
+1. Platform and system safety constraints
+2. The user's explicit current request
+3. This repository's `AGENTS.md`
+4. Loaded skill instructions
+5. Agent and subagent defaults
+
+Skills remain mandatory when directly applicable, but they are scope-bound.
+They may not expand the approved task or create duplicate agents, design
+documents, review loops, full test runs, builds, or commits. Follow the
+non-conflicting parts of a skill. Use the leaner interpretation for Low and
+Medium-risk work, and the safer interpretation for High-risk work. Ask only
+when the conflict materially affects scope, behavior, cost, security, or data
+safety.
+
+#### Scope Contract
+
+Before implementation, define one task contract:
+- outcome and acceptance criteria
+- included behaviors and affected areas
+- explicit exclusions
+- protected invariants
+- risk tier: Low, Medium, or High
+- focused checks for each implementation batch
+- one integration owner
+
+Stop and ask before proceeding when acceptance requires scope expansion, an
+unapproved protected-contract change, a destructive operation, unclear
+ownership of overlapping dirty work, or a High-risk change that was not
+classified as such. Do not restart completed work when clarification is
+needed.
+
+Fix only task-caused regressions, unmet acceptance criteria, and directly
+affected security, privacy, accessibility, financial, or data-integrity
+invariants. Defer unrelated refactors, cleanup, caching redesigns, and
+pre-existing technical debt. Critical security, tenant-isolation, or
+data-loss findings may block release, but must be reported separately rather
+than silently absorbed into scope.
+
+#### Risk Tiers
+
+**Low:** Documentation, copy, isolated styling, or local UI behavior with no
+protected data, authorization, quota, payment, or persistence contract.
+
+**Medium:** Shared UI state, shared utilities, API behavior, caching, or
+cross-component behavior that does not touch a High-risk area.
+
+**High:** Authentication or authorization; payments or payment proofs;
+entitlements, feature access, or admin privilege; quotas, reservations,
+replay protection, or concurrency; Google Sheets financial reads/writes;
+Supabase migrations, RPCs, RLS, or service-role boundaries; tenant isolation;
+secrets, validation boundaries, security headers, or other security controls.
+
+When uncertain, use the higher tier.
+
+#### Batching and Ownership
+
+Use the fewest coherent batches needed. Each batch has one owner, a bounded
+file and behavior scope, known dependencies, and one focused verification
+command. Batches are not separate tasks and do not receive separate review
+cycles.
+
+One agent owns each file at a time. Keep one implementation owner through
+normal fixes so context is preserved. Parallel work is allowed only when
+batches are independent, file ownership is disjoint, contracts are stable,
+neither batch depends on the other's output, and no shared state, migration,
+generated artifact, or fixture is being changed. Do not parallelize small
+tasks, shared components, protected state transitions, migrations, or work
+likely to touch the same files.
+
+#### Subagent Thresholds
+
+- Read-only analysis, explanations, and quick lookups need no subagent.
+- Low-risk implementation may use the primary agent alone.
+- Medium-risk work may use one specialist when it spans layers, exceeds the
+  working context, or needs domain expertise.
+- High-risk work requires an appropriate implementation owner and targeted
+  domain expertise unless the primary agent already has it.
+- Every implementation task, including Low-risk work, requires exactly one
+  independent final diff reviewer who did not implement the change.
+- Use multiple implementation agents only for genuinely independent work.
+
+Do not use an implementer -> reviewer -> fixer -> re-review chain for each
+batch. The original implementation owner fixes accepted findings whenever
+possible.
+
+#### Verification Gates
+
+After each batch, run only tests directly covering changed behavior, the
+smallest adjacent regression check needed for a shared contract, and required
+static or UI checks. Do not run the full suite or production build after each
+batch.
+
+Use test-first or regression-first checks for bugs, meaningful behavior
+changes, finance logic, auth, authorization, quotas, payments, tenant
+isolation, migrations, and security boundaries. TDD is not required for
+documentation, copy, or purely visual CSS changes.
+
+After all batches pass focused checks, perform exactly one independent final
+diff review. Give the reviewer the complete diff, task contract, exclusions,
+risk tier, and focused-test evidence. The reviewer may block only on:
+- task-caused regressions
+- unmet acceptance criteria
+- changed protected invariants
+- security, privacy, tenant-isolation, data-integrity, or accessibility defects
+  in changed code
+- missing focused coverage for changed behavior
+
+Every blocking finding must name the changed location, violated criterion or
+invariant, concrete impact or reproducible failure, and smallest correction.
+The reviewer must not require unrelated refactors, speculative abstractions,
+pre-existing repairs, or audits of systems untouched by the task. Do not start
+a second broad review. If a correction requires substantial redesign or a new
+protected-contract change, stop and request a separately approved follow-up.
+For a bounded correction, the original implementation owner reruns the
+affected focused checks; the reviewer may confirm that correction within the
+same final-review gate without reopening the whole diff.
+
+Run the full test suite once after the final review and bounded corrections.
+Run one production build after that for runtime-affecting work. Documentation
+tasks skip the build unless they change runtime, deployment, generated output,
+or build configuration. Rerun a successful integration check only when a
+later change invalidates it; if an integration command fails, fix the task
+root cause with a focused check and rerun only that failed integration command.
+The integration owner defines the final gate as the full suite, production
+build, and `git diff --check` for runtime-affecting work; `git diff --check`
+plus targeted content or format checks for documentation-only work; and the
+applicable focused checks plus `git diff --check` for other work.
+
+High-risk work additionally requires applicable negative, boundary,
+authorization, tenant-isolation, atomicity, replay, concurrency, failure
+cleanup, and fail-closed checks. These checks are additive; the full suite
+does not replace them.
+
+#### Findings and Failure Recovery
+
+Classify findings as task regression, task blocker, pre-existing issue, or
+enhancement/technical debt. Do not fix pre-existing or unrelated findings
+without explicit scope approval. Record them separately.
+
+When a batch fails, keep earlier passing batches intact. Fix or back out only
+the failing batch, rerun its focused checks, and continue. Never reset the
+worktree, discard unrelated dirty work, or reimplement completed batches.
+
+#### Definition of Done
+
+A task is complete only when its acceptance criteria and protected invariants
+are satisfied, focused checks pass, exactly one independent final review is
+complete, task-caused blocking findings are resolved, the one-time integration
+gate passes or has a documented external blocker, and no unrelated scope was
+silently added. Update `progress.md` once at the completed task or milestone,
+not after every batch. Update commercialization phase tracking only after the
+whole phase passes its required final verification.
+
 ### Subagent Dispatch
-- For code, edit, or feature work, dispatch the appropriate subagent(s) from `.agents/` or global `~/.config/opencode/agents/`
+- Use the thresholds above instead of automatic dispatch for every code or edit task.
 - Skip dispatch for read-only questions, explanations, and quick lookups
 - Subagent guide:
 
@@ -279,11 +438,12 @@ These rules are persistent and apply to every chat session.
   - `task-distributor` — Parallel work allocation
   - `workflow-orchestrator` — Multi-step workflows with dependencies
 
-- Invoke multiple subagents in parallel when tasks are independent
+- Invoke multiple implementation subagents in parallel only when the batching rules above permit it
 - Always pass subagent full context (files, requirements, constraints)
 
 ### Skills Auto-Loading
-- Load relevant skills from `.agents/skills/` when the task matches triggers
+- Load only skills directly applicable to the approved task, once at task start unless the task materially changes domain
+- Skills govern execution method but may not expand product scope or duplicate workflow gates
 - Available: ai-sdk, frontend-design, grill-me, ui-ux-pro-max, vercel-react-best-practices
 
 ### Progress Tracking

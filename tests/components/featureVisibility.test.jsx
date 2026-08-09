@@ -26,7 +26,7 @@ vi.mock("@/components/YearInReviewButton", () => ({
   default: () => <div>Live Year-in-Review</div>,
 }))
 vi.mock("@/components/FITrackerCard", () => ({
-  default: () => <div>Live Financial Independence</div>,
+  default: () => <div>Live Financial Freedom</div>,
 }))
 vi.mock("@/components/GoalsSection", () => ({ default: () => <div>Goals</div> }))
 vi.mock("@/components/BudgetsSection", () => ({ default: () => <div>Budgets</div> }))
@@ -47,6 +47,7 @@ const freeEntitlement = {
     healthScore: false,
     cashFlowForecast: false,
     anomalyAlerts: false,
+    insights: false,
     financialIndependence: false,
     whatIf: false,
     yearInReview: false,
@@ -58,7 +59,7 @@ const proEntitlement = {
   upgrade: "/upgrade",
   monthlyPdfWatermark: false,
   features: Object.fromEntries(
-    ["healthScore", "cashFlowForecast", "anomalyAlerts", "financialIndependence", "whatIf", "yearInReview"]
+    ["healthScore", "cashFlowForecast", "anomalyAlerts", "insights", "financialIndependence", "whatIf", "yearInReview"]
       .map(feature => [feature, true])
   ),
 }
@@ -186,18 +187,39 @@ describe("paid feature visibility", () => {
     expect(screen.queryByText("Live Cash Flow Forecast")).not.toBeInTheDocument()
     expect(screen.getByText("Cash Flow Forecast")).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("tab", { name: "Recap" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Laporan" }))
     expect(screen.queryByText("Live Year-in-Review")).not.toBeInTheDocument()
     expect(screen.getByText("Year-in-Review")).toBeInTheDocument()
+  })
+
+  it("keeps disabled insights out of both dashboard surfaces", () => {
+    const disabledInsights = [{ type: "warning", text: "Insight tidak boleh tampil" }]
+
+    const home = render(<HomeTab {...homeProps(freeEntitlement)} insights={disabledInsights} />)
+    expect(screen.queryByText("Insight tidak boleh tampil")).not.toBeInTheDocument()
+    home.unmount()
+
+    render(<StatsTab {...statsProps(freeEntitlement)} insights={disabledInsights} />)
+    expect(screen.queryByText("Insight tidak boleh tampil")).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Wawasan" })).not.toBeInTheDocument()
+  })
+
+  it("fails closed while entitlement is unresolved", () => {
+    const home = render(<HomeTab {...homeProps(null)} />)
+    expect(screen.queryByText("Live Health Score")).not.toBeInTheDocument()
+    home.unmount()
+
+    render(<StatsTab {...statsProps(null)} />)
+    expect(screen.queryByText("Live Anomaly Alerts")).not.toBeInTheDocument()
   })
 
   it("does not mount FI or expose the What-If action for Free", () => {
     render(<PlanTab {...planProps(freeEntitlement)} />)
 
     fireEvent.click(screen.getByRole("button", { name: "Simulasi" }))
-    expect(screen.queryByText("Live Financial Independence")).not.toBeInTheDocument()
+    expect(screen.queryByText("Live Financial Freedom")).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Open What-If Scenario simulator" })).not.toBeInTheDocument()
-    expect(screen.getByText("Financial Independence")).toBeInTheDocument()
+    expect(screen.getByText("Financial Freedom")).toBeInTheDocument()
     expect(screen.getByText("What-If")).toBeInTheDocument()
   })
 
@@ -213,7 +235,7 @@ describe("paid feature visibility", () => {
 
     render(<PlanTab {...planProps(proEntitlement)} />)
     fireEvent.click(screen.getByRole("button", { name: "Simulasi" }))
-    expect(await screen.findByText("Live Financial Independence")).toBeInTheDocument()
+    expect(await screen.findByText("Live Financial Freedom")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Open What-If Scenario simulator" })).toBeInTheDocument()
   })
 })

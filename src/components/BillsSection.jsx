@@ -3,10 +3,10 @@ import { useState, useEffect, useCallback } from "react"
 import { Plus, Receipt, AlertTriangle, Clock, CheckCircle, Power, Trash2 } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRpFull } from "@/app/dashboard/_components/helpers"
-import EmptyState from "@/app/dashboard/_components/EmptyState"
 import { getBillVisual } from "@/lib/categoryIcons"
 import BillSetupModal from "./BillSetupModal"
 import BillPayModal from "./BillPayModal"
+import FeatureEducation from "./FeatureEducation"
 
 const STATUS_ICONS = {
   overdue: AlertTriangle,
@@ -144,7 +144,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
           <button
             type="button"
             onClick={() => fetchBills()}
-            className="mt-3 text-xs font-bold px-3 py-1.5 rounded-full text-white bg-rose-600 hover:bg-rose-700"
+            className="mt-3 min-h-11 min-w-11 text-xs font-bold px-3 py-1.5 rounded-xl text-white bg-rose-600 hover:bg-rose-700"
           >
             Coba lagi
           </button>
@@ -167,22 +167,29 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
         </div>
         <button
           onClick={() => setSetupState({ mode: "create" })}
-          className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all"
+          className="min-h-11 min-w-11 rounded-xl px-2 text-[11px] font-bold text-sage-600 flex items-center gap-1 hover:gap-2 transition-[color,gap]"
           aria-label="Tambah tagihan baru"
         >
-          <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah
+          <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah Tagihan
         </button>
       </div>
 
       {bills.length === 0 ? (
-        <EmptyState
-          icon={<Receipt size={20} />}
-          title="Belum ada tagihan"
-          hint="Tambah tagihan untuk mendapatkan pengingat otomatis saat jatuh tempo"
+        <FeatureEducation
+          title="Jangan lewatkan tanggal penting"
+          description="Simpan jadwal pembayaran supaya kamu tahu apa yang perlu disiapkan."
+          steps={[
+            { icon: <Receipt size={16} aria-hidden="true" />, title: "Tambah tagihan", description: "Masukkan tagihan rutinmu." },
+            { icon: <Clock size={16} aria-hidden="true" />, title: "Pilih tanggal jatuh tempo", description: "Tentukan kapan pembayaran perlu dilakukan." },
+            { icon: <AlertTriangle size={16} aria-hidden="true" />, title: "Dapatkan pengingat", description: "Lihat tagihan yang akan datang." },
+            { icon: <CheckCircle size={16} aria-hidden="true" />, title: "Tandai dibayar dan catat", description: "Bayar lalu simpan transaksinya." },
+          ]}
+          example="Listrik / Internet / Cicilan"
           action={
             <button
+              type="button"
               onClick={() => setSetupState({ mode: "create" })}
-              className="text-xs font-bold px-4 py-2 rounded-full text-white mesh-violet shadow-pop"
+              className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-4 py-2 text-xs font-bold text-white shadow-pop transition-colors hover:bg-sage-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
             >
               Tambah Tagihan
             </button>
@@ -259,7 +266,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                     <button
                       onClick={() => setPayBill(bill)}
                       aria-label={`Bayar ${bill.nama}`}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold"
+                      className="min-h-11 min-w-11 rounded-xl flex items-center justify-center text-white text-[10px] font-bold"
                       style={{ background: THEME.primary }}
                     >
                       <CheckCircle size={12} />
@@ -267,14 +274,14 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                     <button
                       onClick={() => handleToggleActive(bill)}
                       aria-label={`Nonaktifkan ${bill.nama}`}
-                      className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-amber-100 flex items-center justify-center text-earth-600 hover:text-amber-600"
+                      className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-amber-100 flex items-center justify-center text-earth-600 hover:text-amber-600 transition-colors"
                     >
                       <Power size={10} />
                     </button>
                     <button
                       onClick={() => handleDelete(bill)}
                       aria-label={`Hapus ${bill.nama}`}
-                      className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500"
+                      className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500 transition-colors"
                     >
                       <Trash2 size={10} />
                     </button>
@@ -289,7 +296,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
             <div className="mt-4">
               <button
                 onClick={() => setShowInactive(!showInactive)}
-                className="flex items-center gap-1.5 text-[11px] font-bold text-earth-500 hover:text-earth-700 transition-colors mb-2"
+                className="min-h-11 min-w-11 flex items-center gap-1.5 text-[11px] font-bold text-earth-500 hover:text-earth-700 transition-colors mb-2"
               >
                 {showInactive ? "▲" : "▼"} Nonaktif ({inactiveBills.length})
               </button>
@@ -312,14 +319,14 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                         <div className="flex gap-1">
                           <button
                             onClick={() => handleToggleActive(bill)}
-                            className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-green-100 flex items-center justify-center text-earth-600 hover:text-green-600"
+                            className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-green-100 flex items-center justify-center text-earth-600 hover:text-green-600 transition-colors"
                             aria-label={`Aktifkan ${bill.nama}`}
                           >
                             <Power size={10} />
                           </button>
                           <button
                             onClick={() => handleDelete(bill)}
-                            className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500"
+                            className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500 transition-colors"
                             aria-label={`Hapus ${bill.nama}`}
                           >
                             <Trash2 size={10} />
@@ -344,12 +351,12 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
               <strong>{confirmDelete.nama}</strong> akan dihapus permanen.
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setConfirmDelete(null)} className="py-3 rounded-2xl font-bold text-earth-700 bg-earth-50 active:scale-95 transition-transform">
+              <button onClick={() => setConfirmDelete(null)} className="min-h-11 min-w-11 py-3 rounded-2xl font-bold text-earth-700 bg-earth-50 active:scale-95 transition-transform">
                 Batal
               </button>
               <button
                 onClick={() => handleDelete(confirmDelete)}
-                className="py-3 rounded-2xl font-bold text-white active:scale-95 transition-transform"
+                className="min-h-11 min-w-11 py-3 rounded-2xl font-bold text-white active:scale-95 transition-transform"
                 style={{ background: THEME.danger }}
               >
                 Hapus

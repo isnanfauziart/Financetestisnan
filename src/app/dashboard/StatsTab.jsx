@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
-import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, AlertCircle, Info, TrendingUp, BarChart3, BarChartHorizontal } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Legend } from "recharts"
+import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, AlertCircle, Info, TrendingUp } from "lucide-react"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, Legend } from "recharts"
 import { THEME, COLORS, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRp, formatRpFull } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
@@ -21,7 +21,7 @@ const STATS_SECTIONS = [
   { key: "ringkasan", label: "Ringkasan" },
   { key: "kategori", label: "Kategori" },
   { key: "tren", label: "Tren" },
-  { key: "recap", label: "Recap" },
+  { key: "recap", label: "Laporan" },
 ]
 const ANALYSIS_MODES = [
   { key: "routine", label: "Rutin" },
@@ -34,10 +34,41 @@ function ChartSkeleton({ height = 180 }) {
   )
 }
 
+function getTakeawayText({ period, modeLabel, statIncome, statExpense, statSurplus }) {
+  const status = statSurplus > 0 ? "Surplus" : statSurplus < 0 ? "Defisit" : "Seimbang"
+  const amount = formatRp(Math.abs(statSurplus))
+
+  if (statIncome === 0 && statExpense === 0) {
+    return `${period} · Mode ${modeLabel}: belum ada pemasukan atau pengeluaran untuk dibaca.`
+  }
+
+  return `${period} · Mode ${modeLabel}: ${status} ${amount}. Pemasukan ${formatRp(statIncome)} dan Pengeluaran ${formatRp(statExpense)}.`
+}
+
+function getCategorySummary(title, categories) {
+  if (!categories.length) return `${title}: belum ada data.`
+  const ranked = categories.slice(0, 5).map(category => `${category.name} ${formatRp(category.value)}`).join(", ")
+  return `${title}: ${ranked}.`
+}
+
+function getMonthlyTrendSummary(monthlyData) {
+  if (!monthlyData.length) return "Tren bulanan: belum ada data."
+  const latest = monthlyData[monthlyData.length - 1]
+  return `Tren bulanan: ${monthlyData.length} periode. Periode terakhir ${latest.month || "terakhir"}, pemasukan ${formatRp(latest.pemasukan || 0)}, pengeluaran ${formatRp(latest.pengeluaran || 0)}, surplus ${formatRp(latest.surplus || 0)}.`
+}
+
+function getCategoryTrendSummary(monthlyData, categories) {
+  if (!monthlyData.length || !categories.length) return "Tren kategori pengeluaran: belum ada data."
+  const latest = [...monthlyData].reverse().find(row => categories.some(category => Number(row[category]) > 0)) || monthlyData[monthlyData.length - 1]
+  const ranked = categories.slice(0, 5).map(category => `${category} ${formatRp(latest[category] || 0)}`).join(", ")
+  return `Tren kategori pengeluaran: ${latest.month || "periode terakhir"}. ${ranked}.`
+}
+
 export default function StatsTab({
   data,
   filteredTransactions,
   statIncome, statExpense, statSavings, statSurplus,
+  routineStatIncome, routineStatExpense, routineStatSurplus,
   expenseCategories, incomeCategories,
   availableYears, compareYearOptions, availableAccounts,
   selectedMonth, selectedYear, selectedAccount, categoryFilter, dateFrom, dateTo,
@@ -97,11 +128,22 @@ export default function StatsTab({
     : statSurplus < 0
       ? { background: "rgba(217,154,125,0.2)", color: "#ffd8c7" }
       : { background: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.88)" }
+  const insightCards = Array.isArray(insights) ? insights : []
+  const takeawayIncome = isRoutineMode ? (routineStatIncome ?? statIncome) : statIncome
+  const takeawayExpense = isRoutineMode ? (routineStatExpense ?? statExpense) : statExpense
+  const takeawaySurplus = isRoutineMode ? (routineStatSurplus ?? (takeawayIncome - takeawayExpense)) : statSurplus
+  const takeawayText = getTakeawayText({
+    period: summaryPeriod,
+    modeLabel: isRoutineMode ? "Rutin" : "Aktual",
+    statIncome: takeawayIncome,
+    statExpense: takeawayExpense,
+    statSurplus: takeawaySurplus,
+  })
 
   return (
     <div className="px-5 pt-4 space-y-5 animate-bento-in" key="stats-tab">
       {/* Filter bar — glass */}
-      <div className="glass rounded-2xl p-3 space-y-2">
+      <div className="glass rounded-2xl p-3 space-y-2" role="region" aria-label="Filter Statistik">
         <div className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-4 gap-2">
           <SelectField label="Tahun" value={selectedYear} onChange={setSelectedYear} options={["Semua Tahun", ...availableYears]} placeholder="Tahun" />
           <SelectField label="Bulan" value={selectedMonth} onChange={setSelectedMonth} options={["Semua Bulan", ...AVAILABLE_MONTHS]} placeholder="Bulan" />
@@ -150,6 +192,19 @@ export default function StatsTab({
           </div>
         )}
       </div>
+
+      <section className="rounded-2xl border border-earth-100 bg-white p-4 shadow-warm" role="region" aria-label="Kesimpulan periode">
+        <div className="flex items-start gap-2.5">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+            <Lightbulb size={16} aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">Kesimpulan periode</p>
+            <h2 className="mt-1 text-base font-display font-bold text-earth-800">Baca arah keuanganmu</h2>
+            <p className="mt-1 text-xs leading-relaxed text-earth-600">{takeawayText}</p>
+          </div>
+        </div>
+      </section>
 
       <div className="glass rounded-2xl p-2" role="tablist" aria-label="Navigasi Statistik">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -206,14 +261,14 @@ export default function StatsTab({
           )}
 
           {/* Smart Insights (compact) */}
-          {insights.length > 0 && (
+          {hasFeature(effectiveEntitlement, "insights") && insightCards.length > 0 && (
             <div>
               <div className="flex items-center gap-1.5 mb-2 px-1">
                 <Lightbulb size={13} className="text-amber-500" aria-hidden="true" />
-                <h3 className="text-xs font-bold font-display text-earth-700 uppercase tracking-wider">Insights</h3>
+                <h3 className="text-xs font-bold font-display text-earth-700 uppercase tracking-wider">Wawasan</h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {insights.slice(0, 5).map((ins, i) => {
+                {insightCards.slice(0, 5).map((ins, i) => {
                   const Icon = ins.icon
                   const TypeIcon = ins.type === "positive" ? TrendingUp : ins.type === "warning" ? AlertCircle : Info
                   return (
@@ -241,93 +296,56 @@ export default function StatsTab({
 
       {activeSection === "kategori" && (
         <>
-          {/* Pie charts — clickable */}
+          {/* Ranked category bars — clickable */}
           {refreshing ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><ChartSkeleton height={260} /><ChartSkeleton height={260} /></div>
           ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
-              <h3 className="text-xs font-bold text-center mb-2 font-display text-earth-800">Komposisi Pemasukan</h3>
-              {incomeCategories.length === 0 ? (
-                <EmptyState icon={<Wallet size={18} />} title="Belum ada" />
-              ) : (
-                <ResponsiveContainer width="100%" height={180}>
-                  <PieChart>
-                    <Pie
-                      data={incomeCategories} cx="50%" cy="50%" innerRadius={42} outerRadius={64}
-                      paddingAngle={2} dataKey="value" stroke="none"
-                      onClick={(d) => { if (hapticsEnabled) haptics.tap(); setCategoryFilter(d.name) }}
-                      labelLine={false}
-                      label={({ percent }) => percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : ''}
-                      style={{ fontSize: '10px', fontWeight: 700 }}
-                      animationBegin={200} animationDuration={800}
-                    >
-                      {incomeCategories.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-              {(() => {
-                const incTotal = incomeCategories.reduce((s, c) => s + c.value, 0) || 1
-                return (
-                  <div className="mt-2 space-y-1.5">
-                    {incomeCategories.slice(0, 6).map((c, i) => {
-                      const pct = ((c.value / incTotal) * 100).toFixed(1)
-                      return (
-                        <div key={c.name} className="flex items-center gap-2 text-[10px]">
-                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                          <span className="flex-1 truncate font-medium text-earth-700">{c.name}</span>
-                          <span className="font-bold text-earth-800">{pct}%</span>
-                          <span className="text-earth-500 font-medium">{formatRp(c.value)}</span>
-                        </div>
-                      )
-                    })}
+            {[
+              { key: "expense", title: "Peringkat Pengeluaran", categories: chartExpenseCategories, colorOffset: 3, summaryId: "stats-expense-category-summary" },
+              { key: "income", title: "Peringkat Pemasukan", categories: incomeCategories, colorOffset: 0, summaryId: "stats-income-category-summary" },
+            ].map(({ key, title, categories, colorOffset, summaryId }) => (
+              <section key={key} className="bento-tile bg-white border border-earth-100 p-4 shadow-warm" aria-labelledby={`${summaryId}-title`}>
+                <h3 id={`${summaryId}-title`} className="text-xs font-bold text-center mb-2 font-display text-earth-800">{title}</h3>
+                <p id={summaryId} className="sr-only">{getCategorySummary(title, categories)}</p>
+                {categories.length === 0 ? (
+                  <EmptyState icon={<Wallet size={18} />} title="Belum ada" />
+                ) : (
+                  <div role="img" aria-describedby={summaryId}>
+                    <ResponsiveContainer width="100%" height={Math.max(180, Math.min(280, categories.slice(0, 8).length * 34 + 36))}>
+                      <BarChart data={categories.slice(0, 8)} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 4 }} barCategoryGap="22%">
+                        <XAxis type="number" hide />
+                        <YAxis type="category" dataKey="name" width={82} tick={{ fontSize: 10, fill: "#6b625a" }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar
+                          dataKey="value"
+                          name={title}
+                          fill={COLORS[colorOffset % COLORS.length]}
+                          radius={[0, 6, 6, 0]}
+                          maxBarSize={18}
+                          animationDuration={240}
+                          onClick={(entry) => {
+                            const category = entry?.name || entry?.payload?.name
+                            if (!category) return
+                            if (hapticsEnabled) haptics.tap()
+                            setCategoryFilter(category)
+                          }}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                )
-              })()}
-            </div>
-            <div className="bento-tile bg-white border border-earth-100 p-4 shadow-warm">
-              <h3 className="text-xs font-bold text-center mb-2 font-display text-earth-800">Komposisi Pengeluaran</h3>
-              {chartExpenseCategories.length === 0 ? (
-                <EmptyState icon={<Wallet size={18} />} title="Belum ada" />
-              ) : (
-                <ResponsiveContainer width="100%" height={180}>
-                  <PieChart>
-                    <Pie
-                      data={chartExpenseCategories} cx="50%" cy="50%" innerRadius={42} outerRadius={64}
-                      paddingAngle={2} dataKey="value" stroke="none"
-                      onClick={(d) => { if (hapticsEnabled) haptics.tap(); setCategoryFilter(d.name) }}
-                      labelLine={false}
-                      label={({ percent }) => percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : ''}
-                      style={{ fontSize: '10px', fontWeight: 700 }}
-                      animationBegin={200} animationDuration={800}
-                    >
-                      {chartExpenseCategories.map((_, i) => <Cell key={(i+3) % COLORS.length} fill={COLORS[(i+3) % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-              {(() => {
-                const expTotal = chartExpenseCategories.reduce((s, c) => s + c.value, 0) || 1
-                return (
-                  <div className="mt-2 space-y-1.5">
-                    {chartExpenseCategories.slice(0, 6).map((c, i) => {
-                      const pct = ((c.value / expTotal) * 100).toFixed(1)
-                      return (
-                        <div key={c.name} className="flex items-center gap-2 text-[10px]">
-                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[(i+3) % COLORS.length] }} />
-                          <span className="flex-1 truncate font-medium text-earth-700">{c.name}</span>
-                          <span className="font-bold text-earth-800">{pct}%</span>
-                          <span className="text-earth-500 font-medium">{formatRp(c.value)}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
-            </div>
+                )}
+                <div className="mt-2 space-y-1.5" aria-label={`${title} detail`}>
+                  {categories.slice(0, 6).map((category, index) => (
+                    <div key={category.name} className="flex items-center gap-2 text-[10px]">
+                      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: COLORS[(index + colorOffset) % COLORS.length] }} aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate font-medium text-earth-700">{category.name}</span>
+                      <span className="flex-shrink-0 font-bold text-earth-800">{formatRp(category.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
           )}
 
@@ -335,18 +353,21 @@ export default function StatsTab({
           {chartTop5Categories.length > 0 && (
             refreshing ? <ChartSkeleton height={270} /> : (
             <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
-              <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Top Kategori Pengeluaran</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={chartTrendData}>
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
-                  <YAxis hide />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: "11px" }} />
-                  {chartTop5Categories.map((cat, i) => (
-                    <Line key={cat} type="monotone" dataKey={cat} name={cat} stroke={COLORS[i % COLORS.length]} strokeWidth={2.5} dot={{ r: 3, fill: COLORS[i % COLORS.length] }} connectNulls animationBegin={i * 150} animationDuration={800} />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
+              <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Tren Kategori Pengeluaran</h3>
+              <p id="stats-category-trend-summary" className="sr-only">{getCategoryTrendSummary(chartTrendData, chartTop5Categories)}</p>
+              <div role="img" aria-describedby="stats-category-trend-summary">
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={chartTrendData}>
+                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
+                    <YAxis hide />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: "11px" }} />
+                    {chartTop5Categories.map((cat, i) => (
+                      <Line key={cat} type="monotone" dataKey={cat} name={cat} stroke={COLORS[i % COLORS.length]} strokeWidth={2.5} dot={{ r: 3, fill: COLORS[i % COLORS.length] }} connectNulls animationBegin={Math.min(i * 40, 120)} animationDuration={240} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             )
           )}
@@ -360,16 +381,19 @@ export default function StatsTab({
             refreshing ? <ChartSkeleton height={240} /> : (
             <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
               <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Tren Bulanan</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <ComposedChart data={chartClientMonthlyData}>
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
-                  <YAxis hide />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={200} animationDuration={800} />
-                  <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={400} animationDuration={800} />
-                  <Line type="monotone" dataKey="surplus" name="Surplus" stroke={THEME.primary} strokeWidth={3} dot={{ r: 4, fill: THEME.primary, strokeWidth: 2, stroke: "#fff" }} animationBegin={600} animationDuration={800} />
-                </ComposedChart>
-              </ResponsiveContainer>
+              <p id="stats-monthly-trend-summary" className="sr-only">{getMonthlyTrendSummary(chartClientMonthlyData)}</p>
+              <div role="img" aria-describedby="stats-monthly-trend-summary">
+                <ResponsiveContainer width="100%" height={220}>
+                  <ComposedChart data={chartClientMonthlyData}>
+                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
+                    <YAxis hide />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={0} animationDuration={220} />
+                    <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={40} animationDuration={220} />
+                    <Line type="monotone" dataKey="surplus" name="Surplus" stroke={THEME.primary} strokeWidth={3} dot={{ r: 4, fill: THEME.primary, strokeWidth: 2, stroke: "#fff" }} animationBegin={80} animationDuration={260} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             )
           )}
@@ -518,7 +542,7 @@ export default function StatsTab({
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3 px-1">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Recap & Laporan</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Laporan & Ringkasan</p>
                 <p className="text-sm font-semibold text-earth-700">Unduh ringkasan dan telusuri transaksi per bulan.</p>
               </div>
             </div>

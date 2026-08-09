@@ -1,11 +1,11 @@
 "use client"
 import { useState, useEffect, useMemo } from "react"
-import { Plus, Target, Sparkles, ChevronDown, ChevronRight } from "lucide-react"
+import { Plus, Target, ChevronDown, ChevronRight } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
-import EmptyState from "@/app/dashboard/_components/EmptyState"
 import { computeAllGoalProgress } from "@/app/dashboard/_components/goalUtils"
 import { formatRpFull } from "@/app/dashboard/_components/helpers"
 import { useGoals } from "@/lib/useSharedData"
+import FeatureEducation from "./FeatureEducation"
 import GoalCard from "./GoalCard"
 import GoalSetupModal from "./GoalSetupModal"
 import GoalContributeModal from "./GoalContributeModal"
@@ -61,7 +61,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Gagal menghapus")
       setConfirmDelete(null)
-      onToast && onToast("Goal dihapus", "success")
+      onToast && onToast("Target dihapus", "success")
       refetch()
       onUsageChange?.()
     } catch (err) {
@@ -71,7 +71,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
 
   const handleSettled = () => {
     setSettleGoal(null)
-    onToast && onToast("Goal ditandai terealisasi ✓", "success")
+    onToast && onToast("Target ditandai selesai ✓", "success")
     refetch()
     onUsageChange?.()
   }
@@ -81,7 +81,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       <div className="mt-6 animate-bento-in">
         <div className="flex items-center gap-1.5 mb-3 px-1">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Kantong &amp; Target</h3>
+          <h3 className="text-sm font-bold font-display text-earth-800">Target</h3>
         </div>
         <div className="bento-tile bg-white border border-earth-100 p-6 shadow-warm text-center">
           <div className="w-8 h-8 mx-auto border-2 border-earth-200 border-t-transparent rounded-full animate-spin" />
@@ -95,15 +95,15 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       <div className="mt-6 animate-bento-in">
         <div className="flex items-center gap-1.5 mb-3 px-1">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Kantong &amp; Target</h3>
+          <h3 className="text-sm font-bold font-display text-earth-800">Target</h3>
         </div>
         <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
-          <p className="text-sm font-semibold text-rose-800">Gagal memuat goals</p>
+          <p className="text-sm font-semibold text-rose-800">Gagal memuat target</p>
           <p className="text-xs text-rose-700 mt-1">{error}</p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="mt-3 text-xs font-bold px-3 py-1.5 rounded-full text-white bg-rose-600 hover:bg-rose-700"
+            className="mt-3 min-h-11 min-w-11 text-xs font-bold px-3 py-1.5 rounded-xl text-white bg-rose-600 hover:bg-rose-700"
           >
             Coba lagi
           </button>
@@ -117,7 +117,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-1.5">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Kantong &amp; Target</h3>
+          <h3 className="text-sm font-bold font-display text-earth-800">Target</h3>
           {activeGoals.length > 0 && (
             <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">
               {activeGoals.length} aktif
@@ -126,10 +126,10 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
         </div>
         <button
           onClick={() => setSetupState({ mode: "create" })}
-          className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all"
-          aria-label="Add new goal"
+          className="min-h-11 min-w-11 rounded-xl px-2 text-[11px] font-bold text-sage-600 flex items-center gap-1 hover:gap-2 transition-[color,gap]"
+          aria-label="Tambah target baru"
         >
-          <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah
+          <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah Target
         </button>
       </div>
 
@@ -149,16 +149,23 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       </section>
 
       {goals.length === 0 ? (
-        <EmptyState
-          icon={<Sparkles size={20} />}
-          title="Belum ada goals"
-          hint="Tambah goal pertama kamu — misal Dana Darurat, Liburan, atau DP Rumah. Transaksi Tabungan otomatis terhitung."
+        <FeatureEducation
+          title="Bangun target sedikit demi sedikit"
+          description="Ubah tujuan besar menjadi langkah yang terasa ringan dan mudah diikuti."
+          steps={[
+            { icon: <Target size={16} aria-hidden="true" />, title: "Pilih target", description: "Tentukan tujuan yang ingin kamu capai." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Tentukan jumlah dan tenggat", description: "Isi nominal serta batas waktunya." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Catat kontribusi", description: "Tambahkan tabungan saat kamu menyisihkan uang." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Ikuti progres", description: "Lihat langkahmu sampai target selesai." },
+          ]}
+          example="Dana Darurat / Liburan"
           action={
             <button
+              type="button"
               onClick={() => setSetupState({ mode: "create" })}
-              className="text-xs font-bold px-4 py-2 rounded-full text-white mesh-violet shadow-pop"
+              className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-4 py-2 text-xs font-bold text-white shadow-pop transition-colors hover:bg-sage-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
             >
-              Buat Goal
+              Buat Target
             </button>
           }
         />
@@ -190,10 +197,10 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
             <div className="mt-4">
               <button
                 onClick={() => setCompletedExpanded(!completedExpanded)}
-                className="flex items-center gap-1.5 text-[11px] font-bold text-earth-500 hover:text-earth-700 transition-colors mb-2"
+                className="min-h-11 min-w-11 flex items-center gap-1.5 text-[11px] font-bold text-earth-500 hover:text-earth-700 transition-colors mb-2"
               >
                 {completedExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                Completed ({completedGoals.length})
+                Selesai ({completedGoals.length})
               </button>
               {completedExpanded && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -217,17 +224,17 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(42,32,24,0.5)", backdropFilter: "blur(8px)" }} onClick={() => setConfirmDelete(null)}>
           <div className="glass-strong rounded-t-[32px] sm:rounded-[32px] p-6 shadow-pop-lg w-full max-w-sm animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-display font-bold text-earth-800 mb-1">Hapus goal ini?</h3>
+            <h3 className="text-base font-display font-bold text-earth-800 mb-1">Hapus target ini?</h3>
             <p className="text-sm text-earth-600 mb-5">
-              <strong>{confirmDelete.nama}</strong> akan dihapus. Transaksi Tabungan terkait tidak akan terhapus, hanya goal-nya saja.
+              <strong>{confirmDelete.nama}</strong> akan dihapus. Transaksi Tabungan terkait tidak akan terhapus, hanya target-nya saja.
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setConfirmDelete(null)} className="py-3 rounded-2xl font-bold text-earth-700 bg-earth-50 active:scale-95 transition-transform">
+              <button onClick={() => setConfirmDelete(null)} className="min-h-11 min-w-11 py-3 rounded-2xl font-bold text-earth-700 bg-earth-50 active:scale-95 transition-transform">
                 Batal
               </button>
               <button
                 onClick={() => handleDelete(confirmDelete)}
-                className="py-3 rounded-2xl font-bold text-white active:scale-95 transition-transform"
+                className="min-h-11 min-w-11 py-3 rounded-2xl font-bold text-white active:scale-95 transition-transform"
                 style={{ background: THEME.danger }}
               >
                 Hapus
@@ -243,7 +250,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
           onClose={() => setSetupState(null)}
           onSaved={() => {
             setSetupState(null)
-            onToast && onToast(setupState.mode === "edit" ? "Goal diperbarui ✓" : "Goal dibuat ✓", "success")
+            onToast && onToast(setupState.mode === "edit" ? "Target diperbarui ✓" : "Target dibuat ✓", "success")
             refetch()
             onUsageChange?.()
           }}

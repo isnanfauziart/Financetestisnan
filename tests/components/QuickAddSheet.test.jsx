@@ -36,6 +36,31 @@ describe("QuickAddSheet", () => {
     expect(screen.getByText("Tambah Cepat")).toBeInTheDocument()
   })
 
+  it("uses the forest semantic color for the primary save action", () => {
+    render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
+
+    const saveButton = screen.getByRole("button", { name: "Simpan transaksi" })
+    expect(saveButton.style.backgroundImage).toBe("")
+    expect(saveButton.style.backgroundColor).toBe("rgb(47, 107, 87)")
+  })
+
+  it("uses explicit transition properties on interactive controls", () => {
+    render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
+
+    for (const button of [
+      screen.getByRole("button", { name: "Pilih pengeluaran" }),
+      screen.getByRole("button", { name: "Pilih pemasukan" }),
+      screen.getByRole("button", { name: "Simpan transaksi" }),
+      screen.getByRole("button", { name: "Kontribusi ke goal" }),
+    ]) {
+      expect(button.className).not.toContain("transition-all")
+    }
+
+    expect(screen.getByRole("button", { name: "Pilih pengeluaran" }).className).toContain("transition-[background-color,color,box-shadow]")
+    expect(screen.getByRole("button", { name: "Simpan transaksi" }).className).toContain("transition-[background-color,opacity,transform]")
+    expect(screen.getByRole("button", { name: "Kontribusi ke goal" }).className).toContain("transition-transform")
+  })
+
   it("renders 2 type pills (Pengeluaran / Pemasukan)", () => {
     render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
     expect(screen.getByRole("button", { name: "Pilih pengeluaran" })).toBeInTheDocument()

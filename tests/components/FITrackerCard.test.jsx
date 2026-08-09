@@ -29,15 +29,15 @@ describe("FITrackerCard", () => {
     renderCard()
 
     expect(screen.getByRole("heading", { name: /target kebebasan finansial/i })).toBeInTheDocument()
-    expect(screen.getByText(/financial independence/i)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /pelajari rumus fi/i })).toBeInTheDocument()
+    expect(screen.getByText("Financial Freedom", { exact: true })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /pelajari rumus financial freedom/i })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /ketuk untuk melihat penjelasan/i })).toBeNull()
   })
 
   it("exposes progressbar semantics with bounded values", () => {
     renderCard()
 
-    const progressbar = screen.getByRole("progressbar", { name: /progres menuju financial independence/i })
+    const progressbar = screen.getByRole("progressbar", { name: /progres menuju financial freedom/i })
     expect(progressbar).toHaveAttribute("aria-valuemin", "0")
     expect(progressbar).toHaveAttribute("aria-valuemax", "100")
     expect(Number(progressbar.getAttribute("aria-valuenow"))).toBeGreaterThanOrEqual(0)
@@ -47,7 +47,7 @@ describe("FITrackerCard", () => {
   it("shows an achieved state instead of a past FI date when target is reached", () => {
     renderCard({ netWorth: 2000000000 })
 
-    expect(screen.getAllByText(/target fi tercapai/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/target financial freedom tercapai/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/100\.0% dari target/i)).toBeInTheDocument()
     expect(screen.queryByText(/tahun lagi/i)).toBeNull()
   })
@@ -82,15 +82,15 @@ describe("FITrackerCard", () => {
       ],
     })
 
-    expect(screen.getByText(/tambahkan pengeluaran agar target fi dapat dihitung/i)).toBeInTheDocument()
+    expect(screen.getByText(/tambahkan pengeluaran agar target financial freedom dapat dihitung/i)).toBeInTheDocument()
   })
 
   it("opens the formula sheet from the dedicated button and shows the uncertainty disclaimer", () => {
     renderCard()
 
-    fireEvent.click(screen.getByRole("button", { name: /pelajari rumus fi/i }))
+    fireEvent.click(screen.getByRole("button", { name: /pelajari rumus financial freedom/i }))
 
-    expect(screen.getByRole("dialog", { name: /rumus financial independence/i })).toBeInTheDocument()
+    expect(screen.getByRole("dialog", { name: /rumus financial freedom/i })).toBeInTheDocument()
     expect(screen.getAllByText(/estimasi edukatif, bukan jaminan atau nasihat investasi/i).length).toBeGreaterThan(0)
   })
 })
