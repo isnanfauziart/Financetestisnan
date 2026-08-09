@@ -1,4 +1,4 @@
-import { Playfair_Display, DM_Sans } from "next/font/google"
+import { DM_Sans, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
 

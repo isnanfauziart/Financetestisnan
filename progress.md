@@ -656,3 +656,32 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - Production build stopped at the existing fail-fast environment check because `LEGACY_SHEET_OWNER_EMAIL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`, and `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` are not configured in this workspace.
+
+## 2026-08-09 - Integrate and harden V2 landing page
+
+### Tasks Completed
+- Integrated the V2 landing page at `/` using a route group, with server-side signed-in redirect to `/dashboard` and auth-aware Pro navigation.
+- Preserved same-origin routes, Rp40.000 lifetime pricing, Play Store coming-soon state, existing providers, and unrelated dashboard/API behavior.
+- Added regression coverage for landing content, route isolation, mobile navigation focus, auth-loading fallback navigation, and light-surface contrast.
+- Fixed reviewed accessibility and interaction findings: muted/clay contrast, mobile menu focus restoration, and loading CTA navigation.
+
+### Files Changed
+- `src/app/(landing)/page.js`, `src/app/(landing)/layout.js`, `src/app/landing.css`
+- `src/components/landing/`
+- `src/lib/landingContent.js`, `src/lib/landingLinks.js`
+- `tests/landingPage.test.js`, `tests/components/LandingNavigation.test.jsx`
+- `package.json`, `package-lock.json`, `src/app/layout.js`, and this progress record
+
+### Decisions
+- Kept landing-specific fonts and CSS inside the `(landing)` route group instead of loading them through the root layout.
+- Allowed native CTA navigation while authentication status is loading; signed-out users still enter Google sign-in with `/upgrade` as the callback.
+- Returned focus to the persistent mobile menu button after closing the menu so focus never remains inside a hidden container.
+
+### Verification
+- Landing-focused suite: 9 tests passed.
+- Full repository suite: 97 files passed, 487 tests passed, 2 tests skipped; 1 smoke file skipped by design.
+- Production build passed with process-only placeholder environment values; no secrets were written.
+- Final scoped code review reported no remaining findings.
+
+### Blockers
+- Browser visual verification was unavailable because the `agent-browser` command is not installed in this workspace.
