@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 vi.mock("@/lib/apiAuth", () => ({ getAuthContext: vi.fn() }))
 vi.mock("@/lib/sheets", () => ({
   appendSheetValues: vi.fn(),
+  ensureExpenseClassHeader: vi.fn(),
   getSheetData: vi.fn(),
   updateSheetValues: vi.fn(),
 }))

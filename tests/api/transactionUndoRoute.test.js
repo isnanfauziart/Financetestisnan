@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/lib/apiAuth", () => ({ getAuthContext: vi.fn() }))
 vi.mock("@/lib/sheets", () => ({
+  ensureExpenseClassHeader: vi.fn(),
   getSheetData: vi.fn(),
   updateSheetValues: vi.fn(),
 }))
@@ -26,9 +27,10 @@ describe("transaction undo route", () => {
   it("restores the exact row once and rejects replay into a non-empty row", async () => {
     const auth = { user: { id: "u1" }, spreadsheetId: "s1", accessToken: "token" }
     const { getAuthContext } = await import("@/lib/apiAuth")
-    const { getSheetData, updateSheetValues } = await import("@/lib/sheets")
+    const { ensureExpenseClassHeader, getSheetData, updateSheetValues } = await import("@/lib/sheets")
     const { claimFeatureWrite } = await import("@/lib/writeClaims")
     getAuthContext.mockResolvedValue(auth)
+    ensureExpenseClassHeader.mockResolvedValue(undefined)
     claimFeatureWrite.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
     const { createUndoToken } = await import("@/lib/transactionUndo")
     const row = [
@@ -43,6 +45,7 @@ describe("transaction undo route", () => {
       method: "POST", body: JSON.stringify({ undoToken: token }),
     }))
     expect(first.status).toBe(200)
+    expect(ensureExpenseClassHeader).toHaveBeenCalledWith("token", "s1")
     expect(updateSheetValues).toHaveBeenCalledWith(
       "token", "Pengeluaran!A2:P2", [row], "s1", "RAW"
     )

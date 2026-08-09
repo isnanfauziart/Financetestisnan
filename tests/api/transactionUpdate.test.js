@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/lib/apiAuth", () => ({ getAuthContext: vi.fn() }))
 vi.mock("@/lib/featureGuard", () => ({ featureUnavailableResponse: vi.fn(() => null) }))
-vi.mock("@/lib/sheets", () => ({ getSheetData: vi.fn(), updateSheetValues: vi.fn() }))
+vi.mock("@/lib/sheets", () => ({
+  ensureExpenseClassHeader: vi.fn(),
+  getSheetData: vi.fn(),
+  updateSheetValues: vi.fn(),
+}))
 
 describe("transaction update route", () => {
   beforeEach(() => {
@@ -22,8 +26,9 @@ describe("transaction update route", () => {
     vi.stubGlobal("fetch", fetchMock)
 
     const { getAuthContext } = await import("@/lib/apiAuth")
-    const { getSheetData } = await import("@/lib/sheets")
+    const { ensureExpenseClassHeader, getSheetData } = await import("@/lib/sheets")
     getAuthContext.mockResolvedValue(auth)
+    ensureExpenseClassHeader.mockResolvedValue(undefined)
     getSheetData.mockResolvedValue([[
       "6 Agu 2026", "billpay:bill-1:2026-08-06", "Internet", "Internet/WiFi", 200000,
       5000, 2500, "BCA", 192500, "paid manually", "Agu", 2026, 2026, "event-1", "subscription", "Spesial",
@@ -45,6 +50,7 @@ describe("transaction update route", () => {
       }), { params: { id: "billpay:bill-1:2026-08-06" } })
 
     expect(response.status).toBe(200)
+    expect(ensureExpenseClassHeader).toHaveBeenCalledWith("token-1", "sheet-1")
     expect(getSheetData).toHaveBeenCalledWith("token-1", "Pengeluaran!A2:P2", "sheet-1")
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).values[0]).toEqual([
       "6 Agu 2026", "billpay:bill-1:2026-08-06", "Internet diperbarui", "Internet/WiFi", 250000,
@@ -276,8 +282,9 @@ describe("transaction update route", () => {
   it("clears the row when the DELETE URL ID matches the persisted ID", async () => {
     const auth = { user: { id: "u1" }, spreadsheetId: "sheet-1", accessToken: "token-1" }
     const { getAuthContext } = await import("@/lib/apiAuth")
-    const { getSheetData, updateSheetValues } = await import("@/lib/sheets")
+    const { ensureExpenseClassHeader, getSheetData, updateSheetValues } = await import("@/lib/sheets")
     getAuthContext.mockResolvedValue(auth)
+    ensureExpenseClassHeader.mockResolvedValue(undefined)
     getSheetData.mockResolvedValue([['6 Aug 2026', 'actual-id', 'Internet', '', '', '', '', '', '', '', '', '', '', '', '', 'Spesial']])
 
     const { DELETE } = await import("@/app/api/transaction/[id]/route")
@@ -287,6 +294,7 @@ describe("transaction update route", () => {
     }), { params: { id: "actual-id" } })
 
     expect(response.status).toBe(200)
+    expect(ensureExpenseClassHeader).toHaveBeenCalledWith("token-1", "sheet-1")
     expect(updateSheetValues).toHaveBeenCalledWith(
       "token-1",
       "Pengeluaran!A2:P2",

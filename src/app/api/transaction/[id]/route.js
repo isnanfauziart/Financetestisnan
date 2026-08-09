@@ -3,7 +3,7 @@ import { featureUnavailableResponse } from "@/lib/featureGuard"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { expenseClassToSheet } from "@/lib/expenseClass"
 import { createUndoToken } from "@/lib/transactionUndo"
-import { getSheetData, updateSheetValues } from "@/lib/sheets"
+import { ensureExpenseClassHeader, getSheetData, updateSheetValues } from "@/lib/sheets"
 
 const ALLOWED_TABS = ["Pemasukan", "Pengeluaran", "Tabungan"]
 const FALLBACK_ID_PREFIXES = { Pemasukan: "in", Pengeluaran: "ex", Tabungan: "sv" }
@@ -59,6 +59,7 @@ export async function PUT(request, { params }) {
       && requestedExpenseClass && !ALLOWED_EXPENSE_CLASSES.includes(requestedExpenseClass)) {
       return Response.json({ error: "Sifat pengeluaran tidak valid" }, { status: 400 })
     }
+    if (isExpense) await ensureExpenseClassHeader(accessToken, spreadsheetId)
 
     const formattedDate = formatDate(tanggal)
     const rawAmount = String(jumlah).trim()
@@ -136,6 +137,7 @@ export async function DELETE(request, { params }) {
     }
 
     const isExpense = tab === "Pengeluaran"
+    if (isExpense) await ensureExpenseClassHeader(accessToken, spreadsheetId)
     const rowWidth = isExpense ? 16 : 15
     const rangeEnd = isExpense ? "P" : "O"
     const range = `${tab}!A${rowIndex}:${rangeEnd}${rowIndex}`

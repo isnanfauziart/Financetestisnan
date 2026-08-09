@@ -21,7 +21,52 @@ export async function getSheetData(accessToken, range, spreadsheetId) {
   return data.values || []
 }
 
+async function ensureExpenseClassColumn(accessToken, spreadsheetId) {
+  const metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: "no-store",
+  })
+
+  if (!metadataRes.ok) throw new Error(`Sheets API error: ${await metadataRes.text()}`)
+
+  const metadata = await metadataRes.json()
+  const expenseSheet = (metadata.sheets || []).find(
+    sheet => sheet.properties?.title === "Pengeluaran"
+  )
+  const properties = expenseSheet?.properties
+  if (properties?.sheetId === undefined || properties?.sheetId === null) {
+    throw new Error("Pengeluaran tab tidak ditemukan")
+  }
+
+  const columnCount = Number(properties.gridProperties?.columnCount || 0)
+  if (columnCount >= 16) return
+
+  const updateRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      requests: [{
+        updateSheetProperties: {
+          properties: {
+            sheetId: properties.sheetId,
+            gridProperties: { columnCount: 16 },
+          },
+          fields: "gridProperties.columnCount",
+        },
+      }],
+    }),
+  })
+
+  if (!updateRes.ok) throw new Error(`Sheets API error: ${await updateRes.text()}`)
+}
+
 export async function ensureExpenseClassHeader(accessToken, spreadsheetId) {
+  await ensureExpenseClassColumn(accessToken, spreadsheetId)
   const rows = await getSheetData(accessToken, "Pengeluaran!P1", spreadsheetId)
   const header = String(rows?.[0]?.[0] || "").trim()
   if (header === "Sifat") return

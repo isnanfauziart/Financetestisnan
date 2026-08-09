@@ -53,6 +53,9 @@ export async function POST(request) {
       const range = `${undo.tab}!A${undo.rowIndex}:${rangeEnd}${undo.rowIndex}`
       let current
       try {
+        if (undo.tab === "Pengeluaran") {
+          await ensureExpenseClassHeader(auth.accessToken, auth.spreadsheetId)
+        }
         current = await getSheetData(auth.accessToken, range, auth.spreadsheetId)
       } catch (error) {
         await releaseFeatureWrite(auth.user.id, writeKey)

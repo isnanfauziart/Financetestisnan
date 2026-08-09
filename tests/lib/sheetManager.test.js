@@ -41,20 +41,71 @@ describe("sheetManager schema contracts", () => {
 
   it("migrates a blank expense class header", async () => {
     const fetchSpy = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          sheets: [{ properties: { sheetId: 42, title: "Pengeluaran", gridProperties: { columnCount: 16 } } }],
+        }),
+      })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ values: [[""]] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
     vi.stubGlobal("fetch", fetchSpy)
 
     await ensureExpenseClassHeader("access-token", "sheet-id")
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
     expect(fetchSpy.mock.calls[1][0]).toContain("Pengeluaran!P1")
-    expect(fetchSpy.mock.calls[1][1]).toMatchObject({ method: "PUT" })
-    expect(JSON.parse(fetchSpy.mock.calls[1][1].body)).toEqual({ values: [["Sifat"]] })
+    expect(fetchSpy.mock.calls[2][0]).toContain("Pengeluaran!P1")
+    expect(fetchSpy.mock.calls[2][1]).toMatchObject({ method: "PUT" })
+    expect(JSON.parse(fetchSpy.mock.calls[2][1].body)).toEqual({ values: [["Sifat"]] })
+  })
+
+  it("expands a legacy expense grid before migrating its class header", async () => {
+    const fetchSpy = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          sheets: [{
+            properties: {
+              sheetId: 42,
+              title: "Pengeluaran",
+              gridProperties: { columnCount: 15 },
+            },
+          }],
+        }),
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ values: [[""]] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    await ensureExpenseClassHeader("access-token", "sheet-id")
+
+    expect(fetchSpy).toHaveBeenCalledTimes(4)
+    expect(fetchSpy.mock.calls[0][0]).toBe("https://sheets.googleapis.com/v4/spreadsheets/sheet-id")
+    expect(fetchSpy.mock.calls[1][0]).toBe("https://sheets.googleapis.com/v4/spreadsheets/sheet-id:batchUpdate")
+    expect(JSON.parse(fetchSpy.mock.calls[1][1].body)).toEqual({
+      requests: [{
+        updateSheetProperties: {
+          properties: {
+            sheetId: 42,
+            gridProperties: { columnCount: 16 },
+          },
+          fields: "gridProperties.columnCount",
+        },
+      }],
+    })
+    expect(fetchSpy.mock.calls[2][0]).toContain("Pengeluaran!P1")
+    expect(fetchSpy.mock.calls[3][0]).toContain("Pengeluaran!P1")
   })
 
   it("does not write an existing expense class header", async () => {
     const fetchSpy = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sheets: [{ properties: { sheetId: 42, title: "Pengeluaran", gridProperties: { columnCount: 16 } } }],
+      }),
+    }).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ values: [["Sifat"]] }),
     })
@@ -62,11 +113,37 @@ describe("sheetManager schema contracts", () => {
 
     await ensureExpenseClassHeader("access-token", "sheet-id")
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(fetchSpy.mock.calls.some(([url]) => url.includes(":batchUpdate"))).toBe(false)
+  })
+
+  it("does not access the expense class header when grid expansion fails", async () => {
+    const fetchSpy = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          sheets: [{ properties: { sheetId: 42, title: "Pengeluaran", gridProperties: { columnCount: 15 } } }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        text: async () => "grid update failed",
+      })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    await expect(ensureExpenseClassHeader("access-token", "sheet-id"))
+      .rejects.toThrow("grid update failed")
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(fetchSpy.mock.calls.some(([url]) => url.includes("Pengeluaran!P1"))).toBe(false)
   })
 
   it("refuses to overwrite a conflicting expense class header", async () => {
     const fetchSpy = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sheets: [{ properties: { sheetId: 42, title: "Pengeluaran", gridProperties: { columnCount: 16 } } }],
+      }),
+    }).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ values: [["Other"]] }),
     })
@@ -74,7 +151,7 @@ describe("sheetManager schema contracts", () => {
 
     await expect(ensureExpenseClassHeader("access-token", "sheet-id"))
       .rejects.toThrow("Kolom Sifat tidak dapat dimigrasikan")
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 
   it("provisions goals with the status column", () => {
