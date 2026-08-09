@@ -1,3 +1,9 @@
+/* Route-only shell override; the landing page keeps its own paint and noise layer. */
+body:has(.landing-page) {
+  background-image: none;
+  background-attachment: scroll;
+}
+
 .landing-page {
   --landing-ink: #10120f;
   --landing-paper: #f4efe6;

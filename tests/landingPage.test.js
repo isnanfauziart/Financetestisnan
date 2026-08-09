@@ -134,7 +134,7 @@ describe("Artami landing page integration", () => {
     expect(css).toContain(":has(.event-detail:target)")
     expect(css).toContain("--landing-clay-deep")
     expect(css).toContain(".price-card--featured a:focus-visible")
-    expect(css).not.toMatch(/^\s*(?:html|body|:root)\b/m)
+    expect(css).not.toMatch(/^\s*(?:html|body|:root)\s*\{/m)
     expect(css).not.toMatch(/^\s*\*\s*\{/m)
   })
 
@@ -150,5 +150,12 @@ describe("Artami landing page integration", () => {
     expect(css).toMatch(/\.event-ring strong \{[^}]*color: var\(--landing-clay-deep\)/)
     expect(css).toMatch(/\.pro-badge \{[^}]*color: var\(--landing-clay-deep\)/)
     expect(css).toMatch(/\.comparison-row > td:last-child \{[^}]*color: var\(--landing-clay-deep\)/)
+  })
+
+  it("removes the app-shell fixed background paint on the landing route", async () => {
+    const css = await source("src/app/landing.css")
+
+    expect(css).toMatch(/body:has\(\.landing-page\)\s*\{[^}]*background-image:\s*none/)
+    expect(css).toMatch(/body:has\(\.landing-page\)\s*\{[^}]*background-attachment:\s*scroll/)
   })
 })
