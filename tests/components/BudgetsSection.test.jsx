@@ -35,11 +35,11 @@ describe("BudgetsSection education", () => {
 
     expect(screen.getByRole("heading", { name: "Anggaran" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Tambah anggaran baru" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Atur batas pengeluaran bulanan" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Jaga pengeluaran tetap terkendali" })).toBeInTheDocument()
     expect(screen.getByText("Pilih kategori")).toBeInTheDocument()
     expect(screen.getByText("Tentukan limit")).toBeInTheDocument()
     expect(screen.getByText("Catat seperti biasa")).toBeInTheDocument()
-    expect(screen.getByText("Pantau sisa")).toBeInTheDocument()
+    expect(screen.getByText("Cek sisa anggaran")).toBeInTheDocument()
     expect(screen.getByText("Contoh")).toBeInTheDocument()
     expect(screen.getByText("Jajan / Transportasi")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buat Anggaran" })).toHaveClass("min-h-11", "min-w-11")

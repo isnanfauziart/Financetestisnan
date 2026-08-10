@@ -183,7 +183,7 @@ describe("StatsTab segmented statistik navigation", () => {
     expect(screen.getByRole("tab", { name: "Ringkasan" }).parentElement).toHaveClass("grid-cols-2", "sm:grid-cols-4")
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
-    expect(screen.getByRole("heading", { name: "Peringkat Pemasukan" }).closest(".grid")).toHaveClass("grid-cols-1", "sm:grid-cols-2")
+    expect(screen.getByRole("heading", { name: "Pemasukan terbesar" }).closest(".grid")).toHaveClass("grid-cols-1", "sm:grid-cols-2")
   })
 })
 
@@ -197,10 +197,10 @@ describe("StatsTab financial summary", () => {
     })} />)
 
     const filters = screen.getByLabelText("Filter Statistik")
-    const takeaway = screen.getByRole("region", { name: "Kesimpulan periode" })
+    const takeaway = screen.getByRole("region", { name: "Ringkasannya" })
     const tablist = screen.getByRole("tablist", { name: "Navigasi Statistik" })
-    const summary = screen.getByRole("region", { name: "Ringkasan keuangan" })
-    const insightsHeading = screen.getByRole("heading", { name: "Wawasan" })
+    const summary = screen.getByRole("region", { name: "Kondisi keuangan" })
+    const insightsHeading = screen.getByRole("heading", { name: "Insights" })
     const anomaly = screen.getByText("Anomaly mock")
 
     expect(filters.nextElementSibling).toBe(takeaway)
@@ -217,7 +217,7 @@ describe("StatsTab financial summary", () => {
       statSurplus: 4_000_000,
     })} />)
 
-    const takeaway = screen.getByRole("region", { name: "Kesimpulan periode" })
+    const takeaway = screen.getByRole("region", { name: "Ringkasannya" })
 
     expect(takeaway).toHaveTextContent("Jul 2026")
     expect(takeaway).toHaveTextContent("Rutin")
@@ -236,9 +236,9 @@ describe("StatsTab financial summary", () => {
       routineStatSurplus: 4_000_000,
     })} />)
 
-    expect(screen.getByRole("region", { name: "Kesimpulan periode" })).toHaveTextContent("Surplus Rp 4.0 jt")
-    expect(screen.getByRole("region", { name: "Kesimpulan periode" })).toHaveTextContent("Pengeluaran Rp 1.0 jt")
-    expect(screen.getByRole("region", { name: "Ringkasan keuangan" })).toHaveTextContent("Defisit")
+    expect(screen.getByRole("region", { name: "Ringkasannya" })).toHaveTextContent("Surplus Rp 4.0 jt")
+    expect(screen.getByRole("region", { name: "Ringkasannya" })).toHaveTextContent("Pengeluaran Rp 1.0 jt")
+    expect(screen.getByRole("region", { name: "Kondisi keuangan" })).toHaveTextContent("Defisit")
   })
 
   it("provides text alternatives for category and monthly trend charts", () => {
@@ -253,8 +253,8 @@ describe("StatsTab financial summary", () => {
     })} />)
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
-    expect(screen.getByText(/Peringkat Pengeluaran: Makan/i)).toBeInTheDocument()
-    expect(screen.getByText(/Peringkat Pemasukan: Gaji/i)).toBeInTheDocument()
+    expect(screen.getByText(/Pengeluaran terbesar: Makan/i)).toBeInTheDocument()
+    expect(screen.getByText(/Pemasukan terbesar: Gaji/i)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
     expect(screen.getByText(/Tren Bulanan: 1 periode/i)).toBeInTheDocument()
@@ -285,7 +285,7 @@ describe("StatsTab financial summary", () => {
       statSurplus: 4_000_000,
     })} />)
 
-    const summary = screen.getByRole("region", { name: "Ringkasan keuangan" })
+    const summary = screen.getByRole("region", { name: "Kondisi keuangan" })
 
     expect(summary).toHaveTextContent("Agu 2026")
     expect(summary).toHaveTextContent("Surplus")
@@ -303,7 +303,7 @@ describe("StatsTab financial summary", () => {
       statSurplus: -6_000_000,
     })} />)
 
-    const summary = screen.getByRole("region", { name: "Ringkasan keuangan" })
+    const summary = screen.getByRole("region", { name: "Kondisi keuangan" })
     const mainAmount = summary.querySelector("h2")
 
     expect(summary).toHaveTextContent("Defisit")
@@ -318,24 +318,36 @@ describe("StatsTab financial summary", () => {
       statSurplus: 0,
     })} />)
 
-    expect(screen.getByRole("region", { name: "Ringkasan keuangan" })).toHaveTextContent("Seimbang")
+    expect(screen.getByRole("region", { name: "Kondisi keuangan" })).toHaveTextContent("Seimbang")
   })
 
   it("keeps the summary scoped to the Ringkasan section", () => {
     render(<StatsTab {...createProps()} />)
 
-    expect(screen.getByRole("region", { name: "Ringkasan keuangan" })).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "Kondisi keuangan" })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
 
-    expect(screen.queryByRole("region", { name: "Ringkasan keuangan" })).not.toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Peringkat Pemasukan" })).toBeInTheDocument()
+    expect(screen.queryByRole("region", { name: "Kondisi keuangan" })).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Pemasukan terbesar" })).toBeInTheDocument()
   })
 
   it("uses a compact loading skeleton for the summary", () => {
     const { container } = render(<StatsTab {...createProps({ refreshing: true })} />)
 
     expect(container.querySelector(".shimmer-bg")).toHaveStyle({ height: "160px" })
+  })
+
+  it("separates income and expense cards with semantic icons and color treatments", () => {
+    render(<StatsTab {...createProps({ statIncome: 12_000_000, statExpense: 8_000_000, statSurplus: 4_000_000 })} />)
+
+    const income = screen.getByRole("group", { name: /Pemasukan Rp 12\.0 jt/i })
+    const expense = screen.getByRole("group", { name: /Pengeluaran Rp 8\.0 jt/i })
+
+    expect(income.querySelector("svg")).toHaveClass("lucide-arrow-down-left")
+    expect(expense.querySelector("svg")).toHaveClass("lucide-arrow-up-right")
+    expect(income).not.toHaveClass("bg-white/10")
+    expect(expense).not.toHaveClass("bg-white/10")
   })
 })
 
@@ -346,7 +358,7 @@ describe("StatsTab top filter labels", () => {
     expect(screen.getByText("Tahun", { selector: "label" })).toBeVisible()
     expect(screen.getByText("Bulan", { selector: "label" })).toBeVisible()
     expect(screen.getByText("Akun", { selector: "label" })).toBeVisible()
-    expect(screen.getByText("Mode Analisis", { selector: "label" })).toBeVisible()
+    expect(screen.getByText("Tampilan", { selector: "label" })).toBeVisible()
   })
 })
 
@@ -398,7 +410,7 @@ describe("StatsTab routine/actual analysis mode", () => {
       ],
     })} />)
 
-    const analysisModeSelect = screen.getByRole("button", { name: "Mode Analisis" })
+    const analysisModeSelect = screen.getByRole("button", { name: "Tampilan" })
     expect(analysisModeSelect).toHaveTextContent("Rutin")
     expect(analysisModeSelect).toHaveAttribute("aria-expanded", "false")
 
@@ -406,7 +418,7 @@ describe("StatsTab routine/actual analysis mode", () => {
 
     expect(analysisModeSelect).toHaveAttribute("aria-expanded", "true")
     expect(screen.getByRole("option", { name: "Rutin" })).toBeInTheDocument()
-    expect(screen.getByRole("option", { name: "Aktual" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "Semua" })).toBeInTheDocument()
     fireEvent.click(screen.getByRole("option", { name: "Rutin" }))
     expect(screen.getByText(/6\.000\.000/)).toBeInTheDocument()
 
@@ -416,8 +428,8 @@ describe("StatsTab routine/actual analysis mode", () => {
     expect(screen.queryByText("Laptop")).not.toBeInTheDocument()
 
     fireEvent.click(analysisModeSelect)
-    fireEvent.click(screen.getByRole("option", { name: "Aktual" }))
-    expect(analysisModeSelect).toHaveTextContent("Aktual")
+    fireEvent.click(screen.getByRole("option", { name: "Semua" }))
+    expect(analysisModeSelect).toHaveTextContent("Semua")
     expect(screen.getByText("Laptop")).toBeInTheDocument()
   })
 })

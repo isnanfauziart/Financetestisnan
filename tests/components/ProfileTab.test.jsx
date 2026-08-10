@@ -58,7 +58,7 @@ describe("ProfileTab ownership cleanup", () => {
 
     expect(screen.getByRole("heading", { name: "Ayu Lestari" })).toBeInTheDocument()
     expect(screen.getAllByText("ayu@example.com").length).toBeGreaterThan(0)
-    expect(screen.getByText("Identitas Akun")).toBeInTheDocument()
+    expect(screen.getByText("Tentang akunmu")).toBeInTheDocument()
     expect(screen.getByText("Total Transaksi")).toBeInTheDocument()
   })
 
@@ -68,10 +68,10 @@ describe("ProfileTab ownership cleanup", () => {
 
     render(<ProfileTab {...createProps()} />)
 
-    const identityHeading = screen.getByText("Identitas Akun")
+    const identityHeading = screen.getByText("Tentang akunmu")
     const input = screen.getByLabelText("Nama pengguna")
     const ownershipHeading = screen.getByText("Data Milikmu")
-    const accessHeading = screen.getByText("Paket & Pemakaian")
+    const accessHeading = screen.getByText("Paket kamu")
     expect(identityHeading.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(identityHeading.compareDocumentPosition(ownershipHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText(/Catatan keuanganmu tetap berada di Google Sheets milikmu/i)).toBeInTheDocument()
@@ -96,24 +96,24 @@ describe("ProfileTab ownership cleanup", () => {
   it("adds paket dan akses near the top before preferences", () => {
     render(<ProfileTab {...createProps()} />)
 
-    const accessHeading = screen.getByText("Paket & Pemakaian")
-    const preferencesHeading = screen.getByText("Preferensi")
+    const accessHeading = screen.getByText("Paket kamu")
+    const preferencesHeading = screen.getByText("Pengaturan")
 
-    expect(screen.getByText("Paket Saat Ini")).toBeInTheDocument()
+    expect(screen.getByText("Paket")).toBeInTheDocument()
     expect(screen.getByText("Free")).toBeInTheDocument()
-    expect(screen.getByText("Sumber Data")).toBeInTheDocument()
+    expect(screen.getByText("Data disimpan di")).toBeInTheDocument()
     expect(accessHeading.compareDocumentPosition(preferencesHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it("keeps preferences, data controls, and logout while excluding bills and reports", () => {
     render(<ProfileTab {...createProps()} />)
 
-    expect(screen.getByText("Preferensi")).toBeInTheDocument()
-    expect(screen.getByText("Efek Suara")).toBeInTheDocument()
-    expect(screen.getByText("Umpan Balik Getar")).toBeInTheDocument()
+    expect(screen.getByText("Pengaturan")).toBeInTheDocument()
+    expect(screen.getByText("Suara")).toBeInTheDocument()
+    expect(screen.getByText("Getaran")).toBeInTheDocument()
     expect(screen.getByLabelText("Efek suara aktif")).toBeInTheDocument()
     expect(screen.getByLabelText("Umpan balik getar nonaktif")).toBeInTheDocument()
-    expect(screen.getByText("Data & Sesi")).toBeInTheDocument()
+    expect(screen.getByText("Data & akun")).toBeInTheDocument()
     expect(screen.getByText("Saldo Awal")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Keluar" })).toBeInTheDocument()
 
@@ -126,15 +126,15 @@ describe("ProfileTab ownership cleanup", () => {
     render(<ProfileTab {...createProps()} />)
 
     expect(screen.getByText("Kategori")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /kelola kategori/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /atur kategori/i })).toBeInTheDocument()
   })
 
   it("hides the upgrade CTA and shows Pro benefits for a paid account", () => {
     render(<ProfileTab {...createProps({ entitlement: { tier: "paid", usage: {} }, data: { transactions: [] } })} />)
 
     expect(screen.queryByRole("link", { name: "Upgrade ke Pro" })).not.toBeInTheDocument()
-    expect(screen.getByText("Akun Anda telah menggunakan Pro Version.")).toBeInTheDocument()
-    expect(screen.getByText(/Transaksi dan riwayat tanpa batas/)).toBeInTheDocument()
+    expect(screen.getByText("Kamu sudah memakai Artami Pro.")).toBeInTheDocument()
+    expect(screen.getByText("Silakan nikmati semua fitur yang tersedia. Semoga Artami membantu mengelola keuangan kamu. Terima kasih!")).toBeInTheDocument()
   })
 
   it("shows Free quota usage and warning states from /api/me metadata", () => {
@@ -153,8 +153,8 @@ describe("ProfileTab ownership cleanup", () => {
     expect(screen.getByText("Anggaran bulan ini")).toBeInTheDocument()
     expect(screen.getByText("Target")).toBeInTheDocument()
     expect(screen.getByText("60 / 75")).toBeInTheDocument()
-    expect(screen.getByRole("status")).toHaveTextContent("Mendekati batas")
-    expect(screen.getByRole("alert")).toHaveTextContent("Batas tercapai")
+    expect(screen.getByRole("status")).toHaveTextContent("Hampir mencapai batas")
+    expect(screen.getByRole("alert")).toHaveTextContent("Batas sudah terpakai")
     expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveAttribute("href", "/upgrade")
     expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveClass("bg-violet-600")
   })

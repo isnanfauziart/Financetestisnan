@@ -58,9 +58,9 @@ describe("BillsSection record reachability", () => {
 
     expect(await screen.findByRole("heading", { name: "Jangan lewatkan tanggal penting" })).toBeInTheDocument()
     expect(screen.getByText("Tambah tagihan")).toBeInTheDocument()
-    expect(screen.getByText("Pilih tanggal jatuh tempo")).toBeInTheDocument()
-    expect(screen.getByText("Dapatkan pengingat")).toBeInTheDocument()
-    expect(screen.getByText("Tandai dibayar dan catat")).toBeInTheDocument()
+    expect(screen.getByText("Tentukan tanggal bayar")).toBeInTheDocument()
+    expect(screen.getByText("Cek tagihan yang sudah dekat")).toBeInTheDocument()
+    expect(screen.getByText("Bayar, lalu catat")).toBeInTheDocument()
     expect(screen.getByText("Contoh")).toBeInTheDocument()
     expect(screen.getByText("Listrik / Internet / Cicilan")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Tambah Tagihan" })).toHaveClass("min-h-11", "min-w-11")

@@ -749,6 +749,40 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 ### Blockers
 - None.
 
+## 2026-08-10 - Calm Living Ledger copy and navigation polish
+
+### Tasks Completed
+- Differentiated Statistik income and expense summary cards with semantic icons and sage/clay treatments.
+- Added familiar icons to the Rencana navigation while preserving section keys, feature gates, callbacks, and touch targets.
+- Applied the approved everyday Indonesian copy across Beranda, Statistik, Rencana, Profil, and feature education states.
+- Added and updated focused regression coverage for the UI labels, icon presence, accessibility labels, and feature visibility.
+
+### Files Changed
+- `src/app/dashboard/HomeTab.jsx`
+- `src/app/dashboard/PlanTab.jsx`
+- `src/app/dashboard/ProfileTab.jsx`
+- `src/app/dashboard/StatsTab.jsx`
+- `src/components/BillsSection.jsx`
+- `src/components/BudgetsSection.jsx`
+- `src/components/GoalsSection.jsx`
+- Focused component tests under `tests/components/`
+- `progress.md`
+
+### Decisions
+- Kept visible Statistik label `Semua` mapped to the existing internal `actual` key.
+- Kept backend contracts, calculations, feature gates, animations, and reduced-motion behavior unchanged.
+- Used `Insights` and `Quick actions` only where explicitly approved; normalized the accessibility label to `semua insights`.
+
+### Verification
+- Focused suite: 9 files passed, 76 tests passed.
+- Full repository suite: 102 files passed, 531 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder values for the four missing local production variables; no secrets were written.
+- Scoped `git diff --check` passed; only existing CRLF conversion warnings were reported.
+- Independent final diff review found no blocking findings.
+
+### Blockers
+- None. Unrelated worktree changes remain untouched and are not part of this task.
+
 ## 2026-08-09 - Calm Living Ledger final verification and review fixes
 
 ### Tasks Completed

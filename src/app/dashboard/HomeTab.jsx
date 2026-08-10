@@ -135,7 +135,7 @@ export default function HomeTab({
     if (actions.length === 0) {
       actions.push({
         key: "quick-add-expense",
-        eyebrow: "Langkah cepat",
+        eyebrow: "Quick actions",
         title: "Tambah transaksi hari ini",
         description: "Catat pengeluaran atau pemasukan tanpa buka form penuh.",
         icon: PlusCircle,
@@ -161,7 +161,7 @@ export default function HomeTab({
       statSavings,
       statIncome,
       statExpense,
-       insights: visibleInsights,
+      insights: visibleInsights,
     })
   }, [
     budgets,
@@ -198,9 +198,9 @@ export default function HomeTab({
       <div className="space-y-3">
         {data?.history?.limited && data?.history?.hasOlderData && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-earth-700" role="note">
-            <p className="font-bold">Ringkasan terbatas</p>
+            <p className="font-bold">Yang tampil {data.history.months} bulan terakhir</p>
             <p className="mt-1 text-xs leading-relaxed">
-              Data yang tampil mencakup {data.history.months} bulan terakhir. Transaksi yang lebih lama tetap tersimpan di Google Sheets, tetapi tidak dihitung di ringkasan ini.
+              Artami menampilkan {data.history.months} bulan terakhir di sini. Data lama tetap aman di Google Sheets.
             </p>
           </div>
         )}
@@ -231,9 +231,9 @@ export default function HomeTab({
           <div className="flex items-start justify-between gap-3 mb-3 px-1">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">{cashFlowPeriodLabel}</p>
-              <h3 id="home-cash-flow-title" className="text-sm sm:text-base font-bold font-display text-earth-800">Arus Kas {cashFlowPeriodLabel}</h3>
+              <h3 id="home-cash-flow-title" className="text-sm sm:text-base font-bold font-display text-earth-800">Uang Masuk &amp; Keluar {cashFlowPeriodLabel}</h3>
             </div>
-            <span className="rounded-full bg-earth-50 px-2.5 py-1 text-[10px] font-bold text-earth-500">Ringkas</span>
+            <span className="rounded-full bg-earth-50 px-2.5 py-1 text-[10px] font-bold text-earth-500">Ringkasan</span>
           </div>
 
           <div className="space-y-1.5">
@@ -319,7 +319,7 @@ export default function HomeTab({
           <div className="flex items-center justify-between gap-3 mb-3 px-1">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">Beranda</p>
-              <h3 className="text-sm sm:text-base font-bold font-display text-earth-800">Aksi Prioritas</h3>
+              <h3 className="text-sm sm:text-base font-bold font-display text-earth-800">Yang perlu kamu cek</h3>
             </div>
             <button
               onClick={() => setActiveNav("plan")}
@@ -368,11 +368,11 @@ export default function HomeTab({
       {hasFeature(entitlement, "insights") && prioritizedInsights.length > 0 && (
         <section className="mt-6 animate-bento-in stagger-8" aria-labelledby="home-insights-title">
           <div className="mb-3 flex items-center justify-between gap-3 px-1">
-            <h3 id="home-insights-title" className="text-base font-bold font-display text-earth-800">Wawasan Utama</h3>
+            <h3 id="home-insights-title" className="text-base font-bold font-display text-earth-800">Insights utama</h3>
             <button
               type="button"
               onClick={() => setActiveNav("stats")}
-              aria-label="Buka Statistik untuk lihat semua wawasan"
+              aria-label="Buka Statistik untuk lihat semua insights"
               className="flex min-h-11 items-center gap-1 text-[11px] font-bold text-violet-600 transition-all hover:gap-2"
             >
               Buka Statistik <ArrowRight size={12} aria-hidden="true" />
@@ -398,17 +398,17 @@ export default function HomeTab({
         <div className="flex justify-between items-end mb-3 px-1">
           <h3 className="text-base font-bold font-display text-earth-800">Transaksi Terbaru</h3>
           <button onClick={() => setActiveNav("stats")} aria-label="Lihat semua transaksi di Statistik" className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all">
-            Lihat Semua <ArrowRight size={12} aria-hidden="true" />
+            Lihat semua <ArrowRight size={12} aria-hidden="true" />
           </button>
         </div>
         {recent5.length === 0 ? (
           <EmptyState
             icon={<Wallet size={20} />}
             title="Belum ada transaksi"
-            hint="Tambah transaksi pertama kamu untuk mulai melacak keuangan"
+            hint="Catat transaksi pertamamu supaya Artami bisa mulai membaca keuanganmu."
             action={
               <button onClick={() => openQuickAdd("expense")} className="text-xs font-bold px-4 py-2 rounded-full text-white mesh-violet shadow-pop">
-                Tambah Transaksi
+                Catat transaksi
               </button>
             }
           />

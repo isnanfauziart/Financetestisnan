@@ -108,7 +108,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
       <h2 className="text-2xl font-display font-bold mb-1 text-earth-900">{displayName}</h2>
       <p className="text-sm font-medium text-earth-500 mb-2">{session?.user?.email}</p>
 
-      <SectionCard title="Identitas Akun">
+      <SectionCard title="Tentang akunmu">
         <div className="flex justify-between items-center border-b border-earth-100 pb-3">
           <span className="text-sm font-medium text-earth-500">Akun</span>
           <span className="text-sm font-bold text-earth-800">Personal</span>
@@ -137,9 +137,9 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         </div>
       </SectionCard>
 
-      <SectionCard title="Paket & Pemakaian">
+      <SectionCard title="Paket kamu">
         <div className="flex justify-between items-center border-b border-earth-100 pb-3">
-          <span className="text-sm font-medium text-earth-500">Paket Saat Ini</span>
+          <span className="text-sm font-medium text-earth-500">Paket</span>
           <span className="text-sm font-bold text-earth-800">{tierLabel}</span>
         </div>
         <div className="flex justify-between items-center border-b border-earth-100 pb-3">
@@ -147,24 +147,24 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
           <span className="text-sm font-bold text-earth-800">{tierLabel === "Pro" ? "Seumur hidup" : "Free tier"}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-earth-500">Sumber Data</span>
+          <span className="text-sm font-medium text-earth-500">Data disimpan di</span>
           <span className="text-sm font-bold text-earth-800">Google Sheets</span>
         </div>
         {(data?.history?.limited || entitlement?.history?.months === 4) && (
           <p className="border-t border-earth-100 pt-3 text-xs leading-relaxed text-earth-500">
-            Riwayat lebih lama tetap tersimpan dan dapat dikelola di Google Sheets.
+            Data lama tetap aman dan bisa kamu buka di Google Sheets.
           </p>
         )}
         {quotaEntries.length > 0 && (
           <div className="space-y-2 border-t border-earth-100 pt-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Pemakaian</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Pemakaianmu</p>
             {quotaEntries.map(([feature, item]) => (
               <div key={feature} className="flex items-center justify-between gap-3 text-sm">
                 <span className="font-medium text-earth-500">{QUOTA_LABELS[feature] || feature}</span>
                 <span className={`text-right font-bold ${item.warning === "reached" ? "text-rose-600" : item.warning === "near" ? "text-amber-600" : "text-earth-800"}`}>
                   {item.limit === null ? "Tanpa batas" : item.current === null ? `— / ${item.limit}` : `${item.current} / ${item.limit}`}
-                  {item.warning === "near" && <span className="block text-[10px]" role="status">Mendekati batas</span>}
-                  {item.warning === "reached" && <span className="block text-[10px]" role="alert">Batas tercapai</span>}
+                  {item.warning === "near" && <span className="block text-[10px]" role="status">Hampir mencapai batas</span>}
+                  {item.warning === "reached" && <span className="block text-[10px]" role="alert">Batas sudah terpakai</span>}
                 </span>
               </div>
             ))}
@@ -172,9 +172,9 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         )}
         {tierLabel === "Pro" ? (
           <div className="mt-4 rounded-2xl border border-moss-100 bg-moss-50 p-4 text-sm text-moss-800">
-            <p className="font-bold">Akun Anda telah menggunakan Pro Version.</p>
+            <p className="font-bold">Kamu sudah memakai Artami Pro.</p>
             <p className="mt-1 leading-relaxed">
-              Silakan nikmati semua fitur yang tersedia. Semoga Artami membantu mengelola keuangan Anda. Terima kasih!
+              Silakan nikmati semua fitur yang tersedia. Semoga Artami membantu mengelola keuangan kamu. Terima kasih!
             </p>
             <ul className="mt-3 space-y-1 text-xs font-semibold text-moss-700">
               <li>✓ Transaksi dan riwayat tanpa batas</li>
@@ -192,16 +192,16 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         )}
       </SectionCard>
 
-      <SectionCard title="Preferensi">
+      <SectionCard title="Pengaturan">
         <div className="flex items-center gap-3 border-b border-earth-100 pb-3">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-earth-800">Kategori</p>
             <p className="mt-0.5 text-xs leading-relaxed text-earth-500">Sesuaikan kategori pengeluaran, pemasukan, dan tabunganmu.</p>
           </div>
-          <button type="button" onClick={() => setShowCategoryManager(true)} className="min-h-11 min-w-11 rounded-xl bg-sage-100 px-3 py-2 text-xs font-bold text-sage-700 hover:bg-sage-200 transition-colors">Kelola kategori</button>
+          <button type="button" onClick={() => setShowCategoryManager(true)} className="min-h-11 min-w-11 rounded-xl bg-sage-100 px-3 py-2 text-xs font-bold text-sage-700 hover:bg-sage-200 transition-colors">Atur kategori</button>
         </div>
         <div className="flex justify-between items-center border-b border-earth-100 pb-3">
-          <span className="text-sm font-medium text-earth-500">Efek Suara</span>
+          <span className="text-sm font-medium text-earth-500">Suara</span>
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             aria-label={`Efek suara ${soundEnabled ? "aktif" : "nonaktif"}`}
@@ -220,7 +220,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
           </button>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-earth-500">Umpan Balik Getar</span>
+          <span className="text-sm font-medium text-earth-500">Getaran</span>
           <button
             onClick={() => setHapticsEnabled(!hapticsEnabled)}
             aria-label={`Umpan balik getar ${hapticsEnabled ? "aktif" : "nonaktif"}`}
@@ -251,7 +251,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         />
       )}
 
-      <SectionCard title="Data & Sesi">
+      <SectionCard title="Data & akun">
         {editingSaldo ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">

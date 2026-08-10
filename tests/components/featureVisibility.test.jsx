@@ -201,7 +201,7 @@ describe("paid feature visibility", () => {
 
     render(<StatsTab {...statsProps(freeEntitlement)} insights={disabledInsights} />)
     expect(screen.queryByText("Insight tidak boleh tampil")).not.toBeInTheDocument()
-    expect(screen.queryByRole("heading", { name: "Wawasan" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Insights" })).not.toBeInTheDocument()
   })
 
   it("fails closed while entitlement is unresolved", () => {

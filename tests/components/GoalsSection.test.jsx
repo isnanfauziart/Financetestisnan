@@ -50,7 +50,7 @@ describe("GoalsSection savings summary", () => {
     expect(summary).toHaveTextContent("10.000.000")
     expect(summary).toHaveTextContent("Tersedia untuk dibagi")
     expect(summary).toHaveTextContent("8.500.000")
-    expect(summary).toHaveTextContent("Total tabungan diperoleh dari surplus antara pemasukan dikurangi pengeluaran kamu tiap bulan")
+    expect(summary).toHaveTextContent("Total tabunganmu dihitung dari pemasukan dikurangi pengeluaran tiap bulan.")
   })
 
   it("floors available pool at zero when allocations exceed net worth", () => {
@@ -74,11 +74,11 @@ describe("GoalsSection savings summary", () => {
       />,
     )
 
-    expect(screen.getByRole("heading", { name: "Bangun target sedikit demi sedikit" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Mulai dari satu target kecil" })).toBeInTheDocument()
     expect(screen.getByText("Pilih target")).toBeInTheDocument()
-    expect(screen.getByText("Tentukan jumlah dan tenggat")).toBeInTheDocument()
-    expect(screen.getByText("Catat kontribusi")).toBeInTheDocument()
-    expect(screen.getByText("Ikuti progres")).toBeInTheDocument()
+    expect(screen.getByText("Tentukan nominal dan waktunya")).toBeInTheDocument()
+    expect(screen.getByText("Tambah tabungan")).toBeInTheDocument()
+    expect(screen.getByText("Lihat perkembangannya")).toBeInTheDocument()
     expect(screen.getByText("Contoh")).toBeInTheDocument()
     expect(screen.getByText("Dana Darurat / Liburan")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buat Target" })).toHaveClass("min-h-11", "min-w-11")

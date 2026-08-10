@@ -146,13 +146,13 @@ export default function BudgetsSection({
         <div className="shimmer-bg rounded-2xl h-24" aria-hidden="true" />
       ) : visibleBudgets.length === 0 ? (
         <FeatureEducation
-          title="Atur batas pengeluaran bulanan"
+          title="Jaga pengeluaran tetap terkendali"
           description="Tetapkan batas yang membantu kamu menjaga pengeluaran tetap tenang sepanjang bulan."
           steps={[
             { icon: <Target size={16} aria-hidden="true" />, title: "Pilih kategori", description: "Mulai dari kebutuhan yang paling penting." },
             { icon: <Target size={16} aria-hidden="true" />, title: "Tentukan limit", description: "Isi batas pengeluaran untuk bulan ini." },
             { icon: <Target size={16} aria-hidden="true" />, title: "Catat seperti biasa", description: "Transaksi tetap berjalan seperti biasanya." },
-            { icon: <Target size={16} aria-hidden="true" />, title: "Pantau sisa", description: "Lihat ruang yang masih tersedia." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Cek sisa anggaran", description: "Lihat ruang yang masih tersedia." },
           ]}
           example="Jajan / Transportasi"
           action={

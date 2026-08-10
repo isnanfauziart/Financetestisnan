@@ -144,19 +144,19 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
           </div>
         </div>
         <p className="mt-3 text-[11px] leading-relaxed text-white/75">
-          Total tabungan diperoleh dari surplus antara pemasukan dikurangi pengeluaran kamu tiap bulan
+          Total tabunganmu dihitung dari pemasukan dikurangi pengeluaran tiap bulan.
         </p>
       </section>
 
       {goals.length === 0 ? (
         <FeatureEducation
-          title="Bangun target sedikit demi sedikit"
+          title="Mulai dari satu target kecil"
           description="Ubah tujuan besar menjadi langkah yang terasa ringan dan mudah diikuti."
           steps={[
             { icon: <Target size={16} aria-hidden="true" />, title: "Pilih target", description: "Tentukan tujuan yang ingin kamu capai." },
-            { icon: <Target size={16} aria-hidden="true" />, title: "Tentukan jumlah dan tenggat", description: "Isi nominal serta batas waktunya." },
-            { icon: <Target size={16} aria-hidden="true" />, title: "Catat kontribusi", description: "Tambahkan tabungan saat kamu menyisihkan uang." },
-            { icon: <Target size={16} aria-hidden="true" />, title: "Ikuti progres", description: "Lihat langkahmu sampai target selesai." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Tentukan nominal dan waktunya", description: "Isi nominal serta batas waktunya." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Tambah tabungan", description: "Tambahkan tabungan saat kamu menyisihkan uang." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Lihat perkembangannya", description: "Lihat langkahmu sampai target selesai." },
           ]}
           example="Dana Darurat / Liburan"
           action={

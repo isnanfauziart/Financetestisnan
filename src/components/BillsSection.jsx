@@ -180,9 +180,9 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
           description="Simpan jadwal pembayaran supaya kamu tahu apa yang perlu disiapkan."
           steps={[
             { icon: <Receipt size={16} aria-hidden="true" />, title: "Tambah tagihan", description: "Masukkan tagihan rutinmu." },
-            { icon: <Clock size={16} aria-hidden="true" />, title: "Pilih tanggal jatuh tempo", description: "Tentukan kapan pembayaran perlu dilakukan." },
-            { icon: <AlertTriangle size={16} aria-hidden="true" />, title: "Dapatkan pengingat", description: "Lihat tagihan yang akan datang." },
-            { icon: <CheckCircle size={16} aria-hidden="true" />, title: "Tandai dibayar dan catat", description: "Bayar lalu simpan transaksinya." },
+            { icon: <Clock size={16} aria-hidden="true" />, title: "Tentukan tanggal bayar", description: "Tentukan kapan pembayaran perlu dilakukan." },
+            { icon: <AlertTriangle size={16} aria-hidden="true" />, title: "Cek tagihan yang sudah dekat", description: "Lihat tagihan yang akan datang." },
+            { icon: <CheckCircle size={16} aria-hidden="true" />, title: "Bayar, lalu catat", description: "Bayar lalu simpan transaksinya." },
           ]}
           example="Listrik / Internet / Cicilan"
           action={

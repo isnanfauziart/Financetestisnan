@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, AlertCircle, Info, TrendingUp } from "lucide-react"
+import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, AlertCircle, Info, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, Legend } from "recharts"
 import { THEME, COLORS, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRp, formatRpFull } from "./_components/helpers"
@@ -25,7 +25,7 @@ const STATS_SECTIONS = [
 ]
 const ANALYSIS_MODES = [
   { key: "routine", label: "Rutin" },
-  { key: "actual", label: "Aktual" },
+  { key: "actual", label: "Semua" },
 ]
 
 function ChartSkeleton({ height = 180 }) {
@@ -35,14 +35,19 @@ function ChartSkeleton({ height = 180 }) {
 }
 
 function getTakeawayText({ period, modeLabel, statIncome, statExpense, statSurplus }) {
-  const status = statSurplus > 0 ? "Surplus" : statSurplus < 0 ? "Defisit" : "Seimbang"
   const amount = formatRp(Math.abs(statSurplus))
 
   if (statIncome === 0 && statExpense === 0) {
-    return `${period} · Mode ${modeLabel}: belum ada pemasukan atau pengeluaran untuk dibaca.`
+    return `${period} · Tampilan ${modeLabel}: belum ada transaksi di periode ini.`
   }
 
-  return `${period} · Mode ${modeLabel}: ${status} ${amount}. Pemasukan ${formatRp(statIncome)} dan Pengeluaran ${formatRp(statExpense)}.`
+  const direction = statSurplus > 0
+    ? `Surplus ${amount} — pemasukanmu lebih besar daripada pengeluaran.`
+    : statSurplus < 0
+      ? `Defisit ${amount} — pengeluaranmu lebih besar daripada pemasukan.`
+      : "Seimbang — pemasukan dan pengeluaranmu sama besar."
+
+  return `${period} · Tampilan ${modeLabel}: ${direction} Pemasukan ${formatRp(statIncome)} · Pengeluaran ${formatRp(statExpense)}.`
 }
 
 function getCategorySummary(title, categories) {
@@ -134,7 +139,7 @@ export default function StatsTab({
   const takeawaySurplus = isRoutineMode ? (routineStatSurplus ?? (takeawayIncome - takeawayExpense)) : statSurplus
   const takeawayText = getTakeawayText({
     period: summaryPeriod,
-    modeLabel: isRoutineMode ? "Rutin" : "Aktual",
+    modeLabel: isRoutineMode ? "Rutin" : "Semua",
     statIncome: takeawayIncome,
     statExpense: takeawayExpense,
     statSurplus: takeawaySurplus,
@@ -149,8 +154,8 @@ export default function StatsTab({
           <SelectField label="Bulan" value={selectedMonth} onChange={setSelectedMonth} options={["Semua Bulan", ...AVAILABLE_MONTHS]} placeholder="Bulan" />
           <SelectField label="Akun" value={selectedAccount} onChange={setSelectedAccount} options={["Semua Akun", ...availableAccounts]} placeholder="Akun" />
           <SelectField
-            label="Mode Analisis"
-            value={isRoutineMode ? "Rutin" : "Aktual"}
+            label="Tampilan"
+            value={isRoutineMode ? "Rutin" : "Semua"}
             onChange={(mode) => setAnalysisMode(mode === "Rutin" ? "routine" : "actual")}
             options={ANALYSIS_MODES.map(({ label }) => label)}
           />
@@ -193,14 +198,14 @@ export default function StatsTab({
         )}
       </div>
 
-      <section className="rounded-2xl border border-earth-100 bg-white p-4 shadow-warm" role="region" aria-label="Kesimpulan periode">
+      <section className="rounded-2xl border border-earth-100 bg-white p-4 shadow-warm" role="region" aria-label="Ringkasannya">
         <div className="flex items-start gap-2.5">
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
             <Lightbulb size={16} aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">Kesimpulan periode</p>
-            <h2 className="mt-1 text-base font-display font-bold text-earth-800">Baca arah keuanganmu</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">Ringkasannya</p>
+            <h2 className="mt-1 text-base font-display font-bold text-earth-800">Begini kondisi keuanganmu</h2>
             <p className="mt-1 text-xs leading-relaxed text-earth-600">{takeawayText}</p>
           </div>
         </div>
@@ -234,12 +239,12 @@ export default function StatsTab({
         <>
           {/* Financial summary */}
           {refreshing ? <ChartSkeleton height={160} /> : (
-            <section className="bento-tile-dark mesh-hero text-white p-4 sm:p-5 shadow-pop relative overflow-hidden" role="region" aria-label="Ringkasan keuangan">
+            <section className="bento-tile-dark mesh-hero text-white p-4 sm:p-5 shadow-pop relative overflow-hidden" role="region" aria-label="Kondisi keuangan">
               <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(159,135,239,0.3) 0%, transparent 70%)" }} />
               <div className="relative z-10">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider opacity-80">Ringkasan Keuangan · {summaryPeriod}</p>
+                    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider opacity-80">Kondisi Keuangan · {summaryPeriod}</p>
                     <div className="flex items-center gap-2 flex-wrap mt-1.5">
                       <h2 className="text-2xl sm:text-3xl font-display font-bold tabular-nums">{formatRpFull(Math.abs(statSurplus))}</h2>
                       <span className="rounded-full px-2.5 py-1 text-[10px] font-bold" style={summaryStatusStyle}>{summaryStatus}</span>
@@ -247,13 +252,19 @@ export default function StatsTab({
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-4 border-t border-white/15 pt-3">
-                  <div className="rounded-2xl p-3" style={{ background: "rgba(255,255,255,0.1)" }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Pemasukan</p>
-                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums">{formatRp(statIncome)}</p>
+                  <div className="rounded-2xl border border-sage-300/20 bg-sage-500/20 p-3" role="group" aria-label={`Pemasukan ${formatRp(statIncome)}`}>
+                    <div className="flex items-center gap-1.5 text-sage-200">
+                      <ArrowDownLeft size={13} strokeWidth={2.5} aria-hidden="true" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider">Pemasukan</p>
+                    </div>
+                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums text-white">{formatRp(statIncome)}</p>
                   </div>
-                  <div className="rounded-2xl p-3" style={{ background: "rgba(255,255,255,0.1)" }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Pengeluaran</p>
-                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums">{formatRp(statExpense)}</p>
+                  <div className="rounded-2xl border border-clay-300/20 bg-clay-400/20 p-3" role="group" aria-label={`Pengeluaran ${formatRp(statExpense)}`}>
+                    <div className="flex items-center gap-1.5 text-clay-200">
+                      <ArrowUpRight size={13} strokeWidth={2.5} aria-hidden="true" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider">Pengeluaran</p>
+                    </div>
+                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums text-white">{formatRp(statExpense)}</p>
                   </div>
                 </div>
               </div>
@@ -265,7 +276,7 @@ export default function StatsTab({
             <div>
               <div className="flex items-center gap-1.5 mb-2 px-1">
                 <Lightbulb size={13} className="text-amber-500" aria-hidden="true" />
-                <h3 className="text-xs font-bold font-display text-earth-700 uppercase tracking-wider">Wawasan</h3>
+                <h3 className="text-xs font-bold font-display text-earth-700 uppercase tracking-wider">Insights</h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {insightCards.slice(0, 5).map((ins, i) => {
@@ -302,8 +313,8 @@ export default function StatsTab({
           ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              { key: "expense", title: "Peringkat Pengeluaran", categories: chartExpenseCategories, colorOffset: 3, summaryId: "stats-expense-category-summary" },
-              { key: "income", title: "Peringkat Pemasukan", categories: incomeCategories, colorOffset: 0, summaryId: "stats-income-category-summary" },
+              { key: "expense", title: "Pengeluaran terbesar", categories: chartExpenseCategories, colorOffset: 3, summaryId: "stats-expense-category-summary" },
+              { key: "income", title: "Pemasukan terbesar", categories: incomeCategories, colorOffset: 0, summaryId: "stats-income-category-summary" },
             ].map(({ key, title, categories, colorOffset, summaryId }) => (
               <section key={key} className="bento-tile bg-white border border-earth-100 p-4 shadow-warm" aria-labelledby={`${summaryId}-title`}>
                 <h3 id={`${summaryId}-title`} className="text-xs font-bold text-center mb-2 font-display text-earth-800">{title}</h3>

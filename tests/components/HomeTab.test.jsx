@@ -83,8 +83,8 @@ describe("HomeTab priority actions", () => {
 
     expect(screen.getByText("Fokus Hari Ini")).toBeInTheDocument()
 
-    const cashFlowHeading = screen.getByText("Arus Kas Jul 2026")
-    const priorityHeading = screen.getByText("Aksi Prioritas")
+    const cashFlowHeading = screen.getByText("Uang Masuk & Keluar Jul 2026")
+    const priorityHeading = screen.getByText("Yang perlu kamu cek")
     const billAction = screen.getByRole("button", { name: /bayar tagihan internet wifi/i })
     const budgetAction = screen.getByRole("button", { name: /cek budget makanan/i })
     const incomeSummary = screen.getByLabelText("Lihat 10 transaksi pemasukan terbesar")
@@ -105,7 +105,7 @@ describe("HomeTab priority actions", () => {
       statSavings: 1700000,
     })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Arus Kas Jul 2026" })
+    const cashFlow = screen.getByRole("region", { name: "Uang Masuk & Keluar Jul 2026" })
 
     expect(cashFlow).toHaveTextContent("Pemasukan")
     expect(cashFlow).toHaveTextContent("Rp 9.0 jt")
@@ -121,20 +121,20 @@ describe("HomeTab priority actions", () => {
   it("uses a neutral scope label for all-period cash flow filters", () => {
     render(<HomeTab {...createProps({ selectedMonth: "Semua Bulan", selectedYear: "Semua Tahun" })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Arus Kas Periode yang dipilih" })
+    const cashFlow = screen.getByRole("region", { name: "Uang Masuk & Keluar Periode yang dipilih" })
 
     expect(cashFlow).toHaveTextContent("Periode yang dipilih")
     expect(cashFlow).not.toHaveTextContent("Bulan berjalan")
-    expect(cashFlow).not.toHaveTextContent("Arus Kas Bulan Ini")
+    expect(cashFlow).not.toHaveTextContent("Uang Masuk & Keluar Bulan Ini")
   })
 
   it("does not invent a selected-period label when one period filter is missing", () => {
     render(<HomeTab {...createProps({ selectedMonth: "Jul", selectedYear: undefined })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Arus Kas Periode yang dipilih" })
+    const cashFlow = screen.getByRole("region", { name: "Uang Masuk & Keluar Periode yang dipilih" })
 
     expect(cashFlow).toHaveTextContent("Periode yang dipilih")
-    expect(cashFlow).not.toHaveTextContent("Arus Kas Jul")
+    expect(cashFlow).not.toHaveTextContent("Uang Masuk & Keluar Jul")
   })
 
   it("does not add a plus sign to a balanced cash flow", () => {
@@ -145,7 +145,7 @@ describe("HomeTab priority actions", () => {
       statSavings: 0,
     })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Arus Kas Jul 2026" })
+    const cashFlow = screen.getByRole("region", { name: "Uang Masuk & Keluar Jul 2026" })
     const balance = cashFlow.querySelector("p.text-base")
 
     expect(balance).toHaveTextContent("Rp 0")
@@ -162,12 +162,12 @@ describe("HomeTab priority actions", () => {
 
     render(<HomeTab {...createProps({ insights, setActiveNav })} />)
 
-    expect(screen.getByRole("heading", { name: "Wawasan Utama" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Insights utama" })).toBeInTheDocument()
     expect(screen.getByText("Insight utama")).toBeInTheDocument()
     expect(screen.getByText("Insight kedua")).toBeInTheDocument()
     expect(screen.queryByText("Insight ketiga")).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("button", { name: "Buka Statistik untuk lihat semua wawasan" }))
+    fireEvent.click(screen.getByRole("button", { name: "Buka Statistik untuk lihat semua insights" }))
     expect(setActiveNav).toHaveBeenCalledWith("stats")
   })
 
@@ -177,7 +177,7 @@ describe("HomeTab priority actions", () => {
       entitlement: { features: { insights: false } },
     })} />)
 
-    expect(screen.queryByRole("heading", { name: "Wawasan Utama" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Insights utama" })).not.toBeInTheDocument()
     expect(screen.queryByText("Insight yang terkunci")).not.toBeInTheDocument()
   })
 
@@ -224,10 +224,10 @@ describe("HomeTab priority actions", () => {
 
     const sections = [
       screen.getByText("Kekayaan Bersih"),
-      screen.getByText("Arus Kas Jul 2026"),
-      screen.getByText("Aksi Prioritas"),
+      screen.getByText("Uang Masuk & Keluar Jul 2026"),
+      screen.getByText("Yang perlu kamu cek"),
       screen.getByTestId("budget-status-card"),
-      screen.getByRole("heading", { name: "Wawasan Utama" }),
+      screen.getByRole("heading", { name: "Insights utama" }),
       screen.getByTestId("health-score-card"),
       screen.getByRole("heading", { name: "Transaksi Terbaru" }),
     ]
@@ -279,7 +279,14 @@ describe("HomeTab priority actions", () => {
       },
     })} />)
 
-    expect(screen.getByRole("note")).toHaveTextContent(/4 bulan terakhir/i)
-    expect(screen.getByRole("note")).toHaveTextContent(/tidak dihitung di ringkasan/i)
+    expect(screen.getByRole("note")).toHaveTextContent("Yang tampil 4 bulan terakhir")
+    expect(screen.getByRole("note")).toHaveTextContent("Artami menampilkan 4 bulan terakhir di sini. Data lama tetap aman di Google Sheets.")
+  })
+
+  it("uses friendly copy for the empty recent-transactions state", () => {
+    render(<HomeTab {...createProps({ recent5: [] })} />)
+
+    expect(screen.getByText("Catat transaksi pertamamu supaya Artami bisa mulai membaca keuanganmu.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Catat transaksi" })).toBeInTheDocument()
   })
 })

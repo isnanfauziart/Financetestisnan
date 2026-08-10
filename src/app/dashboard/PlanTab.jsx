@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import dynamic from "next/dynamic"
-import { Calculator, ArrowRight, Target, Wallet, Receipt } from "lucide-react"
+import { Calculator, ArrowRight, Target, Wallet, Receipt, LayoutDashboard, HandCoins, CalendarDays } from "lucide-react"
 import { THEME } from "./_components/constants"
 import GoalsSection from "@/components/GoalsSection"
 import DebtsSection from "@/components/DebtsSection"
@@ -14,13 +14,13 @@ import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
 const FITrackerCard = dynamic(() => import("@/components/FITrackerCard"), { ssr: false })
 
 const PLAN_SECTIONS = [
-  { key: "overview", label: "Ringkasan" },
-  { key: "goal", label: "Target" },
-  { key: "budget", label: "Anggaran" },
-  { key: "tagihan", label: "Tagihan" },
-  { key: "utang", label: "Utang" },
-  { key: "event", label: "Event" },
-  { key: "simulasi", label: "Simulasi" },
+  { key: "overview", label: "Ringkasan", icon: LayoutDashboard },
+  { key: "goal", label: "Target", icon: Target },
+  { key: "budget", label: "Anggaran", icon: Wallet },
+  { key: "tagihan", label: "Tagihan", icon: Receipt },
+  { key: "utang", label: "Utang", icon: HandCoins },
+  { key: "event", label: "Event", icon: CalendarDays },
+  { key: "simulasi", label: "Simulasi", icon: Calculator },
 ]
 
 const SECTION_FEATURES = {
@@ -85,6 +85,7 @@ export default function PlanTab({
           <div className="grid grid-cols-2 min-[360px]:grid-cols-3 sm:grid-cols-7 gap-2">
             {visibleSections.map((section) => {
               const isActive = currentSection === section.key
+              const Icon = section.icon
               return (
                 <button
                   key={section.key}
@@ -97,7 +98,10 @@ export default function PlanTab({
                       : "bg-white/70 text-earth-500 hover:bg-white hover:text-earth-800"
                   }`}
                 >
-                  {section.label}
+                  <span className="inline-flex items-center justify-center gap-1.5">
+                    <Icon size={14} strokeWidth={2.2} aria-hidden="true" />
+                    {section.label}
+                  </span>
                 </button>
               )
             })}
@@ -109,7 +113,7 @@ export default function PlanTab({
             <div className="rounded-2xl border border-earth-100 bg-white p-5 shadow-warm">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">Rencana</p>
               <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
-                <h2 id="plan-overview-title" className="text-xl font-display font-bold text-earth-800">Rencana Bulan Ini</h2>
+                <h2 id="plan-overview-title" className="text-xl font-display font-bold text-earth-800">Rencana bulan ini</h2>
                 <span className="text-xs font-semibold text-earth-500">{selectedMonth || "Bulan ini"} {selectedYear || ""}</span>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-earth-600">Pilih satu langkah kecil untuk membuat arus kas bulan ini lebih tenang.</p>
@@ -131,7 +135,7 @@ export default function PlanTab({
                       <Icon size={16} aria-hidden="true" />
                     </span>
                     <span className="mt-4 block text-sm font-bold text-earth-800">{label}</span>
-                    <span className="mt-1 block text-[11px] leading-relaxed text-earth-500">{available ? description : "Tersedia setelah akses fitur dibuka."}</span>
+                    <span className="mt-1 block text-[11px] leading-relaxed text-earth-500">{available ? description : "Fitur ini belum bisa kamu pakai."}</span>
                   </button>
                 )
               })}
@@ -157,7 +161,7 @@ export default function PlanTab({
                   Coba What-If <ArrowRight size={14} aria-hidden="true" />
                 </button>
               ) : (
-                <p className="mt-4 text-xs font-semibold text-earth-600">Fitur simulasi sedang tidak tersedia.</p>
+                <p className="mt-4 text-xs font-semibold text-earth-600">Simulasi belum bisa dipakai saat ini.</p>
               )}
             </section>
           </section>

@@ -72,7 +72,7 @@ describe("PlanTab planning ownership", () => {
   it("opens on the Rencana Bulan Ini overview", () => {
     render(<PlanTab {...createProps()} />)
 
-    expect(screen.getByRole("heading", { name: "Rencana Bulan Ini" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Rencana bulan ini" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buka Target" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buka Anggaran" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buka Tagihan" })).toBeInTheDocument()
@@ -91,6 +91,14 @@ describe("PlanTab planning ownership", () => {
 
     expect(screen.getByRole("button", { name: "Open What-If Scenario simulator" })).toBeInTheDocument()
     expect(screen.getByText("FI tracker mock")).toBeInTheDocument()
+  })
+
+  it("shows a familiar icon beside every planning section label", () => {
+    render(<PlanTab {...createProps()} />)
+
+    getPlanNav().getAllByRole("button").forEach((button) => {
+      expect(button.querySelector("svg")).toBeInTheDocument()
+    })
   })
 
   it("keeps goals available as a deep-linked owner section", () => {
