@@ -830,3 +830,36 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - None.
+
+## 2026-08-11 - Statistik and Rencana refinement
+
+### Tasks Completed
+- Removed the duplicate Statistik `Ringkasannya` section so `Kondisi Keuangan` remains the single summary surface.
+- Added distinct expense-category colors, matching markers, locale-aware expense percentages, and a complete horizontally scrollable two-month category line chart with nominal labels.
+- Added semantic Rencana icon/card tones, stronger overview-card affordances, and visible `Buka` actions.
+- Added first-use Utang/Piutang education with the existing setup-modal CTA.
+- Added the approved design spec and implementation plan.
+
+### Files Changed
+- `src/app/dashboard/StatsTab.jsx`
+- `src/app/dashboard/PlanTab.jsx`
+- `src/components/DebtsSection.jsx`
+- Focused tests under `tests/components/`
+- `docs/superpowers/specs/2026-08-11-statistik-rencana-refinement-design.md`
+- `docs/superpowers/plans/2026-08-11-statistik-rencana-refinement.md`
+- `progress.md`
+
+### Decisions
+- Kept existing Recharts, semantic tokens, feature gates, internal keys, calculations, API behavior, and motion behavior unchanged.
+- Used all prepared comparison categories rather than limiting the chart to five.
+- Kept the second comparison series below its points and applied explicit primary-text label contrast.
+
+### Verification
+- Focused integration suite: 3 files passed, 48 tests passed.
+- Full repository suite: 102 files passed, 537 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder values for the four absent local production variables; no secrets were written.
+- Scoped `git diff --check` passed; only existing CRLF conversion warnings were reported.
+- Independent final diff review and bounded correction review found no remaining findings.
+
+### Blockers
+- None for this task. Browser CLI QA was unavailable; component tests and production build passed. Unrelated worktree changes remain untouched.

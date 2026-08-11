@@ -27,7 +27,9 @@ vi.mock("@/components/BudgetDetailModal", () => ({ default: () => null }))
 vi.mock("@/components/GoalSetupModal", () => ({ default: () => null }))
 vi.mock("@/components/GoalContributeModal", () => ({ default: () => null }))
 vi.mock("@/components/GoalSettleModal", () => ({ default: () => null }))
-vi.mock("@/components/DebtSetupModal", () => ({ default: () => null }))
+vi.mock("@/components/DebtSetupModal", () => ({
+  default: () => <div role="dialog" aria-label="Debt setup modal mock">Debt setup modal mock</div>,
+}))
 vi.mock("@/components/DebtPaymentModal", () => ({ default: () => null }))
 vi.mock("@/components/BillSetupModal", () => ({ default: () => null }))
 vi.mock("@/components/BillPayModal", () => ({ default: () => null }))
@@ -80,6 +82,25 @@ describe("shared data section failures", () => {
     expect(screen.queryByText(/Lacak utang/i)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: /coba lagi/i }))
     expect(hookState.debts.refetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("educates first-time debt users and opens the existing setup modal", () => {
+    hookState.debts = { debts: [], loading: false, error: null, refetch: vi.fn() }
+
+    render(<DebtsSection />)
+
+    expect(screen.getByRole("heading", { name: "Pantau utang dan piutang dengan jelas" })).toBeInTheDocument()
+    expect(screen.getByText("Catat siapa yang terlibat, jumlahnya, dan kapan perlu diselesaikan.")).toBeInTheDocument()
+    expect(screen.getAllByRole("listitem")).toHaveLength(4)
+    expect(screen.getByText("Pilih jenisnya")).toBeInTheDocument()
+    expect(screen.getByText("Isi detailnya")).toBeInTheDocument()
+    expect(screen.getByText("Atur jatuh tempo")).toBeInTheDocument()
+    expect(screen.getByText("Catat pembayaran")).toBeInTheDocument()
+    expect(screen.getByText("Cicilan keluarga / Pinjaman ke teman")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Tambah Utang/Piutang" }))
+
+    expect(screen.getByRole("dialog", { name: "Debt setup modal mock" })).toBeInTheDocument()
   })
 
   it("shows a bills fetch error instead of the empty state and retries", async () => {

@@ -101,6 +101,50 @@ describe("PlanTab planning ownership", () => {
     })
   })
 
+  it("uses semantic icon tiles for every planning section", () => {
+    render(<PlanTab {...createProps()} />)
+
+    const semanticTones = [
+      ["Ringkasan", "bg-earth-100", "text-earth-700"],
+      ["Target", "bg-sage-100", "text-sage-700"],
+      ["Anggaran", "bg-amber-100", "text-amber-700"],
+      ["Tagihan", "bg-clay-100", "text-clay-600"],
+      ["Utang", "bg-rose-100", "text-rose-700"],
+      ["Event", "bg-indigo-100", "text-indigo-700"],
+      ["Simulasi", "bg-violet-100", "text-violet-700"],
+    ]
+
+    semanticTones.forEach(([label, background, color]) => {
+      const iconTile = getPlanNav()
+        .getByRole("button", { name: new RegExp(`^${label}$`, "i") })
+        .querySelector("[data-plan-icon-tile]")
+
+      expect(iconTile).toHaveClass(background, color)
+    })
+  })
+
+  it("keeps the active surface dark while showing semantic overview affordances", () => {
+    render(<PlanTab {...createProps()} />)
+
+    expect(getPlanNav().getByRole("button", { name: "Ringkasan" })).toHaveClass("bg-earth-900", "text-white")
+
+    const overviewCards = [
+      ["Target", "border-t-sage-400", "bg-sage-100", "text-sage-700", "hover:bg-sage-50"],
+      ["Anggaran", "border-t-amber-400", "bg-amber-100", "text-amber-700", "hover:bg-amber-50"],
+      ["Tagihan", "border-t-clay-400", "bg-clay-100", "text-clay-600", "hover:bg-clay-50"],
+    ]
+
+    overviewCards.forEach(([label, border, background, color, hover]) => {
+      const card = screen.getByRole("button", { name: `Buka ${label}` })
+      expect(card).toHaveClass("bg-white", "border-t-2", border, "group", "active:scale-[0.99]")
+      expect(card).toHaveClass("focus-visible:ring-2")
+      expect(card).toHaveClass(hover)
+      expect(card.querySelector("[data-plan-icon-tile]")).toHaveClass("h-11", "w-11", background, color)
+      expect(within(card).getByText("Buka")).toBeInTheDocument()
+      expect(card.querySelectorAll("svg")).toHaveLength(2)
+    })
+  })
+
   it("keeps goals available as a deep-linked owner section", () => {
     render(<PlanTab {...createProps({ activeSection: "goal" })} />)
 

@@ -1,13 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import StatsTab from "@/app/dashboard/StatsTab"
+import { THEME, COLORS } from "@/app/dashboard/_components/constants"
 
 const forecastProps = vi.hoisted(() => ({ current: null }))
 const savingsTrendProps = vi.hoisted(() => ({ current: null }))
 
 beforeEach(() => {
   global.ResizeObserver = class ResizeObserver {
-    observe() {}
+    constructor(callback) {
+      this.callback = callback
+    }
+    observe() {
+      this.callback([{ contentRect: { width: 640, height: 280 } }])
+    }
     unobserve() {}
     disconnect() {}
   }
@@ -132,6 +138,50 @@ describe("StatsTab comparison controls", () => {
 
     expect(resetComparePeriods).toHaveBeenCalledTimes(1)
   })
+
+  it("renders every comparison category in a two-series line chart with nominal labels", async () => {
+    const compareChartData = [
+      { category: "Makan", "Jul 2026": 800_000, "Jun 2026": 600_000 },
+      { category: "Transportasi", "Jul 2026": 300_000, "Jun 2026": 500_000 },
+      { category: "Sewa", "Jul 2026": 100_000, "Jun 2026": 0 },
+    ]
+    const { container } = render(<StatsTab {...createProps({ compareChartData })} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+
+    const comparison = screen.getByText("Perbandingan per Kategori").closest(".bento-tile")
+    expect(comparison.querySelector(".overflow-x-auto")).toBeTruthy()
+    expect(comparison.querySelector(".recharts-bar-chart")).toBeNull()
+    expect(comparison.querySelectorAll(".recharts-line-curve")).toHaveLength(2)
+    expect(comparison).toHaveTextContent("Makan")
+    expect(comparison).toHaveTextContent("Transportasi")
+    expect(comparison).toHaveTextContent("Sewa")
+
+    await waitFor(() => {
+      const labels = [...container.querySelectorAll(".recharts-label-list text")].map(label => label.textContent)
+      const labelLists = [...comparison.querySelectorAll(".recharts-label-list")]
+      const labelYPositions = labelLists.map(labelList => [...labelList.querySelectorAll("text")].map(label => Number(label.getAttribute("y"))))
+      const pointYPositions = [...comparison.querySelectorAll(".recharts-line-dots circle")].map(point => Number(point.getAttribute("cy")))
+
+      // Recharts 2.12 exposes no position attribute on LabelList; verify top/bottom through rendered SVG y coordinates.
+      expect(labelLists).toHaveLength(2)
+      expect(pointYPositions).toHaveLength(6)
+      expect(labelYPositions[0].every((y, index) => y < pointYPositions[index])).toBe(true)
+      expect(labelYPositions[1].every((y, index) => y > pointYPositions[index + 3])).toBe(true)
+      expect([...comparison.querySelectorAll(".recharts-label-list text")].map(label => label.getAttribute("fill"))).toEqual(
+        Array(6).fill(THEME.textPrimary),
+      )
+      expect(comparison).toHaveTextContent("Jul 2026 vs Jun 2026")
+      expect(labels).toEqual(expect.arrayContaining([
+        "Rp 800 rb",
+        "Rp 600 rb",
+        "Rp 300 rb",
+        "Rp 500 rb",
+        "Rp 100 rb",
+        "Rp 0",
+      ]))
+    })
+  })
 })
 
 describe("StatsTab segmented statistik navigation", () => {
@@ -188,7 +238,7 @@ describe("StatsTab segmented statistik navigation", () => {
 })
 
 describe("StatsTab financial summary", () => {
-  it("places the takeaway before section tabs and the summary inside Ringkasan", () => {
+  it("keeps Kondisi Keuangan as the single summary surface inside Ringkasan", () => {
     render(<StatsTab {...createProps({
       statIncome: 12_000_000,
       statExpense: 8_000_000,
@@ -197,48 +247,26 @@ describe("StatsTab financial summary", () => {
     })} />)
 
     const filters = screen.getByLabelText("Filter Statistik")
-    const takeaway = screen.getByRole("region", { name: "Ringkasannya" })
     const tablist = screen.getByRole("tablist", { name: "Navigasi Statistik" })
     const summary = screen.getByRole("region", { name: "Kondisi keuangan" })
     const insightsHeading = screen.getByRole("heading", { name: "Insights" })
     const anomaly = screen.getByText("Anomaly mock")
 
-    expect(filters.nextElementSibling).toBe(takeaway)
-    expect(takeaway.nextElementSibling).toBe(tablist)
+    expect(filters.nextElementSibling).toBe(tablist)
     expect(tablist.nextElementSibling).toBe(summary)
     expect(summary.compareDocumentPosition(insightsHeading) & 4).toBe(4)
     expect(summary.compareDocumentPosition(anomaly) & 4).toBe(4)
   })
 
-  it("summarizes the selected period and analysis mode before the sections", () => {
+  it("does not render the duplicate Ringkasannya section", () => {
     render(<StatsTab {...createProps({
       statIncome: 12_000_000,
       statExpense: 8_000_000,
       statSurplus: 4_000_000,
     })} />)
 
-    const takeaway = screen.getByRole("region", { name: "Ringkasannya" })
-
-    expect(takeaway).toHaveTextContent("Jul 2026")
-    expect(takeaway).toHaveTextContent("Rutin")
-    expect(takeaway).toHaveTextContent("Pemasukan")
-    expect(takeaway).toHaveTextContent("Pengeluaran")
-    expect(takeaway).toHaveTextContent("Surplus")
-  })
-
-  it("uses routine totals for the default routine takeaway while keeping actual summary totals", () => {
-    render(<StatsTab {...createProps({
-      statIncome: 5_000_000,
-      statExpense: 11_000_000,
-      statSurplus: -6_000_000,
-      routineStatIncome: 5_000_000,
-      routineStatExpense: 1_000_000,
-      routineStatSurplus: 4_000_000,
-    })} />)
-
-    expect(screen.getByRole("region", { name: "Ringkasannya" })).toHaveTextContent("Surplus Rp 4.0 jt")
-    expect(screen.getByRole("region", { name: "Ringkasannya" })).toHaveTextContent("Pengeluaran Rp 1.0 jt")
-    expect(screen.getByRole("region", { name: "Kondisi keuangan" })).toHaveTextContent("Defisit")
+    expect(screen.queryByRole("region", { name: "Ringkasannya" })).not.toBeInTheDocument()
+    expect(screen.queryByText("Begini kondisi keuanganmu")).not.toBeInTheDocument()
   })
 
   it("provides text alternatives for category and monthly trend charts", () => {
@@ -351,6 +379,66 @@ describe("StatsTab financial summary", () => {
   })
 })
 
+describe("StatsTab expense category chart", () => {
+  it("uses distinct matching colors for every displayed expense category", async () => {
+    const { container } = render(<StatsTab {...createProps({
+      expenseCategories: [
+        { name: "Makan", value: 800_000 },
+        { name: "Transportasi", value: 300_000 },
+        { name: "Sewa", value: 100_000 },
+      ],
+    })} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
+
+    const expenseSection = screen.getByRole("heading", { name: "Pengeluaran terbesar" }).closest("section")
+    await waitFor(() => {
+      const barColors = [...expenseSection.querySelectorAll(".recharts-bar-rectangle path, .recharts-bar-rectangle rect")]
+        .map(bar => bar.getAttribute("fill"))
+      const markerColors = [...expenseSection.querySelectorAll("span")]
+        .filter(marker => marker.className.includes("h-2.5") && marker.className.includes("w-2.5"))
+        .map(marker => marker.style.background)
+      const expectedColors = [COLORS[3], COLORS[4], COLORS[5]]
+      const toCssColor = color => {
+        const probe = document.createElement("span")
+        probe.style.background = color
+        return probe.style.background
+      }
+
+      expect(barColors.slice(0, 3)).toEqual(expectedColors)
+      expect(markerColors.slice(0, 3)).toEqual(expectedColors.map(toCssColor))
+      expect(new Set(barColors.slice(0, 3)).size).toBe(3)
+      expect(container.querySelectorAll(".recharts-bar-rectangle").length).toBeGreaterThanOrEqual(3)
+    })
+  })
+
+  it("shows each displayed expense category as nominal and percentage of the active total", () => {
+    render(<StatsTab {...createProps({
+      expenseCategories: [
+        { name: "Makan", value: 800_000 },
+        { name: "Transportasi", value: 200_000 },
+      ],
+    })} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
+
+    const expenseSection = screen.getByRole("heading", { name: "Pengeluaran terbesar" }).closest("section")
+    expect(expenseSection).toHaveTextContent("Rp 800 rb · 80,0%")
+    expect(expenseSection).toHaveTextContent("Rp 200 rb · 20,0%")
+  })
+
+  it("renders zero percentage when the active expense total is zero", () => {
+    render(<StatsTab {...createProps({
+      expenseCategories: [{ name: "Makan", value: 0 }],
+    })} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
+
+    const expenseSection = screen.getByRole("heading", { name: "Pengeluaran terbesar" }).closest("section")
+    expect(expenseSection).toHaveTextContent("Rp 0 · 0,0%")
+  })
+})
+
 describe("StatsTab top filter labels", () => {
   it("shows a visible matching label for every top filter", () => {
     render(<StatsTab {...createProps()} />)
@@ -424,12 +512,12 @@ describe("StatsTab routine/actual analysis mode", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
 
-    expect(screen.getByText("Makan")).toBeInTheDocument()
+    expect(screen.getAllByText("Makan").length).toBeGreaterThan(0)
     expect(screen.queryByText("Laptop")).not.toBeInTheDocument()
 
     fireEvent.click(analysisModeSelect)
     fireEvent.click(screen.getByRole("option", { name: "Semua" }))
     expect(analysisModeSelect).toHaveTextContent("Semua")
-    expect(screen.getByText("Laptop")).toBeInTheDocument()
+    expect(screen.getAllByText("Laptop").length).toBeGreaterThan(0)
   })
 })

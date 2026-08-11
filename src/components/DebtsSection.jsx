@@ -1,12 +1,13 @@
 "use client"
 import { useMemo, useState } from "react"
-import { CreditCard, Plus, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { CreditCard, Plus, ArrowUpRight, ArrowDownRight, CalendarDays, CheckCircle2, FileText } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import { useDebts } from "@/lib/useSharedData"
 import DebtCard from "./DebtCard"
 import DebtSetupModal from "./DebtSetupModal"
 import DebtPaymentModal from "./DebtPaymentModal"
+import FeatureEducation from "./FeatureEducation"
 import ConfirmSheet from "@/app/dashboard/_components/ConfirmSheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
 
@@ -128,24 +129,26 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
   if (debts.length === 0 && !setupOpen) {
     return (
       <div className="mt-6 animate-bento-in">
-        <button
-          onClick={() => setSetupOpen(true)}
-          className="w-full bento-tile bg-white border border-earth-100 p-4 shadow-warm active:scale-[0.99] transition-transform text-left"
-          aria-label="Tambah utang atau piutang"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: THEME.expenseBg, color: THEME.expense }}>
-                <CreditCard size={16} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-earth-800">Utang Piutang</p>
-                <p className="text-[10px] text-earth-500 mt-0.5">Lacak utang dan piutang kamu</p>
-              </div>
-            </div>
-            <Plus size={14} className="text-earth-400" aria-hidden="true" />
-          </div>
-        </button>
+        <FeatureEducation
+          title="Pantau utang dan piutang dengan jelas"
+          description="Catat siapa yang terlibat, jumlahnya, dan kapan perlu diselesaikan."
+          steps={[
+            { icon: <CreditCard size={16} aria-hidden="true" />, title: "Pilih jenisnya", description: "Tentukan apakah kamu punya utang atau piutang." },
+            { icon: <FileText size={16} aria-hidden="true" />, title: "Isi detailnya", description: "Catat orang, nominal, dan catatan penting." },
+            { icon: <CalendarDays size={16} aria-hidden="true" />, title: "Atur jatuh tempo", description: "Tentukan kapan perlu diselesaikan." },
+            { icon: <CheckCircle2 size={16} aria-hidden="true" />, title: "Catat pembayaran", description: "Masukkan pembayaran sampai lunas." },
+          ]}
+          example="Cicilan keluarga / Pinjaman ke teman"
+          action={
+            <button
+              type="button"
+              onClick={() => setSetupOpen(true)}
+              className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-4 py-2 text-xs font-bold text-white shadow-pop transition-colors hover:bg-sage-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
+            >
+              Tambah Utang/Piutang
+            </button>
+          }
+        />
       </div>
     )
   }

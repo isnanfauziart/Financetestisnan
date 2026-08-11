@@ -23,6 +23,16 @@ const PLAN_SECTIONS = [
   { key: "simulasi", label: "Simulasi", icon: Calculator },
 ]
 
+const PLAN_SECTION_TONES = {
+  overview: "bg-earth-100 text-earth-700",
+  goal: "bg-sage-100 text-sage-700",
+  budget: "bg-amber-100 text-amber-700",
+  tagihan: "bg-clay-100 text-clay-600",
+  utang: "bg-rose-100 text-rose-700",
+  event: "bg-indigo-100 text-indigo-700",
+  simulasi: "bg-violet-100 text-violet-700",
+}
+
 const SECTION_FEATURES = {
   goal: "goals",
   budget: "budgets",
@@ -36,6 +46,27 @@ const PLAN_PILLARS = [
   { key: "budget", feature: "budgets", label: "Anggaran", description: "Atur batas belanja bulan ini.", icon: Wallet },
   { key: "tagihan", feature: "bills", label: "Tagihan", description: "Siapkan pembayaran yang mendekat.", icon: Receipt },
 ]
+
+const PLAN_PILLAR_TONES = {
+  goal: {
+    border: "border-t-sage-400",
+    hover: "hover:bg-sage-50",
+    icon: "bg-sage-100 text-sage-700",
+    affordance: "text-sage-700",
+  },
+  budget: {
+    border: "border-t-amber-400",
+    hover: "hover:bg-amber-50",
+    icon: "bg-amber-100 text-amber-700",
+    affordance: "text-amber-700",
+  },
+  tagihan: {
+    border: "border-t-clay-400",
+    hover: "hover:bg-clay-50",
+    icon: "bg-clay-100 text-clay-600",
+    affordance: "text-clay-600",
+  },
+}
 
 export default function PlanTab({
   data,
@@ -99,8 +130,10 @@ export default function PlanTab({
                   }`}
                 >
                   <span className="inline-flex items-center justify-center gap-1.5">
-                    <Icon size={14} strokeWidth={2.2} aria-hidden="true" />
-                    {section.label}
+                    <span data-plan-icon-tile className={`flex h-7 w-7 items-center justify-center rounded-xl ${PLAN_SECTION_TONES[section.key]}`}>
+                      <Icon size={14} strokeWidth={2.2} aria-hidden="true" />
+                    </span>
+                    <span>{section.label}</span>
                   </span>
                 </button>
               )
@@ -122,6 +155,7 @@ export default function PlanTab({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {PLAN_PILLARS.map(({ key, feature, label, description, icon: Icon }) => {
                 const available = hasFeature(entitlement, feature)
+                const tone = PLAN_PILLAR_TONES[key]
                 return (
                   <button
                     key={key}
@@ -129,13 +163,18 @@ export default function PlanTab({
                     disabled={!available}
                     onClick={() => available && handleSectionChange(key)}
                     aria-label={`${available ? "Buka" : "Fitur terkunci"} ${label}`}
-                    className={`min-h-[132px] rounded-2xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${available ? "border-earth-100 bg-white shadow-warm hover:border-earth-200 hover:bg-earth-50" : "border-earth-100 bg-earth-50/70 opacity-70"}`}
+                    className={`group min-h-[132px] rounded-2xl border p-4 text-left transition-[background-color,border-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${available ? `border-t-2 ${tone.border} border-earth-100 bg-white shadow-warm ${tone.hover} active:scale-[0.99]` : "border-earth-100 bg-earth-50/70 opacity-70"}`}
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-earth-50 text-earth-700">
+                    <span data-plan-icon-tile className={`flex h-11 w-11 items-center justify-center rounded-2xl ${tone.icon}`}>
                       <Icon size={16} aria-hidden="true" />
                     </span>
                     <span className="mt-4 block text-sm font-bold text-earth-800">{label}</span>
                     <span className="mt-1 block text-[11px] leading-relaxed text-earth-500">{available ? description : "Fitur ini belum bisa kamu pakai."}</span>
+                    {available && (
+                      <span className={`mt-3 inline-flex items-center gap-1 text-[11px] font-bold ${tone.affordance}`}>
+                        Buka <ArrowRight size={14} aria-hidden="true" />
+                      </span>
+                    )}
                   </button>
                 )
               })}

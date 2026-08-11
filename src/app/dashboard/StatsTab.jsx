@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, AlertCircle, Info, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, Legend } from "recharts"
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, LabelList, Legend } from "recharts"
 import { THEME, COLORS, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRp, formatRpFull } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
@@ -34,26 +34,15 @@ function ChartSkeleton({ height = 180 }) {
   )
 }
 
-function getTakeawayText({ period, modeLabel, statIncome, statExpense, statSurplus }) {
-  const amount = formatRp(Math.abs(statSurplus))
-
-  if (statIncome === 0 && statExpense === 0) {
-    return `${period} · Tampilan ${modeLabel}: belum ada transaksi di periode ini.`
-  }
-
-  const direction = statSurplus > 0
-    ? `Surplus ${amount} — pemasukanmu lebih besar daripada pengeluaran.`
-    : statSurplus < 0
-      ? `Defisit ${amount} — pengeluaranmu lebih besar daripada pemasukan.`
-      : "Seimbang — pemasukan dan pengeluaranmu sama besar."
-
-  return `${period} · Tampilan ${modeLabel}: ${direction} Pemasukan ${formatRp(statIncome)} · Pengeluaran ${formatRp(statExpense)}.`
-}
-
 function getCategorySummary(title, categories) {
   if (!categories.length) return `${title}: belum ada data.`
   const ranked = categories.slice(0, 5).map(category => `${category.name} ${formatRp(category.value)}`).join(", ")
   return `${title}: ${ranked}.`
+}
+
+function formatCategoryPercentage(value, total) {
+  const percentage = total > 0 ? (Number(value) || 0) / total * 100 : 0
+  return percentage.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
 
 function getMonthlyTrendSummary(monthlyData) {
@@ -73,7 +62,6 @@ export default function StatsTab({
   data,
   filteredTransactions,
   statIncome, statExpense, statSavings, statSurplus,
-  routineStatIncome, routineStatExpense, routineStatSurplus,
   expenseCategories, incomeCategories,
   availableYears, compareYearOptions, availableAccounts,
   selectedMonth, selectedYear, selectedAccount, categoryFilter, dateFrom, dateTo,
@@ -123,6 +111,7 @@ export default function StatsTab({
   const activeCompareDataA = isRoutineMode ? (routineCompareDataA || compareDataA) : compareDataA
   const activeCompareDataB = isRoutineMode ? (routineCompareDataB || compareDataB) : compareDataB
   const activeCompareChartData = isRoutineMode ? (routineCompareChartData || compareChartData) : compareChartData
+  const chartExpenseTotal = chartExpenseCategories.reduce((total, category) => total + (Number(category.value) || 0), 0)
   const summaryStatus = statSurplus > 0 ? "Surplus" : statSurplus < 0 ? "Defisit" : "Seimbang"
   const summaryPeriod = [
     selectedMonth || (isAllMonths ? "Semua Bulan" : "Periode"),
@@ -134,16 +123,6 @@ export default function StatsTab({
       ? { background: "rgba(217,154,125,0.2)", color: "#ffd8c7" }
       : { background: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.88)" }
   const insightCards = Array.isArray(insights) ? insights : []
-  const takeawayIncome = isRoutineMode ? (routineStatIncome ?? statIncome) : statIncome
-  const takeawayExpense = isRoutineMode ? (routineStatExpense ?? statExpense) : statExpense
-  const takeawaySurplus = isRoutineMode ? (routineStatSurplus ?? (takeawayIncome - takeawayExpense)) : statSurplus
-  const takeawayText = getTakeawayText({
-    period: summaryPeriod,
-    modeLabel: isRoutineMode ? "Rutin" : "Semua",
-    statIncome: takeawayIncome,
-    statExpense: takeawayExpense,
-    statSurplus: takeawaySurplus,
-  })
 
   return (
     <div className="px-5 pt-4 space-y-5 animate-bento-in" key="stats-tab">
@@ -197,19 +176,6 @@ export default function StatsTab({
           </div>
         )}
       </div>
-
-      <section className="rounded-2xl border border-earth-100 bg-white p-4 shadow-warm" role="region" aria-label="Ringkasannya">
-        <div className="flex items-start gap-2.5">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-            <Lightbulb size={16} aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">Ringkasannya</p>
-            <h2 className="mt-1 text-base font-display font-bold text-earth-800">Begini kondisi keuanganmu</h2>
-            <p className="mt-1 text-xs leading-relaxed text-earth-600">{takeawayText}</p>
-          </div>
-        </div>
-      </section>
 
       <div className="glass rounded-2xl p-2" role="tablist" aria-label="Navigasi Statistik">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -341,7 +307,11 @@ export default function StatsTab({
                             if (hapticsEnabled) haptics.tap()
                             setCategoryFilter(category)
                           }}
-                        />
+                        >
+                          {categories.slice(0, 8).map((category, index) => (
+                            <Cell key={category.name} fill={COLORS[(index + colorOffset) % COLORS.length]} />
+                          ))}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -351,7 +321,9 @@ export default function StatsTab({
                     <div key={category.name} className="flex items-center gap-2 text-[10px]">
                       <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: COLORS[(index + colorOffset) % COLORS.length] }} aria-hidden="true" />
                       <span className="min-w-0 flex-1 truncate font-medium text-earth-700">{category.name}</span>
-                      <span className="flex-shrink-0 font-bold text-earth-800">{formatRp(category.value)}</span>
+                      <span className="flex-shrink-0 font-bold text-earth-800">
+                        {formatRp(category.value)}{key === "expense" ? ` · ${formatCategoryPercentage(category.value, chartExpenseTotal)}%` : ""}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -476,15 +448,28 @@ export default function StatsTab({
                 {activeCompareChartData.length > 0 && (
                   <div>
                     <p className="text-[10px] font-bold text-earth-500 mb-2">Perbandingan per Kategori</p>
-                    <ResponsiveContainer width="100%" height={Math.max(150, activeCompareChartData.length * 30)}>
-                      <BarChart data={activeCompareChartData} layout="vertical" barCategoryGap="30%">
-                        <XAxis type="number" hide />
-                        <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey={compareLabelA} name={compareLabelA} fill={THEME.income} radius={[0, 6, 6, 0]} maxBarSize={12} />
-                        <Bar dataKey={compareLabelB} name={compareLabelB} fill={THEME.expense} radius={[0, 6, 6, 0]} maxBarSize={12} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <p className="text-[10px] text-earth-500 -mt-1 mb-2">{compareLabelA} vs {compareLabelB}</p>
+                    <p id="stats-comparison-summary" className="sr-only">
+                      Perbandingan pengeluaran {compareLabelA} dan {compareLabelB}: {activeCompareChartData.map(item => `${item.category}, ${formatRp(item[compareLabelA] || 0)} dan ${formatRp(item[compareLabelB] || 0)}`).join("; ")}.
+                    </p>
+                    <div className="overflow-x-auto" role="img" aria-describedby="stats-comparison-summary">
+                      <div style={{ minWidth: Math.max(640, activeCompareChartData.length * 110) }}>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <LineChart data={activeCompareChartData} margin={{ top: 18, right: 12, left: 8, bottom: 8 }}>
+                            <XAxis dataKey="category" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
+                            <YAxis hide />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ fontSize: "11px" }} />
+                            <Line type="monotone" dataKey={compareLabelA} name={compareLabelA} stroke={THEME.income} strokeWidth={2.5} dot={{ r: 4, fill: THEME.income }} animationBegin={0} animationDuration={240}>
+                              <LabelList dataKey={compareLabelA} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} />
+                            </Line>
+                            <Line type="monotone" dataKey={compareLabelB} name={compareLabelB} stroke={THEME.expense} strokeWidth={2.5} dot={{ r: 4, fill: THEME.expense }} animationBegin={40} animationDuration={240}>
+                              <LabelList dataKey={compareLabelB} position="bottom" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} />
+                            </Line>
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
