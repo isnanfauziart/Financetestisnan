@@ -863,3 +863,31 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - None for this task. Browser CLI QA was unavailable; component tests and production build passed. Unrelated worktree changes remain untouched.
+
+## 2026-08-13 - Financial Freedom simulation rebuilt
+
+### Tasks Completed
+- Rebuilt the Pro-only Financial Freedom simulation with Indonesian-first target, ETA, progress, projection, formula, and uncertainty copy.
+- Added conservative calculation helpers using up to 12 completed WIB expense months, actual surplus, null-safe net worth handling, custom target-basis persistence, and current-month projection anchoring.
+- Added an explicit target reference line and accessible chart summary; corrected duplicate current-month history points.
+
+### Files Changed
+- `src/lib/financialFreedom.js`, `src/components/FITrackerCard.jsx`
+- `src/app/api/settings/route.js`, `src/lib/useSharedData.js`, `src/app/dashboard/PlanTab.jsx`, `src/app/dashboard/page.js`
+- Financial Freedom, settings, and Plan-tab tests; `docs/sheets-settings.md`
+- `progress.md`
+
+### Verification
+- Focused Financial Freedom/component suite: 4 files passed, 39 tests passed.
+- Settings API suite: 17 tests passed.
+- Full repository suite after final corrections: 103 files passed, 555 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder environment values; no secrets were written.
+- Independent final diff review found and confirmed fixes for the explicit target reference line and duplicate current-month chart point.
+- `git diff --check` passed before final verification; only existing CRLF conversion warnings were reported.
+
+### Decisions
+- Kept the implementation limited to the existing Simulasi surface and existing `financialIndependence` entitlement gate.
+- Left unrelated worktree changes untouched; no commit was created.
+
+### Blockers
+- None for this task. Browser visual QA was not available in the workspace.

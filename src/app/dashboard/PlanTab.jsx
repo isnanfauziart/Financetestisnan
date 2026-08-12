@@ -72,6 +72,8 @@ export default function PlanTab({
   data,
   transactions,
   monthlyData,
+  netWorthHistory,
+  now,
   goalsRefreshTrigger,
   eventsRefreshTrigger,
   billsRefreshTrigger,
@@ -187,17 +189,18 @@ export default function PlanTab({
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600">Simulasi</p>
-                  <h2 id="plan-simulation-overview-title" className="mt-1 text-lg font-display font-bold text-earth-900">Kalau kebiasaanmu berubah, hasilnya bagaimana?</h2>
-                  <p className="mt-2 text-xs leading-relaxed text-earth-700">Lihat efeknya pada target dan waktu pencapaiannya saat kebiasaanmu berubah.</p>
+                   <h2 id="plan-simulation-overview-title" className="mt-1 text-lg font-display font-bold text-earth-900">Target bebas finansial dan What-If</h2>
+                   <p className="mt-2 text-xs leading-relaxed text-earth-700">Dana yang kamu butuhkan dan What-If untuk melihat efek perubahan kebiasaan terhadap waktu pencapaian.</p>
                 </div>
               </div>
               {simulationAvailable ? (
                 <button
-                  type="button"
-                  onClick={() => handleSectionChange("simulasi")}
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-violet-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
-                >
-                  Coba What-If <ArrowRight size={14} aria-hidden="true" />
+                   type="button"
+                   onClick={() => handleSectionChange("simulasi")}
+                   aria-label="Buka target & What-If"
+                   className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-violet-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+                 >
+                   Buka target &amp; What-If <ArrowRight size={14} aria-hidden="true" />
                 </button>
               ) : (
                 <p className="mt-4 text-xs font-semibold text-earth-600">Simulasi belum bisa dipakai saat ini.</p>
@@ -247,7 +250,7 @@ export default function PlanTab({
 
         {currentSection === "simulasi" && (
           <div className="space-y-5">
-            {!isFeatureEnabled(entitlement, "financialIndependence") ? <LockedFeaturePreview title="Financial Freedom" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(entitlement, "financialIndependence") ? <FITrackerCard netWorth={data?.netWorth} monthlyData={monthlyData} /> : <LockedFeaturePreview title="Financial Freedom" description="Pelacak Financial Freedom tersedia di Pro." />}
+             {!isFeatureEnabled(entitlement, "financialIndependence") ? <LockedFeaturePreview title="Financial Freedom" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(entitlement, "financialIndependence") ? <FITrackerCard netWorth={data?.netWorth} monthlyData={monthlyData} netWorthHistory={netWorthHistory} now={now} /> : <LockedFeaturePreview title="Financial Freedom" description="Pelacak Financial Freedom tersedia di Pro." />}
 
             {!isFeatureEnabled(entitlement, "whatIf") ? <LockedFeaturePreview title="What-If" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(entitlement, "whatIf") ? <button onClick={onWhatIfOpen} className="w-full bento-tile bg-white border border-earth-100 p-4 shadow-warm active:scale-[0.99] transition-transform text-left" aria-label="Open What-If Scenario simulator"><div className="flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: THEME.primaryBg, color: THEME.primary }}><Calculator size={16} aria-hidden="true" /></div><div><p className="text-sm font-bold text-earth-800">What-If Scenario</p><p className="text-[10px] text-earth-500 mt-0.5">Simulasi dampak pengurangan pengeluaran ke goal</p></div></div><ArrowRight size={14} className="text-earth-400" aria-hidden="true" /></div></button> : <LockedFeaturePreview title="What-If" description="Simulasi dampak pengurangan pengeluaran tersedia di Pro." />}
           </div>

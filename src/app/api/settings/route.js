@@ -11,6 +11,19 @@ export const dynamic = 'force-dynamic'
 
 const SHEET_NAME = "Settings"
 const RANGE = `${SHEET_NAME}!A:B`
+const MAX_FINANCIAL_FREEDOM_EXPENSE_OVERRIDE = 999999999999
+
+function parseFinancialFreedomExpenseOverride(value) {
+  if (value === null || value === undefined || value === "") return null
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value > 0 && value <= MAX_FINANCIAL_FREEDOM_EXPENSE_OVERRIDE ? value : null
+  }
+  if (typeof value !== "string") return null
+  const raw = value.trim()
+  if (!raw || !/^(?:\d+|\d{1,3}(?:\.\d{3})+)$/.test(raw)) return null
+  const parsed = Number(raw.replace(/\./g, ""))
+  return Number.isSafeInteger(parsed) && parsed > 0 && parsed <= MAX_FINANCIAL_FREEDOM_EXPENSE_OVERRIDE ? parsed : null
+}
 
 async function fetchSettings(accessToken, spreadsheetId) {
   const rows = await getSheetData(accessToken, RANGE, spreadsheetId) || []
@@ -19,6 +32,7 @@ async function fetchSettings(accessToken, spreadsheetId) {
     startingBalanceDate: "",
     userName: "",
     userNamePromptDismissed: false,
+    financialFreedomMonthlyExpenseOverride: null,
     categories: getLegacyCategories(),
   }
   for (let i = 0; i < rows.length; i++) {
@@ -32,6 +46,8 @@ async function fetchSettings(accessToken, spreadsheetId) {
       settings.userName = String(val ?? "").trim()
     } else if (key === "usernamepromptdismissed") {
       settings.userNamePromptDismissed = val === "true"
+    } else if (key === "financialfreedommonthlyexpenseoverride") {
+      settings.financialFreedomMonthlyExpenseOverride = parseFinancialFreedomExpenseOverride(val)
     } else if (key === CATEGORIES_KEY.toLowerCase()) {
       settings.categories = parseStoredCategories(val) || getLegacyCategories()
     }
@@ -44,6 +60,7 @@ const SETTING_KEYS = {
   startingbalancedate: "startingBalanceDate",
   username: "userName",
   usernamepromptdismissed: "userNamePromptDismissed",
+  financialfreedommonthlyexpenseoverride: "financialFreedomMonthlyExpenseOverride",
 }
 
 function canonicalSettingKey(value) {
@@ -100,6 +117,12 @@ function serializeSettingValue(key, value) {
   if (key === "userNamePromptDismissed") {
     if (typeof value !== "boolean") throw new Error("Invalid user name prompt dismissal")
     return value ? "true" : "false"
+  }
+  if (key === "financialFreedomMonthlyExpenseOverride") {
+    if (value === null || (typeof value === "string" && value.trim() === "")) return ""
+    const parsed = parseFinancialFreedomExpenseOverride(value)
+    if (parsed === null) throw new Error("Invalid financial freedom monthly expense override")
+    return String(parsed)
   }
   return String(value ?? "")
 }

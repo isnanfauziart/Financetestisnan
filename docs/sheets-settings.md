@@ -17,6 +17,7 @@ Key-value pairs. Each row is a setting.
 |-----|------|-------------|
 | `startingBalance` | number | User's net worth at the time of entry (Rp) |
 | `startingBalanceDate` | string | Date when startingBalance was recorded (`YYYY-MM-DD`). Only transactions from this date forward count toward net worth. |
+| `financialFreedomMonthlyExpenseOverride` | positive integer | Optional monthly expense basis for the Target Bebas Finansial calculation (Rp). Blank clears it; maximum `999999999999`. |
 | `categories_v1` | JSON string | Per-user active/archived expense, income, and savings categories. Savings entries include `savingsKind` (`liquid` or `investment`). |
 
 `categories_v1` has the shape `{ expense: [], income: [], savings: [] }`. Each entry contains `name`, `icon`, and `active`; savings entries also contain `savingsKind`. `Utang` and `Piutang` are protected automated categories. New Artami-created Sheets receive the Indonesian starter set. Existing Sheets without this key continue using the legacy category lists until the user changes categories in Profile.
@@ -27,6 +28,7 @@ Key-value pairs. Each row is a setting.
 2. Row 1: `startingBalance` | `0`
 3. Row 2: `startingBalanceDate` | `2026-01-01`
 4. When the user sets their saldo awal via the app, both values update
+5. The app may add `financialFreedomMonthlyExpenseOverride` when the user chooses a custom target basis. The automatic calculation uses actual completed months with recorded expenses; the override changes only the target, not the surplus or ETA basis.
 
 ## Notes
 

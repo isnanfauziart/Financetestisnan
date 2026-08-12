@@ -95,6 +95,72 @@ describe("settings route", () => {
     expect(response.status).toBe(200)
     expect(body.settings.userName).toBe("")
     expect(body.settings.userNamePromptDismissed).toBe(false)
+    expect(body.settings.financialFreedomMonthlyExpenseOverride).toBeNull()
+  })
+
+  it("reads and writes the optional financial freedom expense override", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([["financialFreedomMonthlyExpenseOverride", "12000000"]])
+
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}), text: async () => "" })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { GET, PUT } = await import("@/app/api/settings/route")
+    const saveResponse = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["financialFreedomMonthlyExpenseOverride", 12_000_000]] }),
+    }))
+    const readResponse = await GET(new Request("http://localhost/api/settings"))
+
+    expect(saveResponse.status).toBe(200)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Settings!A%3AB:append"),
+      expect.objectContaining({ body: JSON.stringify({ values: [["financialFreedomMonthlyExpenseOverride", "12000000"]] }) })
+    )
+    expect((await readResponse.json()).settings.financialFreedomMonthlyExpenseOverride).toBe(12_000_000)
+  })
+
+  it.each([
+    ["zero", 0],
+    ["negative", -1],
+    ["fractional", 1000.5],
+    ["too large", 1_000_000_000_000],
+  ])("rejects a %s financial freedom expense override", async (_label, value) => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    const { PUT } = await import("@/app/api/settings/route")
+
+    const response = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["financialFreedomMonthlyExpenseOverride", value]] }),
+    }))
+
+    expect(response.status).toBe(400)
+  })
+
+  it("serializes a blank financial freedom expense override as a clear", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData.mockResolvedValue([["financialFreedomMonthlyExpenseOverride", "12000000"]])
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}), text: async () => "" })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { PUT } = await import("@/app/api/settings/route")
+    const response = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["financialFreedomMonthlyExpenseOverride", ""]] }),
+    }))
+
+    expect(response.status).toBe(200)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Settings!A1%3AB1?valueInputOption=RAW"),
+      expect.objectContaining({ body: JSON.stringify({ values: [["financialFreedomMonthlyExpenseOverride", ""]] }) })
+    )
   })
 
   it("does not turn a Settings read failure into empty user-name settings", async () => {

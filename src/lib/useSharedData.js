@@ -7,6 +7,7 @@ const EMPTY_SETTINGS = {
   startingBalanceDate: "",
   userName: "",
   userNamePromptDismissed: false,
+  financialFreedomMonthlyExpenseOverride: null,
   categories: getLegacyCategories(),
 }
 

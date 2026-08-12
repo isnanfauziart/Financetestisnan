@@ -2,8 +2,11 @@ import { describe, it, expect, vi } from "vitest"
 import { render, screen, fireEvent, within } from "@testing-library/react"
 import PlanTab from "@/app/dashboard/PlanTab"
 
+const dynamicCapture = vi.hoisted(() => ({ props: null }))
+
 vi.mock("next/dynamic", () => ({
-  default: () => function DynamicMock() {
+  default: () => function DynamicMock(props) {
+    dynamicCapture.props = props
     return <div>FI tracker mock</div>
   },
 }))
@@ -23,6 +26,8 @@ function createProps(overrides = {}) {
     data: { netWorth: 0 },
     transactions: [],
     monthlyData: [],
+    netWorthHistory: [],
+    now: new Date("2026-06-15T00:00:00.000Z"),
     goalsRefreshTrigger: 0,
     eventsRefreshTrigger: 0,
     billsRefreshTrigger: 0,
@@ -76,9 +81,9 @@ describe("PlanTab planning ownership", () => {
     expect(screen.getByRole("button", { name: "Buka Target" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buka Anggaran" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buka Tagihan" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Kalau kebiasaanmu berubah, hasilnya bagaimana?" })).toBeInTheDocument()
-    expect(screen.getByText(/lihat efeknya pada target/i)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Coba What-If" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Target bebas finansial dan What-If" })).toBeInTheDocument()
+    expect(screen.getByText(/dana yang kamu butuhkan.*what-if/i)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka target & What-If" })).toBeInTheDocument()
     expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
     expect(screen.queryByText("Budgets section mock")).not.toBeInTheDocument()
     expect(screen.queryByText("Bills section mock")).not.toBeInTheDocument()
@@ -87,10 +92,24 @@ describe("PlanTab planning ownership", () => {
   it("opens the existing Simulasi section from the overview CTA", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Coba What-If" }))
+    fireEvent.click(screen.getByRole("button", { name: "Buka target & What-If" }))
 
     expect(screen.getByRole("button", { name: "Open What-If Scenario simulator" })).toBeInTheDocument()
     expect(screen.getByText("FI tracker mock")).toBeInTheDocument()
+  })
+
+  it("passes the unfiltered net worth history to the financial freedom card", () => {
+    const history = [{ month: "Mei", year: "2026", value: 123 }]
+    render(<PlanTab {...createProps({ activeSection: "simulasi", netWorthHistory: history })} />)
+
+    expect(dynamicCapture.props.netWorthHistory).toBe(history)
+  })
+
+  it("passes the live clock to the financial freedom card", () => {
+    const now = new Date("2026-06-30T00:00:00.000Z")
+    render(<PlanTab {...createProps({ activeSection: "simulasi", now })} />)
+
+    expect(dynamicCapture.props.now).toBe(now)
   })
 
   it("shows a familiar icon beside every planning section label", () => {

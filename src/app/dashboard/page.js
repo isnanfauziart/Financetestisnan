@@ -1286,9 +1286,11 @@ export default function Dashboard() {
         )}
         {activeNav === "plan" && (
           <PlanTab
-            data={data}
-            transactions={data?.transactions || []}
-            monthlyData={data?.monthlyData || []}
+             data={data}
+             transactions={data?.transactions || []}
+             monthlyData={data?.monthlyData || []}
+             netWorthHistory={data?.netWorthHistory || []}
+             now={syncNow}
             goalsRefreshTrigger={goalsRefreshTrigger}
             eventsRefreshTrigger={eventsRefreshTrigger}
             billsRefreshTrigger={billsRefreshTrigger}
