@@ -139,7 +139,7 @@ describe("StatsTab comparison controls", () => {
     expect(resetComparePeriods).toHaveBeenCalledTimes(1)
   })
 
-  it("renders every comparison category in a two-series line chart with nominal labels", async () => {
+  it("renders every comparison category as adjacent month bars with nominal labels", async () => {
     const compareChartData = [
       { category: "Makan", "Jul 2026": 800_000, "Jun 2026": 600_000 },
       { category: "Transportasi", "Jul 2026": 300_000, "Jun 2026": 500_000 },
@@ -151,8 +151,8 @@ describe("StatsTab comparison controls", () => {
 
     const comparison = screen.getByText("Perbandingan per Kategori").closest(".bento-tile")
     expect(comparison.querySelector(".overflow-x-auto")).toBeTruthy()
-    expect(comparison.querySelector(".recharts-bar-chart")).toBeNull()
-    expect(comparison.querySelectorAll(".recharts-line-curve")).toHaveLength(2)
+    expect(comparison.querySelectorAll(".recharts-bar-rectangle").length).toBeGreaterThan(0)
+    expect(comparison.querySelectorAll(".recharts-line-curve")).toHaveLength(0)
     expect(comparison).toHaveTextContent("Makan")
     expect(comparison).toHaveTextContent("Transportasi")
     expect(comparison).toHaveTextContent("Sewa")
@@ -160,14 +160,16 @@ describe("StatsTab comparison controls", () => {
     await waitFor(() => {
       const labels = [...container.querySelectorAll(".recharts-label-list text")].map(label => label.textContent)
       const labelLists = [...comparison.querySelectorAll(".recharts-label-list")]
-      const labelYPositions = labelLists.map(labelList => [...labelList.querySelectorAll("text")].map(label => Number(label.getAttribute("y"))))
-      const pointYPositions = [...comparison.querySelectorAll(".recharts-line-dots circle")].map(point => Number(point.getAttribute("cy")))
+      const barRects = [...comparison.querySelectorAll(".recharts-bar-rectangle")]
+      const xAxisLabels = [...comparison.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick text")].map(label => label.textContent)
+      const yAxisLabels = [...comparison.querySelectorAll(".recharts-yAxis .recharts-cartesian-axis-tick text")]
 
-      // Recharts 2.12 exposes no position attribute on LabelList; verify top/bottom through rendered SVG y coordinates.
       expect(labelLists).toHaveLength(2)
-      expect(pointYPositions).toHaveLength(6)
-      expect(labelYPositions[0].every((y, index) => y < pointYPositions[index])).toBe(true)
-      expect(labelYPositions[1].every((y, index) => y > pointYPositions[index + 3])).toBe(true)
+      expect(labelLists.map(labelList => labelList.querySelectorAll("text").length)).toEqual([3, 3])
+      expect(barRects.length).toBeGreaterThanOrEqual(5)
+      expect(xAxisLabels).toEqual(["Makan", "Transportasi", "Sewa"])
+      expect(yAxisLabels.length).toBeGreaterThan(0)
+      expect(yAxisLabels.every(label => label.textContent.includes("Rp"))).toBe(true)
       expect([...comparison.querySelectorAll(".recharts-label-list text")].map(label => label.getAttribute("fill"))).toEqual(
         Array(6).fill(THEME.textPrimary),
       )

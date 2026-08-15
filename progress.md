@@ -835,7 +835,7 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Tasks Completed
 - Removed the duplicate Statistik `Ringkasannya` section so `Kondisi Keuangan` remains the single summary surface.
-- Added distinct expense-category colors, matching markers, locale-aware expense percentages, and a complete horizontally scrollable two-month category line chart with nominal labels.
+- Added distinct expense-category colors, matching markers, locale-aware expense percentages, and a complete horizontally scrollable two-month category comparison chart with nominal labels; the comparison visualization was subsequently refined to grouped bars.
 - Added semantic Rencana icon/card tones, stronger overview-card affordances, and visible `Buka` actions.
 - Added first-use Utang/Piutang education with the existing setup-modal CTA.
 - Added the approved design spec and implementation plan.
@@ -863,6 +863,35 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - None for this task. Browser CLI QA was unavailable; component tests and production build passed. Unrelated worktree changes remain untouched.
+
+## 2026-08-15 - Statistik comparison grouped bars
+
+### Tasks Completed
+- Replaced the two-month category comparison line chart with a grouped vertical bar chart.
+- Kept all comparison categories, combined-value descending order, zero-filled month values, horizontal scrolling, tooltip, legend, and accessible summary behavior.
+- Added visible Rupiah Y-axis ticks and nominal labels above both selected-month bars.
+- Updated the approved Statistik design specification and implementation plan.
+
+### Files Changed
+- `src/app/dashboard/StatsTab.jsx`
+- `tests/components/StatsTab.test.jsx`
+- `docs/superpowers/specs/2026-08-11-statistik-rencana-refinement-design.md`
+- `docs/superpowers/plans/2026-08-15-statistics-comparison-grouped-bars.md`
+- `progress.md`
+
+### Decisions
+- Use adjacent month bars, not layered or stacked bars; sort remains based on combined expense across both selected months.
+- Keep unrelated worktree changes untouched and outside this task.
+
+### Verification
+- Focused StatsTab suite: 27 tests passed.
+- Full repository suite: 103 files passed, 555 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder values for the four absent local production variables; no secrets were written.
+- Scoped `git diff --check` passed; only existing CRLF conversion warnings were reported.
+- Independent scoped diff review found no remaining chart or test findings after bounded corrections.
+
+### Blockers
+- None for this task. Browser CLI QA was unavailable; unrelated worktree changes remain untouched.
 
 ## 2026-08-13 - Financial Freedom simulation rebuilt
 

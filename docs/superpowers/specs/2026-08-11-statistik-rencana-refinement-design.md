@@ -12,10 +12,12 @@ Improve Statistik chart readability, strengthen Rencana discoverability, and add
 - Keep `Kondisi Keuangan` as the single financial summary surface.
 - Use a distinct `COLORS` entry for every expense category bar and matching detail marker.
 - Show each displayed expense category as `nominal · percentage`, with the percentage calculated against the active expense-category total.
-- Replace the horizontal month-comparison bars with a two-series line chart.
-- Use categories on the X-axis, the two selected months as series, and all categories in the active comparison data.
+- Replace the horizontal month-comparison line chart with a grouped vertical bar chart.
+- Use categories on the X-axis, expense amounts on the Y-axis, and the two selected months as adjacent bar series.
+- Sort categories by combined expense across both selected months, highest first; the existing comparison data derivation already applies this order.
 - Make the chart horizontally scrollable on narrow screens.
-- Render nominal data labels for both month series at every category point.
+- Render nominal data labels above both month bars at every category, including zero-filled categories that exist in only one month.
+- Render visible abbreviated Rupiah ticks on the Y-axis, with consistent distinct colors for the selected month series.
 - Preserve current selectors, reset action, tooltip, legend, filters, and `Rutin`/`Semua` data selection.
 
 ### Rencana

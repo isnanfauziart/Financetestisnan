@@ -454,19 +454,19 @@ export default function StatsTab({
                     </p>
                     <div className="overflow-x-auto" role="img" aria-describedby="stats-comparison-summary">
                       <div style={{ minWidth: Math.max(640, activeCompareChartData.length * 110) }}>
-                        <ResponsiveContainer width="100%" height={250}>
-                          <LineChart data={activeCompareChartData} margin={{ top: 18, right: 12, left: 8, bottom: 8 }}>
-                            <XAxis dataKey="category" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
-                            <YAxis hide />
+                        <ResponsiveContainer width="100%" height={280}>
+                          <BarChart data={activeCompareChartData} margin={{ top: 24, right: 12, left: 0, bottom: 28 }} barCategoryGap="24%" barGap={4}>
+                            <XAxis dataKey="category" interval={0} tick={{ fontSize: 10, fill: THEME.textSecondary }} tickMargin={8} axisLine={false} tickLine={false} />
+                            <YAxis width={58} tickFormatter={value => formatRp(value)} tick={{ fontSize: 10, fill: THEME.textSecondary }} axisLine={false} tickLine={false} allowDecimals={false} />
                             <Tooltip content={<CustomTooltip />} />
                             <Legend wrapperStyle={{ fontSize: "11px" }} />
-                            <Line type="monotone" dataKey={compareLabelA} name={compareLabelA} stroke={THEME.income} strokeWidth={2.5} dot={{ r: 4, fill: THEME.income }} animationBegin={0} animationDuration={240}>
+                            <Bar dataKey={compareLabelA} name={compareLabelA} fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={24} animationBegin={0} animationDuration={240}>
                               <LabelList dataKey={compareLabelA} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} />
-                            </Line>
-                            <Line type="monotone" dataKey={compareLabelB} name={compareLabelB} stroke={THEME.expense} strokeWidth={2.5} dot={{ r: 4, fill: THEME.expense }} animationBegin={40} animationDuration={240}>
-                              <LabelList dataKey={compareLabelB} position="bottom" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} />
-                            </Line>
-                          </LineChart>
+                            </Bar>
+                            <Bar dataKey={compareLabelB} name={compareLabelB} fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={24} animationBegin={40} animationDuration={240}>
+                              <LabelList dataKey={compareLabelB} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} />
+                            </Bar>
+                          </BarChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
