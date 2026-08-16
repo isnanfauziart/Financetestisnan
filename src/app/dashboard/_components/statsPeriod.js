@@ -24,10 +24,19 @@ export function buildMonthlyCashFlowData(transactions = []) {
     monthly.set(key, row)
   }
 
-  return Array.from(monthly.entries())
+  const rows = Array.from(monthly.entries())
     .filter(([, row]) => row.pemasukan > 0 || row.pengeluaran > 0)
     .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
     .map(([, row]) => row)
+
+  return rows.map((row, index) => {
+    const windowRows = rows.slice(Math.max(0, index - 2), index + 1)
+    return {
+      ...row,
+      rataRataPemasukan: windowRows.reduce((total, item) => total + item.pemasukan, 0) / windowRows.length,
+      rataRataPengeluaran: windowRows.reduce((total, item) => total + item.pengeluaran, 0) / windowRows.length,
+    }
+  })
 }
 
 export function getStatsPeriodDefaults(now = new Date()) {

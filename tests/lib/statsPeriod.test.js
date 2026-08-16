@@ -5,14 +5,17 @@ describe("buildMonthlyCashFlowData", () => {
   it("groups income and expenses by chronological year-month and ignores savings-only periods", () => {
     expect(buildMonthlyCashFlowData([
       { type: "income", amount: 2_000_000, month: "Jan", year: "2026" },
-      { type: "expense", amount: 500_000, month: "Jan", year: "2026" },
+      { type: "expense", amount: 600_000, month: "Jan", year: "2026" },
       { type: "income", amount: 1_000_000, month: "Jan", year: "2025" },
       { type: "savings", amount: 900_000, month: "Feb", year: "2025" },
       { type: "expense", amount: 300_000, month: "Des", year: "2025" },
+      { type: "income", amount: 4_000_000, month: "Feb", year: "2026" },
+      { type: "expense", amount: 1_200_000, month: "Feb", year: "2026" },
     ])).toEqual([
-      { month: "Jan", year: "2025", pemasukan: 1_000_000, pengeluaran: 0 },
-      { month: "Des", year: "2025", pemasukan: 0, pengeluaran: 300_000 },
-      { month: "Jan", year: "2026", pemasukan: 2_000_000, pengeluaran: 500_000 },
+      { month: "Jan", year: "2025", pemasukan: 1_000_000, pengeluaran: 0, rataRataPemasukan: 1_000_000, rataRataPengeluaran: 0 },
+      { month: "Des", year: "2025", pemasukan: 0, pengeluaran: 300_000, rataRataPemasukan: 500_000, rataRataPengeluaran: 150_000 },
+      { month: "Jan", year: "2026", pemasukan: 2_000_000, pengeluaran: 600_000, rataRataPemasukan: 1_000_000, rataRataPengeluaran: 300_000 },
+      { month: "Feb", year: "2026", pemasukan: 4_000_000, pengeluaran: 1_200_000, rataRataPemasukan: 2_000_000, rataRataPengeluaran: 700_000 },
     ])
   })
 })

@@ -407,30 +407,32 @@ describe("StatsTab Ringkasan cash flow chart", () => {
     expect(screen.queryByRole("region", { name: "Arus kas bulanan" })).not.toBeInTheDocument()
   })
 
-  it("renders grouped income and expense bars with separate average lines", async () => {
+  it("renders grouped income and expense bars with two rolling-average curves", async () => {
     const { container } = render(<StatsTab {...createProps({
       selectedMonth: "Semua Bulan",
       selectedYear: "2026",
       isAllMonths: true,
       cashFlowMonthlyData: [
-        { month: "Jan", year: "2026", pemasukan: 5_000_000, pengeluaran: 2_000_000 },
-        { month: "Feb", year: "2026", pemasukan: 3_000_000, pengeluaran: 4_000_000 },
+        { month: "Jan", year: "2026", pemasukan: 5_000_000, pengeluaran: 2_000_000, rataRataPemasukan: 5_000_000, rataRataPengeluaran: 2_000_000 },
+        { month: "Feb", year: "2026", pemasukan: 3_000_000, pengeluaran: 4_000_000, rataRataPemasukan: 4_000_000, rataRataPengeluaran: 3_000_000 },
+        { month: "Mar", year: "2026", pemasukan: 7_000_000, pengeluaran: 1_000_000, rataRataPemasukan: 5_000_000, rataRataPengeluaran: 2_333_333.3333333335 },
       ],
       routineCashFlowMonthlyData: [
-        { month: "Jan", year: "2026", pemasukan: 4_000_000, pengeluaran: 1_000_000 },
-        { month: "Feb", year: "2026", pemasukan: 2_000_000, pengeluaran: 3_000_000 },
+        { month: "Jan", year: "2026", pemasukan: 4_000_000, pengeluaran: 1_000_000, rataRataPemasukan: 4_000_000, rataRataPengeluaran: 1_000_000 },
+        { month: "Feb", year: "2026", pemasukan: 2_000_000, pengeluaran: 3_000_000, rataRataPemasukan: 3_000_000, rataRataPengeluaran: 2_000_000 },
+        { month: "Mar", year: "2026", pemasukan: 6_000_000, pengeluaran: 2_000_000, rataRataPemasukan: 4_000_000, rataRataPengeluaran: 2_000_000 },
       ],
     })} />)
 
     const chart = screen.getByRole("region", { name: "Arus kas bulanan" })
 
     expect(chart).toHaveTextContent("Pemasukan vs Pengeluaran")
-    expect(chart).toHaveTextContent("Rata-rata pemasukan")
-    expect(chart).toHaveTextContent("Rp 3.0 jt")
-    expect(chart).toHaveTextContent("Rata-rata pengeluaran")
-    expect(chart.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(4)
-    expect(chart.querySelectorAll(".recharts-reference-line-line")).toHaveLength(2)
-    expect([...container.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick text")].map(node => node.textContent)).toEqual(["Jan", "Feb"])
+    expect(chart).toHaveTextContent("Rata-rata pemasukan (3 bulan)")
+    expect(chart).toHaveTextContent("Rata-rata pengeluaran (3 bulan)")
+    expect(chart.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(6)
+    expect(chart.querySelectorAll(".recharts-line-curve")).toHaveLength(2)
+    expect(chart.querySelectorAll(".recharts-reference-line-line")).toHaveLength(0)
+    expect([...container.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick text")].map(node => node.textContent)).toEqual(["Jan", "Feb", "Mar"])
   })
 
   it("shows a cash-flow empty state when all-month filters have no income or expense", () => {

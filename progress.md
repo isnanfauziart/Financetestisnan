@@ -949,6 +949,35 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 ### Blockers
 - None for this task. Browser visual QA was unavailable; unrelated worktree changes remain untouched.
 
+## 2026-08-16 - Ringkasan rolling-average curves
+
+### Tasks Completed
+- Replaced the Ringkasan chart's straight average reference lines with two smooth rolling-average curves.
+- Added 3-month rolling income and expense values using the current month plus up to the previous two plotted months.
+- Updated the chart legend, tooltip series, and accessible summary to describe the moving averages.
+
+### Files Changed
+- `src/app/dashboard/_components/statsPeriod.js`
+- `src/app/dashboard/StatsTab.jsx`
+- `tests/lib/statsPeriod.test.js`
+- `tests/components/StatsTab.test.jsx`
+- `progress.md`
+
+### Decisions
+- Kept the bars and all existing filter, mode, visibility, and empty-state behavior unchanged.
+- Used plotted data periods rather than calendar gaps for the rolling window.
+- Left the correction uncommitted and unpushed pending explicit review/push approval.
+
+### Verification
+- Focused suites: 36 tests passed.
+- Full repository suite: 103 files passed, 559 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder values for the four absent local production variables; no secrets were written.
+- `git diff --check` passed; only existing CRLF conversion warnings were reported.
+- Independent final diff review found no blocking findings.
+
+### Blockers
+- None for this task. Browser visual QA was unavailable; unrelated worktree changes remain untouched.
+
 ## 2026-08-16 - Ringkasan monthly cash-flow chart
 
 ### Tasks Completed

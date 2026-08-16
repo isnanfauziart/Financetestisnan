@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, AlertCircle, Info, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react"
-import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, LabelList, Legend, ReferenceLine } from "recharts"
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, LabelList, Legend } from "recharts"
 import { THEME, COLORS, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRp, formatRpFull } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
@@ -132,14 +132,10 @@ export default function StatsTab({
     ...row,
     label: selectedYear === "Semua Tahun" ? `${row.month} ${row.year}` : row.month,
   }))
-  const cashFlowAverageIncome = cashFlowChartData.length
-    ? cashFlowChartData.reduce((total, row) => total + (Number(row.pemasukan) || 0), 0) / cashFlowChartData.length
-    : 0
-  const cashFlowAverageExpense = cashFlowChartData.length
-    ? cashFlowChartData.reduce((total, row) => total + (Number(row.pengeluaran) || 0), 0) / cashFlowChartData.length
-    : 0
+  const latestCashFlowRow = cashFlowChartData[cashFlowChartData.length - 1]
+  const cashFlowAverageWindow = Math.min(3, cashFlowChartData.length)
   const cashFlowChartSummary = cashFlowChartData.length
-    ? `Arus kas bulanan: ${cashFlowChartData.map(row => `${row.label}, pemasukan ${formatRp(row.pemasukan)}, pengeluaran ${formatRp(row.pengeluaran)}`).join("; ")}. Rata-rata pemasukan ${formatRp(cashFlowAverageIncome)} dan rata-rata pengeluaran ${formatRp(cashFlowAverageExpense)}.`
+    ? `Arus kas bulanan: ${cashFlowChartData.map(row => `${row.label}, pemasukan ${formatRp(row.pemasukan)}, pengeluaran ${formatRp(row.pengeluaran)}`).join("; ")}. Rata-rata bergerak ${cashFlowAverageWindow} bulan terakhir: pemasukan ${formatRp(latestCashFlowRow.rataRataPemasukan)} dan pengeluaran ${formatRp(latestCashFlowRow.rataRataPengeluaran)}.`
     : "Arus kas bulanan: belum ada data pemasukan atau pengeluaran."
 
   return (
@@ -284,12 +280,12 @@ export default function StatsTab({
                         Pengeluaran
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="w-5 border-t-2 border-dashed" style={{ borderColor: THEME.income }} aria-hidden="true" />
-                        Rata-rata pemasukan {formatRp(cashFlowAverageIncome)}
+                        <span className="w-5 border-t-2" style={{ borderColor: THEME.income }} aria-hidden="true" />
+                        Rata-rata pemasukan (3 bulan)
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="w-5 border-t-2 border-dashed" style={{ borderColor: THEME.expense }} aria-hidden="true" />
-                        Rata-rata pengeluaran {formatRp(cashFlowAverageExpense)}
+                        <span className="w-5 border-t-2" style={{ borderColor: THEME.expense }} aria-hidden="true" />
+                        Rata-rata pengeluaran (3 bulan)
                       </span>
                     </div>
                     <p id="stats-cash-flow-summary" className="sr-only">{cashFlowChartSummary}</p>
@@ -302,8 +298,8 @@ export default function StatsTab({
                             <Tooltip content={<CustomTooltip />} />
                             <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={0} animationDuration={220} />
                             <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={40} animationDuration={220} />
-                            <ReferenceLine y={cashFlowAverageIncome} stroke={THEME.income} strokeDasharray="6 4" strokeWidth={1.5} label={{ value: "Rata-rata pemasukan", position: "insideTopLeft", fill: THEME.income, fontSize: 10, fontWeight: 700 }} />
-                            <ReferenceLine y={cashFlowAverageExpense} stroke={THEME.expense} strokeDasharray="6 4" strokeWidth={1.5} label={{ value: "Rata-rata pengeluaran", position: "insideBottomLeft", fill: THEME.expense, fontSize: 10, fontWeight: 700 }} />
+                            <Line type="monotone" dataKey="rataRataPemasukan" name="Rata-rata pemasukan" stroke={THEME.income} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} connectNulls animationBegin={80} animationDuration={260} />
+                            <Line type="monotone" dataKey="rataRataPengeluaran" name="Rata-rata pengeluaran" stroke={THEME.expense} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} connectNulls animationBegin={120} animationDuration={260} />
                           </ComposedChart>
                         </ResponsiveContainer>
                       </div>
