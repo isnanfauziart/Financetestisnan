@@ -1,5 +1,35 @@
 import { AVAILABLE_MONTHS } from "./constants"
 
+export function buildMonthlyCashFlowData(transactions = []) {
+  const monthly = new Map()
+
+  for (const transaction of transactions) {
+    if (!transaction || !["income", "expense"].includes(transaction.type)) continue
+
+    const monthIndex = AVAILABLE_MONTHS.indexOf(transaction.month)
+    const year = String(transaction.year || "")
+    if (monthIndex < 0 || !year) continue
+
+    const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}`
+    const row = monthly.get(key) || {
+      month: transaction.month,
+      year,
+      pemasukan: 0,
+      pengeluaran: 0,
+    }
+    const amount = Number(transaction.amount) || 0
+
+    if (transaction.type === "income") row.pemasukan += amount
+    if (transaction.type === "expense") row.pengeluaran += amount
+    monthly.set(key, row)
+  }
+
+  return Array.from(monthly.entries())
+    .filter(([, row]) => row.pemasukan > 0 || row.pengeluaran > 0)
+    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+    .map(([, row]) => row)
+}
+
 export function getStatsPeriodDefaults(now = new Date()) {
   const currentMonthIndex = now.getMonth()
   const currentYear = String(now.getFullYear())

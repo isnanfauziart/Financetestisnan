@@ -1,5 +1,21 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { getStatsPeriodDefaults, getComparePeriodOptions, getCompareSeriesLabels } from "@/app/dashboard/_components/statsPeriod"
+import { buildMonthlyCashFlowData, getStatsPeriodDefaults, getComparePeriodOptions, getCompareSeriesLabels } from "@/app/dashboard/_components/statsPeriod"
+
+describe("buildMonthlyCashFlowData", () => {
+  it("groups income and expenses by chronological year-month and ignores savings-only periods", () => {
+    expect(buildMonthlyCashFlowData([
+      { type: "income", amount: 2_000_000, month: "Jan", year: "2026" },
+      { type: "expense", amount: 500_000, month: "Jan", year: "2026" },
+      { type: "income", amount: 1_000_000, month: "Jan", year: "2025" },
+      { type: "savings", amount: 900_000, month: "Feb", year: "2025" },
+      { type: "expense", amount: 300_000, month: "Des", year: "2025" },
+    ])).toEqual([
+      { month: "Jan", year: "2025", pemasukan: 1_000_000, pengeluaran: 0 },
+      { month: "Des", year: "2025", pemasukan: 0, pengeluaran: 300_000 },
+      { month: "Jan", year: "2026", pemasukan: 2_000_000, pengeluaran: 500_000 },
+    ])
+  })
+})
 
 describe("getStatsPeriodDefaults", () => {
   afterEach(() => {

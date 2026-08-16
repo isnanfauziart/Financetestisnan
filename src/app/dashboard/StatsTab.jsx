@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, AlertCircle, Info, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react"
-import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, LabelList, Legend } from "recharts"
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, LabelList, Legend, ReferenceLine } from "recharts"
 import { THEME, COLORS, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRp, formatRpFull } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
@@ -68,6 +68,8 @@ export default function StatsTab({
   setSelectedMonth, setSelectedYear, setSelectedAccount, setCategoryFilter, setDateFrom, setDateTo,
   clientMonthlyData,
   routineClientMonthlyData,
+  cashFlowMonthlyData,
+  routineCashFlowMonthlyData,
   top5Categories, trendData,
   routineExpenseCategories,
   routineTop5Categories,
@@ -106,6 +108,9 @@ export default function StatsTab({
   const isRoutineMode = analysisMode === "routine"
   const chartExpenseCategories = isRoutineMode ? (routineExpenseCategories || expenseCategories) : expenseCategories
   const chartClientMonthlyData = isRoutineMode ? (routineClientMonthlyData || clientMonthlyData) : clientMonthlyData
+  const activeCashFlowMonthlyData = isAllMonths
+    ? (isRoutineMode ? (routineCashFlowMonthlyData || cashFlowMonthlyData || []) : (cashFlowMonthlyData || []))
+    : []
   const chartTop5Categories = isRoutineMode ? (routineTop5Categories || top5Categories) : top5Categories
   const chartTrendData = isRoutineMode ? (routineTrendData || trendData) : trendData
   const activeCompareDataA = isRoutineMode ? (routineCompareDataA || compareDataA) : compareDataA
@@ -123,6 +128,19 @@ export default function StatsTab({
       ? { background: "rgba(217,154,125,0.2)", color: "#ffd8c7" }
       : { background: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.88)" }
   const insightCards = Array.isArray(insights) ? insights : []
+  const cashFlowChartData = activeCashFlowMonthlyData.map(row => ({
+    ...row,
+    label: selectedYear === "Semua Tahun" ? `${row.month} ${row.year}` : row.month,
+  }))
+  const cashFlowAverageIncome = cashFlowChartData.length
+    ? cashFlowChartData.reduce((total, row) => total + (Number(row.pemasukan) || 0), 0) / cashFlowChartData.length
+    : 0
+  const cashFlowAverageExpense = cashFlowChartData.length
+    ? cashFlowChartData.reduce((total, row) => total + (Number(row.pengeluaran) || 0), 0) / cashFlowChartData.length
+    : 0
+  const cashFlowChartSummary = cashFlowChartData.length
+    ? `Arus kas bulanan: ${cashFlowChartData.map(row => `${row.label}, pemasukan ${formatRp(row.pemasukan)}, pengeluaran ${formatRp(row.pengeluaran)}`).join("; ")}. Rata-rata pemasukan ${formatRp(cashFlowAverageIncome)} dan rata-rata pengeluaran ${formatRp(cashFlowAverageExpense)}.`
+    : "Arus kas bulanan: belum ada data pemasukan atau pengeluaran."
 
   return (
     <div className="px-5 pt-4 space-y-5 animate-bento-in" key="stats-tab">
@@ -235,6 +253,65 @@ export default function StatsTab({
                 </div>
               </div>
             </section>
+          )}
+
+          {isAllMonths && (
+            refreshing ? <ChartSkeleton height={300} /> : (
+              <section className="bento-tile bg-white border border-earth-100 p-4 sm:p-5 shadow-warm" role="region" aria-label="Arus kas bulanan">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-bold font-display text-earth-800">Pemasukan vs Pengeluaran</h3>
+                    <p className="text-[10px] text-earth-500 mt-1">Perbandingan arus kas aktual per bulan.</p>
+                  </div>
+                  {cashFlowChartData.length > 0 && (
+                    <span className="flex-shrink-0 rounded-full bg-earth-50 px-2.5 py-1 text-[10px] font-bold text-earth-600">
+                      {cashFlowChartData.length} bulan
+                    </span>
+                  )}
+                </div>
+
+                {cashFlowChartData.length === 0 ? (
+                  <EmptyState icon={<Wallet size={18} />} title="Belum ada data arus kas" hint="Pilih rentang dengan pemasukan atau pengeluaran untuk melihat grafik." />
+                ) : (
+                  <>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[10px] font-semibold text-earth-600" aria-label="Legenda arus kas">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-sm" style={{ background: THEME.income }} aria-hidden="true" />
+                        Pemasukan
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-sm" style={{ background: THEME.expense }} aria-hidden="true" />
+                        Pengeluaran
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-5 border-t-2 border-dashed" style={{ borderColor: THEME.income }} aria-hidden="true" />
+                        Rata-rata pemasukan {formatRp(cashFlowAverageIncome)}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-5 border-t-2 border-dashed" style={{ borderColor: THEME.expense }} aria-hidden="true" />
+                        Rata-rata pengeluaran {formatRp(cashFlowAverageExpense)}
+                      </span>
+                    </div>
+                    <p id="stats-cash-flow-summary" className="sr-only">{cashFlowChartSummary}</p>
+                    <div className="mt-2 overflow-x-auto" role="img" aria-describedby="stats-cash-flow-summary">
+                      <div style={{ minWidth: Math.max(520, cashFlowChartData.length * 84) }}>
+                        <ResponsiveContainer width="100%" height={280}>
+                          <ComposedChart data={cashFlowChartData} margin={{ top: 28, right: 16, left: 0, bottom: 8 }} barCategoryGap="22%" barGap={4}>
+                            <XAxis dataKey="label" interval={0} tick={{ fontSize: 10, fill: THEME.textSecondary }} tickMargin={8} axisLine={false} tickLine={false} />
+                            <YAxis width={62} tickFormatter={value => formatRp(value)} tick={{ fontSize: 10, fill: THEME.textSecondary }} axisLine={false} tickLine={false} allowDecimals={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={0} animationDuration={220} />
+                            <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={40} animationDuration={220} />
+                            <ReferenceLine y={cashFlowAverageIncome} stroke={THEME.income} strokeDasharray="6 4" strokeWidth={1.5} label={{ value: "Rata-rata pemasukan", position: "insideTopLeft", fill: THEME.income, fontSize: 10, fontWeight: 700 }} />
+                            <ReferenceLine y={cashFlowAverageExpense} stroke={THEME.expense} strokeDasharray="6 4" strokeWidth={1.5} label={{ value: "Rata-rata pengeluaran", position: "insideBottomLeft", fill: THEME.expense, fontSize: 10, fontWeight: 700 }} />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </section>
+            )
           )}
 
           {/* Smart Insights (compact) */}

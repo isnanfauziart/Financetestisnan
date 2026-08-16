@@ -948,3 +948,34 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - None for this task. Browser visual QA was unavailable; unrelated worktree changes remain untouched.
+
+## 2026-08-16 - Ringkasan monthly cash-flow chart
+
+### Tasks Completed
+- Added a Ringkasan-only monthly cash-flow chart beneath the existing Kondisi Keuangan card.
+- Showed side-by-side Pemasukan and Pengeluaran bars with separate monthly average reference lines.
+- Kept the chart hidden for a single selected month and added an empty state for periods without cash-flow data.
+- Preserved all Statistik filters, Rutin/Semua mode, the existing Tren chart, forecast, and summary card.
+
+### Files Changed
+- `src/app/dashboard/_components/statsPeriod.js`
+- `src/app/dashboard/page.js`
+- `src/app/dashboard/StatsTab.jsx`
+- `tests/lib/statsPeriod.test.js`
+- `tests/components/StatsTab.test.jsx`
+- `progress.md`
+
+### Decisions
+- Grouped chart data by chronological year-month so `Semua Tahun` does not merge the same month across years.
+- Calculated averages over plotted months with income or expense data, including zero values for the other series.
+- Left unrelated worktree changes untouched; no commit was created.
+
+### Verification
+- Focused suites: 36 tests passed.
+- Full repository suite: 103 files passed, 559 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder values for the four absent local production variables; no secrets were written.
+- `git diff --check` passed; only existing CRLF conversion warnings were reported.
+- Independent final diff review found no blocking findings.
+
+### Blockers
+- None for this task. Browser visual QA was unavailable; unrelated worktree changes remain untouched.

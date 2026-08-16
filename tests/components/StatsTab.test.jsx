@@ -396,6 +396,56 @@ describe("StatsTab financial summary", () => {
   })
 })
 
+describe("StatsTab Ringkasan cash flow chart", () => {
+  it("does not show the monthly chart for a single selected month", () => {
+    render(<StatsTab {...createProps({
+      selectedMonth: "Jul",
+      isAllMonths: false,
+      cashFlowMonthlyData: [{ month: "Jul", year: "2026", pemasukan: 5_000_000, pengeluaran: 2_000_000 }],
+    })} />)
+
+    expect(screen.queryByRole("region", { name: "Arus kas bulanan" })).not.toBeInTheDocument()
+  })
+
+  it("renders grouped income and expense bars with separate average lines", async () => {
+    const { container } = render(<StatsTab {...createProps({
+      selectedMonth: "Semua Bulan",
+      selectedYear: "2026",
+      isAllMonths: true,
+      cashFlowMonthlyData: [
+        { month: "Jan", year: "2026", pemasukan: 5_000_000, pengeluaran: 2_000_000 },
+        { month: "Feb", year: "2026", pemasukan: 3_000_000, pengeluaran: 4_000_000 },
+      ],
+      routineCashFlowMonthlyData: [
+        { month: "Jan", year: "2026", pemasukan: 4_000_000, pengeluaran: 1_000_000 },
+        { month: "Feb", year: "2026", pemasukan: 2_000_000, pengeluaran: 3_000_000 },
+      ],
+    })} />)
+
+    const chart = screen.getByRole("region", { name: "Arus kas bulanan" })
+
+    expect(chart).toHaveTextContent("Pemasukan vs Pengeluaran")
+    expect(chart).toHaveTextContent("Rata-rata pemasukan")
+    expect(chart).toHaveTextContent("Rp 3.0 jt")
+    expect(chart).toHaveTextContent("Rata-rata pengeluaran")
+    expect(chart.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(4)
+    expect(chart.querySelectorAll(".recharts-reference-line-line")).toHaveLength(2)
+    expect([...container.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick text")].map(node => node.textContent)).toEqual(["Jan", "Feb"])
+  })
+
+  it("shows a cash-flow empty state when all-month filters have no income or expense", () => {
+    render(<StatsTab {...createProps({
+      selectedMonth: "Semua Bulan",
+      isAllMonths: true,
+      cashFlowMonthlyData: [],
+      routineCashFlowMonthlyData: [],
+    })} />)
+
+    expect(screen.getByRole("region", { name: "Arus kas bulanan" })).toHaveTextContent("Belum ada data arus kas")
+    expect(screen.queryByText("Rata-rata pemasukan")).not.toBeInTheDocument()
+  })
+})
+
 describe("StatsTab expense category chart", () => {
   it("uses distinct matching colors for every displayed expense category", async () => {
     const { container } = render(<StatsTab {...createProps({

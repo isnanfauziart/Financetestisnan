@@ -7,7 +7,7 @@ import { useCountUp, useSoundPref, playSuccessSound, parseTxDate, formatRp } fro
 import useHaptics from "./_components/useHaptics"
 import useHapticsPref from "./_components/useHapticsPref"
 import { computeAllGoalProgress, computeGoalProgress } from "./_components/goalUtils"
-import { getStatsPeriodDefaults, getComparePeriodOptions, getCompareSeriesLabels } from "./_components/statsPeriod"
+import { buildMonthlyCashFlowData, getStatsPeriodDefaults, getComparePeriodOptions, getCompareSeriesLabels } from "./_components/statsPeriod"
 import EmptyState from "./_components/EmptyState"
 import HomeTab from "./HomeTab"
 import StatsTab from "./StatsTab"
@@ -983,6 +983,8 @@ export default function Dashboard() {
   // --- Non-hook derivations (depend on hooks defined above) ---
   const clientMonthlyData = buildMonthlyDataFromTransactions(filteredTransactions, isAllMonths)
   const routineClientMonthlyData = buildMonthlyDataFromTransactions(routineFilteredTransactions, isAllMonths)
+  const cashFlowMonthlyData = isAllMonths ? buildMonthlyCashFlowData(filteredTransactions) : []
+  const routineCashFlowMonthlyData = isAllMonths ? buildMonthlyCashFlowData(routineFilteredTransactions) : []
 
   const availableYears = Array.from(new Set(data?.transactions?.map(t => t.year).filter(Boolean) || [])).sort((a,b) => b.localeCompare(a))
   if (availableYears.length === 0) availableYears.push(new Date().getFullYear().toString())
@@ -1251,8 +1253,10 @@ export default function Dashboard() {
             dateFrom={dateFrom} dateTo={dateTo}
             setSelectedMonth={setSelectedMonth} setSelectedYear={setSelectedYear} setSelectedAccount={setSelectedAccount} setCategoryFilter={setCategoryFilter}
             setDateFrom={setDateFrom} setDateTo={setDateTo}
-             clientMonthlyData={clientMonthlyData}
-             routineClientMonthlyData={routineClientMonthlyData}
+              clientMonthlyData={clientMonthlyData}
+              routineClientMonthlyData={routineClientMonthlyData}
+              cashFlowMonthlyData={cashFlowMonthlyData}
+              routineCashFlowMonthlyData={routineCashFlowMonthlyData}
              top5Categories={top5Categories} trendData={trendData}
              routineExpenseCategories={routineExpenseCategories}
              routineTop5Categories={routineTop5Categories} routineTrendData={routineTrendData}
