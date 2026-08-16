@@ -10,10 +10,12 @@
 
 ## Global Constraints
 
-- Preserve existing comparison selectors, reset action, tooltip, legend, filters, and `Rutin`/`Semua` data selection.
+- Preserve existing comparison selectors, reset action, tooltip, custom color key, filters, and `Rutin`/`Semua` data selection.
 - Use categories on the X-axis and expense amounts on the Y-axis.
 - Render two adjacent month bars per category, ordered by combined expense across both months.
 - Render both nominal values above their bars, including zero-filled categories.
+- Use `9px` for the nominal labels above bars.
+- Place a custom color key below the X-axis with one colored circle for each month and the caption `Keduanya menunjukkan pengeluaran`.
 - Keep the chart horizontally scrollable on narrow screens.
 - Do not change APIs, Google Sheets, Supabase, quotas, entitlements, transactions, or dependencies.
 
@@ -27,7 +29,7 @@
 
 **Interfaces:**
 - Consumes: `activeCompareChartData`, `compareLabelA`, `compareLabelB`, `formatRp`, `THEME`, and the existing comparison controls.
-- Produces: A grouped `BarChart` with `XAxis dataKey="category"`, formatted `YAxis`, two `Bar` series, nominal `LabelList`s, tooltip, legend, and the existing accessible summary.
+- Produces: A grouped `BarChart` with `XAxis dataKey="category"`, formatted `YAxis`, two `Bar` series, compact nominal `LabelList`s, tooltip, custom below-axis color key, and the existing accessible summary.
 
 - [x] **Step 1: Write the failing test**
 
@@ -48,12 +50,11 @@
     <XAxis dataKey="category" interval={0} tickMargin={8} axisLine={false} tickLine={false} />
     <YAxis width={58} tickFormatter={value => formatRp(value)} allowDecimals={false} axisLine={false} tickLine={false} />
     <Tooltip content={<CustomTooltip />} />
-    <Legend wrapperStyle={{ fontSize: "11px" }} />
     <Bar dataKey={compareLabelA} name={compareLabelA} fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={24}>
-      <LabelList dataKey={compareLabelA} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} />
+      <LabelList dataKey={compareLabelA} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} fontSize={9} />
     </Bar>
     <Bar dataKey={compareLabelB} name={compareLabelB} fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={24}>
-      <LabelList dataKey={compareLabelB} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} />
+      <LabelList dataKey={compareLabelB} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} fontSize={9} />
     </Bar>
   </BarChart>
   ```
@@ -63,6 +64,18 @@
   Run `npm run test -- tests/components/StatsTab.test.jsx`.
 
   Expected: 27 tests pass.
+
+- [x] **Step 5: Add the compact labels and explicit expense color key**
+
+  Set `fontSize={9}` on both value `LabelList` components, remove the automatic comparison legend, and render this key after the chart inside the horizontal scroll surface:
+
+  ```jsx
+  <div role="group" aria-label="Keterangan warna perbandingan">
+    <span><span aria-hidden="true" style={{ background: THEME.income }} />{compareLabelA}</span>
+    <span><span aria-hidden="true" style={{ background: THEME.expense }} />{compareLabelB}</span>
+    <p>Keduanya menunjukkan pengeluaran</p>
+  </div>
+  ```
 
 ### Task 2: Verify and document the refinement
 

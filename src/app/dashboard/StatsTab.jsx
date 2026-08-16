@@ -452,22 +452,34 @@ export default function StatsTab({
                     <p id="stats-comparison-summary" className="sr-only">
                       Perbandingan pengeluaran {compareLabelA} dan {compareLabelB}: {activeCompareChartData.map(item => `${item.category}, ${formatRp(item[compareLabelA] || 0)} dan ${formatRp(item[compareLabelB] || 0)}`).join("; ")}.
                     </p>
-                    <div className="overflow-x-auto" role="img" aria-describedby="stats-comparison-summary">
+                    <div className="overflow-x-auto">
                       <div style={{ minWidth: Math.max(640, activeCompareChartData.length * 110) }}>
-                        <ResponsiveContainer width="100%" height={280}>
-                          <BarChart data={activeCompareChartData} margin={{ top: 24, right: 12, left: 0, bottom: 28 }} barCategoryGap="24%" barGap={4}>
-                            <XAxis dataKey="category" interval={0} tick={{ fontSize: 10, fill: THEME.textSecondary }} tickMargin={8} axisLine={false} tickLine={false} />
-                            <YAxis width={58} tickFormatter={value => formatRp(value)} tick={{ fontSize: 10, fill: THEME.textSecondary }} axisLine={false} tickLine={false} allowDecimals={false} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{ fontSize: "11px" }} />
-                            <Bar dataKey={compareLabelA} name={compareLabelA} fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={24} animationBegin={0} animationDuration={240}>
-                              <LabelList dataKey={compareLabelA} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} />
-                            </Bar>
-                            <Bar dataKey={compareLabelB} name={compareLabelB} fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={24} animationBegin={40} animationDuration={240}>
-                              <LabelList dataKey={compareLabelB} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} />
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
+                        <div role="img" aria-describedby="stats-comparison-summary">
+                          <ResponsiveContainer width="100%" height={280}>
+                            <BarChart data={activeCompareChartData} margin={{ top: 24, right: 12, left: 0, bottom: 28 }} barCategoryGap="24%" barGap={4}>
+                              <XAxis dataKey="category" interval={0} tick={{ fontSize: 10, fill: THEME.textSecondary }} tickMargin={8} axisLine={false} tickLine={false} />
+                              <YAxis width={58} tickFormatter={value => formatRp(value)} tick={{ fontSize: 10, fill: THEME.textSecondary }} axisLine={false} tickLine={false} allowDecimals={false} />
+                              <Tooltip content={<CustomTooltip />} />
+                              <Bar dataKey={compareLabelA} name={compareLabelA} fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={24} animationBegin={0} animationDuration={240}>
+                                <LabelList dataKey={compareLabelA} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} fontSize={9} />
+                              </Bar>
+                              <Bar dataKey={compareLabelB} name={compareLabelB} fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={24} animationBegin={40} animationDuration={240}>
+                                <LabelList dataKey={compareLabelB} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} fontSize={9} />
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div role="group" aria-label="Keterangan warna perbandingan" className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] text-earth-500">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full" style={{ background: THEME.income }} aria-hidden="true" />
+                            {compareLabelA}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full" style={{ background: THEME.expense }} aria-hidden="true" />
+                            {compareLabelB}
+                          </span>
+                          <p className="basis-full text-center text-[10px] text-earth-600">Keduanya menunjukkan pengeluaran</p>
+                        </div>
                       </div>
                     </div>
                   </div>

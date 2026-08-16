@@ -170,9 +170,10 @@ describe("StatsTab comparison controls", () => {
       expect(xAxisLabels).toEqual(["Makan", "Transportasi", "Sewa"])
       expect(yAxisLabels.length).toBeGreaterThan(0)
       expect(yAxisLabels.every(label => label.textContent.includes("Rp"))).toBe(true)
-      expect([...comparison.querySelectorAll(".recharts-label-list text")].map(label => label.getAttribute("fill"))).toEqual(
-        Array(6).fill(THEME.textPrimary),
-      )
+      expect([...comparison.querySelectorAll(".recharts-label-list text")].map(label => label.getAttribute("fill"))).toEqual(Array(6).fill(THEME.textPrimary))
+      expect([...comparison.querySelectorAll(".recharts-label-list text")].map(label => label.getAttribute("font-size"))).toEqual(Array(6).fill("9"))
+      expect(comparison.querySelector(".recharts-legend-wrapper")).toBeNull()
+      expect(comparison).toHaveTextContent("Keduanya menunjukkan pengeluaran")
       expect(comparison).toHaveTextContent("Jul 2026 vs Jun 2026")
       expect(labels).toEqual(expect.arrayContaining([
         "Rp 800 rb",
@@ -183,6 +184,20 @@ describe("StatsTab comparison controls", () => {
         "Rp 0",
       ]))
     })
+
+    const colorKey = screen.getByRole("group", { name: "Keterangan warna perbandingan" })
+    expect(colorKey).toHaveTextContent("Jul 2026")
+    expect(colorKey).toHaveTextContent("Jun 2026")
+    expect(colorKey).toHaveTextContent("Keduanya menunjukkan pengeluaran")
+    expect(colorKey.closest(".overflow-x-auto")).toBeTruthy()
+    const colorMarkers = [...colorKey.querySelectorAll("span[aria-hidden=\"true\"]")]
+    const toCssColor = color => {
+      const probe = document.createElement("span")
+      probe.style.background = color
+      return probe.style.background
+    }
+    expect(colorMarkers).toHaveLength(2)
+    expect(colorMarkers.map(marker => marker.style.background)).toEqual([toCssColor(THEME.income), toCssColor(THEME.expense)])
   })
 })
 

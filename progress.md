@@ -920,3 +920,31 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - None for this task. Browser visual QA was not available in the workspace.
+
+## 2026-08-16 - Comparison chart label and color key refinement
+
+### Tasks Completed
+- Reduced the comparison bar-value labels to `9px`.
+- Replaced the ambiguous automatic legend with a custom color key below the X-axis.
+- Added dynamic primary/comparison month markers and the caption `Keduanya menunjukkan pengeluaran` so users understand both series are expenses.
+
+### Files Changed
+- `src/app/dashboard/StatsTab.jsx`
+- `tests/components/StatsTab.test.jsx`
+- `docs/superpowers/specs/2026-08-11-statistik-rencana-refinement-design.md`
+- `docs/superpowers/plans/2026-08-15-statistics-comparison-grouped-bars.md`
+- `progress.md`
+
+### Decisions
+- Keep the color key inside the horizontally scrollable chart surface directly below the X-axis.
+- Keep the month colors dynamic and preserve all existing comparison data and controls.
+- Leave unrelated worktree changes untouched; keep this follow-up limited to the chart refinement.
+
+### Verification
+- Focused StatsTab suite: 27 tests passed.
+- Full repository suite: 103 files passed, 555 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder values for the four absent local production variables; no secrets were written.
+- `git diff --check` passed; only existing CRLF conversion warnings were reported.
+
+### Blockers
+- None for this task. Browser visual QA was unavailable; unrelated worktree changes remain untouched.

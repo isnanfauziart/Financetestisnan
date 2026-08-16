@@ -18,7 +18,9 @@ Improve Statistik chart readability, strengthen Rencana discoverability, and add
 - Make the chart horizontally scrollable on narrow screens.
 - Render nominal data labels above both month bars at every category, including zero-filled categories that exist in only one month.
 - Render visible abbreviated Rupiah ticks on the Y-axis, with consistent distinct colors for the selected month series.
-- Preserve current selectors, reset action, tooltip, legend, filters, and `Rutin`/`Semua` data selection.
+- Keep the bar-value labels compact at `9px`.
+- Place a custom color key below the X-axis with colored circles for the primary and comparison month labels, followed by `Keduanya menunjukkan pengeluaran`.
+- Preserve current selectors, reset action, tooltip, custom color key, filters, and `Rutin`/`Semua` data selection.
 
 ### Rencana
 
