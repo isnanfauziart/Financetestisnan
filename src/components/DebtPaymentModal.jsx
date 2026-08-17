@@ -14,6 +14,8 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
 
   const isUtang = debt.arah === "utang"
   const accentColor = isUtang ? THEME.expense : THEME.income
+  const actionLabel = isUtang ? "Bayar" : "Terima"
+  const settleLabel = isUtang ? "Bayar Lunas" : "Terima Lunas"
 
   const amount = parseFloat(String(rawAmount).replace(/\./g, "")) || 0
   const isSettleAll = amount >= debt.sisaSaldo && debt.sisaSaldo > 0
@@ -21,11 +23,11 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
   async function handlePay(settleAll = false) {
     const payAmount = settleAll ? debt.sisaSaldo : amount
     if (!payAmount || payAmount <= 0) {
-      setError("Masukkan jumlah pembayaran")
+      setError(isUtang ? "Masukkan jumlah pembayaran" : "Masukkan jumlah yang akan diterima")
       return
     }
     if (payAmount > debt.sisaSaldo) {
-      setError("Jumlah melebihi sisa utang")
+      setError(`Jumlah melebihi sisa ${isUtang ? "utang" : "piutang"}`)
       return
     }
 
@@ -51,8 +53,10 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
 
       onToast(
         result.newStatus === "settled"
-          ? `${debt.namaOrang} lunas! 🎉`
-          : `Pembayaran ${formatRpFull(payAmount)} tercatat`,
+          ? `${isUtang ? "Utang" : "Piutang"} ${isUtang ? "ke" : "dari"} ${debt.namaOrang} lunas! 🎉`
+          : isUtang
+            ? `Pembayaran ${formatRpFull(payAmount)} ke ${debt.namaOrang} tercatat`
+            : `Penerimaan ${formatRpFull(payAmount)} dari ${debt.namaOrang} tercatat`,
         "success"
       )
       onSaved()
@@ -66,7 +70,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
     <Sheet
       open={true}
       onClose={onClose}
-      subtitle="Bayar"
+      subtitle={actionLabel}
       size="md"
       maxHeight="80vh"
       closeOnBackdrop={!submitting}
@@ -75,7 +79,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
         <div className="flex items-center gap-2">
           {isUtang ? <ArrowUpRight size={18} color={accentColor} /> : <ArrowDownRight size={18} color={accentColor} />}
           <h3 className="text-lg font-display font-bold text-earth-800">
-            Bayar {isUtang ? "Utang" : "Piutang"} ke {debt.namaOrang}
+            {isUtang ? `Bayar Utang ke ${debt.namaOrang}` : `Terima pembayaran dari ${debt.namaOrang}`}
           </h3>
         </div>
       }
@@ -96,7 +100,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
           />
         </div>
         <p className="text-[10px] text-earth-500 mt-1">
-          {formatRpFull(debt.jumlah - debt.sisaSaldo)} dari {formatRpFull(debt.jumlah)} terbayar
+          {formatRpFull(debt.jumlah - debt.sisaSaldo)} dari {formatRpFull(debt.jumlah)} {isUtang ? "terbayar" : "diterima"}
         </p>
       </div>
 
@@ -104,7 +108,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
       <div className="space-y-3">
         <div>
           <label htmlFor="pay-amount" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
-            Jumlah Pembayaran (Rp)
+            {isUtang ? "Jumlah Pembayaran (Rp)" : "Jumlah Diterima (Rp)"}
           </label>
           <input
             id="pay-amount"
@@ -117,12 +121,12 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
           />
           {amount > 0 && amount < debt.sisaSaldo && (
             <p className="text-[10px] text-earth-500 mt-1 px-1">
-              Sisa setelah bayar: <strong>{formatRpFull(debt.sisaSaldo - amount)}</strong>
+              {isUtang ? "Sisa setelah bayar" : "Sisa yang belum diterima"}: <strong>{formatRpFull(debt.sisaSaldo - amount)}</strong>
             </p>
           )}
           {isSettleAll && (
             <p className="text-[10px] mt-1 px-1 font-bold" style={{ color: THEME.income }}>
-              ✓ Pembayaran penuh — utang akan lunas
+              ✓ {isUtang ? "Pembayaran penuh — utang akan lunas" : "Penerimaan penuh — piutang akan lunas"}
             </p>
           )}
         </div>
@@ -135,7 +139,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
           className="w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all active:scale-[0.97] disabled:opacity-50"
           style={{ background: submitting || amount <= 0 ? "#ccc" : accentColor }}
         >
-          {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : `Bayar ${amount > 0 ? formatRpFull(amount) : ""}`}
+          {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : `${actionLabel} ${amount > 0 ? formatRpFull(amount) : ""}`}
         </button>
 
         <button
@@ -144,7 +148,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
           className="w-full py-3 rounded-2xl font-bold text-sm border-2 transition-all active:scale-[0.97]"
           style={{ borderColor: accentColor, color: accentColor }}
         >
-          <Check size={14} className="inline mr-1" /> Settle Lunas ({formatRpFull(debt.sisaSaldo)})
+          <Check size={14} className="inline mr-1" /> {settleLabel} ({formatRpFull(debt.sisaSaldo)})
         </button>
       </div>
     </Sheet>

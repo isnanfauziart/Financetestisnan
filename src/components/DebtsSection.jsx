@@ -64,7 +64,10 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
         setSettling(false)
         return
       }
-      onToast(`${settleDebt.namaOrang} lunas! 🎉`, "success")
+      onToast(
+        `${settleDebt.arah === "utang" ? "Utang ke" : "Piutang dari"} ${settleDebt.namaOrang} lunas! 🎉`,
+        "success"
+      )
       setSettleDebt(null)
       setSettlePaymentId(null)
       handleSaved()
@@ -136,7 +139,7 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
             { icon: <CreditCard size={16} aria-hidden="true" />, title: "Pilih jenisnya", description: "Tentukan apakah kamu punya utang atau piutang." },
             { icon: <FileText size={16} aria-hidden="true" />, title: "Isi detailnya", description: "Catat orang, nominal, dan catatan penting." },
             { icon: <CalendarDays size={16} aria-hidden="true" />, title: "Atur jatuh tempo", description: "Tentukan kapan perlu diselesaikan." },
-            { icon: <CheckCircle2 size={16} aria-hidden="true" />, title: "Catat pembayaran", description: "Masukkan pembayaran sampai lunas." },
+            { icon: <CheckCircle2 size={16} aria-hidden="true" />, title: "Catat pembayaran atau penerimaan", description: "Masukkan nominal yang dibayar atau diterima sampai lunas." },
           ]}
           example="Cicilan keluarga / Pinjaman ke teman"
           action={
@@ -229,9 +232,9 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
 
       {settleDebt && (
         <ConfirmSheet
-          title="Settle Lunas?"
-          message={`${settleDebt.namaOrang} — ${formatRp(settleDebt.sisaSaldo)} akan ditandai lunas. Transaksi otomatis akan dibuat.`}
-          confirmLabel="Settle Lunas"
+          title={`${settleDebt.arah === "utang" ? "Bayar" : "Terima"} Lunas?`}
+          message={`${settleDebt.arah === "utang" ? "Bayar" : "Terima"} ${formatRp(settleDebt.sisaSaldo)} ${settleDebt.arah === "utang" ? "ke" : "dari"} ${settleDebt.namaOrang} dan tandai sebagai lunas. Transaksi otomatis akan dibuat.`}
+          confirmLabel={`${settleDebt.arah === "utang" ? "Bayar" : "Terima"} Lunas`}
           confirmColor={settleDebt.arah === "utang" ? THEME.expense : THEME.income}
           onConfirm={handleSettle}
           onClose={() => { if (!settling) { setSettleDebt(null); setSettleError(null) } }}

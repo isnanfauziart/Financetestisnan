@@ -95,7 +95,7 @@ describe("shared data section failures", () => {
     expect(screen.getByText("Pilih jenisnya")).toBeInTheDocument()
     expect(screen.getByText("Isi detailnya")).toBeInTheDocument()
     expect(screen.getByText("Atur jatuh tempo")).toBeInTheDocument()
-    expect(screen.getByText("Catat pembayaran")).toBeInTheDocument()
+    expect(screen.getByText("Catat pembayaran atau penerimaan")).toBeInTheDocument()
     expect(screen.getByText("Cicilan keluarga / Pinjaman ke teman")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "Tambah Utang/Piutang" }))

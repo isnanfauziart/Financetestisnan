@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import DebtCard from "@/components/DebtCard"
 import DebtSetupModal from "@/components/DebtSetupModal"
+import DebtPaymentModal from "@/components/DebtPaymentModal"
 
 vi.mock("@/app/dashboard/_components/Sheet", () => ({
   default: ({ children, header }) => <div>{header}{children}</div>,
@@ -34,6 +35,34 @@ describe("debt record management", () => {
 
     expect(onEdit).toHaveBeenCalledWith(debt)
     expect(onDelete).toHaveBeenCalledWith(debt)
+  })
+
+  it("uses receiving language for piutang card actions", () => {
+    render(<DebtCard debt={{ ...debt, arah: "piutang" }} onPay={vi.fn()} onSettle={vi.fn()} />)
+
+    expect(screen.getByRole("button", { name: "Terima" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Terima Lunas/i })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Bayar" })).not.toBeInTheDocument()
+  })
+
+  it("uses receiving language when recording a piutang payment", async () => {
+    const onToast = vi.fn()
+    render(
+      <DebtPaymentModal
+        debt={{ ...debt, arah: "piutang" }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+        onToast={onToast}
+      />
+    )
+
+    expect(screen.getByRole("heading", { name: "Terima pembayaran dari Budi" })).toBeInTheDocument()
+    expect(screen.getByLabelText("Jumlah Diterima (Rp)")).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText("Jumlah Diterima (Rp)"), { target: { value: "40.000" } })
+    fireEvent.click(screen.getByRole("button", { name: /Terima.*40\.000/ }))
+
+    await waitFor(() => expect(onToast).toHaveBeenCalledWith(expect.stringContaining("Penerimaan"), "success"))
   })
 
   it("submits existing debt edits through the update route", async () => {

@@ -26,6 +26,8 @@ function formatDate(dateStr) {
 export default function DebtCard({ debt, onPay, onSettle, onEdit, onDelete }) {
   const isUtang = debt.arah === "utang"
   const accentColor = isUtang ? THEME.expense : THEME.income
+  const actionLabel = isUtang ? "Bayar" : "Terima"
+  const settleLabel = isUtang ? "Bayar Lunas" : "Terima Lunas"
   const isSettled = debt.status === "settled"
   const progress = debt.jumlah > 0 ? ((debt.jumlah - debt.sisaSaldo) / debt.jumlah) * 100 : 0
   const days = daysUntil(debt.jatuhTempo)
@@ -103,14 +105,14 @@ export default function DebtCard({ debt, onPay, onSettle, onEdit, onDelete }) {
             className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97]"
             style={{ background: accentColor }}
           >
-            Bayar
+            {actionLabel}
           </button>
           <button
             onClick={() => onSettle(debt)}
             className="py-2.5 px-3 rounded-xl text-xs font-bold border-2 transition-all active:scale-[0.97]"
             style={{ borderColor: accentColor + "40", color: accentColor }}
           >
-            Settle Lunas
+            {settleLabel}
           </button>
         </div>
       )}
