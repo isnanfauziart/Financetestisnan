@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { Wallet, ArrowRight } from "lucide-react"
 import { formatRpFull, formatInputRupiah } from "@/app/dashboard/_components/helpers"
+import { THEME } from "@/app/dashboard/_components/constants"
 import Sheet from "@/app/dashboard/_components/Sheet"
 
 const DISMISSED_KEY = "saldoAwalDismissed"
