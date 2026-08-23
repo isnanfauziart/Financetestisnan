@@ -122,10 +122,10 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
       <div className="mt-6 animate-bento-in">
         <div className="flex items-center gap-1.5 mb-3 px-1">
           <Receipt size={14} style={{ color: THEME.primary }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Tagihan</h3>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Tagihan</h3>
         </div>
-        <div className="bento-tile bg-white border border-earth-100 p-6 shadow-warm text-center">
-          <div className="w-8 h-8 mx-auto border-2 border-earth-200 border-t-transparent rounded-full animate-spin" />
+        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-6 shadow-warm text-center">
+          <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     )
@@ -136,7 +136,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
       <div className="mt-6 animate-bento-in">
         <div className="flex items-center gap-1.5 mb-3 px-1">
           <Receipt size={14} style={{ color: THEME.primary }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Tagihan</h3>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Tagihan</h3>
         </div>
         <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
           <p className="text-sm font-semibold text-rose-800">Gagal memuat tagihan</p>
@@ -158,9 +158,9 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-1.5">
           <Receipt size={14} style={{ color: THEME.primary }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Tagihan</h3>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Tagihan</h3>
           {activeBills.length > 0 && (
-            <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">
               {activeBills.length} aktif
             </span>
           )}
@@ -199,9 +199,9 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
         <>
           {/* Total monthly */}
           {totalMonthly > 0 && (
-            <div className="bento-tile bg-white border border-earth-100 shadow-warm p-3 mb-3 rounded-2xl">
+            <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3 mb-3 rounded-2xl">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Total Bulanan</span>
+                <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Total Bulanan</span>
                 <span className="text-sm font-bold" style={{ color: THEME.expense }}>
                   {formatRpFull(totalMonthly)}
                 </span>
@@ -218,7 +218,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
               return (
                 <div
                   key={bill.id}
-                  className="bento-tile bg-white border border-earth-100 shadow-warm p-3.5 rounded-2xl flex items-center gap-3 group"
+                  className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3.5 rounded-2xl flex items-center gap-3 group"
                 >
                   <div
                     className="relative w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
@@ -234,24 +234,24 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-earth-800 truncate">{bill.nama}</p>
+                      <p className="text-sm font-bold text-md3-on-surface truncate">{bill.nama}</p>
                       {bill.status === "overdue" && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.dangerBg, color: THEME.danger }}>
+                        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.dangerBg, color: THEME.danger }}>
                           {Math.abs(bill.daysUntilDue)}h lalu
                         </span>
                       )}
                       {bill.status === "due_today" && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
+                        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
                           Hari ini
                         </span>
                       )}
                       {bill.status === "due_soon" && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
+                        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
                           Besok
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-earth-500 mt-0.5">
+                    <p className="text-[11px] text-md3-on-surface-variant mt-0.5">
                       {FREQ_LABELS[bill.frekuensi] || bill.frekuensi} · {bill.kategoriBill}
                       {bill.akunBank ? ` · ${bill.akunBank}` : ""}
                     </p>
@@ -274,14 +274,14 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                     <button
                       onClick={() => handleToggleActive(bill)}
                       aria-label={`Nonaktifkan ${bill.nama}`}
-                      className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-amber-100 flex items-center justify-center text-earth-600 hover:text-amber-600 transition-colors"
+                      className="min-h-11 min-w-11 rounded-xl bg-md3-surface hover:bg-amber-100 flex items-center justify-center text-md3-on-surface-variant hover:text-amber-600 transition-colors"
                     >
                       <Power size={10} />
                     </button>
                     <button
                       onClick={() => handleDelete(bill)}
                       aria-label={`Hapus ${bill.nama}`}
-                      className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500 transition-colors"
+                      className="min-h-11 min-w-11 rounded-xl bg-md3-surface hover:bg-rose-100 flex items-center justify-center text-md3-on-surface-variant hover:text-rose-500 transition-colors"
                     >
                       <Trash2 size={10} />
                     </button>
@@ -296,7 +296,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
             <div className="mt-4">
               <button
                 onClick={() => setShowInactive(!showInactive)}
-                className="min-h-11 min-w-11 flex items-center gap-1.5 text-[11px] font-bold text-earth-500 hover:text-earth-700 transition-colors mb-2"
+                className="min-h-11 min-w-11 flex items-center gap-1.5 text-[11px] font-bold text-md3-on-surface-variant hover:text-md3-on-surface-variant transition-colors mb-2"
               >
                 {showInactive ? "▲" : "▼"} Nonaktif ({inactiveBills.length})
               </button>
@@ -307,26 +307,26 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                     return (
                       <div
                         key={bill.id}
-                        className="bento-tile bg-white/60 border border-earth-100 shadow-warm p-3.5 rounded-2xl flex items-center gap-3 opacity-60"
+                        className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3.5 rounded-2xl flex items-center gap-3 opacity-60"
                       >
                         <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/70" style={{ background: tint.bg, color: tint.color }}>
                           <BillIcon size={16} strokeWidth={2.1} aria-hidden="true" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold text-earth-600 truncate">{bill.nama}</p>
+                          <p className="text-sm font-bold text-md3-on-surface-variant truncate">{bill.nama}</p>
                           <p className="text-[11px] text-earth-400">{FREQ_LABELS[bill.frekuensi]} · {bill.kategoriBill}</p>
                         </div>
                         <div className="flex gap-1">
                           <button
                             onClick={() => handleToggleActive(bill)}
-                            className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-green-100 flex items-center justify-center text-earth-600 hover:text-green-600 transition-colors"
+                            className="min-h-11 min-w-11 rounded-xl bg-md3-surface hover:bg-green-100 flex items-center justify-center text-md3-on-surface-variant hover:text-green-600 transition-colors"
                             aria-label={`Aktifkan ${bill.nama}`}
                           >
                             <Power size={10} />
                           </button>
                           <button
                             onClick={() => handleDelete(bill)}
-                            className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500 transition-colors"
+                            className="min-h-11 min-w-11 rounded-xl bg-md3-surface hover:bg-rose-100 flex items-center justify-center text-md3-on-surface-variant hover:text-rose-500 transition-colors"
                             aria-label={`Hapus ${bill.nama}`}
                           >
                             <Trash2 size={10} />
@@ -346,12 +346,12 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(42,32,24,0.5)", backdropFilter: "blur(8px)" }} onClick={() => setConfirmDelete(null)}>
           <div className="glass-strong rounded-t-[32px] sm:rounded-[32px] p-6 shadow-pop-lg w-full max-w-sm animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-display font-bold text-earth-800 mb-1">Hapus tagihan ini?</h3>
-            <p className="text-sm text-earth-600 mb-5">
+            <h3 className="text-base font-display font-bold text-md3-on-surface mb-1">Hapus tagihan ini?</h3>
+            <p className="text-sm text-md3-on-surface-variant mb-5">
               <strong>{confirmDelete.nama}</strong> akan dihapus permanen.
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setConfirmDelete(null)} className="min-h-11 min-w-11 py-3 rounded-2xl font-bold text-earth-700 bg-earth-50 active:scale-95 transition-transform">
+              <button onClick={() => setConfirmDelete(null)} className="min-h-11 min-w-11 py-3 rounded-2xl font-bold text-md3-on-surface-variant bg-md3-surface active:scale-95 transition-transform">
                 Batal
               </button>
               <button

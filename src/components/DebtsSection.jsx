@@ -100,7 +100,7 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
 
   if (loading) {
     return (
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
         <div className="shimmer-bg rounded-2xl h-24" aria-hidden="true" />
       </div>
     )
@@ -108,10 +108,10 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
 
   if (error) {
     return (
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
         <div className="flex items-center gap-1.5 mb-3 px-0.5">
           <CreditCard size={14} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Utang Piutang</h3>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Utang Piutang</h3>
         </div>
         <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4" role="alert">
           <p className="text-sm font-semibold text-rose-800">Gagal memuat utang/piutang</p>
@@ -158,12 +158,12 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
 
   return (
     <>
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
         {/* Header */}
         <div className="flex items-center justify-between mb-3 px-0.5">
           <div className="flex items-center gap-1.5">
             <CreditCard size={14} color={THEME.primary} aria-hidden="true" />
-            <h3 className="text-sm font-bold font-display text-earth-800">Utang Piutang</h3>
+            <h3 className="text-sm font-bold font-display text-md3-on-surface">Utang Piutang</h3>
           </div>
           <button
             onClick={() => setSetupOpen(true)}
@@ -179,14 +179,14 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
           <div className="rounded-2xl p-3 border" style={{ background: THEME.expenseBg, borderColor: THEME.expense + "20" }}>
             <div className="flex items-center gap-1 mb-0.5">
               <ArrowUpRight size={10} color={THEME.expense} aria-hidden="true" />
-              <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500">Utang (saya berutang)</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Utang (saya berutang)</p>
             </div>
             <p className="text-sm font-bold" style={{ color: THEME.expense }}>{formatRp(summary.utang)}</p>
           </div>
           <div className="rounded-2xl p-3 border" style={{ background: THEME.incomeBg, borderColor: THEME.income + "20" }}>
             <div className="flex items-center gap-1 mb-0.5">
               <ArrowDownRight size={10} color={THEME.income} aria-hidden="true" />
-              <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500">Piutang (mereka berutang)</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Piutang (mereka berutang)</p>
             </div>
             <p className="text-sm font-bold" style={{ color: THEME.income }}>{formatRp(summary.piutang)}</p>
           </div>
@@ -194,7 +194,7 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
 
         {/* Debt list */}
         {debts.length === 0 ? (
-          <p className="text-[11px] text-earth-500 text-center py-2">Semua utang/piutang sudah lunas 🎉</p>
+          <p className="text-[11px] text-md3-on-surface-variant text-center py-2">Semua utang/piutang sudah lunas 🎉</p>
         ) : (
           <div className="space-y-2.5">
             {debts.map(d => (

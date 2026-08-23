@@ -28,7 +28,7 @@ export default function EventSuggestionChip({ kategori, eventId, onSelect }) {
       style={{ background: eventColor + "08", borderColor: eventColor + "33" }}
     >
       <Tag size={12} style={{ color: eventColor }} />
-      <span className="text-[11px] font-semibold text-earth-700">
+      <span className="text-[11px] font-semibold text-md3-on-surface-variant">
         Tag ke <span style={{ color: eventColor }}>{event.nama}</span> → {subKategori}
       </span>
     </button>

@@ -51,7 +51,7 @@ export default function EventCard({ event, onDetail, onEdit, onDelete }) {
 
   return (
     <div
-      className="bento-tile bg-white border border-earth-100 shadow-warm p-4 rounded-2xl group cursor-pointer transition-all hover:shadow-pop"
+      className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-4 rounded-2xl group cursor-pointer transition-all hover:shadow-pop"
       style={{ borderLeft: `4px solid ${eventColor}` }}
       onClick={onDetail}
     >
@@ -62,28 +62,28 @@ export default function EventCard({ event, onDetail, onEdit, onDelete }) {
             <Icon size={16} aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-earth-800 truncate">{event.nama}</p>
+            <p className="text-sm font-bold text-md3-on-surface truncate">{event.nama}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {isOverBudget && (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5" style={{ background: THEME.dangerBg, color: THEME.danger }}>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5" style={{ background: THEME.dangerBg, color: THEME.danger }}>
               <AlertTriangle size={9} /> Over
             </span>
           )}
           {isWarning && !isOverBudget && (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
               Hampir
             </span>
           )}
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: statusColor + "18", color: statusColor }}>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: statusColor + "18", color: statusColor }}>
             {statusLabel}
           </span>
           <div className="flex gap-1 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
-            <button onClick={(e) => { e.stopPropagation(); onEdit() }} aria-label={`Edit ${event.nama}`} className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-violet-100 flex items-center justify-center text-earth-600 hover:text-violet-600">
+            <button onClick={(e) => { e.stopPropagation(); onEdit() }} aria-label={`Edit ${event.nama}`} className="w-7 h-7 rounded-lg bg-md3-surface hover:bg-violet-100 flex items-center justify-center text-md3-on-surface-variant hover:text-violet-600">
               <Pencil size={11} />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDelete() }} aria-label={`Hapus ${event.nama}`} className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500">
+            <button onClick={(e) => { e.stopPropagation(); onDelete() }} aria-label={`Hapus ${event.nama}`} className="w-7 h-7 rounded-lg bg-md3-surface hover:bg-rose-100 flex items-center justify-center text-md3-on-surface-variant hover:text-rose-500">
               <Trash2 size={11} />
             </button>
           </div>
@@ -95,7 +95,7 @@ export default function EventCard({ event, onDetail, onEdit, onDelete }) {
         <GoalProgressRing progress={pct} color={eventColor} size={64} stroke={6} completed={pct >= 100} />
         <div className="flex-1 min-w-0">
           <p className="text-lg font-display font-bold" style={{ color: eventColor }}>{formatRpFull(event.spent || 0)}</p>
-          <p className="text-[11px] text-earth-500">dari {formatRpFull(event.totalBudget)}</p>
+          <p className="text-[11px] text-md3-on-surface-variant">dari {formatRpFull(event.totalBudget)}</p>
           {isOverBudget && (
             <p className="text-[10px] font-bold mt-0.5" style={{ color: THEME.danger }}>
               Over budget {formatRpFull((event.spent || 0) - event.totalBudget)}
@@ -116,8 +116,8 @@ export default function EventCard({ event, onDetail, onEdit, onDelete }) {
             <div key={i} className="flex items-center gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between text-[11px] mb-0.5">
-                  <span className="font-semibold text-earth-700 truncate">{sub.subKategori || sub.kategori}</span>
-                  <span className="text-earth-500 flex-shrink-0 ml-2">{formatRp(sub.spent || 0)} / {formatRp(sub.limit)}</span>
+                  <span className="font-semibold text-md3-on-surface-variant truncate">{sub.subKategori || sub.kategori}</span>
+                  <span className="text-md3-on-surface-variant flex-shrink-0 ml-2">{formatRp(sub.spent || 0)} / {formatRp(sub.limit)}</span>
                 </div>
                 <BudgetProgressBar spent={sub.spent || 0} limit={sub.limit} height={5} />
               </div>

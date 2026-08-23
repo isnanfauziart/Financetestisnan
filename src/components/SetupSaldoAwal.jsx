@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Wallet, ArrowRight } from "lucide-react"
-import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRpFull, formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import Sheet from "@/app/dashboard/_components/Sheet"
 
@@ -73,19 +72,19 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
       header={
         <div className="flex items-center gap-2">
           <Wallet size={18} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-lg font-display font-bold text-earth-800">Saldo Awal</h3>
+          <h3 className="text-lg font-display font-bold text-md3-on-surface">Saldo Awal</h3>
         </div>
       }
     >
       <div className="rounded-2xl p-4 mb-4" style={{ background: THEME.primaryBg }}>
-        <p className="text-xs text-earth-700 leading-relaxed">
+        <p className="text-xs text-md3-on-surface-variant leading-relaxed">
           Masukkan total kekayaan kamu saat ini (saldo semua rekening bank, e-wallet, investasi, dll). Hanya transaksi setelah tanggal ini yang akan mempengaruhi net worth.
         </p>
       </div>
 
       <div className="space-y-3">
         <div>
-          <label htmlFor="setup-saldo" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
+          <label htmlFor="setup-saldo" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">
             Total Kekayaan Saat Ini (Rp)
           </label>
           <input
@@ -95,18 +94,18 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
             placeholder="25000000"
             value={rawAmount}
             onChange={e => setRawAmount(formatInputRupiah(e.target.value))}
-            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+            className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
             autoFocus
           />
           {rawAmount && (
-            <p className="text-[10px] text-earth-500 mt-1 px-1">
+            <p className="text-[10px] text-md3-on-surface-variant mt-1 px-1">
               {formatRpFull(parseFloat(String(rawAmount).replace(/\./g, "")) || 0)}
             </p>
           )}
         </div>
 
         <div>
-          <label htmlFor="setup-date" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
+          <label htmlFor="setup-date" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">
             Tanggal
           </label>
           <input
@@ -114,7 +113,7 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
             type="date"
             value={dateValue}
             onChange={e => setDateValue(e.target.value)}
-            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+            className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
           />
           <p className="text-[10px] text-earth-400 mt-1 px-1">
             Transaksi sebelum tanggal ini tidak mempengaruhi net worth
@@ -126,8 +125,7 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
         <button
           onClick={handleSave}
           disabled={submitting}
-          className="w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all active:scale-[0.97] disabled:opacity-50"
-          style={{ background: submitting ? "#ccc" : `linear-gradient(135deg, #4a3d33, ${THEME.primary})` }}
+          className="btn-filled w-full"
         >
           {submitting ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -140,7 +138,7 @@ export default function SetupSaldoAwal({ settings, onSaved }) {
 
         <button
           onClick={handleSkip}
-          className="w-full py-2 text-xs font-semibold text-earth-500 hover:text-earth-700 transition-colors"
+          className="w-full py-2 text-xs font-semibold text-md3-on-surface-variant hover:text-md3-on-surface-variant transition-colors"
         >
           Lewati — mulai dari 0
         </button>

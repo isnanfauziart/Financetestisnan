@@ -40,7 +40,7 @@ export default function BillsCard({ onPay, onViewAll }) {
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-1.5">
           <Receipt size={14} style={{ color: THEME.primary }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Tagihan Mendatang</h3>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Tagihan Mendatang</h3>
         </div>
         <button
           onClick={onViewAll}
@@ -51,7 +51,7 @@ export default function BillsCard({ onPay, onViewAll }) {
         </button>
       </div>
 
-      <div className="bento-tile bg-white border border-earth-100 shadow-warm p-2 rounded-2xl">
+      <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-2 rounded-2xl">
         {bills.map((bill, i) => {
           const statusColor = STATUS_COLORS[bill.status] || THEME.textTertiary
           const isUrgent = bill.status === "overdue" || bill.status === "due_today" || bill.status === "due_soon"
@@ -60,7 +60,7 @@ export default function BillsCard({ onPay, onViewAll }) {
             <button
               key={bill.id}
               onClick={() => onPay(bill)}
-              className={`w-full flex items-center justify-between p-3 pl-4 rounded-2xl border-l-4 hover:bg-earth-50/60 transition-colors animate-fade-in-up stagger-${Math.min(i + 1, 5)} text-left`}
+              className={`w-full flex items-center justify-between p-3 pl-4 rounded-2xl border-l-4 hover:bg-md3-surface-container-high transition-colors animate-fade-in-up stagger-${Math.min(i + 1, 5)} text-left`}
               style={{ borderLeftColor: statusColor }}
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -77,8 +77,8 @@ export default function BillsCard({ onPay, onViewAll }) {
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm text-earth-800 truncate">{bill.nama}</p>
-                  <p className="text-[11px] text-earth-500 mt-0.5">
+                  <p className="font-semibold text-sm text-md3-on-surface truncate">{bill.nama}</p>
+                  <p className="text-[11px] text-md3-on-surface-variant mt-0.5">
                     {bill.status === "overdue" && `${Math.abs(bill.daysUntilDue)} hari lalu`}
                     {bill.status === "due_today" && "Hari ini"}
                     {bill.status === "due_soon" && "Besok"}
@@ -87,7 +87,7 @@ export default function BillsCard({ onPay, onViewAll }) {
                   </p>
                 </div>
               </div>
-              <p className="font-bold text-sm flex-shrink-0 ml-2" style={{ color: bill.tipe === "income" ? THEME.income : THEME.expense }}>
+              <p className="font-bold text-sm flex-shrink-0 ml-2 tabular-nums" style={{ color: bill.tipe === "income" ? THEME.income : THEME.expense }}>
                 {formatRp(bill.jumlah)}
               </p>
             </button>
@@ -95,9 +95,9 @@ export default function BillsCard({ onPay, onViewAll }) {
         })}
 
         {/* Total */}
-        <div className="flex justify-between items-center px-4 py-2.5 border-t border-earth-100 mt-1">
-          <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Total</span>
-          <span className="text-sm font-bold" style={{ color: THEME.expense }}>
+        <div className="flex justify-between items-center px-4 py-2.5 border-t border-md3-outline-variant mt-1">
+          <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Total</span>
+          <span className="text-sm font-bold tabular-nums" style={{ color: THEME.expense }}>
             {formatRp(totalUpcoming)}
           </span>
         </div>

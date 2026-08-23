@@ -78,15 +78,15 @@ export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactio
             {statusLabel}
           </span>
           {bill.daysUntilDue < 0 && (
-            <span className="text-[10px] font-bold text-earth-500">
+            <span className="text-[10px] font-bold text-md3-on-surface-variant">
               {Math.abs(bill.daysUntilDue)} hari lalu
             </span>
           )}
           {bill.daysUntilDue === 0 && (
-            <span className="text-[10px] font-bold text-earth-500">Hari ini</span>
+            <span className="text-[10px] font-bold text-md3-on-surface-variant">Hari ini</span>
           )}
           {bill.daysUntilDue > 0 && (
-            <span className="text-[10px] font-bold text-earth-500">
+            <span className="text-[10px] font-bold text-md3-on-surface-variant">
               {bill.daysUntilDue} hari lagi
             </span>
           )}
@@ -102,8 +102,8 @@ export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactio
               <BillIcon size={20} strokeWidth={2.1} aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xl font-display font-bold text-earth-800 mb-1">{bill.nama}</p>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-earth-500 mb-2">{bill.kategoriBill}</p>
+              <p className="text-xl font-display font-bold text-md3-on-surface mb-1">{bill.nama}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-md3-on-surface-variant mb-2">{bill.kategoriBill}</p>
               <p className="text-2xl font-display font-bold" style={{ color: bill.tipe === "income" ? THEME.income : THEME.expense }}>
                 {bill.tipe === "income" ? "+" : "-"}{formatRpFull(bill.jumlah)}
               </p>
@@ -113,34 +113,34 @@ export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactio
 
         {/* Details */}
         <div className="space-y-3">
-          <div className="flex justify-between items-center py-2 border-b border-earth-100">
-            <span className="text-xs font-medium text-earth-500 flex items-center gap-1.5"><Repeat size={12} aria-hidden="true" />Frekuensi</span>
-            <span className="text-xs font-bold text-earth-800">{FREQ_LABELS[bill.frekuensi] || bill.frekuensi}</span>
+          <div className="flex justify-between items-center py-2 border-b border-md3-outline-variant">
+            <span className="text-xs font-medium text-md3-on-surface-variant flex items-center gap-1.5"><Repeat size={12} aria-hidden="true" />Frekuensi</span>
+            <span className="text-xs font-bold text-md3-on-surface">{FREQ_LABELS[bill.frekuensi] || bill.frekuensi}</span>
           </div>
-          <div className="flex justify-between items-center py-2 border-b border-earth-100">
-            <span className="text-xs font-medium text-earth-500">Kategori Transaksi</span>
-            <span className="text-xs font-bold text-earth-800">{bill.kategoriTransaksi}</span>
+          <div className="flex justify-between items-center py-2 border-b border-md3-outline-variant">
+            <span className="text-xs font-medium text-md3-on-surface-variant">Kategori Transaksi</span>
+            <span className="text-xs font-bold text-md3-on-surface">{bill.kategoriTransaksi}</span>
           </div>
           {bill.akunBank && (
-            <div className="flex justify-between items-center py-2 border-b border-earth-100">
-              <span className="text-xs font-medium text-earth-500 flex items-center gap-1.5"><Landmark size={12} aria-hidden="true" />Akun</span>
-              <span className="text-xs font-bold text-earth-800">{bill.akunBank}</span>
+            <div className="flex justify-between items-center py-2 border-b border-md3-outline-variant">
+              <span className="text-xs font-medium text-md3-on-surface-variant flex items-center gap-1.5"><Landmark size={12} aria-hidden="true" />Akun</span>
+              <span className="text-xs font-bold text-md3-on-surface">{bill.akunBank}</span>
             </div>
           )}
-          <div className="flex justify-between items-center py-2 border-b border-earth-100">
-            <span className="text-xs font-medium text-earth-500 flex items-center gap-1.5"><CalendarClock size={12} aria-hidden="true" />Jatuh Tempo</span>
-            <span className="text-xs font-bold text-earth-800">Tanggal {bill.tanggalJatuhTempo}</span>
+          <div className="flex justify-between items-center py-2 border-b border-md3-outline-variant">
+            <span className="text-xs font-medium text-md3-on-surface-variant flex items-center gap-1.5"><CalendarClock size={12} aria-hidden="true" />Jatuh Tempo</span>
+            <span className="text-xs font-bold text-md3-on-surface">Tanggal {bill.tanggalJatuhTempo}</span>
           </div>
           {bill.terakhirDibayar && (
-            <div className="flex justify-between items-center py-2 border-b border-earth-100">
-              <span className="text-xs font-medium text-earth-500">Terakhir Dibayar</span>
-              <span className="text-xs font-bold text-earth-800">{bill.terakhirDibayar}</span>
+            <div className="flex justify-between items-center py-2 border-b border-md3-outline-variant">
+              <span className="text-xs font-medium text-md3-on-surface-variant">Terakhir Dibayar</span>
+              <span className="text-xs font-bold text-md3-on-surface">{bill.terakhirDibayar}</span>
             </div>
           )}
           {bill.catatan && (
             <div className="py-2">
-              <span className="text-xs font-medium text-earth-500 block mb-1">Catatan</span>
-              <p className="text-xs text-earth-700">{bill.catatan}</p>
+              <span className="text-xs font-medium text-md3-on-surface-variant block mb-1">Catatan</span>
+              <p className="text-xs text-md3-on-surface-variant">{bill.catatan}</p>
             </div>
           )}
         </div>
@@ -160,13 +160,13 @@ export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactio
           <div className="flex gap-2">
             <button
               onClick={() => onEdit(bill)}
-              className="flex-1 py-3 rounded-2xl text-sm font-bold text-earth-700 bg-earth-50 active:scale-95 transition-transform"
+              className="flex-1 py-3 rounded-2xl text-sm font-bold text-md3-on-surface-variant bg-md3-surface active:scale-95 transition-transform"
             >
               Edit
             </button>
             <button
               onClick={onClose}
-              className="flex-1 py-3 rounded-2xl text-sm font-bold text-earth-500 bg-earth-50 active:scale-95 transition-transform"
+              className="flex-1 py-3 rounded-2xl text-sm font-bold text-md3-on-surface-variant bg-md3-surface active:scale-95 transition-transform"
             >
               Tutup
             </button>

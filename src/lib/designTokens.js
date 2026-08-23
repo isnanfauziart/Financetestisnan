@@ -1,0 +1,92 @@
+// MD3 design tokens, plain JS — no DOM/browser APIs so React Native/NativeWind
+// can import this module unchanged. Keep every color value in sync with the
+// --md-sys-color-* custom properties in src/app/globals.css (:root).
+
+export const md3 = {
+  color: {
+    primary: '#6E59B5',
+    onPrimary: '#FFFFFF',
+    primaryContainer: '#D6CDEE',
+    onPrimaryContainer: '#2C2349',
+    secondary: '#584494',
+    onSecondary: '#FFFFFF',
+    secondaryContainer: '#EAE4F7',
+    onSecondaryContainer: '#392D60',
+    tertiary: '#8A5A00',
+    onTertiary: '#FFFFFF',
+    tertiaryContainer: '#FFF1CC',
+    onTertiaryContainer: '#6B4400',
+    error: '#B33A3A',
+    onError: '#FFFFFF',
+    errorContainer: '#FCEAEA',
+    onErrorContainer: '#902D2D',
+    surface: '#FBF8F1',
+    surfaceContainerLowest: '#FFFFFF',
+    surfaceContainerLow: '#FDFBF6',
+    surfaceContainer: '#F7F1E8',
+    surfaceContainerHigh: '#F3ECE2',
+    surfaceContainerHighest: '#EFE7DB',
+    onSurface: '#29231E',
+    onSurfaceVariant: '#6B625A',
+    outline: '#C8BEB1',
+    outlineVariant: '#E2D9CC',
+    inverseSurface: '#29231E',
+    inverseOnSurface: '#FBF8F1',
+    inversePrimary: '#D6CDEE',
+  },
+  shape: {
+    small: 8,
+    medium: 12,
+    large: 16,
+    extraLarge: 28,
+    full: 9999,
+  },
+  motion: {
+    emphasized: 'cubic-bezier(0.2, 0, 0, 1)',
+    emphasizedDecelerate: 'cubic-bezier(0.05, 0.7, 0.1, 1)',
+    emphasizedAccelerate: 'cubic-bezier(0.3, 0, 0.8, 0.15)',
+    durationEmphasized: 500,
+    durationEnter: 400,
+    durationExit: 200,
+    durationStandard: 300,
+  },
+}
+
+// Both color schemes, same camelCase keys as md3.color. Dark values mirror the
+// [data-theme="dark"] block in src/app/globals.css — update together.
+export const themes = {
+  light: { ...md3.color },
+  dark: {
+    primary: '#D6CDEE',
+    onPrimary: '#352963',
+    primaryContainer: '#4C3D85',
+    onPrimaryContainer: '#EBE3FF',
+    secondary: '#CCC2F0',
+    onSecondary: '#332963',
+    secondaryContainer: '#463A78',
+    onSecondaryContainer: '#E7DEFF',
+    tertiary: '#EFBF63',
+    onTertiary: '#442C00',
+    tertiaryContainer: '#624000',
+    onTertiaryContainer: '#FFDF9E',
+    error: '#FFB4AB',
+    onError: '#690005',
+    errorContainer: '#93000A',
+    onErrorContainer: '#FFDAD6',
+    surface: '#151210',
+    surfaceContainerLowest: '#100E0C',
+    surfaceContainerLow: '#1D1917',
+    surfaceContainer: '#211D1A',
+    surfaceContainerHigh: '#2C2724',
+    surfaceContainerHighest: '#37312E',
+    onSurface: '#F0EAE2',
+    onSurfaceVariant: '#CBC1B6',
+    outline: '#96897C',
+    outlineVariant: '#4B433C',
+    inverseSurface: '#F0EAE2',
+    inverseOnSurface: '#362F2B',
+    inversePrimary: '#584494',
+  },
+}
+
+export default md3

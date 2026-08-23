@@ -64,7 +64,6 @@ export default function EventCelebration({ event, haptics, hapticsEnabled, onDon
       position="top-high"
       duration={4000}
       noPointerEvents
-      celebrationColor={event.tipe === "anak-sekolah" ? EVENT_COLORS["anak-sekolah"] : event.tipe === "lebaran-thr" ? EVENT_COLORS["lebaran-thr"] : EVENT_COLORS.custom}
     >
       <CheckCircle2 size={18} strokeWidth={3} aria-hidden="true" />
       <span>Event budget tercapai — {event.nama} 🎉</span>

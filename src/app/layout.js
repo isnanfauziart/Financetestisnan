@@ -27,8 +27,14 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="id" className={`${playfair.variable} ${dmSans.variable}`}>
+    <html lang="id" suppressHydrationWarning className={`${playfair.variable} ${dmSans.variable}`}>
       <body className="font-body">
+        {/* Theme bootstrap: runs before first paint so a stored dark choice never flashes light. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('artami-theme');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.setAttribute('data-theme','dark')}catch(e){}})()`,
+          }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

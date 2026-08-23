@@ -28,6 +28,22 @@ export function formatShortDate(dateStr) {
   return m ? `${m[1]} ${m[2]}` : dateStr || ""
 }
 
+export function relativeDate(dateStr) {
+  const ts = parseTxDate(dateStr)
+  if (!ts) return dateStr || ""
+  const now = new Date()
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const days = Math.round((startToday - new Date(ts).setHours(0, 0, 0, 0)) / 86400000)
+  if (days <= 0) return "Hari ini"
+  if (days === 1) return "Kemarin"
+  if (days <= 6) return `${days} hari lalu`
+  return formatShortDate(dateStr)
+}
+
+export function countUrgentBills(bills) {
+  return (bills || []).filter(bill => bill.status === "overdue" || bill.status === "due_today").length
+}
+
 export function useCountUp(target, duration = 1000) {
   const [value, setValue] = useState(0)
   useEffect(() => {

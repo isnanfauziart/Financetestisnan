@@ -133,7 +133,7 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
       header={
         <div className="flex items-center gap-2">
           <Target size={18} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-lg font-display font-bold text-earth-800">
+          <h3 className="text-lg font-display font-bold text-md3-on-surface">
             {isEdit ? "Ubah Goal" : "Buat Goal"}
           </h3>
         </div>
@@ -144,22 +144,22 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
           <SelectedIcon size={20} aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-earth-800 truncate">{nama || "Nama goal kamu"}</p>
-          <p className="text-[11px] text-earth-500">{rawTarget ? `Rp ${rawTarget}` : "Rp 0"} · {month} {year}</p>
+          <p className="text-sm font-bold text-md3-on-surface truncate">{nama || "Nama goal kamu"}</p>
+          <p className="text-[11px] text-md3-on-surface-variant">{rawTarget ? `Rp ${rawTarget}` : "Rp 0"} · {month} {year}</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label htmlFor="goal-name" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Nama Goal</label>
+          <label htmlFor="goal-name" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Nama Goal</label>
           <input id="goal-name" type="text" placeholder="e.g. Dana Darurat" value={nama} onChange={e => setNama(e.target.value)}
-            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200" />
+            className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200" />
         </div>
 
         <div>
-          <label htmlFor="goal-target" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Target (Rp)</label>
+          <label htmlFor="goal-target" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Target (Rp)</label>
           <input id="goal-target" type="text" inputMode="numeric" placeholder="50000000" value={rawTarget} onChange={e => setRawTarget(formatInputRupiah(e.target.value))}
-            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200" />
+            className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -170,7 +170,7 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
         <SelectField label="Kategori (auto-link)" value={kategori} onChange={setKategori} options={categoryOptions} placeholder="Pilih kategori" />
 
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Icon</label>
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Icon</label>
           <div className="grid grid-cols-8 gap-1.5">
             {ICON_OPTIONS.map(({ name, Icon }) => (
               <button key={name} type="button" onClick={() => setIcon(name)} aria-label={name} aria-pressed={icon === name}
@@ -187,7 +187,7 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Warna</label>
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Warna</label>
           <div className="flex gap-2 flex-wrap">
             {COLOR_OPTIONS.map(c => (
               <button key={c.value} type="button" onClick={() => setColor(c.value)} aria-label={c.name} aria-pressed={color === c.value}
@@ -201,9 +201,7 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
 
         <QuotaNotice error={error} />
 
-        <button type="submit" disabled={submitting}
-          className="w-full py-4 mt-2 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
-          style={{ background: submitting ? "#ccc" : `linear-gradient(135deg, #4a3d33, ${color})` }}>
+        <button type="submit" disabled={submitting} className="btn-filled w-full mt-2">
           {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : isEdit ? "Simpan Perubahan" : "Buat Goal"}
         </button>
       </form>

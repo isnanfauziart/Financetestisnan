@@ -61,7 +61,6 @@ export default function GoalCelebration({ goal, haptics, hapticsEnabled, onDone 
       position="top-high"
       duration={4000}
       noPointerEvents
-      celebrationColor={goal.color}
     >
       <CheckCircle2 size={18} strokeWidth={3} aria-hidden="true" />
       <span>Goal tercapai — {goal.nama} 🎉</span>

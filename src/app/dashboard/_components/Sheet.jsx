@@ -36,7 +36,7 @@ function CloseButton({ onClose, closeButtonRef, className = "" }) {
       ref={closeButtonRef}
       onClick={onClose}
       aria-label="Close"
-      className={`w-8 h-8 rounded-full bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${className}`}
+      className={`w-8 h-8 rounded-full bg-md3-surface hover:bg-md3-surface-container-high transition-colors flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${className}`}
     >
       <X size={14} color="#6b5b4f" aria-hidden="true" />
     </button>
@@ -48,11 +48,11 @@ function DefaultHeader({ title, subtitle, onClose, closeButtonRef, closeButtonCl
     <div className="flex justify-between items-start mb-4">
       <div className="min-w-0 flex-1">
         {subtitle && (
-          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">
             {subtitle}
           </p>
         )}
-        <h3 className="text-lg font-display font-bold text-earth-800">{title}</h3>
+        <h3 className="text-lg font-display font-bold text-md3-on-surface">{title}</h3>
       </div>
       <CloseButton onClose={onClose} closeButtonRef={closeButtonRef} className={closeButtonClassName} />
     </div>
@@ -167,6 +167,9 @@ export default function Sheet({
         aria-label={dialogName}
         tabIndex={-1}
       >
+        {position !== "center" && (
+          <div aria-hidden="true" className="mx-auto mb-4 h-1 w-8 rounded-full bg-md3-surface-container-highest" />
+        )}
         {header ? (
           <div className={`mb-4 ${sharedCloseNeeded ? "relative pr-10" : ""}`}>
             {header}
@@ -187,7 +190,7 @@ export default function Sheet({
         )}
         {children}
         {footer && (
-          <div className="mt-4 pt-4 border-t border-earth-100">{footer}</div>
+          <div className="mt-4 pt-4 border-t border-md3-outline-variant">{footer}</div>
         )}
       </div>
     </div>,

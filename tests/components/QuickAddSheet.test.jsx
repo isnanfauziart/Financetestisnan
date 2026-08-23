@@ -222,4 +222,28 @@ describe("QuickAddSheet", () => {
     })
     expect(onClose).not.toHaveBeenCalled()
   })
+
+  it("suggests frequent recent categories and prefills kategori + akun on tap", () => {
+    const transactions = [
+      { type: "expense", category: "Kopi", account: "Bank BCA", date: "3 Agu 2026", amount: 25000 },
+      { type: "expense", category: "Transportasi", account: "Cash", date: "2 Agu 2026", amount: 20000 },
+      { type: "expense", category: "Kopi", account: "OVO", date: "1 Agu 2026", amount: 18000 },
+      { type: "income", category: "Gaji Baru", account: "Bank BCA", date: "1 Agu 2026", amount: 5000000 },
+    ]
+    render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} transactions={transactions} />)
+
+    // Only active-type categories are suggested
+    expect(screen.queryByRole("button", { name: "Gaji Baru" })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Kopi" }))
+
+    expect(screen.getByRole("button", { name: "Kategori" })).toHaveTextContent("Kopi")
+    // akunBank comes from the most recent transaction of that category
+    expect(screen.getByRole("button", { name: "Akun" })).toHaveTextContent("Bank BCA")
+  })
+
+  it("renders no suggestion block without transactions", () => {
+    render(<QuickAddSheet open={true} onClose={noop} onSubmit={noop} />)
+    expect(screen.queryByText("Sering Dipakai")).toBeNull()
+  })
 })

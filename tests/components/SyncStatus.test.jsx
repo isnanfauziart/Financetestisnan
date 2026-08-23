@@ -70,14 +70,10 @@ describe("SyncStatus", () => {
     )
   })
 
-  it("explains where financial data is stored in an info sheet", () => {
+  it("removes the separate synchronization info affordance", () => {
     render(<SyncStatus {...createProps()} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Info sinkronisasi" }))
-
-    expect(screen.getByRole("dialog", { name: "Tentang sinkronisasi" })).toHaveTextContent(
-      "Data keuangan tersimpan di Google Sheets milikmu. Artami hanya membaca dan memperbarui data sesuai tindakanmu.",
-    )
-    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("min-h-11", "min-w-11")
+    expect(screen.queryByRole("button", { name: "Info sinkronisasi" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("dialog", { name: "Tentang sinkronisasi" })).not.toBeInTheDocument()
   })
 })

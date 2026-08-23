@@ -158,11 +158,11 @@ export default function WhatIfModal({ open, onClose, transactions }) {
       header={
         <div className="flex items-center gap-2">
           <Calculator size={18} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-lg font-display font-bold text-earth-800">What-If Scenario</h3>
+          <h3 className="text-lg font-display font-bold text-md3-on-surface">What-If Scenario</h3>
         </div>
       }
     >
-      <p className="text-xs text-earth-600 mb-4">
+      <p className="text-xs text-md3-on-surface-variant mb-4">
         Simulasikan dampak perubahan pengeluaran dan pemasukan terhadap pencapaian goal kamu.
       </p>
 
@@ -178,13 +178,13 @@ export default function WhatIfModal({ open, onClose, transactions }) {
 
         {selectedCategory && categoryAvg > 0 && (
           <div className="rounded-2xl p-3 flex items-center justify-between" style={{ background: THEME.surfaceWarm }}>
-            <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Rata-rata bulanan</span>
-            <span className="text-sm font-bold text-earth-700">{formatRpFull(categoryAvg)}</span>
+            <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Rata-rata bulanan</span>
+            <span className="text-sm font-bold text-md3-on-surface-variant">{formatRpFull(categoryAvg)}</span>
           </div>
         )}
 
         <div>
-          <label htmlFor="reduction-amount" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
+          <label htmlFor="reduction-amount" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">
             Jumlah Pengurangan yang Diharapkan (Rp)
           </label>
           <input
@@ -194,10 +194,10 @@ export default function WhatIfModal({ open, onClose, transactions }) {
             placeholder="500000"
             value={rawReduction}
             onChange={e => setRawReduction(formatInputRupiah(e.target.value))}
-            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+            className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
           />
           {selectedCategory && categoryAvg > 0 && targetCategorySpend > 0 && (
-            <p className="text-[10px] text-earth-500 mt-1 px-1">
+            <p className="text-[10px] text-md3-on-surface-variant mt-1 px-1">
               {targetCategorySpend >= categoryAvg
                 ? `Target di atas atau sama dengan rata-rata ${selectedCategory}, tidak ada penghematan`
                 : `Target ${result?.targetSpendPct || 0}% dari rata-rata ${selectedCategory}, hemat ${formatRp(categorySavings)}/bulan`}
@@ -206,10 +206,10 @@ export default function WhatIfModal({ open, onClose, transactions }) {
         </div>
 
         {/* Income increase */}
-        <div className="h-px bg-earth-100" />
+        <div className="h-px bg-md3-surface-container-high" />
 
         <div>
-          <label htmlFor="income-amount" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
+          <label htmlFor="income-amount" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">
             Tambah Pemasukan /bulan (opsional)
           </label>
           <input
@@ -219,10 +219,10 @@ export default function WhatIfModal({ open, onClose, transactions }) {
             placeholder="1000000"
             value={rawIncomeIncrease}
             onChange={e => setRawIncomeIncrease(formatInputRupiah(e.target.value))}
-            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+            className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
           />
           {incomeIncrease > 0 && (
-            <p className="text-[10px] text-earth-500 mt-1 px-1 flex items-center gap-1">
+            <p className="text-[10px] text-md3-on-surface-variant mt-1 px-1 flex items-center gap-1">
               <TrendingUp size={10} className="text-moss-600" />
               Tambahan {formatRp(incomeIncrease)} per bulan
             </p>
@@ -240,7 +240,7 @@ export default function WhatIfModal({ open, onClose, transactions }) {
           />
         ) : (
           <div className="rounded-2xl p-3 text-center" style={{ background: THEME.surfaceWarm }}>
-            <p className="text-xs text-earth-500">Belum ada goal. Buat goal terlebih dahulu.</p>
+            <p className="text-xs text-md3-on-surface-variant">Belum ada goal. Buat goal terlebih dahulu.</p>
           </div>
         )}
       </div>
@@ -248,24 +248,24 @@ export default function WhatIfModal({ open, onClose, transactions }) {
       {/* Results */}
       {result && !result.noContributions && !result.alreadyDone && (
         <div className="mt-5 space-y-3">
-          <div className="h-px bg-earth-100" />
+          <div className="h-px bg-md3-surface-container-high" />
 
           <div className="rounded-2xl p-4 border-2" style={{ background: THEME.primaryBg, borderColor: THEME.primary + "30" }}>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles size={14} color={THEME.primary} aria-hidden="true" />
-              <span className="text-xs font-bold text-earth-700">Hasil Simulasi</span>
+              <span className="text-xs font-bold text-md3-on-surface-variant">Hasil Simulasi</span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="rounded-xl p-3" style={{ background: "white" }}>
-                <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Kontribusi/bulan</p>
-                <p className="text-sm font-bold text-earth-800">{formatRpFull(result.newMonthlyContribution)}</p>
-                <p className="text-[9px] text-earth-400">Sebelum: {formatRp(result.monthlyContributions)}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Kontribusi/bulan</p>
+                <p className="text-sm font-bold text-md3-on-surface">{formatRpFull(result.newMonthlyContribution)}</p>
+                <p className="text-[11px] text-earth-400">Sebelum: {formatRp(result.monthlyContributions)}</p>
               </div>
               <div className="rounded-xl p-3" style={{ background: "white" }}>
-                <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Sisa ke goal</p>
-                <p className="text-sm font-bold text-earth-800">{formatRp(result.remaining)}</p>
-                <p className="text-[9px] text-earth-400">Target: {formatRp(result.goal.target)}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Sisa ke goal</p>
+                <p className="text-sm font-bold text-md3-on-surface">{formatRp(result.remaining)}</p>
+                <p className="text-[11px] text-earth-400">Target: {formatRp(result.goal.target)}</p>
               </div>
             </div>
 
@@ -278,11 +278,11 @@ export default function WhatIfModal({ open, onClose, transactions }) {
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-earth-500">
-                    Sebelum: <strong className="text-earth-700">{result.originalDate}</strong>
+                  <span className="text-md3-on-surface-variant">
+                    Sebelum: <strong className="text-md3-on-surface-variant">{result.originalDate}</strong>
                   </span>
                   <ChevronRight size={10} className="text-earth-400" />
-                  <span className="text-earth-500">
+                  <span className="text-md3-on-surface-variant">
                     Sesudah: <strong style={{ color: THEME.income }}>{result.newDate}</strong>
                   </span>
                 </div>
@@ -291,15 +291,15 @@ export default function WhatIfModal({ open, onClose, transactions }) {
 
             {result.daysSaved <= 0 && (
               <div className="rounded-xl p-3" style={{ background: THEME.surfaceWarm }}>
-                <p className="text-xs text-earth-600 text-center">
+                <p className="text-xs text-md3-on-surface-variant text-center">
                   Perubahan ini terlalu kecil untuk mempercepat goal secara signifikan. Coba nominal lebih besar.
                 </p>
               </div>
             )}
 
             {result.daysSaved > 0 && (
-              <div className="mt-3 pt-3 border-t border-earth-100">
-                <p className="text-[10px] text-earth-500 text-center leading-relaxed">
+              <div className="mt-3 pt-3 border-t border-md3-outline-variant">
+                <p className="text-[10px] text-md3-on-surface-variant text-center leading-relaxed">
                   {result.summaryAction}
                   {result.summaryAction ? " /bulan = " : ""}
                   goal <strong style={{ color: THEME.primary }}>{result.goal.nama}</strong> tercapai{" "}
@@ -314,7 +314,7 @@ export default function WhatIfModal({ open, onClose, transactions }) {
       {result?.noContributions && (
         <div className="mt-5">
           <div className="rounded-xl p-3" style={{ background: THEME.surfaceWarm }}>
-            <p className="text-xs text-earth-600 text-center">
+            <p className="text-xs text-md3-on-surface-variant text-center">
               Kontribusi bulanan saat ini 0. Tambahkan kontribusi ke goal ini terlebih dahulu.
             </p>
           </div>
@@ -324,16 +324,16 @@ export default function WhatIfModal({ open, onClose, transactions }) {
       {result?.alreadyDone && (
         <div className="mt-5">
           <div className="rounded-xl p-3" style={{ background: THEME.incomeBg }}>
-            <p className="text-xs text-earth-600 text-center">
+            <p className="text-xs text-md3-on-surface-variant text-center">
               Goal ini sudah tercapai! 🎉
             </p>
           </div>
         </div>
       )}
 
-      <div className="mt-4 rounded-2xl p-3 border border-earth-200">
-        <p className="text-[10px] font-bold text-earth-700 mb-1">Cara kerja:</p>
-        <ul className="text-[10px] text-earth-600 space-y-0.5 list-disc list-inside">
+      <div className="mt-4 rounded-2xl p-3 border border-md3-outline-variant">
+        <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1">Cara kerja:</p>
+        <ul className="text-[10px] text-md3-on-surface-variant space-y-0.5 list-disc list-inside">
           <li>Pilih kategori pengeluaran yang ingin diatur (opsional)</li>
           <li>Masukkan target pengeluaran bulanan baru untuk kategori tersebut</li>
           <li>Tambah pemasukan tambahan per bulan (opsional)</li>

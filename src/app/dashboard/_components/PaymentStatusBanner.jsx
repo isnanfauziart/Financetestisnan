@@ -30,11 +30,11 @@ export default function PaymentStatusBanner({ enabled = true }) {
     : COPY[payment.status]
 
   return (
-    <div className="mx-5 mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-earth-800" role="status">
+    <div className="mx-5 mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-md3-on-surface" role="status">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-bold">{title}</p>
-          <p className="mt-1 text-sm text-earth-600">{message}</p>
+          <p className="mt-1 text-sm text-md3-on-surface-variant">{message}</p>
           <Link href="/upgrade" className="mt-2 inline-block text-sm font-bold text-violet-700">
             Lihat pembayaran
           </Link>
@@ -42,7 +42,7 @@ export default function PaymentStatusBanner({ enabled = true }) {
         <button
           type="button"
           aria-label="Tutup pemberitahuan pembayaran"
-          className="rounded-lg px-2 py-1 text-earth-500 hover:bg-white"
+          className="rounded-lg px-2 py-1 text-md3-on-surface-variant hover:bg-md3-surface-container-lowest"
           onClick={() => {
             localStorage.setItem(payment.dismissalKey, "1")
             setPayment(null)

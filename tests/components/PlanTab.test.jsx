@@ -124,7 +124,7 @@ describe("PlanTab planning ownership", () => {
     render(<PlanTab {...createProps()} />)
 
     const semanticTones = [
-      ["Ringkasan", "bg-earth-100", "text-earth-700"],
+      ["Ringkasan", "bg-md3-surface-container-high", "text-md3-on-surface-variant"],
       ["Target", "bg-sage-100", "text-sage-700"],
       ["Anggaran", "bg-amber-100", "text-amber-700"],
       ["Tagihan", "bg-clay-100", "text-clay-600"],
@@ -155,7 +155,7 @@ describe("PlanTab planning ownership", () => {
 
     overviewCards.forEach(([label, border, background, color, hover]) => {
       const card = screen.getByRole("button", { name: `Buka ${label}` })
-      expect(card).toHaveClass("bg-white", "border-t-2", border, "group", "active:scale-[0.99]")
+      expect(card).toHaveClass("bg-md3-surface-container-lowest", "border-t-2", border, "group", "active:scale-[0.99]")
       expect(card).toHaveClass("focus-visible:ring-2")
       expect(card).toHaveClass(hover)
       expect(card.querySelector("[data-plan-icon-tile]")).toHaveClass("h-11", "w-11", background, color)

@@ -21,7 +21,7 @@ function typeBg(type) {
 function SummaryChip({ label, value, color, bg }) {
   return (
     <div className="flex-1 rounded-2xl px-2.5 py-2 min-w-0" style={{ background: bg }}>
-      <p className="text-[8px] font-bold uppercase tracking-wider opacity-70 mb-0.5 truncate" style={{ color }}>
+      <p className="text-[11px] font-bold uppercase tracking-wider opacity-70 mb-0.5 truncate" style={{ color }}>
         {label}
       </p>
       <p className="text-[11px] font-bold truncate" style={{ color }}>{formatRp(value)}</p>
@@ -31,7 +31,7 @@ function SummaryChip({ label, value, color, bg }) {
 
 function SpecialBadge() {
   return (
-    <span className="inline-flex flex-shrink-0 items-center rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-700">
+    <span className="inline-flex flex-shrink-0 items-center rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-violet-700">
       Spesial
     </span>
   )
@@ -47,7 +47,7 @@ function Pager({ page, totalPages, onPageChange }) {
         onClick={() => onPageChange(page - 1)}
         disabled={page === 1}
         aria-label="Previous page"
-        className="w-8 h-8 rounded-xl bg-earth-50 hover:bg-earth-100 disabled:opacity-30 disabled:hover:bg-earth-50 transition-colors flex items-center justify-center text-earth-700 text-sm font-bold"
+        className="w-8 h-8 rounded-xl bg-md3-surface hover:bg-md3-surface-container-high disabled:opacity-30 disabled:hover:bg-md3-surface transition-colors flex items-center justify-center text-md3-on-surface-variant text-sm font-bold"
       >
         ‹
       </button>
@@ -58,7 +58,7 @@ function Pager({ page, totalPages, onPageChange }) {
           aria-label={`Page ${p}`}
           aria-current={p === page ? "page" : undefined}
           className={`min-w-[32px] h-8 px-2 rounded-xl text-xs font-bold transition-all ${
-            p === page ? "bg-earth-800 text-white shadow-warm" : "bg-earth-50 text-earth-700 hover:bg-earth-100"
+            p === page ? "bg-earth-800 text-white shadow-warm" : "bg-md3-surface text-md3-on-surface-variant hover:bg-md3-surface-container-high"
           }`}
         >
           {p}
@@ -68,7 +68,7 @@ function Pager({ page, totalPages, onPageChange }) {
         onClick={() => onPageChange(page + 1)}
         disabled={page === totalPages}
         aria-label="Next page"
-        className="w-8 h-8 rounded-xl bg-earth-50 hover:bg-earth-100 disabled:opacity-30 disabled:hover:bg-earth-50 transition-colors flex items-center justify-center text-earth-700 text-sm font-bold"
+        className="w-8 h-8 rounded-xl bg-md3-surface hover:bg-md3-surface-container-high disabled:opacity-30 disabled:hover:bg-md3-surface transition-colors flex items-center justify-center text-md3-on-surface-variant text-sm font-bold"
       >
         ›
       </button>
@@ -97,7 +97,7 @@ export default function RecapMonthGroup({
   const headerKey = `${month} ${year}`
 
   return (
-    <div className="bento-tile bg-white border border-earth-100 shadow-warm overflow-hidden">
+    <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm overflow-hidden">
       <button
         onClick={onToggle}
         aria-label={`${expanded ? "Collapse" : "Expand"} ${headerKey}`}
@@ -110,8 +110,8 @@ export default function RecapMonthGroup({
             className={`transition-transform duration-300 flex-shrink-0 ${expanded ? "rotate-180" : ""}`}
             aria-hidden="true"
           />
-          <h4 className="text-sm font-display font-bold text-earth-800 truncate">{headerKey}</h4>
-          <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider flex-shrink-0">
+          <h4 className="text-sm font-display font-bold text-md3-on-surface truncate">{headerKey}</h4>
+          <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider flex-shrink-0">
             · {transactions.length} tx
           </span>
         </div>
@@ -141,7 +141,7 @@ export default function RecapMonthGroup({
           </div>
 
           {visible.length === 0 ? (
-            <p className="text-xs text-earth-500 text-center py-4">Tidak ada transaksi pada halaman ini.</p>
+            <p className="text-xs text-md3-on-surface-variant text-center py-4">Tidak ada transaksi pada halaman ini.</p>
           ) : (
             <div className="space-y-1.5">
               {visible.map((t, i) => {
@@ -155,15 +155,15 @@ export default function RecapMonthGroup({
                     style={{ borderLeftColor: borderColor, background: bg + "80" }}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="w-9 h-9 rounded-xl bg-white/80 flex items-center justify-center font-bold text-[9px] text-earth-600 text-center leading-tight flex-shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-md3-surface-container-lowest flex items-center justify-center font-bold text-[11px] text-md3-on-surface-variant text-center leading-tight flex-shrink-0">
                         {formatShortDate(t.date)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
+                          <p className="font-semibold text-sm text-md3-on-surface truncate">{t.category}</p>
                           {special && <SpecialBadge />}
                         </div>
-                        <p className="text-[10px] text-earth-500 mt-0.5 truncate">
+                        <p className="text-[10px] text-md3-on-surface-variant mt-0.5 truncate">
                           {t.desc || (t.type === "income" ? "Pemasukan" : t.type === "savings" ? "Tabungan" : "Pengeluaran")}
                           {t.account ? ` · ${t.account}` : ""}
                         </p>
@@ -179,14 +179,14 @@ export default function RecapMonthGroup({
                       <button
                         onClick={() => onEdit(t)}
                         aria-label={`Edit ${t.category}`}
-                        className="w-8 h-8 rounded-lg bg-white/80 hover:bg-violet-100 flex items-center justify-center text-earth-600 hover:text-violet-600 transition-colors text-xs font-bold"
+                        className="w-8 h-8 rounded-lg bg-md3-surface-container-lowest hover:bg-violet-100 flex items-center justify-center text-md3-on-surface-variant hover:text-violet-600 transition-colors text-xs font-bold"
                       >
                         ✎
                       </button>
                       <button
                         onClick={() => onDelete(t)}
                         aria-label={`Delete ${t.category}`}
-                        className="w-8 h-8 rounded-lg bg-white/80 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500 transition-colors text-sm font-bold"
+                        className="w-8 h-8 rounded-lg bg-md3-surface-container-lowest hover:bg-rose-100 flex items-center justify-center text-md3-on-surface-variant hover:text-rose-500 transition-colors text-sm font-bold"
                       >
                         ×
                       </button>

@@ -29,14 +29,14 @@ export default function ConfirmSheet({
             <Trash2 size={20} strokeWidth={2.5} aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0 pt-0.5">
-            <h3 className="text-base font-display font-bold text-earth-800">{title}</h3>
-            {message && <p className="text-sm text-earth-600 mt-1 leading-relaxed">{message}</p>}
+            <h3 className="text-base font-display font-bold text-md3-on-surface">{title}</h3>
+            {message && <p className="text-sm text-md3-on-surface-variant mt-1 leading-relaxed">{message}</p>}
           </div>
           <button
             onClick={onClose}
             disabled={confirming}
             aria-label="Close confirm"
-            className="w-8 h-8 rounded-full bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center flex-shrink-0 disabled:opacity-50"
+            className="w-8 h-8 rounded-full bg-md3-surface hover:bg-md3-surface-container-high transition-colors flex items-center justify-center flex-shrink-0 disabled:opacity-50"
           >
             <X size={14} color={THEME.textSecondary} aria-hidden="true" />
           </button>
@@ -47,7 +47,7 @@ export default function ConfirmSheet({
           <button
             onClick={onClose}
             disabled={confirming}
-            className="flex-1 py-3.5 rounded-2xl font-semibold text-earth-700 bg-earth-50 hover:bg-earth-100 active:scale-[0.97] transition-transform disabled:opacity-50"
+            className="flex-1 py-3.5 rounded-2xl font-semibold text-md3-on-surface-variant bg-md3-surface hover:bg-md3-surface-container-high active:scale-[0.97] transition-transform disabled:opacity-50"
           >
             {cancelLabel}
           </button>

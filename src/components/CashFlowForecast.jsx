@@ -15,8 +15,8 @@ function CustomTooltip({ active, payload, label }) {
   const d = payload[0]?.payload
   if (!d) return null
   return (
-    <div className="rounded-xl p-3 shadow-warm border border-earth-100" style={{ background: THEME.surface }}>
-      <p className="text-[10px] font-bold text-earth-500 mb-1">{label}{d.isProjected ? " (proyeksi)" : ""}</p>
+    <div className="rounded-xl p-3 shadow-warm border border-md3-outline-variant" style={{ background: THEME.surface }}>
+      <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1">{label}{d.isProjected ? " (proyeksi)" : ""}</p>
       <p className="text-xs font-bold" style={{ color: THEME.income }}>
         Pemasukan: {formatRp(d.pemasukan)}
       </p>
@@ -50,36 +50,36 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
 
   if (billsLoading) {
     return (
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in" role="status" aria-live="polite">
+      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in" role="status" aria-live="polite">
         <div className="flex items-center gap-1.5 mb-2">
           <TrendingUp size={14} className="text-earth-400" aria-hidden="true" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Proyeksi Arus Kas</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Proyeksi Arus Kas</p>
         </div>
-        <p className="text-sm text-earth-500">Memuat tagihan terjadwal…</p>
+        <p className="text-sm text-md3-on-surface-variant">Memuat tagihan terjadwal…</p>
       </div>
     )
   }
 
   if (billsError) {
     return (
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in" role="status" aria-live="polite">
+      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in" role="status" aria-live="polite">
         <div className="flex items-center gap-1.5 mb-2">
           <TrendingUp size={14} className="text-earth-400" aria-hidden="true" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Proyeksi Arus Kas</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Proyeksi Arus Kas</p>
         </div>
-        <p className="text-sm text-earth-500">Proyeksi arus kas belum tersedia.</p>
+        <p className="text-sm text-md3-on-surface-variant">Proyeksi arus kas belum tersedia.</p>
       </div>
     )
   }
 
   if (forecast.insufficientData) {
     return (
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
         <div className="flex items-center gap-1.5 mb-2">
           <TrendingUp size={14} className="text-earth-400" aria-hidden="true" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Proyeksi Arus Kas</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Proyeksi Arus Kas</p>
         </div>
-        <p className="text-sm text-earth-500">Butuh minimal 3 bulan lengkap untuk proyeksi.</p>
+        <p className="text-sm text-md3-on-surface-variant">Butuh minimal 3 bulan lengkap untuk proyeksi.</p>
       </div>
     )
   }
@@ -87,12 +87,12 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
   const surplusPositive = forecast.projectedSurplus >= 0
 
   return (
-    <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+    <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5">
           <TrendingUp size={14} className="text-violet-500" aria-hidden="true" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Proyeksi Arus Kas</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Proyeksi Arus Kas</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">
@@ -102,7 +102,7 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
             type="button"
             onClick={() => setIsInfoOpen(true)}
             aria-label="Info proyeksi arus kas"
-            className="w-7 h-7 rounded-full bg-earth-50 text-earth-500 hover:bg-earth-100 transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+            className="w-7 h-7 rounded-full bg-md3-surface text-md3-on-surface-variant hover:bg-md3-surface-container-high transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
           >
             <Info size={14} aria-hidden="true" />
           </button>
@@ -112,11 +112,11 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
       {/* KPI cards */}
       <div className="grid grid-cols-3 gap-2.5 mb-4">
         <div className="rounded-2xl p-3 border" style={{ background: THEME.incomeBg, borderColor: THEME.income + "20" }}>
-          <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Pemasukan</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Pemasukan</p>
           <p className="text-sm font-bold" style={{ color: THEME.income }}>{formatRp(animatedIncome)}</p>
         </div>
         <div className="rounded-2xl p-3 border" style={{ background: THEME.expenseBg, borderColor: THEME.expense + "20" }}>
-          <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Pengeluaran</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Pengeluaran</p>
           <p className="text-sm font-bold" style={{ color: THEME.expense }}>{formatRp(animatedExpense)}</p>
         </div>
         <div
@@ -126,7 +126,7 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
             borderColor: (surplusPositive ? THEME.savings : THEME.danger) + "20",
           }}
         >
-          <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Surplus</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Surplus</p>
           <p className="text-sm font-bold" style={{ color: surplusPositive ? THEME.savings : THEME.danger }}>
             {formatRp(animatedSurplus)}
           </p>
@@ -204,22 +204,22 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <div className="w-4 h-0.5 rounded-full" style={{ background: THEME.primary }} />
-            <span className="text-[9px] font-semibold text-earth-600">Aktual</span>
+            <span className="text-[11px] font-semibold text-md3-on-surface-variant">Aktual</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-4 h-0.5 rounded-full" style={{ background: THEME.warning, borderTop: "2px dashed" }} />
-            <span className="text-[9px] font-semibold text-earth-600">Proyeksi</span>
+            <span className="text-[11px] font-semibold text-md3-on-surface-variant">Proyeksi</span>
           </div>
         </div>
-        <p className="text-[9px] text-earth-500">
+        <p className="text-[11px] text-md3-on-surface-variant">
           Berdasarkan {forecast.monthsUsed} bulan lengkap
         </p>
       </div>
 
       <Sheet open={isInfoOpen} onClose={() => setIsInfoOpen(false)} title="Rumus Proyeksi Arus Kas">
-        <p className="text-sm leading-relaxed text-earth-600">{FORMULA_COPY}</p>
+        <p className="text-sm leading-relaxed text-md3-on-surface-variant">{FORMULA_COPY}</p>
         {forecast.specialHistoryExcluded && (
-          <p className="mt-3 text-xs leading-relaxed text-earth-500">{SPECIAL_HISTORY_NOTE}</p>
+          <p className="mt-3 text-xs leading-relaxed text-md3-on-surface-variant">{SPECIAL_HISTORY_NOTE}</p>
         )}
       </Sheet>
     </div>

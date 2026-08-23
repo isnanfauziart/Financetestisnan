@@ -139,12 +139,12 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
 
   if (transactions.length === 0) {
     return (
-      <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
-        <h3 className="text-sm font-bold mb-3 font-display text-earth-800 flex items-center gap-1.5">
+      <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm">
+        <h3 className="text-sm font-bold mb-3 font-display text-md3-on-surface flex items-center gap-1.5">
           <ListFilter size={14} aria-hidden="true" /> Laporan Bulanan
         </h3>
         {history?.limited && (
-          <p className="mb-3 text-xs leading-relaxed text-earth-500">
+          <p className="mb-3 text-xs leading-relaxed text-md3-on-surface-variant">
             Riwayat lebih lama tetap tersimpan dan dapat dikelola di Google Sheets.
           </p>
         )}
@@ -163,15 +163,15 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
     <div className="space-y-3">
       <div className="flex items-center gap-1.5 px-1">
         <ListFilter size={14} className="text-violet-600" aria-hidden="true" />
-        <h3 className="text-sm font-bold font-display text-earth-800 uppercase tracking-wider">
+        <h3 className="text-sm font-bold font-display text-md3-on-surface uppercase tracking-wider">
           Laporan Bulanan
         </h3>
-        <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider ml-1">
+        <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider ml-1">
           · {groups.length} bulan · {totalTx} tx
         </span>
       </div>
       {history?.limited && (
-        <p className="px-1 text-xs leading-relaxed text-earth-500">
+        <p className="px-1 text-xs leading-relaxed text-md3-on-surface-variant">
           Riwayat lebih lama tetap tersimpan dan dapat dikelola di Google Sheets.
         </p>
       )}
@@ -206,7 +206,7 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
           />
         </div>
         <div className="flex items-center gap-1.5 flex-wrap pt-1">
-          <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider mr-1">Tipe:</span>
+          <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider mr-1">Tipe:</span>
           {TYPE_OPTIONS.map(opt => (
             <PillButton
               key={opt.value}
@@ -217,7 +217,7 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
               {opt.label}
             </PillButton>
           ))}
-          <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider ml-1 mr-1">Kelas:</span>
+          <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider ml-1 mr-1">Kelas:</span>
           {CLASS_OPTIONS.map(opt => (
             <PillButton
               key={opt.value}
@@ -241,8 +241,8 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
       </div>
 
       {groups.length === 0 ? (
-        <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm text-center">
-          <p className="text-xs text-earth-500 py-4">Tidak ada transaksi yang cocok dengan filter.</p>
+        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm text-center">
+          <p className="text-xs text-md3-on-surface-variant py-4">Tidak ada transaksi yang cocok dengan filter.</p>
           <button onClick={clearFilter} className="text-[11px] font-bold text-violet-600 hover:underline">
             Atur ulang filter
           </button>

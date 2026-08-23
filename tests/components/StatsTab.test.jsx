@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import StatsTab from "@/app/dashboard/StatsTab"
-import { THEME, COLORS } from "@/app/dashboard/_components/constants"
+import { THEME } from "@/app/dashboard/_components/constants"
+import { chartTheme } from "@/lib/chartTheme"
 
 const forecastProps = vi.hoisted(() => ({ current: null }))
 const savingsTrendProps = vi.hoisted(() => ({ current: null }))
@@ -467,7 +468,7 @@ describe("StatsTab expense category chart", () => {
       const markerColors = [...expenseSection.querySelectorAll("span")]
         .filter(marker => marker.className.includes("h-2.5") && marker.className.includes("w-2.5"))
         .map(marker => marker.style.background)
-      const expectedColors = [COLORS[3], COLORS[4], COLORS[5]]
+      const expectedColors = chartTheme.seriesPalette.slice(0, 3)
       const toCssColor = color => {
         const probe = document.createElement("span")
         probe.style.background = color

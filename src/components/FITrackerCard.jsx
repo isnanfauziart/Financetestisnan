@@ -51,8 +51,8 @@ function ProjectionTooltip({ active, payload, label }) {
   const projected = payload.find((entry) => entry.dataKey === "projected")?.value
 
   return (
-    <div className="rounded-xl border border-earth-100 bg-white p-3 shadow-warm">
-      <p className="mb-1 text-[10px] font-bold text-earth-500">{label}</p>
+    <div className="rounded-xl border border-md3-outline-variant bg-md3-surface-container-lowest p-3 shadow-warm">
+      <p className="mb-1 text-[10px] font-bold text-md3-on-surface-variant">{label}</p>
       {actual !== null && actual !== undefined && (
         <p className="text-xs font-bold" style={{ color: THEME.primary }}>
           Tercatat: {formatRp(actual)}
@@ -182,14 +182,14 @@ export default function FITrackerCard({
       maxHeight="85vh"
       position="center"
     >
-      <p className="text-sm leading-relaxed text-earth-700">
+      <p className="text-sm leading-relaxed text-md3-on-surface-variant">
         Atur nominal pengeluaran bulanan yang dipakai untuk menghitung dana yang kamu butuhkan.
       </p>
-      <label htmlFor="financial-freedom-expense" className="mt-5 block text-xs font-bold text-earth-800">
+      <label htmlFor="financial-freedom-expense" className="mt-5 block text-xs font-bold text-md3-on-surface">
         Pengeluaran bulanan (Rupiah)
       </label>
-      <div className="mt-2 flex min-h-11 items-center rounded-2xl border border-earth-200 bg-white px-3 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100">
-        <span className="mr-2 text-sm font-bold text-earth-500">Rp</span>
+      <div className="mt-2 flex min-h-11 items-center rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest px-3 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100">
+        <span className="mr-2 text-sm font-bold text-md3-on-surface-variant">Rp</span>
         <input
           id="financial-freedom-expense"
           type="number"
@@ -198,7 +198,7 @@ export default function FITrackerCard({
           step="1"
           value={draftExpense}
           onChange={(event) => setDraftExpense(event.target.value.replace(/[^0-9]/g, ""))}
-          className="min-h-11 w-full bg-transparent text-sm font-bold text-earth-800 outline-none"
+          className="min-h-11 w-full bg-transparent text-sm font-bold text-md3-on-surface outline-none"
           aria-label="Pengeluaran bulanan"
         />
       </div>
@@ -216,7 +216,7 @@ export default function FITrackerCard({
           type="button"
           onClick={resetToActual}
           disabled={saving}
-          className="min-h-11 rounded-2xl border border-earth-200 bg-white px-4 py-2.5 text-sm font-bold text-earth-700 transition-colors hover:bg-earth-50 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+          className="min-h-11 rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest px-4 py-2.5 text-sm font-bold text-md3-on-surface-variant transition-colors hover:bg-md3-surface disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
         >
           Gunakan pengeluaran aktual
         </button>
@@ -234,26 +234,26 @@ export default function FITrackerCard({
       maxHeight="85vh"
       position="center"
     >
-      <p className="text-sm leading-relaxed text-earth-700">
+      <p className="text-sm leading-relaxed text-md3-on-surface-variant">
         Rata-rata pengeluaran aktual bulanan diambil dari maksimal 12 bulan selesai yang memiliki pengeluaran tercatat. Bulan berjalan yang masih parsial tidak ikut dihitung.
       </p>
       <div className="mt-4 space-y-3">
-        <div className="rounded-2xl bg-earth-50 p-3">
-          <p className="text-xs font-bold text-earth-800">1. Dana yang kamu butuhkan</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-earth-600">Pengeluaran bulanan × 12 × 25. Nominal khusus hanya mengubah target ini, bukan surplus aktual.</p>
+        <div className="rounded-2xl bg-md3-surface p-3">
+          <p className="text-xs font-bold text-md3-on-surface">1. Dana yang kamu butuhkan</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-md3-on-surface-variant">Pengeluaran bulanan × 12 × 25. Nominal khusus hanya mengubah target ini, bukan surplus aktual.</p>
         </div>
-        <div className="rounded-2xl bg-earth-50 p-3">
-          <p className="text-xs font-bold text-earth-800">2. Perkiraan waktu</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-earth-600">Dana yang masih dibutuhkan dibagi surplus aktual rata-rata dari bulan yang sama.</p>
+        <div className="rounded-2xl bg-md3-surface p-3">
+          <p className="text-xs font-bold text-md3-on-surface">2. Perkiraan waktu</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-md3-on-surface-variant">Dana yang masih dibutuhkan dibagi surplus aktual rata-rata dari bulan yang sama.</p>
         </div>
-        <div className="rounded-2xl bg-earth-50 p-3">
-          <p className="text-xs font-bold text-earth-800">3. Proyeksi tercatat</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-earth-600">Garis putus-putus menunjukkan patokan target; garis penuh menunjukkan kekayaan bersih tercatat dari riwayat yang tersedia.</p>
+        <div className="rounded-2xl bg-md3-surface p-3">
+          <p className="text-xs font-bold text-md3-on-surface">3. Proyeksi tercatat</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-md3-on-surface-variant">Garis putus-putus menunjukkan patokan target; garis penuh menunjukkan kekayaan bersih tercatat dari riwayat yang tersedia.</p>
         </div>
       </div>
-      <div className="mt-4 rounded-2xl border border-earth-200 bg-violet-50 p-3">
-        <p className="text-xs font-bold text-earth-800">Catatan penting</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-earth-700">Estimasi edukatif, bukan jaminan atau nasihat investasi. Tidak menghitung inflasi, imbal hasil, pajak, biaya, atau perubahan gaya hidup.</p>
+      <div className="mt-4 rounded-2xl border border-md3-outline-variant bg-violet-50 p-3">
+        <p className="text-xs font-bold text-md3-on-surface">Catatan penting</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-md3-on-surface-variant">Estimasi edukatif, bukan jaminan atau nasihat investasi. Tidak menghitung inflasi, imbal hasil, pajak, biaya, atau perubahan gaya hidup.</p>
       </div>
     </Sheet>
   )
@@ -263,14 +263,14 @@ export default function FITrackerCard({
       <div className="min-w-0">
         <div className="mb-1 flex items-center gap-1.5">
           <Target size={14} color={THEME.primary} aria-hidden="true" />
-          <p className="text-xs font-bold uppercase tracking-wider text-earth-700">Simulasi</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-md3-on-surface-variant">Simulasi</p>
         </div>
-        <h2 id="fi-card-title" className="text-lg font-display font-bold text-earth-800">Target Bebas Finansial</h2>
+        <h2 id="fi-card-title" className="text-lg font-display font-bold text-md3-on-surface">Target Bebas Finansial</h2>
       </div>
       <button
         type="button"
         onClick={openEditor}
-        className="min-h-11 flex-shrink-0 rounded-xl border border-earth-200 bg-white px-3 py-2 text-xs font-bold text-earth-700 transition-colors hover:bg-earth-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+        className="min-h-11 flex-shrink-0 rounded-xl border border-md3-outline-variant bg-md3-surface-container-lowest px-3 py-2 text-xs font-bold text-md3-on-surface-variant transition-colors hover:bg-md3-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
       >
         Ubah
       </button>
@@ -280,23 +280,23 @@ export default function FITrackerCard({
   if (calculation.status === "insufficient-data" || calculation.status === "invalid-net-worth") {
     return (
       <>
-        <section className="mt-6 bento-tile animate-bento-in border border-earth-100 bg-white p-5 shadow-warm motion-reduce:animate-none" aria-labelledby="fi-card-title">
+        <section className="mt-6 bento-tile animate-bento-in border border-md3-outline-variant bg-md3-surface-container-lowest p-5 shadow-warm motion-reduce:animate-none" aria-labelledby="fi-card-title">
           {header}
-          <div className="mt-5 rounded-2xl bg-earth-50 p-4">
-            <p className="text-sm leading-relaxed text-earth-700">
+          <div className="mt-5 rounded-2xl bg-md3-surface p-4">
+            <p className="text-sm leading-relaxed text-md3-on-surface-variant">
               {calculation.status === "invalid-net-worth"
                 ? "Kekayaan bersih tercatat belum tersedia. Coba muat ulang dashboard."
                 : "Butuh minimal 2 bulan selesai dengan pengeluaran tercatat untuk menampilkan target otomatis."}
             </p>
           </div>
-          <div className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-earth-600">
+          <div className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-md3-on-surface-variant">
             <Info size={14} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
             <span>Setelah datanya cukup, target akan dihitung dari pola keuanganmu sendiri.</span>
           </div>
           <button
             type="button"
             onClick={openFormula}
-            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-earth-200 px-3 py-2 text-xs font-bold text-earth-700 transition-colors hover:bg-earth-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-md3-outline-variant px-3 py-2 text-xs font-bold text-md3-on-surface-variant transition-colors hover:bg-md3-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
           >
             <Calculator size={14} aria-hidden="true" />
             Cara menghitung
@@ -315,15 +315,15 @@ export default function FITrackerCard({
 
   return (
     <>
-      <section className="mt-6 bento-tile animate-bento-in border border-earth-100 bg-white p-5 shadow-warm motion-reduce:animate-none" aria-labelledby="fi-card-title">
+      <section className="mt-6 bento-tile animate-bento-in border border-md3-outline-variant bg-md3-surface-container-lowest p-5 shadow-warm motion-reduce:animate-none" aria-labelledby="fi-card-title">
         {header}
 
         <div className="mt-5 rounded-2xl p-4" style={{ background: THEME.surfaceMuted }}>
-          <p className="text-xs font-bold uppercase tracking-wider text-earth-700">Dana yang kamu butuhkan</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-md3-on-surface-variant">Dana yang kamu butuhkan</p>
           <p className="mt-1 text-3xl font-display font-bold" style={{ color: progressColor }}>
             {formatRpFull(calculation.target)}
           </p>
-          <p className="mt-2 text-xs leading-relaxed text-earth-600">
+          <p className="mt-2 text-xs leading-relaxed text-md3-on-surface-variant">
             {calculation.expenseBasis === "custom"
               ? `Target khusus dari Rp ${Number(calculation.monthlyExpense).toLocaleString("id-ID")} per bulan.`
               : `Dari rata-rata pengeluaran aktual ${calculation.monthCount} bulan selesai.`}
@@ -331,31 +331,31 @@ export default function FITrackerCard({
         </div>
 
         {calculation.expenseBasis === "custom" && (
-          <p role="note" className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-earth-700">
+          <p role="note" className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-md3-on-surface-variant">
             Kamu sedang memakai target khusus. Disarankan menggunakan nominal pengeluaran aktualmu agar patokannya mengikuti catatan transaksi.
           </p>
         )}
 
-        <div className="mt-4 rounded-2xl border border-earth-100 p-4" style={{ background: THEME.primaryBg }}>
+        <div className="mt-4 rounded-2xl border border-md3-outline-variant p-4" style={{ background: THEME.primaryBg }}>
           <div className="flex items-center gap-1.5">
             <Clock size={14} color={THEME.primary} aria-hidden="true" />
-            <p className="text-xs font-bold uppercase tracking-wider text-earth-700">Dengan pola keuanganmu sekarang</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-md3-on-surface-variant">Dengan pola keuanganmu sekarang</p>
           </div>
-          <p className="mt-2 text-xl font-display font-bold text-earth-900">{formatEta(calculation.monthsToFreedom)}</p>
+          <p className="mt-2 text-xl font-display font-bold text-md3-on-surface">{formatEta(calculation.monthsToFreedom)}</p>
           {targetReached ? (
-            <p className="mt-1 text-xs leading-relaxed text-earth-700">Kekayaan bersih tercatat sudah menyamai angka patokan. Ini bukan kepastian bebas finansial.</p>
+            <p className="mt-1 text-xs leading-relaxed text-md3-on-surface-variant">Kekayaan bersih tercatat sudah menyamai angka patokan. Ini bukan kepastian bebas finansial.</p>
           ) : calculation.monthsToFreedom === null ? (
-            <p className="mt-1 text-xs leading-relaxed text-earth-700">Surplus aktual bulanan belum positif, jadi ETA belum tersedia.</p>
+            <p className="mt-1 text-xs leading-relaxed text-md3-on-surface-variant">Surplus aktual bulanan belum positif, jadi ETA belum tersedia.</p>
           ) : (
-            <p className="mt-1 text-xs text-earth-700">Perkiraan sekitar {estimatedDateLabel}.</p>
+            <p className="mt-1 text-xs text-md3-on-surface-variant">Perkiraan sekitar {estimatedDateLabel}.</p>
           )}
-          <p className="mt-2 text-[11px] text-earth-600">Surplus aktual bulanan: {formatSignedRp(calculation.averageMonthlySurplus)}</p>
+          <p className="mt-2 text-[11px] text-md3-on-surface-variant">Surplus aktual bulanan: {formatSignedRp(calculation.averageMonthlySurplus)}</p>
         </div>
 
         <div className="mt-4">
           <div className="flex items-center justify-between gap-3 text-xs">
-            <span className="font-semibold text-earth-700">Kekayaan bersih tercatat: {formatRp(calculation.currentNetWorth)}</span>
-            <span className="font-semibold text-earth-700">Dana yang masih dibutuhkan: {formatRp(calculation.remaining)}</span>
+            <span className="font-semibold text-md3-on-surface-variant">Kekayaan bersih tercatat: {formatRp(calculation.currentNetWorth)}</span>
+            <span className="font-semibold text-md3-on-surface-variant">Dana yang masih dibutuhkan: {formatRp(calculation.remaining)}</span>
           </div>
           <div
             className="mt-2 h-3 overflow-hidden rounded-full"
@@ -376,10 +376,10 @@ export default function FITrackerCard({
         </div>
 
         {hasProjection && (
-          <div className="mt-4 rounded-2xl border border-earth-100 p-3" style={{ background: THEME.surfaceMuted }}>
+          <div className="mt-4 rounded-2xl border border-md3-outline-variant p-3" style={{ background: THEME.surfaceMuted }}>
             <div className="mb-2 flex items-center gap-1.5">
               <TrendingUp size={14} color={THEME.primary} aria-hidden="true" />
-              <p className="text-xs font-bold text-earth-800">Proyeksi kekayaan bersih tercatat</p>
+              <p className="text-xs font-bold text-md3-on-surface">Proyeksi kekayaan bersih tercatat</p>
             </div>
             <p id="fi-projection-summary" className="sr-only">
               {projectionSummary}
@@ -387,7 +387,7 @@ export default function FITrackerCard({
             <div role="img" aria-label="Proyeksi kekayaan bersih tercatat" aria-describedby="fi-projection-summary" className="overflow-x-auto">
               <ProjectionChart data={calculation.projectionData} target={calculation.target} />
             </div>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-semibold text-earth-600">
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-semibold text-md3-on-surface-variant">
               <span><span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: THEME.primary }} />Tercatat</span>
               <span><span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: THEME.warning }} />Patokan target</span>
             </div>
@@ -395,18 +395,18 @@ export default function FITrackerCard({
         )}
 
         {calculation.currentNetWorth < 0 && (
-          <p className="mt-4 rounded-2xl p-3 text-xs leading-relaxed text-earth-700" style={{ background: THEME.expenseBg }}>
+          <p className="mt-4 rounded-2xl p-3 text-xs leading-relaxed text-md3-on-surface-variant" style={{ background: THEME.expenseBg }}>
             Kekayaan bersih tercatat masih negatif. Fokus dulu pada surplus bulanan yang stabil dan pengurangan kewajiban.
           </p>
         )}
 
-        <div className="mt-4 rounded-2xl border border-earth-200 p-3" style={{ background: THEME.surfaceWarm }}>
-          <p className="text-xs font-semibold text-earth-800">Estimasi edukatif, bukan jaminan atau nasihat investasi.</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-earth-700">Hasil ini memakai catatan kekayaan bersih dan pola arus kas yang tersedia; inflasi, imbal hasil, pajak, biaya, dan perubahan gaya hidup tidak dihitung.</p>
+        <div className="mt-4 rounded-2xl border border-md3-outline-variant p-3" style={{ background: THEME.surfaceWarm }}>
+          <p className="text-xs font-semibold text-md3-on-surface">Estimasi edukatif, bukan jaminan atau nasihat investasi.</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-md3-on-surface-variant">Hasil ini memakai catatan kekayaan bersih dan pola arus kas yang tersedia; inflasi, imbal hasil, pajak, biaya, dan perubahan gaya hidup tidak dihitung.</p>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="flex items-center gap-1 text-xs text-earth-600">
+          <p className="flex items-center gap-1 text-xs text-md3-on-surface-variant">
             <Info size={12} aria-hidden="true" /> Gunakan sebagai patokan awal.
           </p>
           <button

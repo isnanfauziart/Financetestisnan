@@ -85,7 +85,7 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
       <div className="space-y-4">
         {/* Tipe toggle */}
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Tipe</label>
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Tipe</label>
           <div className="flex gap-2">
             {[
               { value: "expense", label: "Pengeluaran" },
@@ -109,27 +109,27 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
 
         {/* Nama */}
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Nama Tagihan</label>
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Nama Tagihan</label>
           <input
             type="text"
             value={nama}
             onChange={e => setNama(e.target.value)}
             placeholder="Contoh: PLN Rumah"
-            className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200"
+            className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200"
             autoFocus
           />
         </div>
 
         {/* Jumlah */}
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Jumlah (Rp)</label>
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Jumlah (Rp)</label>
           <input
             type="text"
             inputMode="numeric"
             value={rawJumlah}
             onChange={e => setRawJumlah(formatInputRupiah(e.target.value))}
             placeholder="0"
-            className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200 font-semibold"
+            className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200 font-semibold"
           />
         </div>
 
@@ -162,7 +162,7 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
 
         {/* Tanggal Jatuh Tempo */}
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">
             {frekuensi === "weekly" || frekuensi === "biweekly" ? "Hari (1=Sen, 7=Min)" : "Tanggal (hari dalam bulan)"}
           </label>
           <input
@@ -172,7 +172,7 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
             value={tanggalJatuhTempo}
             onChange={e => setTanggalJatuhTempo(e.target.value)}
             placeholder={frekuensi === "weekly" || frekuensi === "biweekly" ? "1-7" : "1-31"}
-            className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200"
+            className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200"
           />
         </div>
 
@@ -187,13 +187,13 @@ export default function BillSetupModal({ bill, onClose, onSaved }) {
 
         {/* Catatan */}
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Catatan</label>
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Catatan</label>
           <textarea
             value={catatan}
             onChange={e => setCatatan(e.target.value)}
             placeholder="Catatan tambahan..."
             rows={2}
-            className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200 resize-none"
+            className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200 resize-none"
           />
         </div>
 

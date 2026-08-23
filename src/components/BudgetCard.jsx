@@ -1,8 +1,8 @@
 "use client"
-import { Pencil, Trash2 } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import { getCategoryVisual } from "@/lib/categoryIcons"
+import RowActionsMenu from "@/app/dashboard/_components/RowActionsMenu"
 import BudgetProgressBar from "./BudgetProgressBar"
 
 function statusLabel(pct) {
@@ -20,7 +20,7 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
 
   return (
     <div
-      className="bento-tile bg-white border border-earth-100 p-4 shadow-warm transition-[box-shadow] hover:shadow-pop group"
+      className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm transition-[box-shadow] hover:shadow-pop group"
     >
       <div className="flex items-start justify-between gap-3 mb-2.5">
         <button
@@ -37,36 +37,35 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                <p className="text-sm font-bold text-earth-800 truncate">{budget.kategori}</p>
+                <p className="text-sm font-bold text-md3-on-surface truncate">{budget.kategori}</p>
                 {budget.akun && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-earth-50 text-earth-600 flex-shrink-0">
+                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-md3-surface text-md3-on-surface-variant flex-shrink-0">
                     {budget.akun}
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-earth-500">
-                {formatRp(spent)} <span className="text-earth-400">/ {formatRp(budget.limit)}</span>
+              <p className="text-[11px] text-md3-on-surface-variant tabular-nums">
+                <span className="font-semibold">{formatRp(spent)}</span> <span>/ {formatRp(budget.limit)}</span>
               </p>
             </div>
           </div>
         </button>
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: status.color + "18", color: status.color }}>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: status.color + "18", color: status.color }}>
             {status.text}
           </span>
-          <div className="flex gap-0.5 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
-            <button onClick={onEdit} aria-label={`Edit ${budget.kategori} budget`} className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-sage-100 flex items-center justify-center text-earth-500 hover:text-sage-600 transition-colors">
-              <Pencil size={11} aria-hidden="true" />
-            </button>
-            <button onClick={onDelete} aria-label={`Delete ${budget.kategori} budget`} className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-500 hover:text-rose-500 transition-colors">
-              <Trash2 size={11} aria-hidden="true" />
-            </button>
-          </div>
+          <RowActionsMenu
+            onEdit={onEdit}
+            onDelete={onDelete}
+            menuLabel={`Aksi budget ${budget.kategori}`}
+            editLabel={`Edit ${budget.kategori} budget`}
+            deleteLabel={`Delete ${budget.kategori} budget`}
+          />
         </div>
       </div>
       <button onClick={onClick} className="w-full min-h-11 text-left" aria-label={`Open ${budget.kategori} drill-down`}>
         <BudgetProgressBar spent={spent} limit={budget.limit} />
-        <p className="text-[10px] text-earth-500 mt-1.5 text-right font-semibold">{Math.round(pct)}% used</p>
+        <p className="text-[10px] text-md3-on-surface-variant mt-1.5 text-right font-semibold">{Math.round(pct)}% used</p>
       </button>
     </div>
   )

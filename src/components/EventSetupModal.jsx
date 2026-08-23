@@ -125,7 +125,7 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
               <button
                 key={t.key}
                 onClick={() => handleSelectTemplate(t.key)}
-                className="w-full text-left bento-tile bg-white border border-earth-100 p-4 rounded-2xl transition-all hover:shadow-pop active:scale-[0.99]"
+                className="w-full text-left bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 rounded-2xl transition-all hover:shadow-pop active:scale-[0.99]"
                 style={{ borderLeft: `4px solid ${color}` }}
               >
                 <div className="flex items-center gap-3">
@@ -133,8 +133,8 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
                     <span className="text-lg">{t.icon === "GraduationCap" ? "🎓" : t.icon === "Moon" ? "🌙" : "📅"}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-earth-800">{t.nama}</p>
-                    <p className="text-[11px] text-earth-500">{t.subCategoryCount} sub-kategori</p>
+                    <p className="text-sm font-bold text-md3-on-surface">{t.nama}</p>
+                    <p className="text-[11px] text-md3-on-surface-variant">{t.subCategoryCount} sub-kategori</p>
                   </div>
                 </div>
               </button>
@@ -142,7 +142,7 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
           })}
           <button
             onClick={handleCustom}
-            className="w-full text-left bento-tile bg-white border border-earth-100 p-4 rounded-2xl transition-all hover:shadow-pop active:scale-[0.99]"
+            className="w-full text-left bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 rounded-2xl transition-all hover:shadow-pop active:scale-[0.99]"
             style={{ borderLeft: `4px solid ${THEME.primary}` }}
           >
             <div className="flex items-center gap-3">
@@ -150,8 +150,8 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
                 <span className="text-lg">✨</span>
               </div>
               <div>
-                <p className="text-sm font-bold text-earth-800">Event Kustom</p>
-                <p className="text-[11px] text-earth-500">Buat event dengan kategori sendiri</p>
+                <p className="text-sm font-bold text-md3-on-surface">Event Kustom</p>
+                <p className="text-[11px] text-md3-on-surface-variant">Buat event dengan kategori sendiri</p>
               </div>
             </div>
           </button>
@@ -168,38 +168,38 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
       <div className="space-y-4">
         {/* Nama */}
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Nama Event</label>
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Nama Event</label>
           <input type="text" value={nama} onChange={e => setNama(e.target.value)} placeholder="Contoh: Anak Masuk Sekolah 2026"
-            className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200" />
+            className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200" />
         </div>
 
         {/* Total Budget */}
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Total Budget (Rp)</label>
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Total Budget (Rp)</label>
           <input type="text" inputMode="numeric" value={rawBudget} onChange={e => setRawBudget(formatInputRupiah(e.target.value))} placeholder="0"
-            className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200 font-semibold" />
+            className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200 font-semibold" />
         </div>
 
         {/* Dates */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Tanggal Mulai</label>
+            <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Tanggal Mulai</label>
             <input type="date" value={tanggalMulai} onChange={e => setTanggalMulai(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200" />
+              className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200" />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Tanggal Selesai</label>
+            <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Tanggal Selesai</label>
             <input type="date" value={tanggalSelesai} onChange={e => setTanggalSelesai(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200" />
+              className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200" />
           </div>
         </div>
 
         {/* Dana THR (only for Lebaran) */}
         {selectedTemplate === "lebaran-thr" && (
           <div>
-            <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Estimasi Dana THR (Rp)</label>
+            <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Estimasi Dana THR (Rp)</label>
             <input type="text" inputMode="numeric" value={rawDanaTHR} onChange={e => { setRawDanaTHR(formatInputRupiah(e.target.value)); setDanaTHR(e.target.value.replace(/\./g, "")) }} placeholder="0 (opsional)"
-              className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200 font-semibold" />
+              className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200 font-semibold" />
             <p className="text-[10px] text-earth-400 mt-1">Digunakan untuk menghitung utilisasi THR</p>
           </div>
         )}
@@ -221,7 +221,7 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
         {/* Sub-Kategori */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Sub-Kategori</label>
+            <label className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Sub-Kategori</label>
             <button onClick={handleAddSub} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: eventColor }}>
               + Tambah
             </button>
@@ -231,12 +231,12 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
           ) : (
             <div className="space-y-2">
               {subCategories.map((sub, i) => (
-                <div key={i} className="flex items-center gap-2 p-2 rounded-xl bg-earth-50">
+                <div key={i} className="flex items-center gap-2 p-2 rounded-xl bg-md3-surface">
                   <input type="text" value={sub.kategori} onChange={e => handleUpdateSub(i, "kategori", e.target.value)} placeholder="Nama"
-                    className="flex-1 px-3 py-2 bg-white border border-earth-100 rounded-xl text-xs outline-none focus:ring-1 focus:ring-violet-200" />
+                    className="flex-1 px-3 py-2 bg-md3-surface-container-lowest border border-md3-outline-variant rounded-xl text-xs outline-none focus:ring-1 focus:ring-violet-200" />
                   <input type="text" inputMode="numeric" value={sub.limit ? formatInputRupiah(String(sub.limit)) : ""} onChange={e => handleUpdateSub(i, "limit", parseFloat(String(e.target.value).replace(/\./g, "")) || 0)} placeholder="Limit"
-                    className="w-28 px-3 py-2 bg-white border border-earth-100 rounded-xl text-xs outline-none focus:ring-1 focus:ring-violet-200 font-semibold" />
-                  <button onClick={() => handleRemoveSub(i)} className="w-7 h-7 rounded-lg bg-white hover:bg-rose-50 flex items-center justify-center text-earth-500 hover:text-rose-500 text-xs">
+                    className="w-28 px-3 py-2 bg-md3-surface-container-lowest border border-md3-outline-variant rounded-xl text-xs outline-none focus:ring-1 focus:ring-violet-200 font-semibold" />
+                  <button onClick={() => handleRemoveSub(i)} className="w-7 h-7 rounded-lg bg-md3-surface-container-lowest hover:bg-rose-50 flex items-center justify-center text-md3-on-surface-variant hover:text-rose-500 text-xs">
                     ×
                   </button>
                 </div>
@@ -247,9 +247,9 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
 
         {/* Catatan */}
         <div>
-          <label className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Catatan</label>
+          <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Catatan</label>
           <textarea value={catatan} onChange={e => setCatatan(e.target.value)} placeholder="Catatan tambahan..." rows={2}
-            className="w-full px-4 py-3 rounded-2xl text-sm glass text-earth-800 outline-none focus:ring-2 focus:ring-violet-200 resize-none" />
+            className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200 resize-none" />
         </div>
 
         <QuotaNotice error={error} />

@@ -21,7 +21,7 @@ describe("FeatureEducation", () => {
       />,
     )
 
-    expect(screen.getByRole("article")).toHaveClass("bg-white", "border")
+    expect(screen.getByRole("article")).toHaveClass("bg-md3-surface-container-lowest", "border")
     expect(screen.getByRole("heading", { name: "Mulai dari satu target kecil" })).toBeInTheDocument()
     expect(screen.getByText("Ubah tujuan besar menjadi langkah yang terasa ringan.")).toBeInTheDocument()
     expect(screen.getByRole("list", { name: "Langkah" })).toHaveClass("grid-cols-2")

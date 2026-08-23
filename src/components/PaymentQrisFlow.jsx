@@ -255,19 +255,19 @@ export default function PaymentQrisFlow() {
 
   if (!available) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-cream-50 px-4 text-center text-earth-900">
-        <section className="max-w-md rounded-3xl border border-earth-100 bg-white p-8 shadow-warm">
+      <main className="flex min-h-screen items-center justify-center bg-md3-surface px-4 text-center text-md3-on-surface">
+        <section className="max-w-md rounded-3xl border border-md3-outline-variant bg-md3-surface-container-lowest p-8 shadow-warm">
           <h1 className="font-display text-2xl font-bold">Fitur sedang tidak tersedia.</h1>
-          <p className="mt-2 text-sm leading-6 text-earth-500">Silakan coba lagi nanti atau hubungi bantuan Artami.</p>
+          <p className="mt-2 text-sm leading-6 text-md3-on-surface-variant">Silakan coba lagi nanti atau hubungi bantuan Artami.</p>
         </section>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-cream-50 via-white to-moss-50 text-earth-900">
+    <main className="min-h-screen bg-gradient-to-b from-cream-50 via-white to-moss-50 text-md3-on-surface">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:py-10">
-        <Link href="/" className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-earth-600 hover:text-earth-900">
+        <Link href="/" className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-md3-on-surface-variant hover:text-md3-on-surface">
           <ArrowLeft size={16} aria-hidden="true" />
           Kembali
         </Link>
@@ -296,7 +296,7 @@ export default function PaymentQrisFlow() {
             ) : null}
           </div>
 
-          <div className="rounded-[28px] border border-earth-100 bg-white p-5 shadow-warm-lg md:p-6">
+          <div className="rounded-[28px] border border-md3-outline-variant bg-md3-surface-container-lowest p-5 shadow-warm-lg md:p-6">
             {loading ? (
               <LoadingPanel />
             ) : activePayment ? (
@@ -359,7 +359,7 @@ function InfoTile({ label, value }) {
 function LoadingPanel() {
   return (
     <div className="flex min-h-[440px] items-center justify-center">
-      <div className="flex items-center gap-3 text-earth-500">
+      <div className="flex items-center gap-3 text-md3-on-surface-variant">
         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
         <span className="text-sm font-semibold">Memuat pembayaran...</span>
       </div>
@@ -370,10 +370,10 @@ function LoadingPanel() {
 function StartPanel({ busy, isPro, onStart }) {
   return (
     <div className="flex min-h-[440px] flex-col justify-center">
-      <div className="rounded-3xl bg-cream-50 p-5">
-        <p className="text-sm font-semibold text-earth-500">Nominal tetap</p>
-        <p className="mt-2 font-display text-4xl font-bold text-earth-900">{rupiah(PAYMENT_AMOUNT)}</p>
-        <p className="mt-3 text-sm leading-6 text-earth-600">
+      <div className="rounded-3xl bg-md3-surface p-5">
+        <p className="text-sm font-semibold text-md3-on-surface-variant">Nominal tetap</p>
+        <p className="mt-2 font-display text-4xl font-bold text-md3-on-surface">{rupiah(PAYMENT_AMOUNT)}</p>
+        <p className="mt-3 text-sm leading-6 text-md3-on-surface-variant">
           Klik mulai hanya saat Anda siap membayar. Satu akun hanya bisa punya satu pembayaran aktif.
         </p>
       </div>
@@ -397,7 +397,7 @@ function PendingPanel({ payment, supportUrl }) {
         <div className="flex items-start gap-3">
           <Clock3 className="mt-1 h-5 w-5 shrink-0" aria-hidden="true" />
           <div>
-            <h2 className="text-lg font-bold text-earth-900">Bukti sedang ditinjau</h2>
+            <h2 className="text-lg font-bold text-md3-on-surface">Bukti sedang ditinjau</h2>
             <p className="mt-2 text-sm leading-6">
               Pembayaran biasanya diproses dalam 1–30 menit. Jika belum terverifikasi setelah 30 menit,
               silakan hubungi CS melalui WhatsApp.
@@ -410,7 +410,7 @@ function PendingPanel({ payment, supportUrl }) {
         href={supportUrl}
         target="_blank"
         rel="noreferrer"
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-earth-200 bg-white px-4 text-sm font-bold text-earth-700 hover:bg-cream-50"
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest px-4 text-sm font-bold text-md3-on-surface-variant hover:bg-md3-surface"
       >
         <MessageCircle className="h-4 w-4" aria-hidden="true" />
         WhatsApp CS
@@ -441,14 +441,14 @@ function AwaitingPanel({
   return (
     <div className="grid gap-5 md:grid-cols-[0.95fr_1.05fr] lg:grid-cols-1 xl:grid-cols-[0.95fr_1.05fr]">
       <div>
-        <div className="overflow-hidden rounded-3xl border border-earth-100 bg-cream-50 p-4">
-          <img src={QR_PATH} alt="QRIS GoPay Artami" className="aspect-square w-full rounded-2xl bg-white object-contain" />
+        <div className="overflow-hidden rounded-3xl border border-md3-outline-variant bg-md3-surface p-4">
+          <img src={QR_PATH} alt="QRIS GoPay Artami" className="aspect-square w-full rounded-2xl bg-md3-surface-container-lowest object-contain" />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <a
             href={QR_PATH}
             download="artami-qris-gopay.jpeg"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-earth-200 bg-white text-xs font-bold text-earth-700 hover:bg-cream-50"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-md3-outline-variant bg-md3-surface-container-lowest text-xs font-bold text-md3-on-surface-variant hover:bg-md3-surface"
           >
             <Download className="h-4 w-4" aria-hidden="true" />
             Simpan QR
@@ -456,7 +456,7 @@ function AwaitingPanel({
           <button
             type="button"
             onClick={() => onCopy(String(PAYMENT_AMOUNT), "nominal")}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-earth-200 bg-white text-xs font-bold text-earth-700 hover:bg-cream-50"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-md3-outline-variant bg-md3-surface-container-lowest text-xs font-bold text-md3-on-surface-variant hover:bg-md3-surface"
           >
             <Copy className="h-4 w-4" aria-hidden="true" />
             {copied === "nominal" ? "Tersalin" : "Salin nominal"}
@@ -465,16 +465,16 @@ function AwaitingPanel({
       </div>
 
       <div>
-        <div className="rounded-3xl border border-earth-100 bg-white p-4">
+        <div className="rounded-3xl border border-md3-outline-variant bg-md3-surface-container-lowest p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-earth-400">Referensi</p>
-              <p className="mt-1 text-lg font-bold text-earth-900">{payment.reference}</p>
+              <p className="mt-1 text-lg font-bold text-md3-on-surface">{payment.reference}</p>
             </div>
             <button
               type="button"
               onClick={() => onCopy(payment.reference, "reference")}
-              className="rounded-xl p-2 text-earth-500 hover:bg-cream-50 hover:text-earth-900"
+              className="rounded-xl p-2 text-md3-on-surface-variant hover:bg-md3-surface hover:text-md3-on-surface"
               aria-label="Salin referensi"
             >
               <Copy className="h-4 w-4" aria-hidden="true" />
@@ -510,22 +510,22 @@ function AwaitingPanel({
 
         <form onSubmit={onSubmit} className="mt-4 space-y-3">
           <label className="block">
-            <span className="text-sm font-bold text-earth-800">Bukti pembayaran</span>
+            <span className="text-sm font-bold text-md3-on-surface">Bukti pembayaran</span>
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={(event) => setFile(event.target.files?.[0] || null)}
-              className="mt-2 block w-full rounded-2xl border border-earth-200 bg-white px-3 py-2 text-sm text-earth-700 file:mr-3 file:rounded-xl file:border-0 file:bg-moss-50 file:px-3 file:py-2 file:text-sm file:font-bold file:text-moss-700"
+              className="mt-2 block w-full rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest px-3 py-2 text-sm text-md3-on-surface-variant file:mr-3 file:rounded-xl file:border-0 file:bg-moss-50 file:px-3 file:py-2 file:text-sm file:font-bold file:text-moss-700"
             />
           </label>
 
           {preview ? (
-            <div className="relative overflow-hidden rounded-2xl border border-earth-100">
-              <img src={preview} alt="Preview bukti pembayaran" className="max-h-56 w-full object-contain bg-cream-50" />
+            <div className="relative overflow-hidden rounded-2xl border border-md3-outline-variant">
+              <img src={preview} alt="Preview bukti pembayaran" className="max-h-56 w-full object-contain bg-md3-surface" />
               <button
                 type="button"
                 onClick={onClearProof}
-                className="absolute right-2 top-2 rounded-full bg-white p-2 text-earth-600 shadow-warm"
+                className="absolute right-2 top-2 rounded-full bg-md3-surface-container-lowest p-2 text-md3-on-surface-variant shadow-warm"
                 aria-label="Hapus preview bukti"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
@@ -534,24 +534,24 @@ function AwaitingPanel({
           ) : null}
 
           <label className="block">
-            <span className="text-sm font-bold text-earth-800">Waktu bayar</span>
+            <span className="text-sm font-bold text-md3-on-surface">Waktu bayar</span>
             <input
               type="datetime-local"
               value={paymentAt}
               onChange={(event) => setPaymentAt(event.target.value)}
-              className="mt-2 h-11 w-full rounded-2xl border border-earth-200 px-3 text-sm text-earth-800 outline-none focus:border-moss-400 focus:ring-2 focus:ring-moss-100"
+              className="mt-2 h-11 w-full rounded-2xl border border-md3-outline-variant px-3 text-sm text-md3-on-surface outline-none focus:border-moss-400 focus:ring-2 focus:ring-moss-100"
             />
           </label>
 
           <label className="block">
-            <span className="text-sm font-bold text-earth-800">Nama pembayar</span>
+            <span className="text-sm font-bold text-md3-on-surface">Nama pembayar</span>
             <input
               type="text"
               value={payerName}
               onChange={(event) => setPayerName(event.target.value)}
               maxLength={120}
               placeholder="Opsional"
-              className="mt-2 h-11 w-full rounded-2xl border border-earth-200 px-3 text-sm text-earth-800 outline-none focus:border-moss-400 focus:ring-2 focus:ring-moss-100"
+              className="mt-2 h-11 w-full rounded-2xl border border-md3-outline-variant px-3 text-sm text-md3-on-surface outline-none focus:border-moss-400 focus:ring-2 focus:ring-moss-100"
             />
           </label>
 
@@ -568,7 +568,7 @@ function AwaitingPanel({
               type="button"
               disabled={Boolean(busy)}
               onClick={onCancel}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-earth-200 px-4 text-sm font-bold text-earth-600 hover:bg-cream-50 disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-md3-outline-variant px-4 text-sm font-bold text-md3-on-surface-variant hover:bg-md3-surface disabled:opacity-50"
             >
               Batal
             </button>
@@ -584,7 +584,7 @@ function AwaitingPanel({
             href={supportUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-earth-200 bg-white text-sm font-bold text-earth-700 hover:bg-cream-50"
+            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest text-sm font-bold text-md3-on-surface-variant hover:bg-md3-surface"
           >
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
             WhatsApp CS
@@ -598,8 +598,8 @@ function AwaitingPanel({
 function Row({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-earth-500">{label}</dt>
-      <dd className="text-right font-bold text-earth-900">{value}</dd>
+      <dt className="text-md3-on-surface-variant">{label}</dt>
+      <dd className="text-right font-bold text-md3-on-surface">{value}</dd>
     </div>
   )
 }
@@ -607,33 +607,33 @@ function Row({ label, value }) {
 function HistoryPanel({ busy, history, offset, total, onLoadMore }) {
   const hasMore = offset < total
   return (
-    <section className="rounded-[28px] border border-earth-100 bg-white p-5 shadow-warm md:p-6">
+    <section className="rounded-[28px] border border-md3-outline-variant bg-md3-surface-container-lowest p-5 shadow-warm md:p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-bold text-earth-900">Riwayat pembayaran</h2>
-          <p className="mt-1 text-sm text-earth-500">Maksimal 20 data per muat.</p>
+          <h2 className="font-display text-2xl font-bold text-md3-on-surface">Riwayat pembayaran</h2>
+          <p className="mt-1 text-sm text-md3-on-surface-variant">Maksimal 20 data per muat.</p>
         </div>
-        <span className="rounded-full bg-cream-100 px-3 py-1 text-xs font-bold text-earth-600">{total} total</span>
+        <span className="rounded-full bg-md3-surface-container px-3 py-1 text-xs font-bold text-md3-on-surface-variant">{total} total</span>
       </div>
 
       {history.length ? (
-        <div className="mt-4 divide-y divide-earth-100">
+        <div className="mt-4 divide-y divide-md3-outline-variant">
           {history.map((payment) => (
             <article key={payment.id} className="flex flex-col gap-2 py-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-bold text-earth-900">{payment.reference}</p>
-                <p className="text-sm text-earth-500">{formatDateWib(payment.created_at)}</p>
+                <p className="font-bold text-md3-on-surface">{payment.reference}</p>
+                <p className="text-sm text-md3-on-surface-variant">{formatDateWib(payment.created_at)}</p>
               </div>
               <div className="flex items-center gap-2 sm:justify-end">
-                <span className="text-sm font-bold text-earth-800">{rupiah(payment.amount || PAYMENT_AMOUNT)}</span>
-                <span className="rounded-full bg-cream-100 px-3 py-1 text-xs font-bold text-earth-600">
+                <span className="text-sm font-bold text-md3-on-surface">{rupiah(payment.amount || PAYMENT_AMOUNT)}</span>
+                <span className="rounded-full bg-md3-surface-container px-3 py-1 text-xs font-bold text-md3-on-surface-variant">
                   {FINAL_STATUS_LABELS[payment.status] || payment.status}
                 </span>
               </div>
               </div>
               {(payment.rejection_reason || payment.revocation_reason || payment.correction_reason) ? (
-                <p className="text-sm text-earth-600">
+                <p className="text-sm text-md3-on-surface-variant">
                   {payment.rejection_reason || payment.revocation_reason || payment.correction_reason}
                   {(payment.rejection_note || payment.revocation_note || payment.correction_note)
                     ? ` — ${payment.rejection_note || payment.revocation_note || payment.correction_note}`
@@ -658,7 +658,7 @@ function HistoryPanel({ busy, history, offset, total, onLoadMore }) {
           ))}
         </div>
       ) : (
-        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-cream-50 p-4 text-sm text-earth-500">
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-md3-surface p-4 text-sm text-md3-on-surface-variant">
           <ImagePlus className="h-5 w-5" aria-hidden="true" />
           Belum ada riwayat pembayaran.
         </div>
@@ -669,7 +669,7 @@ function HistoryPanel({ busy, history, offset, total, onLoadMore }) {
           type="button"
           disabled={busy === "history"}
           onClick={onLoadMore}
-          className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-earth-200 px-4 text-sm font-bold text-earth-700 hover:bg-cream-50 disabled:opacity-50"
+          className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-md3-outline-variant px-4 text-sm font-bold text-md3-on-surface-variant hover:bg-md3-surface disabled:opacity-50"
         >
           {busy === "history" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
           Muat lagi

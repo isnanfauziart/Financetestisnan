@@ -41,20 +41,20 @@ export default function GoalSettleModal({ goal, progress, onClose, onSettled }) 
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: color + "22", color }}>
             <Check size={16} />
           </div>
-          <h3 className="text-lg font-display font-bold text-earth-800">Tandai Terealisasi</h3>
+          <h3 className="text-lg font-display font-bold text-md3-on-surface">Tandai Terealisasi</h3>
         </div>
       }
     >
       <div className="rounded-2xl p-4 mb-4 text-center" style={{ background: color + "14" }}>
-        <p className="text-sm font-bold text-earth-800 mb-1">{goal.nama}</p>
+        <p className="text-sm font-bold text-md3-on-surface mb-1">{goal.nama}</p>
         <p className="text-lg font-bold" style={{ color }}>
           {formatRpFull(progress)} / {formatRpFull(goal.target)}
         </p>
-        <p className="text-[10px] text-earth-500 mt-1">100% tercapai</p>
+        <p className="text-[10px] text-md3-on-surface-variant mt-1">100% tercapai</p>
       </div>
 
-      <div className="rounded-2xl p-3 mb-4 border border-earth-200">
-        <p className="text-xs text-earth-600 text-center leading-relaxed">
+      <div className="rounded-2xl p-3 mb-4 border border-md3-outline-variant">
+        <p className="text-xs text-md3-on-surface-variant text-center leading-relaxed">
           Apakah kamu sudah menggunakan uangnya untuk <strong>{goal.nama}</strong>?
           Goal akan dipindahkan ke bagian "Completed" dan ditandai sebagai <strong>Terealisasi</strong>.
         </p>
@@ -81,7 +81,7 @@ export default function GoalSettleModal({ goal, progress, onClose, onSettled }) 
         <button
           onClick={onClose}
           disabled={submitting}
-          className="w-full py-2 text-xs font-semibold text-earth-500 hover:text-earth-700 transition-colors"
+          className="w-full py-2 text-xs font-semibold text-md3-on-surface-variant hover:text-md3-on-surface-variant transition-colors"
         >
           Batal
         </button>

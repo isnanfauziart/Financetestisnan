@@ -1,5 +1,6 @@
 "use client"
 import { useCountUp } from "@/app/dashboard/_components/helpers"
+import { chartTheme } from "@/lib/chartTheme"
 
 export default function GoalProgressRing({ progress, color = "#5b8c7a", size = 88, stroke = 8, completed = false }) {
   const radius = (size - stroke) / 2
@@ -11,13 +12,13 @@ export default function GoalProgressRing({ progress, color = "#5b8c7a", size = 8
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90" role="img" aria-label={`Progress ${Math.round(safeProgress)} percent`}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#ede0d0" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={stroke} style={{ stroke: "var(--md-sys-color-surface-container-highest)" }} />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={completed ? "#d4a853" : color}
+          stroke={completed ? chartTheme.tertiaryAccent : color}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -26,7 +27,7 @@ export default function GoalProgressRing({ progress, color = "#5b8c7a", size = 8
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-base font-display font-bold leading-none" style={{ color: completed ? "#d4a853" : color }}>
+        <span className="text-base font-display font-bold leading-none" style={{ color: completed ? chartTheme.tertiaryAccent : color }}>
           {animatedPct}
           <span className="text-[10px] opacity-70">%</span>
         </span>

@@ -33,7 +33,7 @@ export default function GoalPickerModal({ open, onClose, onSaved, onOpenGoals, t
         size="md" maxHeight="80vh">
         {loading ? (
           <div className="py-8 text-center">
-            <div className="w-8 h-8 mx-auto border-2 border-earth-200 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" />
           </div>
         ) : error ? (
           <div className="text-center py-6" role="alert">
@@ -51,8 +51,8 @@ export default function GoalPickerModal({ open, onClose, onSaved, onOpenGoals, t
         ) : pickableGoals.length === 0 ? (
           <div className="text-center py-6">
             <Sparkles size={24} className="mx-auto text-earth-400 mb-3" />
-            <p className="text-sm font-bold text-earth-700 mb-1">Belum ada goal aktif</p>
-            <p className="text-xs text-earth-500 mb-4">Buat goal di Rencana untuk mulai menabung.</p>
+            <p className="text-sm font-bold text-md3-on-surface-variant mb-1">Belum ada goal aktif</p>
+            <p className="text-xs text-md3-on-surface-variant mb-4">Buat goal di Rencana untuk mulai menabung.</p>
             <button type="button" onClick={() => {
               onClose?.()
               onOpenGoals?.()
@@ -70,11 +70,11 @@ export default function GoalPickerModal({ open, onClose, onSaved, onOpenGoals, t
               return (
                 <button key={goal.id}
                   onClick={() => setSelectedGoal(goal)}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-earth-50 hover:bg-earth-100 transition-colors text-left active:scale-[0.98]">
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-md3-surface hover:bg-md3-surface-container-high transition-colors text-left active:scale-[0.98]">
                   <GoalProgressRing progress={pct} color={color} size={36} stroke={5} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-earth-800 truncate">{goal.nama}</p>
-                    <p className="text-[10px] text-earth-500">{goal.kategori} · {formatRp(progress)} / {formatRp(goal.target)}</p>
+                    <p className="text-sm font-bold text-md3-on-surface truncate">{goal.nama}</p>
+                    <p className="text-[10px] text-md3-on-surface-variant">{goal.kategori} · {formatRp(progress)} / {formatRp(goal.target)}</p>
                   </div>
                   <ArrowRight size={14} className="text-earth-400 flex-shrink-0" />
                 </button>

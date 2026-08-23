@@ -1,7 +1,7 @@
 "use client"
 export default function PillButton({ active, onClick, children, color = "primary" }) {
   const colorMap = {
-    primary: { active: "bg-earth-800 text-white", idle: "text-earth-600 hover:bg-white/80" },
+    primary: { active: "bg-earth-800 text-white", idle: "text-md3-on-surface-variant hover:bg-md3-surface-container-lowest" },
     income: { active: "bg-sage-500 text-white", idle: "text-sage-600 hover:bg-sage-50" },
     expense: { active: "bg-clay-500 text-white", idle: "text-clay-600 hover:bg-clay-50" },
     savings: { active: "bg-moss-500 text-white", idle: "text-moss-600 hover:bg-moss-50" },

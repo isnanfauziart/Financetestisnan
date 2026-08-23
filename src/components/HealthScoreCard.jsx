@@ -40,12 +40,12 @@ export default function HealthScoreCard({
 
   if (!healthResult) {
     return (
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
         <div className="flex items-center gap-1.5 mb-2">
           <Info size={14} className="text-earth-400" aria-hidden="true" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Skor Kesehatan Finansial</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Skor Kesehatan Finansial</p>
         </div>
-        <p className="text-sm text-earth-500">Belum ada transaksi untuk menghitung skor.</p>
+        <p className="text-sm text-md3-on-surface-variant">Belum ada transaksi untuk menghitung skor.</p>
       </div>
     )
   }
@@ -56,7 +56,7 @@ export default function HealthScoreCard({
   return (
     <>
       <div
-        className="mt-6 bento-tile bg-white border border-earth-100 p-4 sm:p-5 shadow-warm animate-bento-in cursor-pointer active:scale-[0.99] transition-transform"
+        className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm animate-bento-in cursor-pointer active:scale-[0.99] transition-transform"
         onClick={() => setFormulaOpen(true)}
         role="button"
         aria-label="Ketuk untuk melihat penjelasan rumus skor kesehatan"
@@ -67,7 +67,7 @@ export default function HealthScoreCard({
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-1.5">
             <Info size={14} className="text-earth-400" aria-hidden="true" />
-            <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Skor Kesehatan Finansial</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Skor Kesehatan Finansial</p>
           </div>
           <div className="flex items-center gap-1.5">
             <span
@@ -118,7 +118,7 @@ export default function HealthScoreCard({
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-earth-100 mb-4" />
+        <div className="h-px bg-md3-surface-container-high mb-4" />
 
         {/* Component breakdown */}
         <div className="space-y-3">
@@ -135,8 +135,8 @@ export default function HealthScoreCard({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[11px] font-semibold text-earth-700">{c.label}</span>
-                    <span className="text-[10px] font-bold text-earth-500">
+                    <span className="text-[11px] font-semibold text-md3-on-surface-variant">{c.label}</span>
+                    <span className="text-[10px] font-bold text-md3-on-surface-variant">
                       {isActive ? Math.round(c.score) : "\u2014"}
                     </span>
                   </div>
@@ -153,10 +153,10 @@ export default function HealthScoreCard({
                           }}
                         />
                       </div>
-                        <span className="text-[9px] text-earth-500 w-14 sm:w-16 text-right flex-shrink-0 truncate">{c.detail}</span>
+                        <span className="text-[11px] text-md3-on-surface-variant w-14 sm:w-16 text-right flex-shrink-0 truncate">{c.detail}</span>
                       </div>
                     ) : (
-                      <p className="text-[9px] text-earth-400">{c.detail}</p>
+                      <p className="text-[11px] text-earth-400">{c.detail}</p>
                   )}
                 </div>
               </div>
@@ -169,7 +169,7 @@ export default function HealthScoreCard({
           <span className="flex items-center gap-1">
             <Info size={10} aria-hidden="true" /> Ketuk untuk penjelasan rumus
           </span>
-          <span className="text-earth-500">+{components.length - visibleComponents.length} faktor lain</span>
+          <span className="text-md3-on-surface-variant">+{components.length - visibleComponents.length} faktor lain</span>
         </p>
       </div>
 
@@ -183,22 +183,22 @@ export default function HealthScoreCard({
         maxHeight="85vh"
         position="center"
       >
-        <p className="text-xs text-earth-600 mb-4">
+        <p className="text-xs text-md3-on-surface-variant mb-4">
           Skor dihitung dari 5 komponen. Komponen tanpa data tidak ikut dihitung (bobot didistribusikan ke komponen aktif):
         </p>
         <div className="space-y-3">
           {FORMULA_ROWS.map((row, i) => (
             <div key={i} className="rounded-2xl p-3" style={{ background: THEME.surfaceWarm }}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-earth-800">{i + 1}. {row.label}</span>
+                <span className="text-[11px] font-bold text-md3-on-surface">{i + 1}. {row.label}</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">{row.weight}</span>
               </div>
-              <p className="text-[10px] text-earth-600 leading-relaxed">{row.desc}</p>
+              <p className="text-[10px] text-md3-on-surface-variant leading-relaxed">{row.desc}</p>
             </div>
           ))}
         </div>
-        <div className="mt-4 rounded-2xl p-3 border border-earth-200">
-          <p className="text-[10px] font-bold text-earth-700 mb-1">Grade:</p>
+        <div className="mt-4 rounded-2xl p-3 border border-md3-outline-variant">
+          <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1">Grade:</p>
           <div className="flex flex-wrap gap-2">
             {[
               { g: "A", d: "\u2265 80", c: THEME.income },

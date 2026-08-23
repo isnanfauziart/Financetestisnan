@@ -52,26 +52,26 @@ export default function DebtCard({ debt, onPay, onSettle, onEdit, onDelete }) {
             {isUtang ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-earth-800 truncate">{debt.namaOrang}</p>
-            <p className="text-[9px] text-earth-500 uppercase tracking-wider">
+            <p className="text-sm font-bold text-md3-on-surface truncate">{debt.namaOrang}</p>
+            <p className="text-[11px] text-md3-on-surface-variant uppercase tracking-wider">
               {isUtang ? "Utang" : "Piutang"} · {formatDate(debt.jatuhTempo)}
             </p>
           </div>
         </div>
         {isSettled ? (
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: THEME.incomeBg, color: THEME.income }}>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: THEME.incomeBg, color: THEME.income }}>
             <Check size={8} /> Lunas
           </span>
         ) : isOverdue ? (
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: THEME.dangerBg, color: THEME.danger }}>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: THEME.dangerBg, color: THEME.danger }}>
             <AlertTriangle size={8} /> {Math.abs(days)} hari lalu
           </span>
         ) : isUrgent ? (
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: THEME.warningBg, color: THEME.warning }}>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: THEME.warningBg, color: THEME.warning }}>
             <Clock size={8} /> {days} hari lagi
           </span>
         ) : days !== null && !isSettled ? (
-          <span className="text-[9px] font-bold text-earth-400">
+          <span className="text-[11px] font-bold text-earth-400">
             {days} hari lagi
           </span>
         ) : null}
@@ -83,7 +83,7 @@ export default function DebtCard({ debt, onPay, onSettle, onEdit, onDelete }) {
           <span className="text-lg font-bold" style={{ color: accentColor }}>{formatRp(debt.sisaSaldo)}</span>
           <span className="text-[10px] text-earth-400 ml-1">sisa</span>
         </div>
-        <span className="text-[10px] text-earth-500">dari {formatRpFull(debt.jumlah)}</span>
+        <span className="text-[10px] text-md3-on-surface-variant">dari {formatRpFull(debt.jumlah)}</span>
       </div>
 
       {/* Progress bar */}

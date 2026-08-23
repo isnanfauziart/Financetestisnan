@@ -130,19 +130,19 @@ export default function LegacySheetConnector({ userName, onConnected, onSignOut 
   }, [onConnected])
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 bg-organic text-earth-800">
+    <div className="min-h-screen flex items-center justify-center px-5 bg-organic text-md3-on-surface">
       <div className="glass-strong rounded-[32px] p-7 max-w-sm w-full">
         <div className="w-14 h-14 rounded-2xl mesh-violet shadow-pop flex items-center justify-center mb-5">
           <Table2 size={24} className="text-white" aria-hidden="true" />
         </div>
 
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500 mb-2">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant mb-2">
           Owner setup
         </p>
-        <h1 className="text-2xl font-display font-bold text-earth-900 leading-tight mb-3">
+        <h1 className="text-2xl font-display font-bold text-md3-on-surface leading-tight mb-3">
           Hubungkan spreadsheet Artami lama
         </h1>
-        <p className="text-sm text-earth-600 leading-relaxed mb-6">
+        <p className="text-sm text-md3-on-surface-variant leading-relaxed mb-6">
           Halo{userName ? `, ${userName}` : ""}. Akun ini memakai spreadsheet pribadi yang sudah ada. Pilih file lama sekali saja, lalu Artami akan memakai file itu untuk dashboard ini.
         </p>
 
@@ -172,7 +172,7 @@ export default function LegacySheetConnector({ userName, onConnected, onSignOut 
         <button
           onClick={onSignOut}
           disabled={busy}
-          className="w-full py-3.5 rounded-2xl text-earth-500 font-semibold bg-earth-50 active:scale-95 transition-transform mt-3 disabled:opacity-60"
+          className="w-full py-3.5 rounded-2xl text-md3-on-surface-variant font-semibold bg-md3-surface active:scale-95 transition-transform mt-3 disabled:opacity-60"
         >
           Keluar
         </button>

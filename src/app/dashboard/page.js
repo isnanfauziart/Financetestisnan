@@ -3,7 +3,7 @@ import { useSession, signIn, signOut } from "next-auth/react"
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { LogOut, Plus, X, ChevronDown, Activity, User, Home, ArrowUpRight, Wallet, Sparkles, Lightbulb, TrendingUp, TrendingDown, PiggyBank, Target, Calendar, CreditCard } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
-import { useCountUp, useSoundPref, playSuccessSound, parseTxDate, formatRp } from "./_components/helpers"
+import { useCountUp, useSoundPref, playSuccessSound, parseTxDate, formatRp, relativeDate, countUrgentBills } from "./_components/helpers"
 import useHaptics from "./_components/useHaptics"
 import useHapticsPref from "./_components/useHapticsPref"
 import { computeAllGoalProgress, computeGoalProgress } from "./_components/goalUtils"
@@ -16,6 +16,7 @@ import ProfileTab from "./ProfileTab"
 import EditTransactionModal from "./_components/EditTransactionModal"
 import ConfirmSheet from "./_components/ConfirmSheet"
 import Sheet from "./_components/Sheet"
+import RowActionsMenu from "./_components/RowActionsMenu"
 import Toast from "./_components/Toast"
 import Skeleton from "./_components/Skeleton"
 import QuickAddSheet from "./_components/QuickAddSheet"
@@ -36,6 +37,7 @@ import { registerServiceWorker, requestNotificationPermission } from "@/lib/noti
 import { hasFeature } from "@/lib/featureAccess"
 import { getEffectiveUserName } from "@/lib/userDisplayName"
 import { isSpecialExpense } from "@/lib/expenseClass"
+import { getCategoryVisual } from "@/lib/categoryIcons"
 
 const SPECIAL_SUGGESTION_MIN_MONTHS = 3
 const SPECIAL_SUGGESTION_MAX_MONTHS = 6
@@ -143,7 +145,7 @@ function buildExpenseTrendData(transactions, categories) {
 
 function SpecialBadge() {
   return (
-    <span className="inline-flex flex-shrink-0 items-center rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-700">
+    <span className="inline-flex flex-shrink-0 items-center rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-violet-700">
       Spesial
     </span>
   )
@@ -226,6 +228,8 @@ export default function Dashboard() {
   // Settings
   const { bills, loading: billsLoading, error: billsError, refetch: refetchBills } = useBills(status === "authenticated")
   const { settings, loading: settingsLoading, error: settingsError, refetch: refetchSettings } = useSettings()
+  // D5 Rencana badge: overdue / due-today bills (HomeTab priority-card urgency subset)
+  const urgentBillCount = useMemo(() => countUrgentBills(bills), [bills])
   const effectiveUserName = getEffectiveUserName({
     savedName: settings.userName,
     googleName: session?.user?.name,
@@ -235,8 +239,12 @@ export default function Dashboard() {
   // Scroll Y for P8 parallax
   const [scrollY, setScrollY] = useState(0)
   const [fabVisible, setFabVisible] = useState(true)
+  // D6 top app bar scroll-away
+  const [headerHidden, setHeaderHidden] = useState(false)
   const lastScrollYRef = useRef(0)
   const fabRef = useRef(null)
+  // D5 contextual notification permission — ask once per session, after first bill pay
+  const billNotifPromptShownRef = useRef(false)
 
   const setFabVisibility = useCallback((visible) => {
     if (!visible && fabRef.current === document.activeElement) fabRef.current.blur()
@@ -293,10 +301,10 @@ export default function Dashboard() {
   }, [session])
 
   const fetchData = useCallback(() => {
-    if (!session) return
+    if (!session) return Promise.resolve()
     fetchEntitlement()
     if (data) setRefreshing(true)
-    fetch("/api/dashboard")
+    return fetch("/api/dashboard")
       .then(r => r.json())
       .then(d => {
         if (d.needsSheetConnection || d.code === "SHEET_CONNECTION_REQUIRED") {
@@ -420,7 +428,7 @@ export default function Dashboard() {
     } catch {}
   }, [])
 
-  // P8: Parallax scroll listener
+  // P8: Parallax scroll listener (+ D6 top app bar scroll-away)
   useEffect(() => {
     let ticking = false
     const onScroll = () => {
@@ -430,8 +438,11 @@ export default function Dashboard() {
           setScrollY(currentY)
           if (currentY > 100) {
             setFabVisibility(currentY < lastScrollYRef.current || currentY < lastScrollYRef.current + 10)
+            // Scrolling down hides the app bar; any scroll-up restores it.
+            setHeaderHidden(currentY > lastScrollYRef.current)
           } else {
             setFabVisibility(true)
+            setHeaderHidden(false)
           }
           lastScrollYRef.current = currentY
           ticking = false
@@ -474,8 +485,11 @@ export default function Dashboard() {
   const handleTouchEnd = useCallback(() => {
     if (pullDistRef.current >= 80) {
       setPullRefreshing(true)
-      fetchData()
-      setTimeout(() => setPullRefreshing(false), 1200)
+      const startedAt = Date.now()
+      // ponytail: min-hold 400ms so the spinner doesn't flash; dismisses when fetchData settles
+      Promise.resolve(fetchData()).catch(() => {}).finally(() => {
+        setTimeout(() => setPullRefreshing(false), Math.max(0, 400 - (Date.now() - startedAt)))
+      })
     }
     setPullDistance(0)
     pullDistRef.current = 0
@@ -915,7 +929,7 @@ export default function Dashboard() {
           <div className="w-14 h-14 rounded-2xl mesh-violet animate-glow" />
           <div className="absolute inset-0 w-14 h-14 border-4 border-violet-300 border-t-transparent rounded-2xl animate-spin" />
         </div>
-        <p className="text-sm font-semibold text-earth-600">Memuat data keuangan...</p>
+        <p className="text-sm font-semibold text-md3-on-surface-variant">Memuat data keuangan...</p>
       </div>
     )
   }
@@ -924,8 +938,8 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="glass-strong rounded-[32px] p-8 max-w-sm w-full text-center" role="status">
-          <h1 className="text-xl font-bold text-earth-900 mb-2 font-display">Sesi tidak ditemukan</h1>
-          <p className="text-sm text-earth-600">Mengalihkan ke halaman masuk...</p>
+          <h1 className="text-xl font-bold text-md3-on-surface mb-2 font-display">Sesi tidak ditemukan</h1>
+          <p className="text-sm text-md3-on-surface-variant">Mengalihkan ke halaman masuk...</p>
         </div>
       </div>
     )
@@ -965,8 +979,8 @@ export default function Dashboard() {
           <div className="w-16 h-16 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-4">
             <X size={24} className="text-rose-500" aria-hidden="true" />
           </div>
-          <h2 className="text-xl font-bold text-earth-900 mb-2 font-display">Gagal Memuat Data</h2>
-          <p className="text-sm text-earth-600 mb-6">{error}</p>
+          <h2 className="text-xl font-bold text-md3-on-surface mb-2 font-display">Gagal Memuat Data</h2>
+          <p className="text-sm text-md3-on-surface-variant mb-6">{error}</p>
           <div className="space-y-3">
             <button onClick={() => { setError(null); setLoading(true); fetchData() }} className="w-full py-3.5 rounded-2xl text-white font-semibold mesh-violet shadow-pop active:scale-95 transition-transform">
               Coba Lagi
@@ -1092,6 +1106,11 @@ export default function Dashboard() {
     if (hapticsEnabled) haptics.success()
     if (soundEnabled) playSuccessSound()
     showToast(`Tagihan dibayar! ${result.transaction?.kategori} · ${formatRp(result.transaction?.jumlah)} ✓`)
+    // Contextual permission ask: only after the user's first successful bill payment.
+    if (!billNotifPromptShownRef.current) {
+      billNotifPromptShownRef.current = true
+      requestNotificationPermission()
+    }
     fetchData()
     setBillsRefreshTrigger(t => t + 1)
     await refetchBills()
@@ -1117,7 +1136,7 @@ export default function Dashboard() {
     .slice(0, 5)
 
   return (
-    <div className="min-h-screen pb-52 sm:pb-44 font-body relative text-earth-800">
+    <div className="min-h-screen pb-52 sm:pb-44 font-body relative text-md3-on-surface">
       {/* P8: Parallax background */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-organic" style={{ transform: `translateY(${scrollY * -0.15}px)` }} aria-hidden="true" />
 
@@ -1159,14 +1178,18 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Header */}
-      <header className="sticky top-0 z-20 px-5 pt-6 pb-3 glass-nav safe-top">
+      {/* Header — D6 scroll-away: slides up scrolling down, restores on scroll-up.
+          Kept mounted and non-display-none so it stays accessible. */}
+      <header
+        className={`sticky top-0 z-20 px-5 pt-6 pb-3 glass-nav safe-top motion-safe:transition-transform duration-300 [transition-timing-function:var(--ease-emphasized)] ${headerHidden ? "-translate-y-full pointer-events-none" : "translate-y-0"}`}
+        inert={headerHidden ? "" : undefined}
+      >
         <div className="flex items-center justify-between max-w-3xl mx-auto">
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-500">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant">
               {activeNav === "home" ? "Beranda" : activeNav === "stats" ? "Statistik" : activeNav === "plan" ? "Rencana" : "Profil"}
             </p>
-            <h1 className="text-2xl font-display font-bold text-earth-900 tracking-tight leading-tight mt-0.5">
+            <h1 className="text-2xl font-display font-bold text-md3-on-surface tracking-tight leading-tight mt-0.5">
               {activeNav === "home" && (data?.transactions?.[0] ? "Halo 👋" : "Artami")}
               {activeNav === "home" && effectiveUserName ? `, ${effectiveUserName}` : ""}
               {activeNav === "stats" && "Statistik"}
@@ -1199,7 +1222,7 @@ export default function Dashboard() {
       {(pullDistance > 0 || pullRefreshing) && (
         <div className="pull-to-refresh-indicator fixed top-0 left-0 right-0 z-30 flex items-center justify-center transition-[height,background-color] duration-300 overflow-hidden"
           style={{ height: pullRefreshing ? 48 : pullDistance, background: pullDistance >= 80 ? THEME.surfaceWarm : "transparent" }} aria-hidden="true">
-          <div className={`flex items-center gap-2 text-xs font-bold text-earth-500 transition-opacity duration-300 ${pullRefreshing ? "opacity-100" : pullDistance >= 80 ? "opacity-100" : "opacity-0"}`}>
+          <div className={`flex items-center gap-2 text-xs font-bold text-md3-on-surface-variant transition-opacity duration-300 ${pullRefreshing ? "opacity-100" : pullDistance >= 80 ? "opacity-100" : "opacity-0"}`}>
             {pullRefreshing ? (
               <><div className="w-4 h-4 border-2 border-earth-400 border-t-transparent rounded-full animate-spin" /> Memperbarui...</>
             ) : (
@@ -1328,23 +1351,23 @@ export default function Dashboard() {
           maxHeight="80vh"
         >
           {selectedDayTx.transactions.length === 0 ? (
-            <p className="text-xs text-earth-500 text-center py-4">Tidak ada pengeluaran pada hari ini</p>
+            <p className="text-xs text-md3-on-surface-variant text-center py-4">Tidak ada pengeluaran pada hari ini</p>
           ) : (
             <div className="space-y-3">
               {selectedDayTx.transactions.map((t, i) => (
-                <div key={i} className="flex justify-between items-center pb-3 border-b border-earth-100 last:border-b-0">
+                <div key={i} className="flex justify-between items-center pb-3 border-b border-md3-outline-variant last:border-b-0">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
+                      <p className="font-semibold text-sm text-md3-on-surface truncate">{t.category}</p>
                       {isSpecialExpense(t) && <SpecialBadge />}
                     </div>
-                    {t.desc && <p className="text-xs text-earth-500 mt-0.5 truncate">{t.desc}</p>}
+                    {t.desc && <p className="text-xs text-md3-on-surface-variant mt-0.5 truncate">{t.desc}</p>}
                   </div>
                   <p className="font-bold text-sm text-clay-500 ml-3">-{formatRp(t.amount)}</p>
                 </div>
               ))}
               <div className="pt-2 flex justify-between items-center">
-                <span className="text-xs font-bold text-earth-600">Total</span>
+                <span className="text-xs font-bold text-md3-on-surface-variant">Total</span>
                 <span className="text-sm font-bold text-clay-500">
                   -{formatRp(selectedDayTx.transactions.reduce((s, t) => s + t.amount, 0))}
                 </span>
@@ -1396,6 +1419,7 @@ export default function Dashboard() {
         onGoalContribute={openGoalPicker}
         transactionUsage={entitlement?.usage?.transactions}
         specialSuggestion={specialSuggestion}
+        transactions={data?.transactions || []}
       />
 
       {/* Goal celebration */}
@@ -1476,8 +1500,8 @@ export default function Dashboard() {
            ref={fabRef}
            className={`fixed bottom-24 sm:bottom-20 right-4 sm:right-5 z-40 max-w-md transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-opacity ${fabVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none motion-safe:translate-y-24 opacity-0"}`}
          >
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shadow-pop flex items-center justify-center motion-safe:active:scale-90 transition-transform duration-[140ms] motion-reduce:transition-none" style={{ backgroundColor: THEME.primary, boxShadow: "0 12px 32px rgba(47,107,87,0.28)" }}>
-           <Plus size={22} color="white" strokeWidth={2.5} aria-hidden="true" />
+          <div className="w-14 h-14 rounded-2xl shadow-pop flex items-center justify-center motion-safe:active:scale-90 transition-transform duration-[140ms] motion-reduce:transition-none" style={{ backgroundColor: THEME.primaryBg, boxShadow: "0 12px 32px rgba(47,107,87,0.28)" }}>
+           <Plus size={22} color={THEME.primaryDeep} strokeWidth={2.5} aria-hidden="true" />
          </div>
       </button>}
 
@@ -1496,7 +1520,7 @@ export default function Dashboard() {
                 key={nav.id}
                 role="tab"
                 aria-selected={isActive}
-                aria-label={nav.aria}
+                aria-label={nav.id === "plan" && urgentBillCount > 0 ? `${nav.aria}, ${urgentBillCount} tagihan perlu perhatian` : nav.aria}
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => {
                   if (hapticsEnabled) haptics.tap()
@@ -1505,15 +1529,23 @@ export default function Dashboard() {
                 }}
                   className="flex flex-col items-center gap-0.5 group relative px-3 py-1 rounded-2xl transition-[background-color,color,opacity] duration-200"
                >
-               {isActive && (
-                   <span className="absolute inset-0 rounded-2xl animate-scale-in motion-reduce:animate-none" style={{ background: THEME.surfaceWarm }} />
-                )}
-                  <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-transform duration-200 motion-reduce:transition-none ${isActive ? 'motion-safe:-translate-y-0.5' : ''}`}>
-                   <nav.icon size={20} color={isActive ? THEME.textPrimary : THEME.textTertiary} strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
+                   <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-transform duration-200 motion-reduce:transition-none ${isActive ? 'motion-safe:-translate-y-0.5' : ''}`}>
+                   {isActive && (
+                     <span className="absolute inset-x-0 inset-y-1 rounded-full bg-violet-100 animate-scale-in motion-reduce:animate-none" aria-hidden="true" />
+                   )}
+                    <nav.icon className="relative" size={20} color={isActive ? THEME.textPrimary : THEME.textTertiary} strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
+                  {nav.id === "plan" && urgentBillCount > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-1 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold flex items-center justify-center bg-md3-primary text-md3-on-primary tabular-nums"
+                    >
+                      {urgentBillCount > 9 ? "9+" : urgentBillCount}
+                    </span>
+                  )}
                  </div>
-                  <span className={`relative text-[9px] font-bold tracking-wide transition-[color,opacity] duration-200 ${isActive ? 'text-earth-800' : 'text-earth-500'}`}>
-                  {nav.label}
-                </span>
+                   <span className={`relative text-[11px] font-bold tracking-wide transition-[color,opacity] duration-200 ${isActive ? 'text-md3-on-surface' : 'text-md3-on-surface-variant'}`}>
+                   {nav.label}
+                 </span>
               </button>
             )
           })}
@@ -1546,35 +1578,39 @@ function DrillDownModal({ drillDown, data, onClose, onEdit, onDelete }) {
       ) : (
         <>
           <div className="rounded-2xl p-3 mb-3" style={{ background: THEME.surfaceWarm }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Total Top 10</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Total Top 10</p>
             <p className="text-xl font-display font-bold" style={{ color: drillDown.type === "income" ? THEME.income : drillDown.type === "savings" ? THEME.savings : THEME.expense }}>
               {formatRp(animatedTotal)}
             </p>
           </div>
-          <div className="space-y-2.5">
+          <div>
             {txs.map((t, i) => {
               const colorOfType = drillDown.type === "income" ? THEME.income : drillDown.type === "savings" ? THEME.savings : THEME.expense
+              const { icon: CategoryIcon } = getCategoryVisual(t.category)
               return (
-                <div key={i} className="flex items-center gap-2 p-2.5 rounded-2xl hover:bg-earth-50/80 transition-colors group">
-                  <div className="w-7 h-7 rounded-xl flex items-center justify-center font-bold text-[10px] flex-shrink-0"
-                    style={{ background: colorOfType + "18", color: colorOfType }}>
-                    {i + 1}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm text-earth-800 truncate">{t.category}</p>
-                    <p className="text-[10px] text-earth-500 mt-0.5">{t.date} · {t.desc || "—"}</p>
-                  </div>
-                  <p className="font-bold text-sm flex-shrink-0"
-                    style={{ color: colorOfType }}>
-                    {drillDown.type === "income" ? "+" : drillDown.type === "savings" ? "" : "-"}{formatRp(t.amount)}
-                  </p>
-                  <div className="flex gap-1 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onEdit(t)} aria-label={`Edit ${t.category}`} className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-violet-100 flex items-center justify-center text-earth-600 hover:text-violet-600">
-                      <span className="text-xs">✎</span>
-                    </button>
-                    <button onClick={() => onDelete(t)} aria-label={`Delete ${t.category}`} className="w-7 h-7 rounded-lg bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-600 hover:text-rose-500">
-                      <span className="text-xs">×</span>
-                    </button>
+                <div key={i}>
+                  {i > 0 && <div aria-hidden="true" className="border-t border-md3-outline-variant ml-12" />}
+                  {/* MD3 two-line list row: category avatar · name + relative date · right-aligned tabular-nums amount */}
+                  <div className="flex items-center gap-3 px-1 py-2.5 hover:bg-md3-surface-container-high transition-colors">
+                    <div aria-hidden="true" className="w-9 h-9 rounded-full bg-md3-secondary-container flex items-center justify-center flex-shrink-0">
+                      <CategoryIcon size={15} strokeWidth={2.1} className="text-md3-on-secondary-container" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-md3-on-surface truncate">{t.category}</p>
+                      <p className="text-[11px] text-md3-on-surface-variant mt-0.5 truncate">
+                        {relativeDate(t.date)}{t.desc ? ` · ${t.desc}` : ""}
+                      </p>
+                    </div>
+                    <p className="font-bold text-sm flex-shrink-0 tabular-nums" style={{ color: colorOfType }}>
+                      {drillDown.type === "income" ? "+" : drillDown.type === "savings" ? "" : "-"}{formatRp(t.amount)}
+                    </p>
+                    <RowActionsMenu
+                      onEdit={() => onEdit(t)}
+                      onDelete={() => onDelete(t)}
+                      menuLabel={`Aksi transaksi ${t.category}`}
+                      editLabel={`Edit ${t.category}`}
+                      deleteLabel={`Delete ${t.category}`}
+                    />
                   </div>
                 </div>
               )

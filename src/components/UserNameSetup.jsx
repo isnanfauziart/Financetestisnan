@@ -14,7 +14,7 @@ function NameFields({ mode, value, error, submitting, onChange, onSave, onDismis
   return (
     <form onSubmit={onSave} className="space-y-3">
       <div>
-        <label htmlFor={inputId} className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
+        <label htmlFor={inputId} className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">
           Nama pengguna
         </label>
         <input
@@ -26,7 +26,7 @@ function NameFields({ mode, value, error, submitting, onChange, onSave, onDismis
           onChange={onChange}
           aria-invalid={error ? "true" : "false"}
           aria-describedby={error ? errorId : undefined}
-          className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+          className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
         />
         <p className="text-[10px] text-earth-400 mt-1 px-1">Opsional, maksimal 60 karakter.</p>
       </div>
@@ -47,7 +47,7 @@ function NameFields({ mode, value, error, submitting, onChange, onSave, onDismis
             type="button"
             onClick={onDismiss}
             disabled={submitting}
-            className="w-full py-3 rounded-2xl bg-earth-100 text-earth-600 font-bold transition-all active:scale-[0.97] disabled:opacity-50"
+            className="w-full py-3 rounded-2xl bg-md3-surface-container-high text-md3-on-surface-variant font-bold transition-all active:scale-[0.97] disabled:opacity-50"
           >
             Nanti
           </button>
@@ -128,7 +128,7 @@ export default function UserNameSetup({
   if (!open) return null
 
   if (!isPrompt) {
-    return <div className="border-t border-earth-100 pt-3">{fields}</div>
+    return <div className="border-t border-md3-outline-variant pt-3">{fields}</div>
   }
 
   return (
@@ -141,7 +141,7 @@ export default function UserNameSetup({
       closeOnBackdrop={false}
       closeOnEsc={false}
     >
-      <p className="text-sm leading-relaxed text-earth-600 mb-4">
+      <p className="text-sm leading-relaxed text-md3-on-surface-variant mb-4">
         Gunakan nama pilihanmu di Artami. Nama ini tersimpan di Google Sheets milikmu dan bisa dikosongkan kapan saja.
       </p>
       {fields}

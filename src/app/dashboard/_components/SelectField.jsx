@@ -108,7 +108,7 @@ export default function SelectField({ label, value, onChange, options, placehold
 
   return (
     <div className="relative">
-      {label && <label id={labelId} htmlFor={buttonId} className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">{label}</label>}
+      {label && <label id={labelId} htmlFor={buttonId} className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">{label}</label>}
       <button
         ref={btnRef}
         id={buttonId}
@@ -119,12 +119,12 @@ export default function SelectField({ label, value, onChange, options, placehold
         aria-controls={listboxId}
         onKeyDown={handleButtonKeyDown}
         onClick={() => { if (!open) updatePos(); setOpen(!open) }}
-        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm text-left transition-all active:scale-[0.98] ${
-          isDark ? "bg-white/15 text-white hover:bg-white/20" : "glass text-earth-800 hover:bg-white/90"
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${
+          isDark ? "bg-white/15 text-white hover:bg-white/20" : "glass text-md3-on-surface hover:bg-md3-surface-container-high"
         }`}
       >
         <span className="truncate font-medium">{value || placeholder}</span>
-        <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 flex-shrink-0 ml-2 ${open ? "rotate-180" : ""} ${isDark ? "text-white/70" : "text-earth-500"}`} />
+        <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 flex-shrink-0 ml-2 ${open ? "rotate-180" : ""} ${isDark ? "text-white/70" : "text-md3-on-surface-variant"}`} />
       </button>
       {open && typeof document !== "undefined" && createPortal(
         <div
@@ -147,7 +147,7 @@ export default function SelectField({ label, value, onChange, options, placehold
               aria-selected={value === opt}
               tabIndex={index === activeIndex ? 0 : -1}
               onClick={() => selectOption(opt)}
-              className={`w-full text-left px-4 py-3.5 sm:py-3 text-sm hover:bg-earth-100/60 transition-colors border-b last:border-b-0 border-earth-100/40 ${index === activeIndex ? "bg-earth-100/60" : ""}`}
+              className={`w-full text-left px-4 py-3.5 sm:py-3 text-sm hover:bg-md3-surface-container-high transition-colors border-b last:border-b-0 border-md3-outline-variant ${index === activeIndex ? "bg-md3-surface-container-high" : ""}`}
               style={{ color: value === opt ? THEME.primary : THEME.textPrimary, fontWeight: value === opt ? 700 : 500 }}
             >
               {opt}

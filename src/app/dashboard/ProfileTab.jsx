@@ -1,13 +1,29 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { LogOut, Wallet, Calendar } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRpFull, formatInputRupiah } from "./_components/helpers"
 import { useSettings } from "@/lib/useSharedData"
 import Sheet from "./_components/Sheet"
+import SegmentedButtons from "./_components/SegmentedButtons"
 import CategoryManager from "@/components/CategoryManager"
 import UserNameSetup from "@/components/UserNameSetup"
+
+const THEME_OPTIONS = ["Terang", "Gelap", "Sistem"]
+const THEME_MODE_BY_LABEL = { Terang: "light", Gelap: "dark", Sistem: "system" }
+const THEME_LABEL_BY_MODE = { light: "Terang", dark: "Gelap", system: "Sistem" }
+
+function applyTheme(mode) {
+  const root = document.documentElement
+  const dark =
+    mode === "dark" ||
+    (mode === "system" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches)
+  if (dark) root.setAttribute("data-theme", "dark")
+  else root.removeAttribute("data-theme")
+}
 
 function formatDateDisplay(dateStr) {
   if (!dateStr) return "—"
@@ -36,9 +52,9 @@ const QUOTA_LABELS = {
 
 function SectionCard({ title, children }) {
   return (
-    <section className="w-full bento-tile bg-white border border-earth-100 p-5 shadow-warm space-y-4" aria-label={title}>
-      <div className="flex items-center justify-between border-b border-earth-100 pb-3">
-        <h3 className="text-sm font-bold tracking-wide text-earth-800 uppercase">{title}</h3>
+    <section className="w-full bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm space-y-4" aria-label={title}>
+      <div className="flex items-center justify-between border-b border-md3-outline-variant pb-3">
+        <h3 className="text-sm font-bold tracking-wide text-md3-on-surface uppercase">{title}</h3>
       </div>
       {children}
     </section>
@@ -49,7 +65,34 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [themeMode, setThemeMode] = useState("light")
+  const themeHydratedRef = useRef(false)
   const { settings, refetch: refetchSettings } = useSettings()
+
+  // Hydrate persisted choice (default Sistem when unset), then keep data-theme
+  // in sync; while in Sistem mode, follow the OS scheme and clean up on unmount.
+  useEffect(() => {
+    let stored = null
+    try {
+      stored = localStorage.getItem("artami-theme")
+    } catch {}
+    themeHydratedRef.current = true
+    setThemeMode(stored === "dark" || stored === "light" ? stored : "system")
+  }, [])
+
+  useEffect(() => {
+    if (!themeHydratedRef.current) return
+    applyTheme(themeMode)
+    try {
+      localStorage.setItem("artami-theme", themeMode)
+    } catch {}
+    if (themeMode !== "system" || typeof window.matchMedia !== "function") return
+    const media = window.matchMedia("(prefers-color-scheme: dark)")
+    const onSchemeChange = () => applyTheme("system")
+    media.addEventListener("change", onSchemeChange)
+    return () => media.removeEventListener("change", onSchemeChange)
+  }, [themeMode])
+
   const [editingSaldo, setEditingSaldo] = useState(false)
   const [rawSaldo, setRawSaldo] = useState("")
   const [editDate, setEditDate] = useState("")
@@ -105,17 +148,17 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         <img src={session?.user?.image} alt="" className="w-24 h-24 rounded-3xl border-4 border-white shadow-pop-lg" />
         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-moss-500 border-2 border-white rounded-2xl" />
       </div>
-      <h2 className="text-2xl font-display font-bold mb-1 text-earth-900">{displayName}</h2>
-      <p className="text-sm font-medium text-earth-500 mb-2">{session?.user?.email}</p>
+      <h2 className="text-2xl font-display font-bold mb-1 text-md3-on-surface">{displayName}</h2>
+      <p className="text-sm font-medium text-md3-on-surface-variant mb-2">{session?.user?.email}</p>
 
       <SectionCard title="Tentang akunmu">
-        <div className="flex justify-between items-center border-b border-earth-100 pb-3">
-          <span className="text-sm font-medium text-earth-500">Akun</span>
-          <span className="text-sm font-bold text-earth-800">Personal</span>
+        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
+          <span className="text-sm font-medium text-md3-on-surface-variant">Akun</span>
+          <span className="text-sm font-bold text-md3-on-surface">Personal</span>
         </div>
-        <div className="flex justify-between items-center border-b border-earth-100 pb-3">
-          <span className="text-sm font-medium text-earth-500">Email</span>
-          <span className="text-sm font-bold text-earth-800 truncate max-w-[60%] text-right">{session?.user?.email || "—"}</span>
+        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
+          <span className="text-sm font-medium text-md3-on-surface-variant">Email</span>
+          <span className="text-sm font-bold text-md3-on-surface truncate max-w-[60%] text-right">{session?.user?.email || "—"}</span>
         </div>
         <UserNameSetup
           initialValue={settings.userName || displayName}
@@ -124,13 +167,13 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
           onSaved={() => refetchSettings()}
         />
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-earth-500">Total Transaksi</span>
-          <span className="text-sm font-bold text-earth-800">{data?.transactions?.length || 0}</span>
+          <span className="text-sm font-medium text-md3-on-surface-variant">Total Transaksi</span>
+          <span className="text-sm font-bold text-md3-on-surface">{data?.transactions?.length || 0}</span>
         </div>
       </SectionCard>
 
       <SectionCard title="Data Milikmu">
-        <div className="space-y-3 text-sm leading-relaxed text-earth-600">
+        <div className="space-y-3 text-sm leading-relaxed text-md3-on-surface-variant">
           <p>Catatan keuanganmu tetap berada di Google Sheets milikmu.</p>
           <p>Artami tidak menghubungkan rekening bank.</p>
           <p>Tidak ada iklan.</p>
@@ -138,30 +181,30 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
       </SectionCard>
 
       <SectionCard title="Paket kamu">
-        <div className="flex justify-between items-center border-b border-earth-100 pb-3">
-          <span className="text-sm font-medium text-earth-500">Paket</span>
-          <span className="text-sm font-bold text-earth-800">{tierLabel}</span>
+        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
+          <span className="text-sm font-medium text-md3-on-surface-variant">Paket</span>
+          <span className="text-sm font-bold text-md3-on-surface">{tierLabel}</span>
         </div>
-        <div className="flex justify-between items-center border-b border-earth-100 pb-3">
-          <span className="text-sm font-medium text-earth-500">Akses</span>
-          <span className="text-sm font-bold text-earth-800">{tierLabel === "Pro" ? "Seumur hidup" : "Free tier"}</span>
+        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
+          <span className="text-sm font-medium text-md3-on-surface-variant">Akses</span>
+          <span className="text-sm font-bold text-md3-on-surface">{tierLabel === "Pro" ? "Seumur hidup" : "Free tier"}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-earth-500">Data disimpan di</span>
-          <span className="text-sm font-bold text-earth-800">Google Sheets</span>
+          <span className="text-sm font-medium text-md3-on-surface-variant">Data disimpan di</span>
+          <span className="text-sm font-bold text-md3-on-surface">Google Sheets</span>
         </div>
         {(data?.history?.limited || entitlement?.history?.months === 4) && (
-          <p className="border-t border-earth-100 pt-3 text-xs leading-relaxed text-earth-500">
+          <p className="border-t border-md3-outline-variant pt-3 text-xs leading-relaxed text-md3-on-surface-variant">
             Data lama tetap aman dan bisa kamu buka di Google Sheets.
           </p>
         )}
         {quotaEntries.length > 0 && (
-          <div className="space-y-2 border-t border-earth-100 pt-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Pemakaianmu</p>
+          <div className="space-y-2 border-t border-md3-outline-variant pt-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Pemakaianmu</p>
             {quotaEntries.map(([feature, item]) => (
               <div key={feature} className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium text-earth-500">{QUOTA_LABELS[feature] || feature}</span>
-                <span className={`text-right font-bold ${item.warning === "reached" ? "text-rose-600" : item.warning === "near" ? "text-amber-600" : "text-earth-800"}`}>
+                <span className="font-medium text-md3-on-surface-variant">{QUOTA_LABELS[feature] || feature}</span>
+                <span className={`text-right font-bold ${item.warning === "reached" ? "text-rose-600" : item.warning === "near" ? "text-amber-600" : "text-md3-on-surface"}`}>
                   {item.limit === null ? "Tanpa batas" : item.current === null ? `— / ${item.limit}` : `${item.current} / ${item.limit}`}
                   {item.warning === "near" && <span className="block text-[10px]" role="status">Hampir mencapai batas</span>}
                   {item.warning === "reached" && <span className="block text-[10px]" role="alert">Batas sudah terpakai</span>}
@@ -193,15 +236,25 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
       </SectionCard>
 
       <SectionCard title="Pengaturan">
-        <div className="flex items-center gap-3 border-b border-earth-100 pb-3">
+        <div className="border-b border-md3-outline-variant pb-3">
+          <p className="text-sm font-medium text-md3-on-surface">Tema</p>
+          <p className="mt-0.5 mb-2 text-xs leading-relaxed text-md3-on-surface-variant">Tampilan terang, gelap, atau ikuti pengaturan sistem.</p>
+          <SegmentedButtons
+            options={THEME_OPTIONS}
+            value={THEME_LABEL_BY_MODE[themeMode]}
+            onChange={(label) => setThemeMode(THEME_MODE_BY_LABEL[label])}
+            ariaLabel="Pilih tema tampilan"
+          />
+        </div>
+        <div className="flex items-center gap-3 border-b border-md3-outline-variant pb-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-earth-800">Kategori</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-earth-500">Sesuaikan kategori pengeluaran, pemasukan, dan tabunganmu.</p>
+            <p className="text-sm font-medium text-md3-on-surface">Kategori</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-md3-on-surface-variant">Sesuaikan kategori pengeluaran, pemasukan, dan tabunganmu.</p>
           </div>
           <button type="button" onClick={() => setShowCategoryManager(true)} className="min-h-11 min-w-11 rounded-xl bg-sage-100 px-3 py-2 text-xs font-bold text-sage-700 hover:bg-sage-200 transition-colors">Atur kategori</button>
         </div>
-        <div className="flex justify-between items-center border-b border-earth-100 pb-3">
-          <span className="text-sm font-medium text-earth-500">Suara</span>
+        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
+          <span className="text-sm font-medium text-md3-on-surface-variant">Suara</span>
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             aria-label={`Efek suara ${soundEnabled ? "aktif" : "nonaktif"}`}
@@ -213,14 +266,14 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
               style={{ background: soundEnabled ? THEME.primary : THEME.surfaceWarm }}
             >
               <span
-                className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-warm transition-transform"
+                className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-md3-surface-container-lowest shadow-warm transition-transform"
                 style={{ transform: `translateX(${soundEnabled ? "22px" : "0"})` }}
               />
             </span>
           </button>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-earth-500">Getaran</span>
+          <span className="text-sm font-medium text-md3-on-surface-variant">Getaran</span>
           <button
             onClick={() => setHapticsEnabled(!hapticsEnabled)}
             aria-label={`Umpan balik getar ${hapticsEnabled ? "aktif" : "nonaktif"}`}
@@ -232,7 +285,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
               style={{ background: hapticsEnabled ? THEME.primary : THEME.surfaceWarm }}
             >
               <span
-                className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-warm transition-transform"
+                className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-md3-surface-container-lowest shadow-warm transition-transform"
                 style={{ transform: `translateX(${hapticsEnabled ? "22px" : "0"})` }}
               />
             </span>
@@ -255,8 +308,8 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         {editingSaldo ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-earth-500">Saldo Awal</span>
-              <button onClick={() => setEditingSaldo(false)} className="text-xs font-semibold text-earth-400">Batal</button>
+              <span className="text-sm font-medium text-md3-on-surface-variant">Saldo Awal</span>
+              <button onClick={() => setEditingSaldo(false)} className="text-xs font-semibold text-md3-on-surface-variant">Batal</button>
             </div>
             <div className="flex gap-2">
               <input
@@ -265,17 +318,17 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
                 placeholder={String(settings.startingBalance)}
                 value={rawSaldo}
                 onChange={e => setRawSaldo(formatInputRupiah(e.target.value))}
-                className="flex-1 px-3 py-2 bg-earth-50 border border-earth-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+                className="field-outlined flex-1 px-3 py-2 text-sm font-semibold"
                 autoFocus
               />
             </div>
             <div>
-              <label className="text-[9px] font-bold text-earth-400 uppercase tracking-wider block mb-1">Tanggal</label>
+              <label className="text-[11px] font-bold text-md3-on-surface-variant uppercase tracking-wider block mb-1">Tanggal</label>
               <input
                 type="date"
                 value={editDate}
                 onChange={e => setEditDate(e.target.value)}
-                className="w-full px-3 py-2 bg-earth-50 border border-earth-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+                className="field-outlined w-full px-3 py-2 text-sm font-semibold"
               />
             </div>
             <button
@@ -288,12 +341,12 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
             </button>
           </div>
         ) : (
-          <div className="border-b border-earth-100 pb-3">
+          <div className="border-b border-md3-outline-variant pb-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-earth-500">Saldo Awal</span>
+              <span className="text-sm font-medium text-md3-on-surface-variant">Saldo Awal</span>
               <button
                 onClick={handleStartEdit}
-                className="min-h-11 text-sm font-bold text-earth-800 hover:text-sage-600 transition-colors flex items-center gap-1"
+                className="min-h-11 text-sm font-bold text-md3-on-surface hover:text-sage-600 transition-colors flex items-center gap-1"
               >
                 <Wallet size={12} />
                 {formatRpFull(settings.startingBalance)}
@@ -301,8 +354,8 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
             </div>
             {settings.startingBalanceDate && (
               <div className="flex justify-between items-center mt-1">
-                <span className="text-[10px] text-earth-400">Per tanggal</span>
-                <span className="text-[10px] font-semibold text-earth-500 flex items-center gap-1">
+                <span className="text-[10px] text-md3-on-surface-variant">Per tanggal</span>
+                <span className="text-[10px] font-semibold text-md3-on-surface-variant flex items-center gap-1">
                   <Calendar size={9} />
                   {formatDateDisplay(settings.startingBalanceDate)}
                 </span>
@@ -329,7 +382,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         closeOnBackdrop={!deletingAccount}
         footer={
           <div className="flex gap-2">
-            <button className="flex-1 rounded-2xl bg-earth-100 py-3 font-bold" disabled={deletingAccount} onClick={() => setShowDeleteAccount(false)}>
+            <button className="flex-1 rounded-2xl bg-md3-surface-container-high py-3 font-bold" disabled={deletingAccount} onClick={() => setShowDeleteAccount(false)}>
               Batal
             </button>
             <button
@@ -350,7 +403,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
           </div>
         }
       >
-        <p className="text-sm leading-relaxed text-earth-600">
+        <p className="text-sm leading-relaxed text-md3-on-surface-variant">
           Akses Pro akan dicabut. Nama, foto, Google ID, tautan spreadsheet, dan bukti pembayaran akan dihapus.
           Email serta riwayat pembayaran tetap disimpan untuk audit dan kemungkinan pemulihan Pro oleh admin atas alasan yang sah.
         </p>

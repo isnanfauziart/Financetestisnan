@@ -57,7 +57,7 @@ export default function BudgetStatusCard({ allTransactions, setActiveNav, openPl
 
   if (loading) {
     return (
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in stagger-7">
+      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in stagger-7">
         <div className="shimmer-bg rounded-2xl h-24" aria-hidden="true" />
       </div>
     )
@@ -85,12 +85,12 @@ export default function BudgetStatusCard({ allTransactions, setActiveNav, openPl
   if (budgets.length === 0) return null
 
   return (
-    <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in stagger-7">
+    <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in stagger-7">
       <div className="flex justify-between items-center mb-3 px-0.5">
         <div className="flex items-center gap-1.5">
           <Target size={14} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Budget Status</h3>
-          <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">· {currentMonth}</span>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Budget Status</h3>
+          <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">· {currentMonth}</span>
         </div>
         <div className="flex items-center gap-1.5">
           {overCount > 0 && (
@@ -113,7 +113,7 @@ export default function BudgetStatusCard({ allTransactions, setActiveNav, openPl
       </div>
 
       {urgentBudgets.length === 0 ? (
-        <p className="text-[11px] text-earth-500 py-2">Semua budget sehat bulan ini 🎉</p>
+        <p className="text-[11px] text-md3-on-surface-variant py-2">Semua budget sehat bulan ini 🎉</p>
       ) : (
         <div className="space-y-2.5">
           {urgentBudgets.map((b) => {
@@ -129,9 +129,9 @@ export default function BudgetStatusCard({ allTransactions, setActiveNav, openPl
                 className="w-full text-left active:scale-[0.99] transition-transform"
               >
                 <div className="flex justify-between items-center text-[11px] mb-1">
-                  <span className="font-bold text-earth-800 truncate">{b.kategori}</span>
+                  <span className="font-bold text-md3-on-surface truncate">{b.kategori}</span>
                   <span className="font-bold flex items-center gap-1.5 flex-shrink-0" style={{ color }}>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: color + "18", color }}>
+                    <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: color + "18", color }}>
                       {statusLabel(b.pct)}
                     </span>
                     {b.pct.toFixed(0)}%
@@ -143,7 +143,7 @@ export default function BudgetStatusCard({ allTransactions, setActiveNav, openPl
                     style={{ width: `${Math.min(100, b.pct)}%`, background: color }}
                   />
                 </div>
-                <p className="text-[10px] text-earth-500 mt-1">
+                <p className="text-[10px] text-md3-on-surface-variant mt-1">
                   {formatRp(b.spent)} <span className="text-earth-400">/ {formatRp(b.limit)}</span>
                 </p>
               </button>

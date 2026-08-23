@@ -116,9 +116,9 @@ export default function BudgetsSection({
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-1.5">
           <Target size={14} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Anggaran</h3>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Anggaran</h3>
           {selectedMonth && selectedMonth !== "Semua Bulan" && (
-            <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">· {selectedMonth} {selectedYear}</span>
+            <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">· {selectedMonth} {selectedYear}</span>
           )}
         </div>
         <button
@@ -189,14 +189,14 @@ export default function BudgetsSection({
         <div className="mt-3 px-1 animate-fade-in">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Sparkles size={11} className="text-amber-500" aria-hidden="true" />
-            <p className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Saran anggaran</p>
+            <p className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Saran anggaran</p>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {unbudgetedCategories.map(name => (
               <button
                 key={name}
                 onClick={() => openCreate(name)}
-                className="min-h-11 min-w-11 text-[10px] font-bold py-1 px-2.5 rounded-xl bg-earth-50 hover:bg-sage-100 text-earth-600 hover:text-sage-700 transition-colors"
+                className="min-h-11 min-w-11 text-[10px] font-bold py-1 px-2.5 rounded-xl bg-md3-surface hover:bg-sage-100 text-md3-on-surface-variant hover:text-sage-700 transition-colors"
                 aria-label={`Atur anggaran untuk ${name}`}
               >
                 + {name}

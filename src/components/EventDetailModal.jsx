@@ -32,9 +32,9 @@ export default function EventDetailModal({ event, transactions, onClose }) {
           <div className="flex items-center gap-4">
             <GoalProgressRing progress={pct} color={eventColor} size={72} stroke={7} completed={pct >= 100} />
             <div className="flex-1">
-              <p className="text-[10px] font-bold text-earth-500 uppercase tracking-wider mb-0.5">Total Terpakai</p>
+              <p className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider mb-0.5">Total Terpakai</p>
               <p className="text-xl font-display font-bold" style={{ color: eventColor }}>{formatRpFull(animatedSpent)}</p>
-              <p className="text-[11px] text-earth-500">dari {formatRpFull(event.totalBudget)}</p>
+              <p className="text-[11px] text-md3-on-surface-variant">dari {formatRpFull(event.totalBudget)}</p>
               <p className="text-[11px] font-semibold mt-0.5" style={{ color: pct >= 100 ? THEME.danger : THEME.savings }}>
                 Sisa: {formatRpFull(Math.max(0, event.totalBudget - (event.spent || 0)))}
               </p>
@@ -46,17 +46,17 @@ export default function EventDetailModal({ event, transactions, onClose }) {
         {event.danaTHR > 0 && (
           <div className="rounded-2xl p-3" style={{ background: THEME.warningBg, border: `1px solid ${THEME.warning}33` }}>
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Utilisasi THR</span>
+              <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Utilisasi THR</span>
               <span className="text-[11px] font-bold" style={{ color: THEME.warning }}>
                 {event.totalBudget > 0 ? Math.min(100, Math.round(((event.spent || 0) / event.danaTHR) * 100)) : 0}%
               </span>
             </div>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-earth-600">THR diterima</span>
-              <span className="font-bold text-earth-800">{formatRpFull(event.danaTHR)}</span>
+              <span className="text-md3-on-surface-variant">THR diterima</span>
+              <span className="font-bold text-md3-on-surface">{formatRpFull(event.danaTHR)}</span>
             </div>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-earth-600">Terpakai</span>
+              <span className="text-md3-on-surface-variant">Terpakai</span>
               <span className="font-bold" style={{ color: (event.spent || 0) > event.danaTHR ? THEME.danger : THEME.savings }}>{formatRpFull(event.spent || 0)}</span>
             </div>
             <BudgetProgressBar spent={event.spent || 0} limit={event.danaTHR} height={6} />
@@ -66,12 +66,12 @@ export default function EventDetailModal({ event, transactions, onClose }) {
         {/* Sub-kategori breakdown */}
         {event.subCategories && event.subCategories.length > 0 && (
           <div>
-            <h4 className="text-[10px] font-bold text-earth-500 uppercase tracking-wider mb-2">Sub-Kategori</h4>
+            <h4 className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider mb-2">Sub-Kategori</h4>
             <div className="space-y-3">
               {event.subCategories.map((sub, i) => (
-                <div key={i} className="bento-tile bg-white border border-earth-100 p-3 rounded-xl">
+                <div key={i} className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-3 rounded-xl">
                   <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-xs font-semibold text-earth-700">{sub.subKategori || sub.kategori}</span>
+                    <span className="text-xs font-semibold text-md3-on-surface-variant">{sub.subKategori || sub.kategori}</span>
                     <span className="text-[11px] font-bold" style={{ color: (sub.pct || 0) >= 100 ? THEME.danger : THEME.textPrimary }}>
                       {formatRp(sub.spent || 0)} / {formatRp(sub.limit)}
                     </span>
@@ -86,8 +86,8 @@ export default function EventDetailModal({ event, transactions, onClose }) {
         {/* Transactions */}
         {groupedTx.length > 0 && (
           <div>
-            <h4 className="text-[10px] font-bold text-earth-500 uppercase tracking-wider mb-2">Transaksi Terkait ({transactions.length})</h4>
-            <div className="bento-tile bg-white border border-earth-100 shadow-warm p-2 rounded-2xl">
+            <h4 className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider mb-2">Transaksi Terkait ({transactions.length})</h4>
+            <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-2 rounded-2xl">
               {groupedTx.map((t, i) => {
                 const borderColor = t.type === "income" ? THEME.income : t.type === "savings" ? THEME.savings : THEME.expense
                 return (
@@ -98,8 +98,8 @@ export default function EventDetailModal({ event, transactions, onClose }) {
                         {t.type === "income" ? <ArrowDownRight size={12} color={THEME.income} /> : t.type === "savings" ? <PiggyBank size={12} color={THEME.savings} /> : <ArrowUpRight size={12} color={THEME.expense} />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-earth-800 truncate">{t.category}</p>
-                        <p className="text-[10px] text-earth-500 truncate">{t.desc || "—"} · {t.date}</p>
+                        <p className="text-xs font-semibold text-md3-on-surface truncate">{t.category}</p>
+                        <p className="text-[10px] text-md3-on-surface-variant truncate">{t.desc || "—"} · {t.date}</p>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-2">
@@ -107,7 +107,7 @@ export default function EventDetailModal({ event, transactions, onClose }) {
                         {t.type === "income" ? "+" : ""}{formatRp(t.amount)}
                       </p>
                       {t.eventSubKategori && (
-                        <span className="text-[8px] font-bold px-1 py-0.5 rounded-full" style={{ background: eventColor + "18", color: eventColor }}>
+                        <span className="text-[11px] font-bold px-1 py-0.5 rounded-full" style={{ background: eventColor + "18", color: eventColor }}>
                           {t.eventSubKategori}
                         </span>
                       )}

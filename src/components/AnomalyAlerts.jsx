@@ -115,12 +115,12 @@ export default function AnomalyAlerts({ transactions, selectedMonth, selectedYea
   }
 
   return (
-    <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+    <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
       <div className="flex items-center justify-between mb-3 px-0.5">
         <div className="flex items-center gap-1.5">
           <AlertTriangle size={14} color={THEME.warning} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Perhatian</h3>
-          <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">· {selectedMonth}</span>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Perhatian</h3>
+          <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">· {selectedMonth}</span>
         </div>
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
           {anomalies.length} anomali
@@ -140,7 +140,7 @@ export default function AnomalyAlerts({ transactions, selectedMonth, selectedYea
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <span className="text-xs font-bold truncate" style={{ color: sev.text }}>{a.category}</span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: sev.text + "18", color: sev.text }}>
+                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: sev.text + "18", color: sev.text }}>
                     {sev.label}
                   </span>
                 </div>
@@ -149,12 +149,12 @@ export default function AnomalyAlerts({ transactions, selectedMonth, selectedYea
 
               <div className="flex items-baseline gap-2 mb-1">
                 <span className="text-sm font-bold" style={{ color: sev.text }}>+{a.delta}%</span>
-                <span className="text-[10px] text-earth-500">di atas rata-rata 3 bulan</span>
+                <span className="text-[10px] text-md3-on-surface-variant">di atas rata-rata 3 bulan</span>
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-earth-500">
-                <span>Bulan ini: <strong className="text-earth-700">{formatRp(a.current)}</strong></span>
-                <span>Rata-rata: <strong className="text-earth-700">{formatRp(a.avg)}</strong></span>
+              <div className="flex items-center justify-between text-[10px] text-md3-on-surface-variant">
+                <span>Bulan ini: <strong className="text-md3-on-surface-variant">{formatRp(a.current)}</strong></span>
+                <span>Rata-rata: <strong className="text-md3-on-surface-variant">{formatRp(a.avg)}</strong></span>
               </div>
 
               {a.monthProgress < 80 && (

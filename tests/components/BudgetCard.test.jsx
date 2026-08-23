@@ -38,24 +38,40 @@ describe("BudgetCard", () => {
     expect(screen.queryByText("BCA")).toBeNull()
   })
 
-  it("edit and delete buttons are always present in DOM (touch device fix)", () => {
+  it("exposes edit/delete via a ⋮ menu whose trigger is always in the DOM", () => {
     render(<BudgetCard budget={baseBudget} spent={500000} onClick={() => {}} onEdit={() => {}} onDelete={() => {}} />)
-    expect(screen.getByLabelText("Edit Makanan budget")).toHaveClass("min-h-11", "min-w-11")
-    expect(screen.getByLabelText("Delete Makanan budget")).toHaveClass("min-h-11", "min-w-11")
+    expect(screen.getByLabelText("Aksi budget Makanan")).toHaveAttribute("aria-haspopup", "menu")
+    fireEvent.click(screen.getByLabelText("Aksi budget Makanan"))
+    expect(screen.getByLabelText("Edit Makanan budget")).toHaveClass("min-h-11")
+    expect(screen.getByLabelText("Delete Makanan budget")).toHaveClass("min-h-11")
   })
 
-  it("calls onEdit when edit button clicked", () => {
+  it("calls onEdit when edit menu item clicked", () => {
     const onEdit = vi.fn()
     render(<BudgetCard budget={baseBudget} spent={500000} onClick={() => {}} onEdit={onEdit} onDelete={() => {}} />)
+    fireEvent.click(screen.getByLabelText("Aksi budget Makanan"))
     fireEvent.click(screen.getByLabelText("Edit Makanan budget"))
     expect(onEdit).toHaveBeenCalledTimes(1)
   })
 
-  it("calls onDelete when delete button clicked", () => {
+  it("calls onDelete when delete menu item clicked", () => {
     const onDelete = vi.fn()
     render(<BudgetCard budget={baseBudget} spent={500000} onClick={() => {}} onEdit={() => {}} onDelete={onDelete} />)
+    fireEvent.click(screen.getByLabelText("Aksi budget Makanan"))
     fireEvent.click(screen.getByLabelText("Delete Makanan budget"))
     expect(onDelete).toHaveBeenCalledTimes(1)
+  })
+
+  it("closes on outside mousedown without firing handlers (tap never lost)", () => {
+    const onEdit = vi.fn()
+    const onDelete = vi.fn()
+    render(<BudgetCard budget={baseBudget} spent={500000} onClick={() => {}} onEdit={onEdit} onDelete={onDelete} />)
+    fireEvent.click(screen.getByLabelText("Aksi budget Makanan"))
+    expect(screen.getByRole("menu")).toBeInTheDocument()
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByRole("menu")).toBeNull()
+    expect(onEdit).not.toHaveBeenCalled()
+    expect(onDelete).not.toHaveBeenCalled()
   })
 
   it("calls onClick when progress bar area clicked", () => {

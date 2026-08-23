@@ -15,12 +15,12 @@ function CustomTooltip({ active, payload, label }) {
   if (!d) return null
   const color = d.rate >= 20 ? THEME.income : d.rate >= 10 ? THEME.warning : THEME.danger
   return (
-    <div className="rounded-xl p-3 shadow-warm border border-earth-100" style={{ background: THEME.surface }}>
-      <p className="text-[10px] font-bold text-earth-500 mb-1">{label}</p>
+    <div className="rounded-xl p-3 shadow-warm border border-md3-outline-variant" style={{ background: THEME.surface }}>
+      <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1">{label}</p>
       <p className="text-xs font-bold" style={{ color }}>
         Savings Rate: {d.rate.toFixed(1)}%
       </p>
-      <p className="text-[10px] text-earth-500 mt-0.5">
+      <p className="text-[10px] text-md3-on-surface-variant mt-0.5">
         Income: {formatRp(d.income)} · Expense: {formatRp(d.expense)}
       </p>
     </div>
@@ -73,12 +73,12 @@ export default function SavingsRateTrend({ monthlyData }) {
 
   if (chartData.length < 2) {
     return (
-      <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
         <div className="flex items-center gap-1.5 mb-2">
           <PiggyBank size={14} className="text-earth-400" aria-hidden="true" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Savings Rate Trend</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Savings Rate Trend</p>
         </div>
-        <p className="text-sm text-earth-500">Butuh minimal 2 bulan data untuk menampilkan tren.</p>
+        <p className="text-sm text-md3-on-surface-variant">Butuh minimal 2 bulan data untuk menampilkan tren.</p>
       </div>
     )
   }
@@ -86,12 +86,12 @@ export default function SavingsRateTrend({ monthlyData }) {
   const rateColor = currentRate >= 20 ? THEME.income : currentRate >= 10 ? THEME.warning : THEME.danger
 
   return (
-    <div className="mt-6 bento-tile bg-white border border-earth-100 p-5 shadow-warm animate-bento-in">
+    <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5">
           <PiggyBank size={14} color={THEME.savings} aria-hidden="true" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Savings Rate Trend</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Savings Rate Trend</p>
         </div>
         {trend.direction !== "flat" && (
           <span
@@ -112,7 +112,7 @@ export default function SavingsRateTrend({ monthlyData }) {
         <span className="text-3xl font-display font-bold tracking-tight" style={{ color: rateColor }}>
           {animatedRate.toFixed(1)}%
         </span>
-        <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">
+        <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">
           {currentRate >= 20 ? "Sangat Baik" : currentRate >= 10 ? "Cukup" : "Perlu Ditingkatkan"}
         </span>
       </div>
@@ -176,15 +176,15 @@ export default function SavingsRateTrend({ monthlyData }) {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-xl p-2.5 text-center" style={{ background: THEME.surfaceWarm }}>
-          <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Rata-rata</p>
-          <p className="text-sm font-bold text-earth-700">{stats.avg.toFixed(1)}%</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Rata-rata</p>
+          <p className="text-sm font-bold text-md3-on-surface-variant">{stats.avg.toFixed(1)}%</p>
         </div>
         <div className="rounded-xl p-2.5 text-center" style={{ background: THEME.incomeBg }}>
-          <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Terbaik</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Terbaik</p>
           <p className="text-sm font-bold" style={{ color: THEME.income }}>{stats.best.toFixed(1)}%</p>
         </div>
         <div className="rounded-xl p-2.5 text-center" style={{ background: THEME.surfaceWarm }}>
-          <p className="text-[8px] font-bold uppercase tracking-wider text-earth-500 mb-0.5">Terendah</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Terendah</p>
           <p className="text-sm font-bold" style={{ color: THEME.danger }}>{stats.worst.toFixed(1)}%</p>
         </div>
       </div>
@@ -194,15 +194,15 @@ export default function SavingsRateTrend({ monthlyData }) {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <div className="w-4 h-0.5 rounded-full" style={{ background: THEME.income }} />
-            <span className="text-[9px] font-semibold text-earth-600">≥ 20% target</span>
+            <span className="text-[11px] font-semibold text-md3-on-surface-variant">≥ 20% target</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-4 h-0.5 rounded-full" style={{ background: THEME.warning }} />
-            <span className="text-[9px] font-semibold text-earth-600">10-20%</span>
+            <span className="text-[11px] font-semibold text-md3-on-surface-variant">10-20%</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-4 h-0.5 rounded-full" style={{ background: THEME.danger }} />
-            <span className="text-[9px] font-semibold text-earth-600">&lt; 10%</span>
+            <span className="text-[11px] font-semibold text-md3-on-surface-variant">&lt; 10%</span>
           </div>
         </div>
       </div>

@@ -1,8 +1,8 @@
 "use client"
 import { useState } from "react"
-import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, AlertCircle, Info, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react"
+import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, Check, AlertCircle, Info, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react"
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, LabelList, Legend } from "recharts"
-import { THEME, COLORS, AVAILABLE_MONTHS } from "./_components/constants"
+import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRp, formatRpFull } from "./_components/helpers"
 import SelectField from "./_components/SelectField"
 import CustomTooltip from "./_components/CustomTooltip"
@@ -15,6 +15,7 @@ import SavingsRateTrend from "@/components/SavingsRateTrend"
 import AnomalyAlerts from "@/components/AnomalyAlerts"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
+import { chartTheme } from "@/lib/chartTheme"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 const STATS_SECTIONS = [
@@ -153,26 +154,27 @@ export default function StatsTab({
             options={ANALYSIS_MODES.map(({ label }) => label)}
           />
         </div>
-        <button onClick={() => setShowDateRange(!showDateRange)} className="text-[10px] font-bold text-earth-500 uppercase tracking-wider flex items-center gap-1.5 hover:text-violet-600 transition-colors">
+        <button onClick={() => setShowDateRange(!showDateRange)} className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider flex items-center gap-1.5 hover:text-violet-600 transition-colors">
           {showDateRange ? "− Sembunyikan" : "+ Tambah"} rentang tanggal
         </button>
         {showDateRange && (
           <div className="grid grid-cols-2 gap-2 pt-1 animate-slide-down">
             <div>
-              <label className="text-[10px] font-bold text-earth-500 mb-1 block uppercase tracking-wider">Dari</label>
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full px-3 py-2.5 bg-earth-50 border border-earth-100 rounded-2xl text-xs font-semibold outline-none focus:ring-2 focus:ring-violet-200" />
+              <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1 block uppercase tracking-wider">Dari</label>
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="field-outlined w-full px-3 py-2.5 text-xs font-semibold" />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-earth-500 mb-1 block uppercase tracking-wider">Sampai</label>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full px-3 py-2.5 bg-earth-50 border border-earth-100 rounded-2xl text-xs font-semibold outline-none focus:ring-2 focus:ring-violet-200" />
+              <label className="text-[10px] font-bold text-md3-on-surface-variant mb-1 block uppercase tracking-wider">Sampai</label>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="field-outlined w-full px-3 py-2.5 text-xs font-semibold" />
             </div>
           </div>
         )}
         {(categoryFilter || hasDateRange) && (
           <div className="flex items-center gap-2 flex-wrap pt-1">
-            <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Filter aktif:</span>
+            <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Filter aktif:</span>
             {categoryFilter && (
               <div className="chip chip-active">
+                <Check size={12} strokeWidth={3} aria-hidden="true" />
                 {categoryFilter}
                 <button onClick={() => setCategoryFilter(null)} className="ml-1 hover:opacity-70" aria-label="Hapus filter kategori">
                   <X size={10} strokeWidth={3} aria-hidden="true" />
@@ -181,6 +183,7 @@ export default function StatsTab({
             )}
             {hasDateRange && (
               <div className="chip chip-active">
+                <Check size={12} strokeWidth={3} aria-hidden="true" />
                 {dateFrom || "..."} → {dateTo || "..."}
                 <button onClick={() => { setDateFrom(""); setDateTo("") }} className="ml-1 hover:opacity-70" aria-label="Hapus rentang tanggal">
                   <X size={10} strokeWidth={3} aria-hidden="true" />
@@ -205,7 +208,7 @@ export default function StatsTab({
                 className={`rounded-2xl px-3 py-2.5 text-xs font-bold transition-all ${
                   isActive
                     ? "bg-earth-900 text-white shadow-warm"
-                    : "bg-white/70 text-earth-500 hover:bg-white hover:text-earth-800"
+                    : "bg-md3-surface-container-lowest text-md3-on-surface-variant hover:bg-md3-surface-container-low hover:text-md3-on-surface"
                 }`}
               >
                 {section.label}
@@ -253,14 +256,14 @@ export default function StatsTab({
 
           {isAllMonths && (
             refreshing ? <ChartSkeleton height={300} /> : (
-              <section className="bento-tile bg-white border border-earth-100 p-4 sm:p-5 shadow-warm" role="region" aria-label="Arus kas bulanan">
+              <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" role="region" aria-label="Arus kas bulanan">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-bold font-display text-earth-800">Pemasukan vs Pengeluaran</h3>
-                    <p className="text-[10px] text-earth-500 mt-1">Perbandingan arus kas aktual per bulan.</p>
+                    <h3 className="text-sm font-bold font-display text-md3-on-surface">Pemasukan vs Pengeluaran</h3>
+                    <p className="text-[10px] text-md3-on-surface-variant mt-1">Perbandingan arus kas aktual per bulan.</p>
                   </div>
                   {cashFlowChartData.length > 0 && (
-                    <span className="flex-shrink-0 rounded-full bg-earth-50 px-2.5 py-1 text-[10px] font-bold text-earth-600">
+                    <span className="flex-shrink-0 rounded-full bg-md3-surface px-2.5 py-1 text-[10px] font-bold text-md3-on-surface-variant">
                       {cashFlowChartData.length} bulan
                     </span>
                   )}
@@ -270,7 +273,7 @@ export default function StatsTab({
                   <EmptyState icon={<Wallet size={18} />} title="Belum ada data arus kas" hint="Pilih rentang dengan pemasukan atau pengeluaran untuk melihat grafik." />
                 ) : (
                   <>
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[10px] font-semibold text-earth-600" aria-label="Legenda arus kas">
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[10px] font-semibold text-md3-on-surface-variant" aria-label="Legenda arus kas">
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-2.5 w-2.5 rounded-sm" style={{ background: THEME.income }} aria-hidden="true" />
                         Pemasukan
@@ -293,8 +296,8 @@ export default function StatsTab({
                       <div style={{ minWidth: Math.max(520, cashFlowChartData.length * 84) }}>
                         <ResponsiveContainer width="100%" height={280}>
                           <ComposedChart data={cashFlowChartData} margin={{ top: 28, right: 16, left: 0, bottom: 8 }} barCategoryGap="22%" barGap={4}>
-                            <XAxis dataKey="label" interval={0} tick={{ fontSize: 10, fill: THEME.textSecondary }} tickMargin={8} axisLine={false} tickLine={false} />
-                            <YAxis width={62} tickFormatter={value => formatRp(value)} tick={{ fontSize: 10, fill: THEME.textSecondary }} axisLine={false} tickLine={false} allowDecimals={false} />
+                            <XAxis dataKey="label" interval={0} tick={chartTheme.axisTick} tickMargin={8} axisLine={false} tickLine={false} />
+                            <YAxis width={62} tickFormatter={value => formatRp(value)} tick={chartTheme.axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
                             <Tooltip content={<CustomTooltip />} />
                             <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={0} animationDuration={220} />
                             <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={40} animationDuration={220} />
@@ -315,7 +318,7 @@ export default function StatsTab({
             <div>
               <div className="flex items-center gap-1.5 mb-2 px-1">
                 <Lightbulb size={13} className="text-amber-500" aria-hidden="true" />
-                <h3 className="text-xs font-bold font-display text-earth-700 uppercase tracking-wider">Insights</h3>
+                <h3 className="text-xs font-bold font-display text-md3-on-surface-variant uppercase tracking-wider">Insights</h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {insightCards.slice(0, 5).map((ins, i) => {
@@ -330,8 +333,8 @@ export default function StatsTab({
                         </span>
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <p className="text-[9px] font-bold uppercase tracking-wider opacity-70">{ins.type === "positive" ? "Positif" : ins.type === "warning" ? "Perhatian" : "Info"}</p>
-                        <p className="text-xs font-semibold text-earth-800 leading-snug mt-0.5">{ins.text}</p>
+                        <p className="text-[11px] font-bold uppercase tracking-wider opacity-70">{ins.type === "positive" ? "Positif" : ins.type === "warning" ? "Perhatian" : "Info"}</p>
+                        <p className="text-xs font-semibold text-md3-on-surface leading-snug mt-0.5">{ins.text}</p>
                       </div>
                     </div>
                   )
@@ -352,11 +355,11 @@ export default function StatsTab({
           ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              { key: "expense", title: "Pengeluaran terbesar", categories: chartExpenseCategories, colorOffset: 3, summaryId: "stats-expense-category-summary" },
-              { key: "income", title: "Pemasukan terbesar", categories: incomeCategories, colorOffset: 0, summaryId: "stats-income-category-summary" },
-            ].map(({ key, title, categories, colorOffset, summaryId }) => (
-              <section key={key} className="bento-tile bg-white border border-earth-100 p-4 shadow-warm" aria-labelledby={`${summaryId}-title`}>
-                <h3 id={`${summaryId}-title`} className="text-xs font-bold text-center mb-2 font-display text-earth-800">{title}</h3>
+              { key: "expense", title: "Pengeluaran terbesar", categories: chartExpenseCategories, summaryId: "stats-expense-category-summary" },
+              { key: "income", title: "Pemasukan terbesar", categories: incomeCategories, summaryId: "stats-income-category-summary" },
+            ].map(({ key, title, categories, summaryId }) => (
+              <section key={key} className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm" aria-labelledby={`${summaryId}-title`}>
+                <h3 id={`${summaryId}-title`} className="text-xs font-bold text-center mb-2 font-display text-md3-on-surface">{title}</h3>
                 <p id={summaryId} className="sr-only">{getCategorySummary(title, categories)}</p>
                 {categories.length === 0 ? (
                   <EmptyState icon={<Wallet size={18} />} title="Belum ada" />
@@ -365,12 +368,12 @@ export default function StatsTab({
                     <ResponsiveContainer width="100%" height={Math.max(180, Math.min(280, categories.slice(0, 8).length * 34 + 36))}>
                       <BarChart data={categories.slice(0, 8)} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 4 }} barCategoryGap="22%">
                         <XAxis type="number" hide />
-                        <YAxis type="category" dataKey="name" width={82} tick={{ fontSize: 10, fill: "#6b625a" }} axisLine={false} tickLine={false} />
+                        <YAxis type="category" dataKey="name" width={82} tick={chartTheme.axisTick} axisLine={false} tickLine={false} />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar
                           dataKey="value"
                           name={title}
-                          fill={COLORS[colorOffset % COLORS.length]}
+                          fill={chartTheme.seriesPalette[0]}
                           radius={[0, 6, 6, 0]}
                           maxBarSize={18}
                           animationDuration={240}
@@ -382,7 +385,7 @@ export default function StatsTab({
                           }}
                         >
                           {categories.slice(0, 8).map((category, index) => (
-                            <Cell key={category.name} fill={COLORS[(index + colorOffset) % COLORS.length]} />
+                            <Cell key={category.name} fill={chartTheme.seriesPalette[index % chartTheme.seriesPalette.length]} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -392,9 +395,9 @@ export default function StatsTab({
                 <div className="mt-2 space-y-1.5" aria-label={`${title} detail`}>
                   {categories.slice(0, 6).map((category, index) => (
                     <div key={category.name} className="flex items-center gap-2 text-[10px]">
-                      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: COLORS[(index + colorOffset) % COLORS.length] }} aria-hidden="true" />
-                      <span className="min-w-0 flex-1 truncate font-medium text-earth-700">{category.name}</span>
-                      <span className="flex-shrink-0 font-bold text-earth-800">
+                      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: chartTheme.seriesPalette[index % chartTheme.seriesPalette.length] }} aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate font-medium text-md3-on-surface-variant">{category.name}</span>
+                      <span className="flex-shrink-0 font-bold text-md3-on-surface tabular-nums">
                         {formatRp(category.value)}{key === "expense" ? ` · ${formatCategoryPercentage(category.value, chartExpenseTotal)}%` : ""}
                       </span>
                     </div>
@@ -408,18 +411,18 @@ export default function StatsTab({
           {/* Top categories trend */}
           {chartTop5Categories.length > 0 && (
             refreshing ? <ChartSkeleton height={270} /> : (
-            <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
-              <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Tren Kategori Pengeluaran</h3>
+            <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm">
+              <h3 className="text-sm font-bold mb-3 font-display text-md3-on-surface">Tren Kategori Pengeluaran</h3>
               <p id="stats-category-trend-summary" className="sr-only">{getCategoryTrendSummary(chartTrendData, chartTop5Categories)}</p>
               <div role="img" aria-describedby="stats-category-trend-summary">
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={chartTrendData}>
-                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="month" tick={chartTheme.axisTick} axisLine={false} tickLine={false} />
                     <YAxis hide />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ fontSize: "11px" }} />
                     {chartTop5Categories.map((cat, i) => (
-                      <Line key={cat} type="monotone" dataKey={cat} name={cat} stroke={COLORS[i % COLORS.length]} strokeWidth={2.5} dot={{ r: 3, fill: COLORS[i % COLORS.length] }} connectNulls animationBegin={Math.min(i * 40, 120)} animationDuration={240} />
+                      <Line key={cat} type="monotone" dataKey={cat} name={cat} stroke={chartTheme.seriesPalette[i % chartTheme.seriesPalette.length]} strokeWidth={2.5} dot={{ r: 3, fill: chartTheme.seriesPalette[i % chartTheme.seriesPalette.length] }} connectNulls animationBegin={Math.min(i * 40, 120)} animationDuration={240} />
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
@@ -435,13 +438,13 @@ export default function StatsTab({
           {/* Monthly trend */}
           {isAllMonths && (
             refreshing ? <ChartSkeleton height={240} /> : (
-            <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
-              <h3 className="text-sm font-bold mb-3 font-display text-earth-800">Tren Bulanan</h3>
+            <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm">
+              <h3 className="text-sm font-bold mb-3 font-display text-md3-on-surface">Tren Bulanan</h3>
               <p id="stats-monthly-trend-summary" className="sr-only">{getMonthlyTrendSummary(chartClientMonthlyData)}</p>
               <div role="img" aria-describedby="stats-monthly-trend-summary">
                 <ResponsiveContainer width="100%" height={220}>
                   <ComposedChart data={chartClientMonthlyData}>
-                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#8c7b6a" }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="month" tick={chartTheme.axisTick} axisLine={false} tickLine={false} />
                     <YAxis hide />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={0} animationDuration={220} />
@@ -458,17 +461,17 @@ export default function StatsTab({
           <SavingsRateTrend monthlyData={routineAnalyticsMonthlyData} />
 
           {/* Month comparison */}
-          <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm">
+          <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm">
             <div className="flex flex-col gap-2.5 mb-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-sm font-bold font-display text-earth-800">Bandingkan Bulan</h3>
-                <p className="text-[10px] text-earth-500 mt-1">Default: bulan ini vs bulan lalu</p>
+                <h3 className="text-sm font-bold font-display text-md3-on-surface">Bandingkan Bulan</h3>
+                <p className="text-[10px] text-md3-on-surface-variant mt-1">Default: bulan ini vs bulan lalu</p>
               </div>
               <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2 sm:flex sm:items-center">
                 <button
                   type="button"
                   onClick={resetComparePeriods}
-                  className="text-[11px] font-bold py-2 px-3 rounded-full transition-all bg-earth-50 text-earth-600 hover:bg-earth-100"
+                  className="text-[11px] font-bold py-2 px-3 rounded-full transition-all bg-md3-surface text-md3-on-surface-variant hover:bg-md3-surface-container-high"
                 >
                   Reset ke bulan ini
                 </button>
@@ -482,14 +485,14 @@ export default function StatsTab({
               <div className="space-y-4 mt-3 animate-slide-down">
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                   <div>
-                    <p className="text-[10px] font-bold text-earth-500 mb-1.5">Periode utama</p>
+                    <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5">Periode utama</p>
                     <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_120px] gap-2">
                       <div className="min-w-0"><SelectField value={compareMonthA} onChange={setCompareMonthA} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
                       <div className="min-w-0"><SelectField value={compareYearA} onChange={setCompareYearA} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
                     </div>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-earth-500 mb-1.5">Bandingkan dengan</p>
+                    <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5">Bandingkan dengan</p>
                     <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_120px] gap-2">
                       <div className="min-w-0"><SelectField value={compareMonthB} onChange={setCompareMonthB} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
                       <div className="min-w-0"><SelectField value={compareYearB} onChange={setCompareYearB} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
@@ -506,9 +509,9 @@ export default function StatsTab({
                     const isUp = delta > 0
                     return (
                       <div key={item.label} className="rounded-2xl p-3 text-center" style={{ background: THEME.surfaceWarm }}>
-                        <p className="text-[10px] font-bold text-earth-500 mb-1">{item.label}</p>
-                        <p className="text-sm font-bold" style={{ color: item.color }}>{formatRp(item.a)}</p>
-                        <p className="text-[10px] text-earth-500 my-0.5">vs {formatRp(item.b)}</p>
+                        <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1">{item.label}</p>
+                        <p className="text-sm font-bold tabular-nums" style={{ color: item.color }}>{formatRp(item.a)}</p>
+                        <p className="text-[10px] text-md3-on-surface-variant my-0.5">vs {formatRp(item.b)}</p>
                         {delta !== 0 && (
                           <p className="text-[11px] font-bold" style={{ color: isUp && item.label !== "Pengeluaran" ? THEME.savings : isUp ? THEME.danger : THEME.savings }}>
                             {isUp ? "↑" : "↓"} {Math.abs(delta).toFixed(1)}%
@@ -520,8 +523,8 @@ export default function StatsTab({
                 </div>
                 {activeCompareChartData.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold text-earth-500 mb-2">Perbandingan per Kategori</p>
-                    <p className="text-[10px] text-earth-500 -mt-1 mb-2">{compareLabelA} vs {compareLabelB}</p>
+                    <p className="text-[10px] font-bold text-md3-on-surface-variant mb-2">Perbandingan per Kategori</p>
+                    <p className="text-[10px] text-md3-on-surface-variant -mt-1 mb-2">{compareLabelA} vs {compareLabelB}</p>
                     <p id="stats-comparison-summary" className="sr-only">
                       Perbandingan pengeluaran {compareLabelA} dan {compareLabelB}: {activeCompareChartData.map(item => `${item.category}, ${formatRp(item[compareLabelA] || 0)} dan ${formatRp(item[compareLabelB] || 0)}`).join("; ")}.
                     </p>
@@ -530,8 +533,8 @@ export default function StatsTab({
                         <div role="img" aria-describedby="stats-comparison-summary">
                           <ResponsiveContainer width="100%" height={280}>
                             <BarChart data={activeCompareChartData} margin={{ top: 24, right: 12, left: 0, bottom: 28 }} barCategoryGap="24%" barGap={4}>
-                              <XAxis dataKey="category" interval={0} tick={{ fontSize: 10, fill: THEME.textSecondary }} tickMargin={8} axisLine={false} tickLine={false} />
-                              <YAxis width={58} tickFormatter={value => formatRp(value)} tick={{ fontSize: 10, fill: THEME.textSecondary }} axisLine={false} tickLine={false} allowDecimals={false} />
+                              <XAxis dataKey="category" interval={0} tick={chartTheme.axisTick} tickMargin={8} axisLine={false} tickLine={false} />
+                              <YAxis width={58} tickFormatter={value => formatRp(value)} tick={chartTheme.axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
                               <Tooltip content={<CustomTooltip />} />
                               <Bar dataKey={compareLabelA} name={compareLabelA} fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={24} animationBegin={0} animationDuration={240}>
                                 <LabelList dataKey={compareLabelA} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} fontSize={9} />
@@ -542,7 +545,7 @@ export default function StatsTab({
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
-                        <div role="group" aria-label="Keterangan warna perbandingan" className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] text-earth-500">
+                        <div role="group" aria-label="Keterangan warna perbandingan" className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] text-md3-on-surface-variant">
                           <span className="inline-flex items-center gap-1.5">
                             <span className="h-2 w-2 rounded-full" style={{ background: THEME.income }} aria-hidden="true" />
                             {compareLabelA}
@@ -551,7 +554,7 @@ export default function StatsTab({
                             <span className="h-2 w-2 rounded-full" style={{ background: THEME.expense }} aria-hidden="true" />
                             {compareLabelB}
                           </span>
-                          <p className="basis-full text-center text-[10px] text-earth-600">Keduanya menunjukkan pengeluaran</p>
+                          <p className="basis-full text-center text-[10px] text-md3-on-surface-variant">Keduanya menunjukkan pengeluaran</p>
                         </div>
                       </div>
                     </div>
@@ -562,21 +565,21 @@ export default function StatsTab({
           </div>
 
           {/* Daily expense calendar */}
-          <div className="bento-tile bg-white border border-earth-100 p-5 shadow-warm overflow-hidden">
-            <h3 className="text-sm font-bold mb-1 font-display text-earth-800">Peta Pengeluaran Harian</h3>
-            <p className="text-[10px] text-earth-500 mb-3">Rincian pengeluaran harian bulan {calMonth} {calYear}</p>
+          <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm overflow-hidden">
+            <h3 className="text-sm font-bold mb-1 font-display text-md3-on-surface">Peta Pengeluaran Harian</h3>
+            <p className="text-[10px] text-md3-on-surface-variant mb-3">Rincian pengeluaran harian bulan {calMonth} {calYear}</p>
             <div className="flex items-center justify-between mb-3">
-              <button onClick={() => navigateCalendar(-1)} aria-label="Bulan sebelumnya" className="w-8 h-8 rounded-xl bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center">
+              <button onClick={() => navigateCalendar(-1)} aria-label="Bulan sebelumnya" className="w-8 h-8 rounded-xl bg-md3-surface hover:bg-md3-surface-container-high transition-colors flex items-center justify-center">
                 <ChevronLeft size={14} color={THEME.textSecondary} aria-hidden="true" />
               </button>
-              <span className="text-sm font-bold text-earth-800">{calMonth} {calYear}</span>
-              <button onClick={() => navigateCalendar(1)} aria-label="Bulan berikutnya" className="w-8 h-8 rounded-xl bg-earth-50 hover:bg-earth-100 transition-colors flex items-center justify-center">
+              <span className="text-sm font-bold text-md3-on-surface">{calMonth} {calYear}</span>
+              <button onClick={() => navigateCalendar(1)} aria-label="Bulan berikutnya" className="w-8 h-8 rounded-xl bg-md3-surface hover:bg-md3-surface-container-high transition-colors flex items-center justify-center">
                 <ChevronRight size={14} color={THEME.textSecondary} aria-hidden="true" />
               </button>
             </div>
             <div className="grid grid-cols-7 gap-1 mb-1.5">
               {DAY_HEADERS.map(d => (
-                <div key={d} className="text-center text-[9px] font-bold text-earth-500 uppercase py-0.5">{d}</div>
+                <div key={d} className="text-center text-[11px] font-bold text-md3-on-surface-variant uppercase py-0.5">{d}</div>
               ))}
             </div>
             <div className="space-y-1">
@@ -592,12 +595,12 @@ export default function StatsTab({
                         key={ci}
                         onClick={() => handleDayClick(cell)}
                         aria-label={`${cell.day} ${calMonth}, ${cell.amount > 0 ? formatRp(cell.amount) + " pengeluaran" : "tidak ada pengeluaran"}`}
-                        className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:scale-110 cursor-pointer ${isToday ? "ring-2 ring-violet-500 ring-offset-1 ring-offset-white" : ""}`}
+                        className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:scale-110 cursor-pointer ${isToday ? "ring-2 ring-[var(--md-sys-color-primary)] ring-offset-1 ring-offset-white" : ""}`}
                         style={{ background: bg, color: txt }}
                       >
-                        <span className="text-[10px] font-bold leading-none">{cell.day}</span>
+                        <span className="text-[10px] font-bold leading-none tabular-nums">{cell.day}</span>
                         {cell.amount > 0 && (
-                          <span className="text-[8px] font-semibold mt-0.5 leading-none" style={{ opacity: 0.85 }}>
+                          <span className="text-[11px] font-semibold mt-0.5 leading-none tabular-nums" style={{ opacity: 0.85 }}>
                             {cell.amount >= 1000000 ? `${(cell.amount / 1000000).toFixed(1)}jt` : `${(cell.amount / 1000).toFixed(0)}rb`}
                           </span>
                         )}
@@ -607,11 +610,11 @@ export default function StatsTab({
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-3 border-t border-earth-100">
+            <div className="mt-4 pt-3 border-t border-md3-outline-variant">
               <div className="flex items-center gap-2">
-                <span className="text-[9px] font-bold text-earth-500">Sedikit</span>
-                <div className="flex-1 h-2.5 rounded-full" style={{ background: "linear-gradient(90deg, #f6efe5 0%, #e8d5c0 25%, #d4a853 50%, #c47d5a 75%, #8c5a3a 100%)" }} />
-                <span className="text-[9px] font-bold text-earth-500">Banyak</span>
+                <span className="text-[11px] font-bold text-md3-on-surface-variant">Sedikit</span>
+                <div className="flex-1 h-2.5 rounded-full" style={{ background: `linear-gradient(90deg, ${chartTheme.heatmap.empty} 0%, ${chartTheme.heatmap.ramp[0]} 25%, ${chartTheme.heatmap.ramp[1]} 50%, ${chartTheme.heatmap.ramp[2]} 75%, ${chartTheme.heatmap.ramp[3]} 100%)` }} />
+                <span className="text-[11px] font-bold text-md3-on-surface-variant">Banyak</span>
               </div>
             </div>
           </div>
@@ -623,8 +626,8 @@ export default function StatsTab({
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3 px-1">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-earth-500">Laporan & Ringkasan</p>
-                <p className="text-sm font-semibold text-earth-700">Unduh ringkasan dan telusuri transaksi per bulan.</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Laporan & Ringkasan</p>
+                <p className="text-sm font-semibold text-md3-on-surface-variant">Unduh ringkasan dan telusuri transaksi per bulan.</p>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3">
@@ -649,16 +652,18 @@ export default function StatsTab({
 }
 
 function heatmapColor(amount) {
-  if (!amount || amount === 0) return "#f6efe5"
-  if (amount <= 100000) return "#e8d5c0"
-  if (amount <= 250000) return "#d4a853"
-  if (amount <= 500000) return "#c47d5a"
-  return "#8c5a3a"
+  const { empty, thresholds, ramp } = chartTheme.heatmap
+  if (!amount || amount === 0) return empty
+  if (amount <= thresholds[0]) return ramp[0]
+  if (amount <= thresholds[1]) return ramp[1]
+  if (amount <= thresholds[2]) return ramp[2]
+  return ramp[3]
 }
 
 function heatmapTextColor(amount) {
-  if (!amount || amount <= 250000) return THEME.textPrimary
-  return "#fff"
+  const { thresholds, textDark, textLight } = chartTheme.heatmap
+  if (!amount || amount <= thresholds[2]) return textDark
+  return textLight
 }
 
 function isTodayCell(day, calMonth, calYear) {

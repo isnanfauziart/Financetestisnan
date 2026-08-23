@@ -196,11 +196,11 @@ export default function CategoryManager({ categories, onSaved, onClose }) {
   return (
     <Sheet open={true} onClose={onClose} title="Kelola Kategori" subtitle="Kategori pribadi" size="lg" maxHeight="90vh" closeOnBackdrop={!saving}>
       <div className="space-y-4">
-        <p className="text-xs leading-relaxed text-earth-500">
+        <p className="text-xs leading-relaxed text-md3-on-surface-variant">
           Tambahkan kategori yang sesuai dengan kebiasaanmu. Kategori yang diarsipkan tetap aman di riwayat transaksi.
         </p>
 
-        <div className="grid grid-cols-3 gap-1 rounded-2xl bg-earth-50 p-1" role="tablist" aria-label="Jenis kategori">
+        <div className="grid grid-cols-3 gap-1 rounded-2xl bg-md3-surface p-1" role="tablist" aria-label="Jenis kategori">
           {TYPE_OPTIONS.map(type => (
             <button
               key={type.key}
@@ -208,7 +208,7 @@ export default function CategoryManager({ categories, onSaved, onClose }) {
               role="tab"
               aria-selected={activeType === type.key}
               onClick={() => { setActiveType(type.key); setShowForm(false); setError("") }}
-              className={`rounded-xl px-2 py-2 text-xs font-bold transition-colors ${activeType === type.key ? "bg-white text-violet-700 shadow-warm" : "text-earth-500"}`}
+              className={`rounded-xl px-2 py-2 text-xs font-bold transition-colors ${activeType === type.key ? "bg-md3-surface-container-lowest text-violet-700 shadow-warm" : "text-md3-on-surface-variant"}`}
             >
               {type.label}
             </button>
@@ -217,16 +217,16 @@ export default function CategoryManager({ categories, onSaved, onClose }) {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-earth-500">{currentLabel} aktif</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-md3-on-surface-variant">{currentLabel} aktif</h4>
             <button type="button" onClick={() => { setShowForm(value => !value); setError("") }} className="rounded-xl bg-violet-100 px-3 py-2 text-xs font-bold text-violet-700">
               {showForm ? "Batal" : "+ Tambah kategori"}
             </button>
           </div>
 
           {activeItems.map(item => (
-            <div key={item.name} className="flex items-center gap-3 rounded-2xl border border-earth-100 bg-white px-3 py-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-earth-50 text-earth-600"><CategoryIcon name={item.icon} /></span>
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-earth-800">{item.name}</span>
+            <div key={item.name} className="flex items-center gap-3 rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest px-3 py-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-md3-surface text-md3-on-surface-variant"><CategoryIcon name={item.icon} /></span>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-md3-on-surface">{item.name}</span>
               {isProtected(activeType, item) ? (
                 <span className="text-[10px] font-bold text-earth-400">Otomatis</span>
               ) : (
@@ -239,19 +239,19 @@ export default function CategoryManager({ categories, onSaved, onClose }) {
         {showForm && (
           <form onSubmit={addCategory} className="space-y-3 rounded-2xl border border-violet-100 bg-violet-50/60 p-3">
             <div>
-              <label htmlFor="category-name" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-earth-500">Nama kategori</label>
-              <input id="category-name" value={name} onChange={event => setName(event.target.value)} maxLength={48} autoFocus className="w-full rounded-xl border border-earth-100 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200" placeholder="Contoh: Kopi" />
+              <label htmlFor="category-name" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Nama kategori</label>
+              <input id="category-name" value={name} onChange={event => setName(event.target.value)} maxLength={48} autoFocus className="field-outlined w-full px-3 py-2.5 text-sm font-semibold" placeholder="Contoh: Kopi" />
             </div>
             <div>
-              <label htmlFor="category-icon" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-earth-500">Icon</label>
-              <select id="category-icon" value={icon} onChange={event => setIcon(event.target.value)} className="w-full rounded-xl border border-earth-100 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200">
+              <label htmlFor="category-icon" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Icon</label>
+              <select id="category-icon" value={icon} onChange={event => setIcon(event.target.value)} className="field-outlined w-full px-3 py-2.5 text-sm font-semibold">
                 {ICON_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
               </select>
             </div>
             {activeType === "savings" && (
               <div>
-                <label htmlFor="category-kind" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-earth-500">Jenis dana</label>
-                <select id="category-kind" value={savingsKind} onChange={event => setSavingsKind(event.target.value)} className="w-full rounded-xl border border-earth-100 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200">
+                <label htmlFor="category-kind" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Jenis dana</label>
+                <select id="category-kind" value={savingsKind} onChange={event => setSavingsKind(event.target.value)} className="field-outlined w-full px-3 py-2.5 text-sm font-semibold">
                   <option value="liquid">Dana likuid</option>
                   <option value="investment">Investasi</option>
                 </select>
@@ -262,11 +262,11 @@ export default function CategoryManager({ categories, onSaved, onClose }) {
         )}
 
         {recommendations.length > 0 && (
-          <div className="space-y-2 border-t border-earth-100 pt-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-earth-500">Rekomendasi</h4>
+          <div className="space-y-2 border-t border-md3-outline-variant pt-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-md3-on-surface-variant">Rekomendasi</h4>
             <div className="flex flex-wrap gap-2">
               {recommendations.map(item => (
-                <button key={item.name} type="button" disabled={saving} onClick={() => addRecommendation(item)} className="inline-flex items-center gap-1.5 rounded-full border border-earth-100 bg-white px-3 py-2 text-xs font-semibold text-earth-700 hover:border-violet-200 disabled:opacity-50">
+                <button key={item.name} type="button" disabled={saving} onClick={() => addRecommendation(item)} className="inline-flex items-center gap-1.5 rounded-full border border-md3-outline-variant bg-md3-surface-container-lowest px-3 py-2 text-xs font-semibold text-md3-on-surface-variant hover:border-violet-200 disabled:opacity-50">
                   <CategoryIcon name={item.icon} size={13} /> + {item.name}
                 </button>
               ))}
@@ -275,12 +275,12 @@ export default function CategoryManager({ categories, onSaved, onClose }) {
         )}
 
         {archivedItems.length > 0 && (
-          <div className="space-y-2 border-t border-earth-100 pt-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-earth-500">Diarsipkan</h4>
+          <div className="space-y-2 border-t border-md3-outline-variant pt-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-md3-on-surface-variant">Diarsipkan</h4>
             {archivedItems.map(item => (
-              <div key={item.name} className="flex items-center gap-3 rounded-2xl bg-earth-50 px-3 py-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-earth-400"><CategoryIcon name={item.icon} size={14} /></span>
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-earth-500">{item.name}</span>
+              <div key={item.name} className="flex items-center gap-3 rounded-2xl bg-md3-surface px-3 py-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-md3-surface-container-lowest text-earth-400"><CategoryIcon name={item.icon} size={14} /></span>
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-md3-on-surface-variant">{item.name}</span>
                 <button type="button" disabled={saving} onClick={() => setActive(item, true)} className="text-[10px] font-bold text-violet-700 disabled:opacity-50">Pulihkan</button>
               </div>
             ))}

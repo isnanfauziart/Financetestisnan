@@ -4,11 +4,11 @@ import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, SAVINGS_CATEGORIES, BANK_
 import { formatInputRupiah } from "./helpers"
 import SelectField from "./SelectField"
 import Sheet from "./Sheet"
+import SpecialExpenseField from "./SpecialExpenseField"
 import EventTagPicker from "@/components/EventTagPicker"
 import { useSettings } from "@/lib/useSharedData"
 
 const SHEET_FOR_TYPE = { income: "Pemasukan", expense: "Pengeluaran", savings: "Tabungan" }
-const SPECIAL_HELPER_COPY = "Tetap masuk total dan saldo, tetapi tidak memengaruhi tren rutinitas."
 
 function initialExpenseClass(expenseClass) {
   return String(expenseClass || "").toLowerCase() === "special" ? "Spesial" : "Rutin"
@@ -78,48 +78,33 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="edit-amount" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Amount</label>
+            <label htmlFor="edit-amount" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Amount</label>
             <input id="edit-amount" type="text" inputMode="numeric" value={rawAmount} onChange={e => setRawAmount(formatInputRupiah(e.target.value))}
-              className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200" />
+              className="field-outlined w-full px-4 py-3 text-sm font-semibold" />
           </div>
           <div>
-            <label htmlFor="edit-date" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Date</label>
+            <label htmlFor="edit-date" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Date</label>
             <input id="edit-date" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)}
-              className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none" />
+              className="field-outlined w-full px-4 py-3 text-sm font-semibold" />
           </div>
         </div>
         <SelectField label="Category" value={kategori} onChange={setKategori} options={catOptions} placeholder="Select Category" />
         <EventTagPicker value={eventId} onChange={setEventId} />
         <SelectField label="Bank Account" value={akunBank} onChange={setAkunBank} options={BANK_ACCOUNTS} placeholder="Select Bank" />
         {type === "expense" && (
-          <div className="rounded-2xl border border-earth-100 bg-earth-50/70 px-3.5 py-3">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={sifat === "Spesial"}
-                onChange={e => setSifat(e.target.checked ? "Spesial" : "Rutin")}
-                aria-label="Pengeluaran Spesial"
-                aria-describedby="edit-special-helper"
-                className="mt-0.5 h-4 w-4 rounded border-earth-300 text-violet-600 focus:ring-violet-300"
-              />
-              <span className="min-w-0">
-                <span className="block text-xs font-bold text-earth-800">Pengeluaran Spesial</span>
-                <span id="edit-special-helper" className="mt-0.5 block text-[11px] leading-relaxed text-earth-500">
-                  {SPECIAL_HELPER_COPY}
-                </span>
-              </span>
-            </label>
-          </div>
+          <SpecialExpenseField
+            checked={sifat === "Spesial"}
+            onChange={checked => setSifat(checked ? "Spesial" : "Rutin")}
+            helperId="edit-special-helper"
+          />
         )}
         <div>
-          <label htmlFor="edit-note" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">Note</label>
+          <label htmlFor="edit-note" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Note</label>
           <input id="edit-note" type="text" value={keterangan} onChange={e => setKeterangan(e.target.value)}
-            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-medium outline-none" />
+            className="field-outlined w-full px-4 py-3 text-sm font-medium" />
         </div>
         {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}
-        <button type="submit" disabled={submitting}
-          className="w-full py-4 mt-2 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
-          style={{ background: submitting ? "#ccc" : "linear-gradient(135deg, #4a3d33, #7c5fcf)" }}>
+        <button type="submit" disabled={submitting} className="btn-filled w-full mt-2">
           {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Save Changes"}
         </button>
       </form>

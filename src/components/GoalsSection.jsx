@@ -81,10 +81,10 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       <div className="mt-6 animate-bento-in">
         <div className="flex items-center gap-1.5 mb-3 px-1">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Target</h3>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Target</h3>
         </div>
-        <div className="bento-tile bg-white border border-earth-100 p-6 shadow-warm text-center">
-          <div className="w-8 h-8 mx-auto border-2 border-earth-200 border-t-transparent rounded-full animate-spin" />
+        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-6 shadow-warm text-center">
+          <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     )
@@ -95,7 +95,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       <div className="mt-6 animate-bento-in">
         <div className="flex items-center gap-1.5 mb-3 px-1">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Target</h3>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Target</h3>
         </div>
         <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
           <p className="text-sm font-semibold text-rose-800">Gagal memuat target</p>
@@ -117,9 +117,9 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-1.5">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-earth-800">Target</h3>
+          <h3 className="text-sm font-bold font-display text-md3-on-surface">Target</h3>
           {activeGoals.length > 0 && (
-            <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">
               {activeGoals.length} aktif
             </span>
           )}
@@ -197,7 +197,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
             <div className="mt-4">
               <button
                 onClick={() => setCompletedExpanded(!completedExpanded)}
-                className="min-h-11 min-w-11 flex items-center gap-1.5 text-[11px] font-bold text-earth-500 hover:text-earth-700 transition-colors mb-2"
+                className="min-h-11 min-w-11 flex items-center gap-1.5 text-[11px] font-bold text-md3-on-surface-variant hover:text-md3-on-surface-variant transition-colors mb-2"
               >
                 {completedExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 Selesai ({completedGoals.length})
@@ -224,12 +224,12 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(42,32,24,0.5)", backdropFilter: "blur(8px)" }} onClick={() => setConfirmDelete(null)}>
           <div className="glass-strong rounded-t-[32px] sm:rounded-[32px] p-6 shadow-pop-lg w-full max-w-sm animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-display font-bold text-earth-800 mb-1">Hapus target ini?</h3>
-            <p className="text-sm text-earth-600 mb-5">
+            <h3 className="text-base font-display font-bold text-md3-on-surface mb-1">Hapus target ini?</h3>
+            <p className="text-sm text-md3-on-surface-variant mb-5">
               <strong>{confirmDelete.nama}</strong> akan dihapus. Transaksi Tabungan terkait tidak akan terhapus, hanya target-nya saja.
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setConfirmDelete(null)} className="min-h-11 min-w-11 py-3 rounded-2xl font-bold text-earth-700 bg-earth-50 active:scale-95 transition-transform">
+              <button onClick={() => setConfirmDelete(null)} className="min-h-11 min-w-11 py-3 rounded-2xl font-bold text-md3-on-surface-variant bg-md3-surface active:scale-95 transition-transform">
                 Batal
               </button>
               <button

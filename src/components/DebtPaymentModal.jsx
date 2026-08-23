@@ -78,7 +78,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
       header={
         <div className="flex items-center gap-2">
           {isUtang ? <ArrowUpRight size={18} color={accentColor} /> : <ArrowDownRight size={18} color={accentColor} />}
-          <h3 className="text-lg font-display font-bold text-earth-800">
+          <h3 className="text-lg font-display font-bold text-md3-on-surface">
             {isUtang ? `Bayar Utang ke ${debt.namaOrang}` : `Terima pembayaran dari ${debt.namaOrang}`}
           </h3>
         </div>
@@ -87,7 +87,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
       {/* Current debt info */}
       <div className="rounded-2xl p-4 mb-4" style={{ background: accentColor + "14" }}>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold text-earth-500 uppercase tracking-wider">Sisa {isUtang ? "Utang" : "Piutang"}</span>
+          <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Sisa {isUtang ? "Utang" : "Piutang"}</span>
           <span className="text-lg font-bold" style={{ color: accentColor }}>{formatRpFull(debt.sisaSaldo)}</span>
         </div>
         <div className="h-2 rounded-full overflow-hidden" style={{ background: THEME.surfaceWarm }}>
@@ -99,7 +99,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
             }}
           />
         </div>
-        <p className="text-[10px] text-earth-500 mt-1">
+        <p className="text-[10px] text-md3-on-surface-variant mt-1">
           {formatRpFull(debt.jumlah - debt.sisaSaldo)} dari {formatRpFull(debt.jumlah)} {isUtang ? "terbayar" : "diterima"}
         </p>
       </div>
@@ -107,7 +107,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
       {/* Payment input */}
       <div className="space-y-3">
         <div>
-          <label htmlFor="pay-amount" className="text-[10px] font-bold text-earth-500 mb-1.5 block uppercase tracking-wider">
+          <label htmlFor="pay-amount" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">
             {isUtang ? "Jumlah Pembayaran (Rp)" : "Jumlah Diterima (Rp)"}
           </label>
           <input
@@ -117,10 +117,10 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
             placeholder="500000"
             value={rawAmount}
             onChange={e => setRawAmount(formatInputRupiah(e.target.value))}
-            className="w-full px-4 py-3 bg-earth-50 border border-earth-100 rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
+            className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200"
           />
           {amount > 0 && amount < debt.sisaSaldo && (
-            <p className="text-[10px] text-earth-500 mt-1 px-1">
+            <p className="text-[10px] text-md3-on-surface-variant mt-1 px-1">
               {isUtang ? "Sisa setelah bayar" : "Sisa yang belum diterima"}: <strong>{formatRpFull(debt.sisaSaldo - amount)}</strong>
             </p>
           )}

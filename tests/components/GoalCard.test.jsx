@@ -35,22 +35,26 @@ describe("GoalCard", () => {
     expect(screen.getByLabelText("Contribute to Beli Laptop")).toBeInTheDocument()
   })
 
-  it("edit and delete buttons are always present in DOM (touch device fix)", () => {
+  it("exposes edit/delete via a ⋮ menu whose trigger is always in the DOM", () => {
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={() => {}} onEdit={() => {}} onDelete={() => {}} />)
-    expect(screen.getByLabelText("Edit Beli Laptop goal")).toHaveClass("min-h-11", "min-w-11")
-    expect(screen.getByLabelText("Delete Beli Laptop goal")).toHaveClass("min-h-11", "min-w-11")
+    expect(screen.getByLabelText("Aksi target Beli Laptop")).toHaveAttribute("aria-haspopup", "menu")
+    fireEvent.click(screen.getByLabelText("Aksi target Beli Laptop"))
+    expect(screen.getByLabelText("Edit Beli Laptop goal")).toHaveClass("min-h-11")
+    expect(screen.getByLabelText("Delete Beli Laptop goal")).toHaveClass("min-h-11")
   })
 
-  it("calls onEdit when edit button clicked", () => {
+  it("calls onEdit when edit menu item clicked", () => {
     const onEdit = vi.fn()
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={() => {}} onEdit={onEdit} onDelete={() => {}} />)
+    fireEvent.click(screen.getByLabelText("Aksi target Beli Laptop"))
     fireEvent.click(screen.getByLabelText("Edit Beli Laptop goal"))
     expect(onEdit).toHaveBeenCalledTimes(1)
   })
 
-  it("calls onDelete when delete button clicked", () => {
+  it("calls onDelete when delete menu item clicked", () => {
     const onDelete = vi.fn()
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={() => {}} onEdit={() => {}} onDelete={onDelete} />)
+    fireEvent.click(screen.getByLabelText("Aksi target Beli Laptop"))
     fireEvent.click(screen.getByLabelText("Delete Beli Laptop goal"))
     expect(onDelete).toHaveBeenCalledTimes(1)
   })

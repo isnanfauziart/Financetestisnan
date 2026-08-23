@@ -112,8 +112,8 @@ export default function YearInReviewButton({ transactions, monthlyData, routineM
       aria-label={canReport ? `Unduh Year-in-Review ${currentYear}` : `Butuh minimal 10 transaksi di ${currentYear}`}
       className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl border transition-all group ${
         canReport
-          ? "glass-warm border-earth-200 shadow-warm hover:shadow-pop hover:border-violet-200 active:scale-[0.98]"
-          : "bg-earth-50 border-earth-100 opacity-60 cursor-not-allowed"
+          ? "glass-warm border-md3-outline-variant shadow-warm hover:shadow-pop hover:border-violet-200 active:scale-[0.98]"
+          : "bg-md3-surface border-md3-outline-variant opacity-60 cursor-not-allowed"
       }`}
     >
       <div
@@ -127,8 +127,8 @@ export default function YearInReviewButton({ transactions, monthlyData, routineM
         )}
       </div>
       <div className="flex-1 min-w-0 text-left">
-        <p className="text-[9px] font-bold uppercase tracking-wider text-earth-500">Year-in-Review</p>
-        <p className={`text-sm font-semibold ${canReport ? "text-earth-800" : "text-earth-400"}`}>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Year-in-Review</p>
+        <p className={`text-sm font-semibold ${canReport ? "text-md3-on-surface" : "text-earth-400"}`}>
           {generating
             ? "Membuat laporan..."
             : canReport

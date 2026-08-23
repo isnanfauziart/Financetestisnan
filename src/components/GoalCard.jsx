@@ -1,7 +1,8 @@
 "use client"
-import { Pencil, Trash2, Plus, Calendar, Check } from "lucide-react"
+import { Plus, Calendar, Check } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
+import RowActionsMenu from "@/app/dashboard/_components/RowActionsMenu"
 import GoalProgressRing from "./GoalProgressRing"
 
 function deadlineLabel(deadline) {
@@ -38,43 +39,42 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
   const deadline = deadlineLabel(goal.deadline)
 
   return (
-    <div className={`bento-tile bg-white border border-earth-100 p-4 shadow-warm transition-[box-shadow,opacity] hover:shadow-pop group ${settled ? "opacity-70" : ""}`}>
+    <div className={`bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm transition-[box-shadow,opacity] hover:shadow-pop group ${settled ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-1">
-            <h4 className="text-sm font-bold text-earth-800 truncate">{goal.nama}</h4>
+            <h4 className="text-sm font-bold text-md3-on-surface truncate">{goal.nama}</h4>
             {settled && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: THEME.incomeBg, color: THEME.income }}>
+              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: THEME.incomeBg, color: THEME.income }}>
                  ✓ Selesai
               </span>
             )}
             {!settled && achieved && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "#d4a85322", color: "#d4a853" }}>
+              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "#d4a85322", color: "#d4a853" }}>
                 ✓ Selesai
               </span>
             )}
           </div>
-          <p className="text-[10px] text-earth-500">{goal.kategori}</p>
+          <p className="text-[10px] text-md3-on-surface-variant">{goal.kategori}</p>
         </div>
-        <div className="flex gap-0.5 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity flex-shrink-0">
-          <button onClick={onEdit} aria-label={`Edit ${goal.nama} goal`} className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-sage-100 flex items-center justify-center text-earth-500 hover:text-sage-600 transition-colors">
-            <Pencil size={11} aria-hidden="true" />
-          </button>
-          <button onClick={onDelete} aria-label={`Delete ${goal.nama} goal`} className="min-h-11 min-w-11 rounded-xl bg-earth-50 hover:bg-rose-100 flex items-center justify-center text-earth-500 hover:text-rose-500 transition-colors">
-            <Trash2 size={11} aria-hidden="true" />
-          </button>
-        </div>
+        <RowActionsMenu
+          onEdit={onEdit}
+          onDelete={onDelete}
+          menuLabel={`Aksi target ${goal.nama}`}
+          editLabel={`Edit ${goal.nama} goal`}
+          deleteLabel={`Delete ${goal.nama} goal`}
+        />
       </div>
 
       <div className="flex items-center gap-3">
         <GoalProgressRing progress={settled ? 100 : pct} color={color} completed={achieved || settled} />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] text-earth-500">
+          <p className="text-[11px] text-md3-on-surface-variant tabular-nums">
             <span className="font-bold" style={{ color }}>{formatRp(progress)}</span>
-            <span className="text-earth-400"> / {formatRp(goal.target)}</span>
+            <span className="text-md3-on-surface-variant"> / {formatRp(goal.target)}</span>
           </p>
           {deadline && (
-            <p className="text-[10px] text-earth-500 flex items-center gap-1 mt-1">
+            <p className="text-[10px] text-md3-on-surface-variant flex items-center gap-1 mt-1">
               <Calendar size={9} aria-hidden="true" /> sampai {deadline}
             </p>
           )}

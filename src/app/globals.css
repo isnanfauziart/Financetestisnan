@@ -32,17 +32,144 @@
   --motion-education: 400ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* ===== MD3 Emphasized Motion =====
+     Keep in sync with src/lib/designTokens.js (md3.motion). */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --duration-emphasized: 500ms;
+  --duration-enter: 400ms;
+  --duration-exit: 200ms;
+  --duration-standard: 300ms;
+
+  /* ===== MD3 Color Roles =====
+     Seeded from the current violet/earth palette so rendering stays near-identical.
+     Keep in sync with src/lib/designTokens.js (same values as plain hex). */
+  --md-sys-color-primary: #6E59B5;
+  --md-sys-color-on-primary: #FFFFFF;
+  --md-sys-color-primary-container: #D6CDEE;
+  --md-sys-color-on-primary-container: #2C2349;
+  --md-sys-color-secondary: #584494;
+  --md-sys-color-on-secondary: #FFFFFF;
+  --md-sys-color-secondary-container: #EAE4F7;
+  --md-sys-color-on-secondary-container: #392D60;
+  --md-sys-color-tertiary: #8A5A00;
+  --md-sys-color-on-tertiary: #FFFFFF;
+  --md-sys-color-tertiary-container: #FFF1CC;
+  --md-sys-color-on-tertiary-container: #6B4400;
+  --md-sys-color-error: #B33A3A;
+  --md-sys-color-on-error: #FFFFFF;
+  --md-sys-color-error-container: #FCEAEA;
+  --md-sys-color-on-error-container: #902D2D;
+  --md-sys-color-surface: #FBF8F1;
+  --md-sys-color-surface-container-lowest: #FFFFFF;
+  --md-sys-color-surface-container-low: #FDFBF6;
+  --md-sys-color-surface-container: #F7F1E8;
+  --md-sys-color-surface-container-high: #F3ECE2;
+  --md-sys-color-surface-container-highest: #EFE7DB;
+  --md-sys-color-on-surface: #29231E;
+  --md-sys-color-on-surface-variant: #6B625A;
+  --md-sys-color-outline: #C8BEB1;
+  --md-sys-color-outline-variant: #E2D9CC;
+  --md-sys-color-inverse-surface: #29231E;
+  --md-sys-color-inverse-on-surface: #FBF8F1;
+  --md-sys-color-inverse-primary: #D6CDEE;
 }
 
+/* ===== Dark Theme (MD3 tonal) =====
+   Full remap of every --md-sys-color-* role from :root plus the legacy semantic
+   vars Tailwind utilities read. Surfaces: near-black warm earth tones; primary:
+   light violet (#D6CDEE family). Text roles hold >=4.5:1 on all container levels.
+   Keep in sync with src/lib/designTokens.js `themes.dark`. */
 [data-theme="dark"] {
-  --bg: #18211D;
-  --surface: #21312A;
-  --surface-warm: #2A4035;
-  --border: #3B5146;
-  --text-primary: #F7F3EB;
-  --text-secondary: #D6DED8;
-  --text-tertiary: #B6C5BC;
-  --smart-bg: #352D4D;
+  /* Legacy semantic vars */
+  --bg: #151210;
+  --surface: #1D1917;
+  --surface-warm: #2C2724;
+  --border: #4B433C;
+  --text-primary: #F0EAE2;
+  --text-secondary: #CBC1B6;
+  --text-tertiary: #A89E93;
+  --income: #8CC5AB;
+  --expense: #E09684;
+  --savings: #86C0B5;
+  --warning: #EDBE62;
+  --danger: #F09A9A;
+  --smart-bg: #37304F;
+
+  /* MD3 color roles */
+  --md-sys-color-primary: #D6CDEE;
+  --md-sys-color-on-primary: #352963;
+  --md-sys-color-primary-container: #4C3D85;
+  --md-sys-color-on-primary-container: #EBE3FF;
+  --md-sys-color-secondary: #CCC2F0;
+  --md-sys-color-on-secondary: #332963;
+  --md-sys-color-secondary-container: #463A78;
+  --md-sys-color-on-secondary-container: #E7DEFF;
+  --md-sys-color-tertiary: #EFBF63;
+  --md-sys-color-on-tertiary: #442C00;
+  --md-sys-color-tertiary-container: #624000;
+  --md-sys-color-on-tertiary-container: #FFDF9E;
+  --md-sys-color-error: #FFB4AB;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000A;
+  --md-sys-color-on-error-container: #FFDAD6;
+  --md-sys-color-surface: #151210;
+  --md-sys-color-surface-container-lowest: #100E0C;
+  --md-sys-color-surface-container-low: #1D1917;
+  --md-sys-color-surface-container: #211D1A;
+  --md-sys-color-surface-container-high: #2C2724;
+  --md-sys-color-surface-container-highest: #37312E;
+  --md-sys-color-on-surface: #F0EAE2;
+  --md-sys-color-on-surface-variant: #CBC1B6;
+  --md-sys-color-outline: #96897C;
+  --md-sys-color-outline-variant: #4B433C;
+  --md-sys-color-inverse-surface: #F0EAE2;
+  --md-sys-color-inverse-on-surface: #362F2B;
+  --md-sys-color-inverse-primary: #584494;
+}
+
+/* Dark variants for translucent component classes (light styles untouched). */
+[data-theme="dark"] .glass {
+  background: rgba(29, 25, 23, 0.65);
+  border-color: rgba(75, 67, 60, 0.7);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark"] .glass-strong {
+  background: rgba(44, 39, 36, 0.82);
+  border-color: rgba(75, 67, 60, 0.8);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark"] .glass-warm {
+  background: rgba(44, 39, 36, 0.78);
+  border-color: rgba(75, 67, 60, 0.7);
+}
+[data-theme="dark"] .glass-nav {
+  background: rgba(21, 18, 16, 0.88);
+  border-color: rgba(75, 67, 60, 0.8);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+[data-theme="dark"] .chip-default {
+  background: rgba(44, 39, 36, 0.7);
+  border-color: rgba(75, 67, 60, 0.9);
+  color: var(--md-sys-color-on-surface-variant);
+}
+[data-theme="dark"] .chip-default:hover {
+  background: rgba(55, 49, 46, 0.95);
+  border-color: var(--md-sys-color-primary);
+}
+[data-theme="dark"] .chip-active {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+[data-theme="dark"] .insight-card {
+  border-color: rgba(75, 67, 60, 0.7);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+[data-theme="dark"] ::selection {
+  background: #4C3D85;
+  color: #F0EAE2;
 }
 
 * {
@@ -90,8 +217,14 @@ body {
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(28px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Sheet exit: slides down + fades. Wire when a sheet stays mounted during close. */
+@keyframes slideDownExit {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(100%); opacity: 0; }
 }
 
 @keyframes countIn {
@@ -181,7 +314,11 @@ body {
 }
 
 .animate-slide-up {
-  animation: slideUp var(--motion-sheet) var(--ease-drawer) both;
+  animation: slideUp var(--duration-enter) var(--ease-emphasized-decelerate) both;
+}
+
+.animate-sheet-exit {
+  animation: slideDownExit var(--duration-exit) var(--ease-emphasized-accelerate) both;
 }
 
 .animate-count-in {
@@ -356,16 +493,64 @@ body {
   opacity: 0.85;
 }
 
+/* ===== Filled Button (MD3 primary action) ===== */
+.btn-filled {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--primary);
+  box-shadow: 0 12px 40px rgba(47, 107, 87, 0.18);
+  transition: transform var(--motion-control) var(--ease-out), box-shadow var(--motion-control) var(--ease-out), opacity var(--motion-control) var(--ease-out);
+  cursor: pointer;
+}
+.btn-filled:hover {
+  box-shadow: 0 16px 44px rgba(47, 107, 87, 0.22);
+}
+.btn-filled:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn-filled:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ===== Outlined Text Field (MD3) =====
+   Transparent bg, 1px outline border, small (8dp) corners.
+   Focus = 2px primary ring; replaces the violet-ring convention. */
+.field-outlined {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: 8px;
+  color: var(--md-sys-color-on-surface);
+  outline: none;
+  transition: border-color var(--duration-standard) var(--ease-standard, ease-out), box-shadow var(--duration-standard) var(--ease-standard, ease-out);
+}
+.field-outlined:focus,
+.field-outlined:focus-within {
+  border-color: var(--md-sys-color-primary);
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+}
+
 /* ===== Filter Chip ===== */
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  min-height: 32px;
+  padding: 4px 14px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  transition: background-color var(--motion-control) var(--ease-out), border-color var(--motion-control) var(--ease-out), color var(--motion-control) var(--ease-out), box-shadow var(--motion-control) var(--ease-out);
+  transition: background-color var(--motion-control) var(--ease-out), border-color var(--motion-control) var(--ease-out), color var(--motion-control) var(--ease-out);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -379,10 +564,9 @@ body {
   border-color: var(--primary);
 }
 .chip-active {
-  background: var(--primary-deep);
-  color: white;
-  border: 1px solid var(--primary-deep);
-  box-shadow: 0 4px 12px rgba(37, 83, 68, 0.25);
+  background: #eae4f7; /* secondary-container */
+  color: #392d60; /* on-secondary-container */
+  border: 1px solid transparent;
 }
 
 /* ===== Insight Card ===== */
@@ -462,5 +646,22 @@ body {
   .pull-to-refresh-indicator,
   .pull-to-refresh-indicator * {
     transition: none !important;
+  }
+}
+
+/* ===== High Contrast (E4) =====
+   Strengthen key text/border roles when the OS requests more contrast. */
+@media (prefers-contrast: more) {
+  :root {
+    --md-sys-color-on-surface: #000000;
+    --md-sys-color-on-surface-variant: #443C35;
+    --md-sys-color-outline: #857B71;
+    --md-sys-color-outline-variant: #B0A69A;
+  }
+  [data-theme="dark"] {
+    --md-sys-color-on-surface: #FFFFFF;
+    --md-sys-color-on-surface-variant: #DAD2CB;
+    --md-sys-color-outline: #A99F94;
+    --md-sys-color-outline-variant: #8A8178;
   }
 }
