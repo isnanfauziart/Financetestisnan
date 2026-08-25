@@ -133,6 +133,14 @@ export default function StatsTab({
     ...row,
     label: selectedYear === "Semua Tahun" ? `${row.month} ${row.year}` : row.month,
   }))
+  const cashFlowYAxisMax = cashFlowChartData.reduce((max, row) => Math.max(
+    max,
+    Number(row.pemasukan) || 0,
+    Number(row.pengeluaran) || 0,
+    Number(row.rataRataPemasukan) || 0,
+    Number(row.rataRataPengeluaran) || 0,
+  ), 0)
+  const cashFlowYAxisDomain = [0, Math.max(1, cashFlowYAxisMax)]
   const latestCashFlowRow = cashFlowChartData[cashFlowChartData.length - 1]
   const cashFlowAverageWindow = Math.min(3, cashFlowChartData.length)
   const cashFlowChartSummary = cashFlowChartData.length
@@ -292,19 +300,36 @@ export default function StatsTab({
                       </span>
                     </div>
                     <p id="stats-cash-flow-summary" className="sr-only">{cashFlowChartSummary}</p>
-                    <div className="mt-2 overflow-x-auto" role="img" aria-describedby="stats-cash-flow-summary">
-                      <div style={{ minWidth: Math.max(520, cashFlowChartData.length * 84) }}>
+                    <div className="mt-2 flex min-w-0" role="img" aria-describedby="stats-cash-flow-summary">
+                      <div data-testid="stats-cash-flow-axis" className="w-[62px] flex-shrink-0" aria-hidden="true">
                         <ResponsiveContainer width="100%" height={280}>
-                          <ComposedChart data={cashFlowChartData} margin={{ top: 28, right: 16, left: 0, bottom: 8 }} barCategoryGap="22%" barGap={4}>
-                            <XAxis dataKey="label" interval={0} tick={chartTheme.axisTick} tickMargin={8} axisLine={false} tickLine={false} />
-                            <YAxis width={62} tickFormatter={value => formatRp(value)} tick={chartTheme.axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={0} animationDuration={220} />
-                            <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={40} animationDuration={220} />
-                            <Line type="monotone" dataKey="rataRataPemasukan" name="Rata-rata pemasukan" stroke={THEME.income} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} connectNulls animationBegin={80} animationDuration={260} />
-                            <Line type="monotone" dataKey="rataRataPengeluaran" name="Rata-rata pengeluaran" stroke={THEME.expense} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} connectNulls animationBegin={120} animationDuration={260} />
+                          <ComposedChart data={cashFlowChartData} margin={{ top: 28, right: 0, left: 0, bottom: 8 }}>
+                            <YAxis
+                              width={62}
+                              domain={cashFlowYAxisDomain}
+                              tickFormatter={value => formatRp(value)}
+                              tick={chartTheme.axisTick}
+                              axisLine={false}
+                              tickLine={false}
+                              allowDecimals={false}
+                            />
                           </ComposedChart>
                         </ResponsiveContainer>
+                      </div>
+                      <div data-testid="stats-cash-flow-scroll" className="min-w-0 flex-1 overflow-x-auto">
+                        <div data-testid="stats-cash-flow-plot" style={{ minWidth: Math.max(520, cashFlowChartData.length * 84) }}>
+                          <ResponsiveContainer width="100%" height={280}>
+                            <ComposedChart data={cashFlowChartData} margin={{ top: 28, right: 16, left: 0, bottom: 8 }} barCategoryGap="22%" barGap={4}>
+                              <XAxis dataKey="label" interval={0} tick={chartTheme.axisTick} tickMargin={8} axisLine={false} tickLine={false} />
+                              <YAxis width={0} domain={cashFlowYAxisDomain} hide />
+                              <Tooltip content={<CustomTooltip />} />
+                              <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={0} animationDuration={220} />
+                              <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={40} animationDuration={220} />
+                              <Line type="monotone" dataKey="rataRataPemasukan" name="Rata-rata pemasukan" stroke={THEME.income} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} connectNulls animationBegin={80} animationDuration={260} />
+                              <Line type="monotone" dataKey="rataRataPengeluaran" name="Rata-rata pengeluaran" stroke={THEME.expense} strokeWidth={2.5} dot={false} connectNulls animationBegin={120} animationDuration={260} />
+                            </ComposedChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
                     </div>
                   </>

@@ -436,6 +436,28 @@ describe("StatsTab Ringkasan cash flow chart", () => {
     expect([...container.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick text")].map(node => node.textContent)).toEqual(["Jan", "Feb", "Mar"])
   })
 
+  it("keeps the Y-axis outside the horizontally scrollable monthly plot", () => {
+    render(<StatsTab {...createProps({
+      selectedMonth: "Semua Bulan",
+      isAllMonths: true,
+      cashFlowMonthlyData: [
+        { month: "Jan", year: "2026", pemasukan: 5_000_000, pengeluaran: 2_000_000 },
+        { month: "Feb", year: "2026", pemasukan: 3_000_000, pengeluaran: 4_000_000 },
+      ],
+    })} />)
+
+    const axis = screen.getByTestId("stats-cash-flow-axis")
+    const scrollViewport = screen.getByTestId("stats-cash-flow-scroll")
+    const plot = screen.getByTestId("stats-cash-flow-plot")
+
+    expect(axis.closest('[data-testid="stats-cash-flow-scroll"]')).toBeNull()
+    expect(scrollViewport).toHaveClass("overflow-x-auto")
+    expect(scrollViewport).toContainElement(plot)
+    expect(plot).not.toContainElement(axis)
+    expect(axis.querySelector(".recharts-yAxis")).not.toBeNull()
+    expect(plot.querySelector(".recharts-yAxis")).toBeNull()
+  })
+
   it("shows a cash-flow empty state when all-month filters have no income or expense", () => {
     render(<StatsTab {...createProps({
       selectedMonth: "Semua Bulan",
