@@ -36,6 +36,15 @@ describe("dashboard motion safeguards", () => {
     expect(page).toContain('if (nav.id === "plan") setActivePlanSection("overview")')
   })
 
+  it("expands only the active bottom navigation label", async () => {
+    const page = await source("src/app/dashboard/page.js")
+
+    expect(page).toContain("aria-hidden={!isActive}")
+    expect(page).toContain("flex-[1.6] gap-1.5 bg-md3-primary text-md3-on-primary")
+    expect(page).toContain("flex-1 gap-0 text-md3-on-surface-variant")
+    expect(page).toContain("max-w-0 -translate-x-1 opacity-0")
+  })
+
   it("passes only enabled insights to Home and Statistik", async () => {
     const page = await source("src/app/dashboard/page.js")
 

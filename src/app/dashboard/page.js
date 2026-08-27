@@ -1507,7 +1507,7 @@ export default function Dashboard() {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-4 sm:bottom-5 left-4 sm:left-5 right-4 sm:right-5 z-30 safe-bottom max-w-md mx-auto" role="tablist" aria-label="Main navigation">
-        <div className="glass-nav rounded-[28px] px-3 py-2.5 sm:py-3 flex justify-between items-center">
+        <div className="glass-nav h-16 rounded-[24px] p-2 flex items-center gap-1 overflow-hidden">
           {[
             { id: "home", label: "Beranda", icon: Home, aria: "Tab beranda" },
             { id: "stats", label: "Statistik", icon: Activity, aria: "Tab statistik" },
@@ -1524,28 +1524,28 @@ export default function Dashboard() {
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => {
                   if (hapticsEnabled) haptics.tap()
-                   if (nav.id === "plan") setActivePlanSection("overview")
+                  if (nav.id === "plan") setActivePlanSection("overview")
                   setActiveNav(nav.id)
                 }}
-                  className="flex flex-col items-center gap-0.5 group relative px-3 py-1 rounded-2xl transition-[background-color,color,opacity] duration-200"
-               >
-                   <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-transform duration-200 motion-reduce:transition-none ${isActive ? 'motion-safe:-translate-y-0.5' : ''}`}>
-                   {isActive && (
-                     <span className="absolute inset-x-0 inset-y-1 rounded-full bg-violet-100 animate-scale-in motion-reduce:animate-none" aria-hidden="true" />
-                   )}
-                    <nav.icon className="relative" size={20} color={isActive ? THEME.textPrimary : THEME.textTertiary} strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
+                className={`group relative flex min-w-0 h-12 items-center justify-center rounded-[20px] px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-md3-primary transition-[flex,background-color,color] duration-[var(--motion-control)] [transition-timing-function:var(--ease-emphasized)] ${isActive ? "flex-[1.6] gap-1.5 bg-md3-primary text-md3-on-primary" : "flex-1 gap-0 text-md3-on-surface-variant"}`}
+              >
+                <div className="relative flex h-6 w-6 flex-shrink-0 items-center justify-center">
+                  <nav.icon size={20} strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
                   {nav.id === "plan" && urgentBillCount > 0 && (
                     <span
                       aria-hidden="true"
-                      className="absolute -top-1 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold flex items-center justify-center bg-md3-primary text-md3-on-primary tabular-nums"
+                      className="absolute -right-2 -top-2 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold flex items-center justify-center bg-md3-error text-md3-on-error tabular-nums"
                     >
                       {urgentBillCount > 9 ? "9+" : urgentBillCount}
                     </span>
                   )}
-                 </div>
-                   <span className={`relative text-[11px] font-bold tracking-wide transition-[color,opacity] duration-200 ${isActive ? 'text-md3-on-surface' : 'text-md3-on-surface-variant'}`}>
-                   {nav.label}
-                 </span>
+                </div>
+                <span
+                  aria-hidden={!isActive}
+                  className={`overflow-hidden whitespace-nowrap text-[11px] font-bold leading-none transition-[max-width,opacity,transform] duration-[var(--motion-control)] [transition-timing-function:var(--ease-emphasized)] ${isActive ? "max-w-[5.5rem] translate-x-0 opacity-100" : "max-w-0 -translate-x-1 opacity-0"}`}
+                >
+                  {nav.label}
+                </span>
               </button>
             )
           })}
