@@ -4,6 +4,7 @@ import { formatRp } from "@/app/dashboard/_components/helpers"
 import { getCategoryVisual } from "@/lib/categoryIcons"
 import RowActionsMenu from "@/app/dashboard/_components/RowActionsMenu"
 import BudgetProgressBar from "./BudgetProgressBar"
+import { computeBudgetPace } from "@/lib/budgetPace"
 
 function statusLabel(pct) {
   if (pct >= 100) return { text: "Over", color: THEME.danger }
@@ -12,11 +13,12 @@ function statusLabel(pct) {
   return { text: "Sehat", color: THEME.savings }
 }
 
-export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, categoryMeta }) {
+export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, categoryMeta, now }) {
   const safeLimit = Math.max(budget.limit, 1)
   const pct = (spent / safeLimit) * 100
   const status = statusLabel(pct)
   const { icon: CategoryIcon, tint } = getCategoryVisual(budget.kategori, categoryMeta)
+  const pace = computeBudgetPace({ ...budget, spent, now })
 
   return (
     <div
@@ -66,6 +68,16 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
       <button onClick={onClick} className="w-full min-h-11 text-left" aria-label={`Open ${budget.kategori} drill-down`}>
         <BudgetProgressBar spent={spent} limit={budget.limit} />
         <p className="text-[10px] text-md3-on-surface-variant mt-1.5 text-right font-semibold">{Math.round(pct)}% used</p>
+        {pace?.status === "active" && (
+          <p className="text-[10px] text-md3-on-surface-variant mt-1 text-left">
+            Sisa {formatRp(pace.remaining)} · sekitar {formatRp(pace.dailyRoom)}/hari
+          </p>
+        )}
+        {pace?.status === "over" && (
+          <p className="text-[10px] font-semibold mt-1 text-left" style={{ color: THEME.danger }}>
+            Melebihi {formatRp(pace.exceeded)}
+          </p>
+        )}
       </button>
     </div>
   )

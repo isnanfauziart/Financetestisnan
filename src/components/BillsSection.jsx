@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Plus, Receipt, AlertTriangle, Clock, CheckCircle, Power, Trash2 } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRpFull } from "@/app/dashboard/_components/helpers"
@@ -7,6 +7,9 @@ import { getBillVisual } from "@/lib/categoryIcons"
 import BillSetupModal from "./BillSetupModal"
 import BillPayModal from "./BillPayModal"
 import FeatureEducation from "./FeatureEducation"
+import LockedFeaturePreview from "./LockedFeaturePreview"
+import RecurringExpenseRadar from "./RecurringExpenseRadar"
+import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
 
 const STATUS_ICONS = {
   overdue: AlertTriangle,
@@ -30,7 +33,7 @@ const FREQ_LABELS = {
   yearly: "Tahunan",
 }
 
-export default function BillsSection({ onToast, refreshTrigger, onUsageChange, onBillsChanged, transactionUsage }) {
+export default function BillsSection({ onToast, refreshTrigger, onUsageChange, onBillsChanged, transactionUsage, transactions = [], now, entitlement, settings, onSettingsChanged, sessionKey }) {
   const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -38,25 +41,36 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
   const [payBill, setPayBill] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [showInactive, setShowInactive] = useState(false)
+  const requestVersionRef = useRef(0)
+  const [billsScope, setBillsScope] = useState(sessionKey)
 
   const fetchBills = useCallback(async () => {
+    const requestVersion = ++requestVersionRef.current
     setLoading(true)
     setError(null)
     try {
       const res = await fetch("/api/bills?all=true")
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Gagal memuat tagihan")
-      setBills(data.bills || [])
+      if (requestVersion === requestVersionRef.current) setBills(data.bills || [])
     } catch (err) {
+      if (requestVersion !== requestVersionRef.current) return
       const message = err.message || "Gagal memuat tagihan"
       setError(message)
       onToast?.(message, "error")
     } finally {
-      setLoading(false)
+      if (requestVersion === requestVersionRef.current) setLoading(false)
     }
-  }, [onToast])
+  }, [onToast, sessionKey])
 
-  useEffect(() => { fetchBills() }, [fetchBills])
+  useEffect(() => {
+    setBillsScope(sessionKey)
+    setBills([])
+    setSetupState(null)
+    setPayBill(null)
+    setConfirmDelete(null)
+    fetchBills()
+  }, [fetchBills, sessionKey])
 
   useEffect(() => {
     if (refreshTrigger > 0) fetchBills()
@@ -111,11 +125,40 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
     }
   }
 
-  const activeBills = bills.filter(b => b.aktif)
-  const inactiveBills = bills.filter(b => !b.aktif)
+  const scopedBills = billsScope === sessionKey ? bills : []
+  const activeBills = scopedBills.filter(b => b.aktif)
+  const inactiveBills = scopedBills.filter(b => !b.aktif)
   const totalMonthly = activeBills
     .filter(b => b.tipe === "expense" && b.frekuensi === "monthly")
     .reduce((s, b) => s + b.jumlah, 0)
+
+  const radarAvailable = entitlement && isFeatureEnabled(entitlement, "recurringExpenseRadar")
+  const radarEnabled = entitlement && hasFeature(entitlement, "recurringExpenseRadar")
+  const handleRecurringDismiss = async (fingerprint) => {
+    const response = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ addRecurringExpenseDismissal: fingerprint }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || "Gagal menyembunyikan pola")
+    await onSettingsChanged?.()
+  }
+
+  const handleRecurringAdd = (candidate) => {
+    setSetupState({
+      mode: "create",
+      initialValues: {
+        nama: candidate.description,
+        jumlah: candidate.medianAmount,
+        tipe: "expense",
+        kategoriTransaksi: candidate.category,
+        frekuensi: "monthly",
+        tanggalJatuhTempo: Math.round(candidate.typicalDay),
+        akunBank: candidate.account,
+      },
+    })
+  }
 
   if (loading) {
     return (
@@ -174,7 +217,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
         </button>
       </div>
 
-      {bills.length === 0 ? (
+      {scopedBills.length === 0 ? (
         <FeatureEducation
           title="Jangan lewatkan tanggal penting"
           description="Simpan jadwal pembayaran supaya kamu tahu apa yang perlu disiapkan."
@@ -342,6 +385,25 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
         </>
       )}
 
+      {entitlement && (
+        radarAvailable ? (
+          radarEnabled ? (
+            <RecurringExpenseRadar
+              transactions={transactions}
+              bills={scopedBills}
+              dismissedFingerprints={settings?.recurringExpenseDismissals || []}
+              now={now}
+              onAdd={handleRecurringAdd}
+              onDismiss={handleRecurringDismiss}
+            />
+          ) : (
+            <LockedFeaturePreview title="Recurring Expense Radar" description="Deteksi pengeluaran rutin tersedia di Pro." />
+          )
+        ) : (
+          <LockedFeaturePreview title="Recurring Expense Radar" description="Fitur sedang tidak tersedia." unavailable />
+        )
+      )}
+
       {/* Confirm delete */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(42,32,24,0.5)", backdropFilter: "blur(8px)" }} onClick={() => setConfirmDelete(null)}>
@@ -369,7 +431,9 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
       {/* Setup modal */}
       {setupState && (
         <BillSetupModal
-          bill={setupState.goal}
+          bill={setupState.mode === "edit" ? setupState.bill : undefined}
+          initialValues={setupState.mode === "create" ? setupState.initialValues : undefined}
+          sessionKey={sessionKey}
           onClose={() => setSetupState(null)}
           onSaved={async () => {
             setSetupState(null)
@@ -389,7 +453,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
           onPaid={handlePaySuccess}
           onEdit={(bill) => {
             setPayBill(null)
-            setSetupState({ mode: "edit", goal: bill })
+            setSetupState({ mode: "edit", bill })
           }}
           transactionUsage={transactionUsage}
         />

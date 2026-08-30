@@ -20,8 +20,9 @@ vi.mock("@/components/BillPayModal", () => ({
 }))
 
 vi.mock("@/components/BillSetupModal", () => ({
-  default: ({ bill, onSaved }) => (
+  default: ({ bill, initialValues, onSaved }) => (
     <div role="dialog">
+      <output data-testid="bill-setup-prefill">{JSON.stringify(initialValues || null)}</output>
       <button type="button" onClick={onSaved}>
         {bill ? "Mock simpan edit" : "Mock simpan baru"}
       </button>
@@ -181,5 +182,96 @@ describe("BillsSection record reachability", () => {
 
     await waitFor(() => expect(onBillsChanged).toHaveBeenCalledTimes(1))
     expect(fetchMock.mock.calls.filter(([url]) => url === "/api/bills?all=true")).toHaveLength(2)
+  })
+
+  it("shows the recurring radar for Pro users and persists a dismissal", async () => {
+    const transactions = ["Mei", "Jun", "Jul"].map((month, index) => ({
+      id: `tx-${index}`,
+      date: `${index + 5} ${month} 2026`,
+      desc: "Netflix",
+      category: "Hiburan",
+      account: "Bank BCA",
+      amount: 100000,
+      type: "expense",
+    }))
+    const onSettingsChanged = vi.fn()
+    render(
+      <BillsSection
+        onToast={vi.fn()}
+        transactions={transactions}
+        now={new Date("2026-08-20T04:00:00.000Z")}
+        entitlement={{ entitlementVerified: true, featureAccess: { recurringExpenseRadar: true }, featureAvailability: { recurringExpenseRadar: true } }}
+        settings={{ recurringExpenseDismissals: [] }}
+        onSettingsChanged={onSettingsChanged}
+      />
+    )
+
+    expect(await screen.findByRole("heading", { name: "Pola pengeluaran rutin" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /sembunyikan netflix/i }))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/settings", expect.objectContaining({
+      method: "PUT",
+      body: JSON.stringify({ addRecurringExpenseDismissal: "recurring:v1:netflix|hiburan|bank bca" }),
+    })))
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1)
+  })
+
+  it("shows a non-personal Pro preview instead of recurring transaction details for Free users", async () => {
+    const transactions = ["Mei", "Jun", "Jul"].map((month, index) => ({
+      id: `tx-${index}`,
+      date: `${index + 5} ${month} 2026`,
+      desc: "Netflix",
+      category: "Hiburan",
+      account: "Bank BCA",
+      amount: 100000,
+      type: "expense",
+    }))
+    render(
+      <BillsSection
+        onToast={vi.fn()}
+        transactions={transactions}
+        now={new Date("2026-08-20T04:00:00.000Z")}
+        entitlement={{ entitlementVerified: true, featureAccess: { recurringExpenseRadar: false }, featureAvailability: { recurringExpenseRadar: true }, features: { recurringExpenseRadar: false } }}
+        settings={{ recurringExpenseDismissals: [] }}
+      />
+    )
+
+    expect(await screen.findByRole("heading", { name: "Recurring Expense Radar" })).toBeInTheDocument()
+    expect(screen.queryByText("Netflix")).not.toBeInTheDocument()
+  })
+
+  it("opens a radar suggestion in create mode with monthly bill prefills", async () => {
+    const transactions = ["Mei", "Jun", "Jul"].map((month, index) => ({
+      id: `tx-${index}`,
+      date: `${index + 5} ${month} 2026`,
+      desc: "Netflix",
+      category: "Hiburan",
+      account: "Bank BCA",
+      amount: 100000,
+      type: "expense",
+    }))
+
+    render(
+      <BillsSection
+        onToast={vi.fn()}
+        transactions={transactions}
+        now={new Date("2026-08-20T04:00:00.000Z")}
+        entitlement={{ entitlementVerified: true, featureAccess: { recurringExpenseRadar: true }, featureAvailability: { recurringExpenseRadar: true } }}
+        settings={{ recurringExpenseDismissals: [] }}
+      />
+    )
+
+    fireEvent.click(await screen.findByRole("button", { name: /jadikan tagihan netflix/i }))
+
+    expect(screen.getByRole("button", { name: "Mock simpan baru" })).toBeInTheDocument()
+    expect(JSON.parse(screen.getByTestId("bill-setup-prefill").textContent)).toMatchObject({
+      nama: "Netflix",
+      jumlah: 100000,
+      tipe: "expense",
+      kategoriTransaksi: "Hiburan",
+      frekuensi: "monthly",
+      tanggalJatuhTempo: 6,
+      akunBank: "Bank BCA",
+    })
   })
 })

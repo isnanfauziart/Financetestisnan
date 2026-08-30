@@ -4,6 +4,7 @@ import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import RowActionsMenu from "@/app/dashboard/_components/RowActionsMenu"
 import GoalProgressRing from "./GoalProgressRing"
+import { computeGoalPace } from "@/app/dashboard/_components/goalUtils"
 
 function deadlineLabel(deadline) {
   if (!deadline) return null
@@ -15,28 +16,21 @@ function deadlineLabel(deadline) {
   return `${AVAILABLE_MONTHS[idx]} ${year}`
 }
 
-function etaLabel(progress, target, createdAt) {
-  if (!target || target <= 0) return null
-  if (progress >= target) return null
-  if (!createdAt) return null
-  const days = (Date.now() - new Date(createdAt).getTime()) / 86400000
-  if (days <= 0) return null
-  const rate = progress / days
-  if (rate <= 0) return "Belum ada kontribusi"
-  const remaining = target - progress
-  const etaDays = Math.ceil(remaining / rate)
-  if (etaDays > 365 * 5) return null
-  if (etaDays < 30) return `${etaDays} hari lagi`
-  return `${Math.ceil(etaDays / 30)} bulan lagi`
+function paceLabel(pace, deadline) {
+  if (!pace) return null
+  if (pace.status === "expired") return `Tenggat lewat · kurang ${formatRp(pace.remaining)}`
+  if (pace.status === "no_contributions") return `Mulai dari ${formatRp(pace.requiredMonthly)}/bulan${deadline ? ` sampai ${deadline}` : ""}`
+  if (pace.status === "on_track") return `Sesuai rencana · ${formatRp(pace.requiredMonthly)}/bulan${deadline ? ` sampai ${deadline}` : ""}`
+  return `Perlu tambah ${formatRp(pace.additionalMonthly)}/bulan${deadline ? ` sampai ${deadline}` : ""}`
 }
 
-export default function GoalCard({ goal, progress, onContribute, onEdit, onDelete, onSettle, isCompleted }) {
+export default function GoalCard({ goal, progress, onContribute, onEdit, onDelete, onSettle, isCompleted, now, sharedCategory = false }) {
   const pct = goal.target > 0 ? (progress / goal.target) * 100 : 0
   const achieved = pct >= 100
   const settled = goal.status === "settled"
   const color = settled ? "#9c8978" : (goal.color || THEME.savings)
-  const eta = !settled ? etaLabel(progress, goal.target, goal.createdAt) : null
   const deadline = deadlineLabel(goal.deadline)
+  const pace = !settled && !achieved ? computeGoalPace(goal, progress, now) : null
 
   return (
     <div className={`bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm transition-[box-shadow,opacity] hover:shadow-pop group ${settled ? "opacity-70" : ""}`}>
@@ -78,9 +72,14 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
               <Calendar size={9} aria-hidden="true" /> sampai {deadline}
             </p>
           )}
-          {eta && (
+          {pace && (
             <p className="text-[10px] font-semibold mt-0.5" style={{ color }}>
-              {eta}
+              {paceLabel(pace, deadline)}
+            </p>
+          )}
+          {pace && sharedCategory && (
+            <p className="text-[10px] text-md3-on-surface-variant mt-1">
+              Kategori ini dipakai beberapa target; cek pembagiannya.
             </p>
           )}
           {!settled && achieved && (

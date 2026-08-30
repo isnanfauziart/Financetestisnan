@@ -78,6 +78,7 @@ describe("/api/me", () => {
       financialIndependence: true,
       whatIf: true,
       yearInReview: true,
+      recurringExpenseRadar: true,
     })
     expect(body.monthlyPdfWatermark).toBe(false)
     expect(body.history.months).toBeNull()

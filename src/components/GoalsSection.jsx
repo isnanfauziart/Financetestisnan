@@ -11,7 +11,7 @@ import GoalSetupModal from "./GoalSetupModal"
 import GoalContributeModal from "./GoalContributeModal"
 import GoalSettleModal from "./GoalSettleModal"
 
-export default function GoalsSection({ data, transactions, onToast, refreshTrigger, onUsageChange, transactionUsage }) {
+export default function GoalsSection({ data, transactions, onToast, refreshTrigger, onUsageChange, transactionUsage, now }) {
   const { goals, loading, error, refetch } = useGoals()
   const [setupState, setSetupState] = useState(null)
   const [contributeGoal, setContributeGoal] = useState(null)
@@ -46,6 +46,12 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
   const completedGoals = useMemo(() => {
     return goals.filter(g => g.status === "settled")
   }, [goals])
+
+  const sharedCategoryGoalIds = useMemo(() => {
+    const counts = {}
+    for (const goal of activeGoals) counts[goal.kategori] = (counts[goal.kategori] || 0) + 1
+    return new Set(activeGoals.filter(goal => counts[goal.kategori] > 1).map(goal => goal.id))
+  }, [activeGoals])
 
   const handleDelete = async (goal) => {
     if (!confirmDelete || confirmDelete.id !== goal.id) {
@@ -186,6 +192,8 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
                     onEdit={() => setSetupState({ mode: "edit", goal })}
                     onDelete={() => handleDelete(goal)}
                     onSettle={pct >= 100 ? () => setSettleGoal(goal) : undefined}
+                    now={now}
+                    sharedCategory={sharedCategoryGoalIds.has(goal.id)}
                   />
                 )
               })}

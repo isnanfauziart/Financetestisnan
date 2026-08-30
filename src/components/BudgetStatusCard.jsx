@@ -4,6 +4,8 @@ import { Target, ArrowRight } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import { useBudgets } from "@/lib/useSharedData"
+import { getWibDateParts } from "@/lib/wibCalendar"
+import { matchesBudgetPeriod } from "@/lib/budgetPace"
 
 function statusColor(pct) {
   if (pct >= 100) return THEME.danger
@@ -20,37 +22,27 @@ function statusLabel(pct) {
 }
 
 export default function BudgetStatusCard({ allTransactions, setActiveNav, openPlanSection }) {
-  const currentMonth = AVAILABLE_MONTHS[new Date().getMonth()]
-  const currentYear = String(new Date().getFullYear())
+  const currentDate = getWibDateParts()
+  const currentMonth = AVAILABLE_MONTHS[currentDate.monthIndex]
+  const currentYear = String(currentDate.year)
 
   const { budgets, loading, error, refetch } = useBudgets(currentMonth, currentYear)
-
-  const currentMonthExpenses = useMemo(() => {
-    return (allTransactions || []).filter(t =>
-      t.type === "expense" && t.month === currentMonth && t.year === currentYear
-    )
-  }, [allTransactions, currentMonth, currentYear])
-
-  const spentByCategory = useMemo(() => {
-    const map = {}
-    for (const t of currentMonthExpenses) {
-      map[t.category] = (map[t.category] || 0) + t.amount
-    }
-    return map
-  }, [currentMonthExpenses])
 
   const urgentBudgets = useMemo(() => {
     if (budgets.length === 0) return []
     return budgets
       .map(b => {
-        const spent = spentByCategory[b.kategori] || 0
+        const spent = (allTransactions || []).reduce((sum, t) => {
+          if (t.type !== "expense" || t.category !== b.kategori || (b.akun && t.account !== b.akun) || !matchesBudgetPeriod(t, b)) return sum
+          return sum + (Number(t.amount) || 0)
+        }, 0)
         const pct = b.limit > 0 ? (spent / b.limit) * 100 : 0
         return { ...b, spent, pct }
       })
       .filter(b => b.pct >= 70)
       .sort((a, b) => b.pct - a.pct)
       .slice(0, 3)
-  }, [budgets, spentByCategory])
+  }, [allTransactions, budgets])
 
   const overCount = useMemo(() => urgentBudgets.filter(b => b.pct >= 100).length, [urgentBudgets])
   const hampirCount = useMemo(() => urgentBudgets.filter(b => b.pct >= 90 && b.pct < 100).length, [urgentBudgets])

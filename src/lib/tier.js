@@ -25,6 +25,7 @@ export const SMART_FEATURES = [
   "financialIndependence",
   "whatIf",
   "yearInReview",
+  "recurringExpenseRadar",
 ]
 
 const FEATURE_ALIASES = {

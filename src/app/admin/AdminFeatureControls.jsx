@@ -16,6 +16,7 @@ const LABELS = {
   financialIndependence: "Financial Independence",
   whatIf: "What-If",
   yearInReview: "Year in Review",
+  recurringExpenseRadar: "Recurring Expense Radar",
   pdfReports: "Laporan PDF",
   paymentQris: "Pembayaran QRIS",
   authentication: "Autentikasi",

@@ -32,7 +32,7 @@ import EventCelebration from "@/components/EventCelebration"
 import LegacySheetConnector from "@/components/LegacySheetConnector"
 import UserNameSetup from "@/components/UserNameSetup"
 import PaymentStatusBanner from "./_components/PaymentStatusBanner"
-import { useBills, useSettings } from "@/lib/useSharedData"
+import { SharedDataScopeContext, useBills, useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
 import { hasFeature } from "@/lib/featureAccess"
 import { getEffectiveUserName } from "@/lib/userDisplayName"
@@ -226,8 +226,8 @@ export default function Dashboard() {
   const [userNamePromptClosed, setUserNamePromptClosed] = useState(false)
 
   // Settings
-  const { bills, loading: billsLoading, error: billsError, refetch: refetchBills } = useBills(status === "authenticated")
-  const { settings, loading: settingsLoading, error: settingsError, refetch: refetchSettings } = useSettings()
+  const { bills, loading: billsLoading, error: billsError, refetch: refetchBills } = useBills(status === "authenticated", sessionKey)
+  const { settings, loading: settingsLoading, error: settingsError, refetch: refetchSettings } = useSettings(sessionKey)
   // D5 Rencana badge: overdue / due-today bills (HomeTab priority-card urgency subset)
   const urgentBillCount = useMemo(() => countUrgentBills(bills), [bills])
   const effectiveUserName = getEffectiveUserName({
@@ -1136,7 +1136,8 @@ export default function Dashboard() {
     .slice(0, 5)
 
   return (
-    <div className="min-h-screen pb-52 sm:pb-44 font-body relative text-md3-on-surface">
+    <SharedDataScopeContext.Provider value={sessionKey || ""}>
+      <div className="min-h-screen pb-52 sm:pb-44 font-body relative text-md3-on-surface">
       {/* P8: Parallax background */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-organic" style={{ transform: `translateY(${scrollY * -0.15}px)` }} aria-hidden="true" />
 
@@ -1262,6 +1263,7 @@ export default function Dashboard() {
             monthlyData={routineAnalysisMonthlyData}
             insights={gatedInsights}
             entitlement={entitlement}
+            sessionKey={sessionKey}
           />
         )}
         {activeNav === "stats" && (
@@ -1331,10 +1333,16 @@ export default function Dashboard() {
             activeSection={activePlanSection}
             onSectionChange={setActivePlanSection}
             onUsageChange={fetchEntitlement}
-            onBillsChanged={handleBillsChanged}
-            transactionUsage={entitlement?.usage?.transactions}
-            entitlement={entitlement}
-          />
+             onBillsChanged={handleBillsChanged}
+             transactionUsage={entitlement?.usage?.transactions}
+             entitlement={entitlement}
+              bills={bills}
+              billsLoading={billsLoading}
+              billsError={billsError}
+              settings={settings}
+              onSettingsChanged={refetchSettings}
+              sessionKey={sessionKey}
+            />
         )}
         {activeNav === "profile" && (
           <ProfileTab userName={effectiveUserName} session={session} data={data} entitlement={entitlement} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} onToast={showToast} onRefresh={fetchData} />
@@ -1551,7 +1559,8 @@ export default function Dashboard() {
           })}
         </div>
       </nav>
-    </div>
+      </div>
+    </SharedDataScopeContext.Provider>
   )
 }
 

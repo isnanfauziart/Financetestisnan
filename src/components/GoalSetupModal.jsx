@@ -41,6 +41,14 @@ const COLOR_OPTIONS = [
   { name: "Indigo", value: "#5069cc" },
 ]
 
+const GOAL_PRESETS = [
+  { name: "Dana Lebaran", icon: "Gift" },
+  { name: "Pendidikan", icon: "BookOpen" },
+  { name: "STNK", icon: "Car" },
+  { name: "Qurban", icon: "Heart" },
+  { name: "Asuransi Tahunan", icon: "Shield" },
+]
+
 function getIconComponent(name) {
   const found = ICON_OPTIONS.find(o => o.name === name)
   return found ? found.Icon : Target
@@ -154,6 +162,20 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
           <label htmlFor="goal-name" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Nama Goal</label>
           <input id="goal-name" type="text" placeholder="e.g. Dana Darurat" value={nama} onChange={e => setNama(e.target.value)}
             className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-violet-200" />
+          {!isEdit && (
+            <div className="flex flex-wrap gap-1.5 mt-2" aria-label="Pilihan cepat target">
+              {GOAL_PRESETS.map(preset => (
+                <button
+                  key={preset.name}
+                  type="button"
+                  onClick={() => { setNama(preset.name); setIcon(preset.icon) }}
+                  className="min-h-11 rounded-xl bg-md3-surface-container-high px-2.5 py-1.5 text-[10px] font-bold text-md3-on-surface-variant hover:bg-sage-100 hover:text-sage-700 transition-colors"
+                >
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>

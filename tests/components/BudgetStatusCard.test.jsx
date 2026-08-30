@@ -3,11 +3,13 @@ import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/re
 import BudgetStatusCard from "@/components/BudgetStatusCard"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { _resetBudgetCache } from "@/lib/useSharedData"
+import { getWibDateParts } from "@/lib/wibCalendar"
 
 afterEach(() => cleanup())
 
-const currentMonth = AVAILABLE_MONTHS[new Date().getMonth()]
-const currentYear = String(new Date().getFullYear())
+const currentDate = getWibDateParts()
+const currentMonth = AVAILABLE_MONTHS[currentDate.monthIndex]
+const currentYear = String(currentDate.year)
 
 function mockBudgetsResponse(budgets = []) {
   global.fetch = vi.fn(() =>
@@ -101,6 +103,20 @@ describe("BudgetStatusCard", () => {
     await waitFor(() => {
       expect(screen.getByText(/80%/)).toBeInTheDocument()
     })
+  })
+
+  it("does not count another account against an account-scoped budget", async () => {
+    const budgets = [
+      { kategori: "Makanan", limit: 100000, bulan: currentMonth, tahun: currentYear, akun: "Bank BCA" },
+    ]
+    const txns = [
+      { type: "expense", category: "Makanan", amount: 80000, account: "Bank BCA", month: currentMonth, year: currentYear },
+      { type: "expense", category: "Makanan", amount: 80000, account: "OVO", month: currentMonth, year: currentYear },
+    ]
+    mockBudgetsResponse(budgets)
+    render(<BudgetStatusCard allTransactions={txns} setActiveNav={vi.fn()} />)
+    await waitFor(() => expect(screen.getByText(/80%/)).toBeInTheDocument())
+    expect(screen.queryByText("1 over")).toBeNull()
   })
 
   it("renders top 3 most urgent budgets (sorted by % desc)", async () => {

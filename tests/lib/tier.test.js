@@ -6,6 +6,7 @@ import {
   SMART_FEATURES,
   getFeatureWarnings,
   getHistoryWindow,
+  getSmartFeatureFlags,
   getTierLimits,
 } from "@/lib/tier"
 import {
@@ -59,10 +60,13 @@ describe("phase 3 tier rules", () => {
       "healthScore",
       "cashFlowForecast",
       "anomalyAlerts",
-      "financialIndependence",
-      "whatIf",
-      "yearInReview",
-    ])
+       "financialIndependence",
+       "whatIf",
+       "yearInReview",
+       "recurringExpenseRadar",
+     ])
+    expect(getSmartFeatureFlags("free").recurringExpenseRadar).toBe(false)
+    expect(getSmartFeatureFlags("paid").recurringExpenseRadar).toBe(true)
   })
 
   it("uses WIB ISO weeks and next Monday reset for weekly limits", () => {

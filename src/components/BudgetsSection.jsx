@@ -8,6 +8,7 @@ import BudgetCard from "./BudgetCard"
 import BudgetSetupModal from "./BudgetSetupModal"
 import BudgetDetailModal from "./BudgetDetailModal"
 import FeatureEducation from "./FeatureEducation"
+import { matchesBudgetPeriod } from "@/lib/budgetPace"
 
 export default function BudgetsSection({
   selectedMonth,
@@ -17,6 +18,10 @@ export default function BudgetsSection({
   expenseCategories,
   onToast,
   onUsageChange,
+  bills = [],
+  billsLoading = false,
+  billsError = null,
+  now,
 }) {
   const [setupState, setSetupState] = useState(null)
   const [detailBudget, setDetailBudget] = useState(null)
@@ -32,37 +37,27 @@ export default function BudgetsSection({
     return budgets.filter(b => !b.akun || b.akun === selectedAccount)
   }, [budgets, selectedAccount])
 
-  const spentByCategoryAccount = useMemo(() => {
-    const map = {}
-    for (const t of (filteredTransactions || [])) {
-      if (t.type !== "expense") continue
-      const key = `${t.category}|${t.account || ""}`
-      map[key] = (map[key] || 0) + t.amount
-    }
-    const byCategory = {}
+  const spentByBudget = useMemo(() => {
+    const result = {}
     for (const b of visibleBudgets) {
-      const accountKey = b.akun || ""
-      if (accountKey) {
-        byCategory[b.kategori] = (byCategory[b.kategori] || 0) + (map[`${b.kategori}|${accountKey}`] || 0)
-      } else {
-        const sumForCat = Object.entries(map)
-          .filter(([k]) => k.startsWith(`${b.kategori}|`))
-          .reduce((s, [, v]) => s + v, 0)
-        byCategory[b.kategori] = (byCategory[b.kategori] || 0) + sumForCat
-      }
+      result[`${b.kategori}|${b.bulan}|${b.tahun}|${b.akun || ""}`] = (filteredTransactions || []).reduce((sum, t) => {
+        if (t.type !== "expense" || t.category !== b.kategori || (b.akun && t.account !== b.akun) || !matchesBudgetPeriod(t, b)) return sum
+        return sum + (Number(t.amount) || 0)
+      }, 0)
     }
-    return byCategory
+    return result
   }, [filteredTransactions, visibleBudgets])
 
-  const detailMonthLabel = selectedMonth && selectedMonth !== "Semua Bulan" ? selectedMonth : (budgets[0]?.bulan || "")
-  const detailYear = selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : (budgets[0]?.tahun || String(new Date().getFullYear()))
+  const detailMonthLabel = detailBudget?.bulan || (selectedMonth && selectedMonth !== "Semua Bulan" ? selectedMonth : "")
+  const detailYear = detailBudget?.tahun || (selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : String(new Date().getFullYear()))
 
   const detailTransactions = useMemo(() => {
     if (!detailBudget) return []
     return (filteredTransactions || []).filter(t =>
       t.type === "expense" &&
       t.category === detailBudget.kategori &&
-      (!detailBudget.akun || t.account === detailBudget.akun)
+      (!detailBudget.akun || t.account === detailBudget.akun) &&
+      matchesBudgetPeriod(t, detailBudget)
     )
   }, [detailBudget, filteredTransactions])
 
@@ -173,11 +168,12 @@ export default function BudgetsSection({
               <div key={key} className="animate-fade-in-up" style={{ animationDelay: `${0.05 * i}s` }}>
                 <BudgetCard
                   budget={b}
-                  spent={spentByCategoryAccount[b.kategori] || 0}
+                  spent={spentByBudget[`${b.kategori}|${b.bulan}|${b.tahun}|${b.akun || ""}`] || 0}
                   categoryMeta={settings?.categories?.expense?.find(item => (typeof item === "string" ? item : item?.name) === b.kategori)}
                   onClick={() => setDetailBudget(b)}
                   onEdit={() => openEdit(b)}
                   onDelete={() => handleDelete(b)}
+                  now={now}
                 />
               </div>
             )
@@ -224,6 +220,10 @@ export default function BudgetsSection({
           month={detailMonthLabel}
           year={detailYear}
           onClose={() => setDetailBudget(null)}
+          bills={bills}
+          billsLoading={billsLoading}
+          billsError={billsError}
+          now={now}
         />
       )}
     </div>

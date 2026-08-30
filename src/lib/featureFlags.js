@@ -15,6 +15,7 @@ export const FEATURE_REGISTRY = Object.freeze({
   financialIndependence: { flagKey: "financial_independence", protected: false, paidOnly: true, safeOnFailure: false },
   whatIf: { flagKey: "what_if", protected: false, paidOnly: true, safeOnFailure: false },
   yearInReview: { flagKey: "year_in_review", protected: false, paidOnly: true, safeOnFailure: false },
+  recurringExpenseRadar: { flagKey: "recurring_expense_radar", protected: false, paidOnly: true, safeOnFailure: false },
   pdfReports: { flagKey: "pdf_reports", protected: false, paidOnly: false, safeOnFailure: false },
   paymentQris: { flagKey: "payment_qris", protected: false, paidOnly: false, safeOnFailure: false },
   authentication: { protected: true },

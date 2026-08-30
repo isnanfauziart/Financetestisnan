@@ -1,6 +1,8 @@
 "use client"
-import { useState, useEffect, useCallback, useSyncExternalStore } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useSyncExternalStore } from "react"
 import { getLegacyCategories } from "@/lib/categories"
+
+export const SharedDataScopeContext = createContext("")
 
 const EMPTY_SETTINGS = {
   startingBalance: 0,
@@ -8,6 +10,7 @@ const EMPTY_SETTINGS = {
   userName: "",
   userNamePromptDismissed: false,
   financialFreedomMonthlyExpenseOverride: null,
+  recurringExpenseDismissals: [],
   categories: getLegacyCategories(),
 }
 
@@ -39,12 +42,12 @@ function notifyBudgets() {
   budgetListeners.forEach((fn) => fn())
 }
 
-async function fetchBudgets(month, year) {
+async function fetchBudgets(month, year, scope) {
   const params = new URLSearchParams()
   if (month) params.set("month", month)
   if (year) params.set("year", year)
   const url = `/api/budgets?${params.toString()}`
-  const key = `${month || ""}|${year || ""}`
+  const key = `${scope}|${month || ""}|${year || ""}`
   const entry = getBudgetEntry(key)
 
   if (entry.data !== null) return
@@ -96,27 +99,30 @@ async function fetchBudgets(month, year) {
  * @param {string} [year]   — e.g. "2026" or "" for all years
  * @returns {{ budgets: Array, loading: boolean, error: string|null, refetch: () => Promise<void> }}
  */
-export function useBudgets(month, year) {
+export function useBudgets(month, year, scopeKey) {
   const monthParam = month || ""
   const yearParam = year || ""
+  const contextScope = useContext(SharedDataScopeContext)
+  const scope = scopeKey || contextScope || ""
+  const cacheKey = `${scope}|${monthParam}|${yearParam}`
 
   useEffect(() => {
-    fetchBudgets(monthParam, yearParam)
-  }, [monthParam, yearParam])
+    fetchBudgets(monthParam, yearParam, scope)
+  }, [monthParam, yearParam, scope])
 
   const snapshot = useSyncExternalStore(subscribeBudgets, getBudgetSnapshot, getBudgetSnapshot)
-  const entry = budgetEntries.get(`${monthParam}|${yearParam}`)
+  const entry = budgetEntries.get(cacheKey)
   const isLoading = !entry || (entry.data === null && entry.error === null)
 
   const refetch = useCallback(async () => {
-    const entry = getBudgetEntry(`${monthParam}|${yearParam}`)
+    const entry = getBudgetEntry(cacheKey)
     entry.requestVersion += 1
     entry.data = null
     entry.error = null
     entry.inFlight = null
     notifyBudgets()
-    await fetchBudgets(monthParam, yearParam)
-  }, [monthParam, yearParam])
+    await fetchBudgets(monthParam, yearParam, scope)
+  }, [cacheKey, monthParam, yearParam, scope])
 
   return {
     budgets: entry?.data || [],
@@ -127,58 +133,72 @@ export function useBudgets(month, year) {
 }
 
 // ─── Goals shared cache ─────────────────────────────────────────────
-let goalsCache = null
-let goalsLoaded = false
+const goalsEntries = new Map()
 let goalsListeners = new Set()
-let goalsInFlight = null
-let goalsError = null
 
 function subscribeGoals(listener) {
   goalsListeners.add(listener)
   return () => goalsListeners.delete(listener)
 }
 
-function getGoalsSnapshot() {
-  return JSON.stringify({ data: goalsCache, loaded: goalsLoaded, error: goalsError })
+function getGoalsEntry(scope) {
+  let entry = goalsEntries.get(scope)
+  if (!entry) {
+    entry = { data: null, loaded: false, inFlight: null, error: null, requestVersion: 0 }
+    goalsEntries.set(scope, entry)
+  }
+  return entry
+}
+
+function getGoalsSnapshot(scope) {
+  const entry = getGoalsEntry(scope)
+  return JSON.stringify({ data: entry.data, loaded: entry.loaded, error: entry.error })
 }
 
 function notifyGoals() {
   goalsListeners.forEach((fn) => fn())
 }
 
-async function fetchGoalsInternal() {
-  if (goalsLoaded && goalsCache !== null) return
+async function fetchGoalsInternal(scope) {
+  const entry = getGoalsEntry(scope)
+  if (entry.loaded && entry.data !== null) return
 
-  if (goalsInFlight) {
-    await goalsInFlight
+  if (entry.inFlight) {
+    await entry.inFlight
     return
   }
 
-  goalsError = null
+  entry.error = null
   notifyGoals()
 
-  goalsInFlight = (async () => {
+  const requestVersion = entry.requestVersion
+  const request = (async () => {
     try {
       const res = await fetch("/api/goals")
       const data = await res.json()
+      if (requestVersion !== entry.requestVersion) return
       if (res.ok) {
-        goalsCache = data.goals || []
+        entry.data = data.goals || []
       } else {
-        goalsError = data.error || "Gagal memuat goals"
-        goalsCache = []
+        entry.error = data.error || "Gagal memuat goals"
+        entry.data = []
       }
-      goalsLoaded = true
+      entry.loaded = true
     } catch (err) {
-      goalsError = err.message
-      goalsCache = []
-      goalsLoaded = true
+      if (requestVersion !== entry.requestVersion) return
+      entry.error = err.message
+      entry.data = []
+      entry.loaded = true
     } finally {
-      goalsInFlight = null
-      notifyGoals()
+      if (requestVersion === entry.requestVersion) {
+        entry.inFlight = null
+        notifyGoals()
+      }
     }
   })()
+  entry.inFlight = request
 
-  await goalsInFlight
+  await request
 }
 
 /**
@@ -187,21 +207,29 @@ async function fetchGoalsInternal() {
  *
  * @returns {{ goals: Array, loading: boolean, error: string|null, refetch: () => Promise<void> }}
  */
-export function useGoals() {
-  useEffect(() => {
-    fetchGoalsInternal()
-  }, [])
+export function useGoals(scopeKey) {
+  const contextScope = useContext(SharedDataScopeContext)
+  const scope = scopeKey || contextScope || ""
+  const getSnapshot = useCallback(() => getGoalsSnapshot(scope), [scope])
 
-  const snapshot = useSyncExternalStore(subscribeGoals, getGoalsSnapshot, getGoalsSnapshot)
+  useEffect(() => {
+    fetchGoalsInternal(scope)
+  }, [scope])
+
+  const snapshot = useSyncExternalStore(subscribeGoals, getSnapshot, getSnapshot)
   const parsed = JSON.parse(snapshot)
   const isLoading = !parsed.loaded && parsed.data === null && parsed.error === null
 
   const refetch = useCallback(async () => {
-    goalsLoaded = false
-    goalsCache = null
-    goalsError = null
-    await fetchGoalsInternal()
-  }, [])
+    const entry = getGoalsEntry(scope)
+    entry.requestVersion += 1
+    entry.loaded = false
+    entry.data = null
+    entry.error = null
+    entry.inFlight = null
+    notifyGoals()
+    await fetchGoalsInternal(scope)
+  }, [scope])
 
   return {
     goals: parsed.data || [],
@@ -212,58 +240,72 @@ export function useGoals() {
 }
 
 // ─── Settings shared cache ─────────────────────────────────────────
-let settingsCache = null
-let settingsLoaded = false
+const settingsEntries = new Map()
 let settingsListeners = new Set()
-let settingsInFlight = null
-let settingsError = null
+
+function getSettingsEntry(scopeKey) {
+  let entry = settingsEntries.get(scopeKey)
+  if (!entry) {
+    entry = { data: null, loaded: false, inFlight: null, error: null, requestVersion: 0 }
+    settingsEntries.set(scopeKey, entry)
+  }
+  return entry
+}
 
 function subscribeSettings(listener) {
   settingsListeners.add(listener)
   return () => settingsListeners.delete(listener)
 }
 
-function getSettingsSnapshot() {
-  return JSON.stringify({ data: settingsCache, loaded: settingsLoaded, error: settingsError })
+function getSettingsSnapshot(scopeKey) {
+  const entry = getSettingsEntry(scopeKey)
+  return JSON.stringify({ data: entry.data, loaded: entry.loaded, error: entry.error })
 }
 
 function notifySettings() {
   settingsListeners.forEach((fn) => fn())
 }
 
-async function fetchSettingsInternal() {
-  if (settingsLoaded && settingsCache !== null) return
+async function fetchSettingsInternal(scopeKey) {
+  const entry = getSettingsEntry(scopeKey)
+  if (entry.loaded && entry.data !== null) return
 
-  if (settingsInFlight) {
-    await settingsInFlight
+  if (entry.inFlight) {
+    await entry.inFlight
     return
   }
 
-  settingsError = null
+  entry.error = null
   notifySettings()
 
-  settingsInFlight = (async () => {
+  const requestVersion = entry.requestVersion
+  const request = (async () => {
     try {
       const res = await fetch("/api/settings")
       const data = await res.json()
+      if (requestVersion !== entry.requestVersion) return
       if (res.ok) {
-        settingsCache = data.settings || EMPTY_SETTINGS
+        entry.data = data.settings || EMPTY_SETTINGS
       } else {
-        settingsError = data.error || "Gagal memuat settings"
-        settingsCache = EMPTY_SETTINGS
+        entry.error = data.error || "Gagal memuat settings"
+        entry.data = EMPTY_SETTINGS
       }
-      settingsLoaded = true
+      entry.loaded = true
     } catch (err) {
-      settingsError = err.message
-      settingsCache = EMPTY_SETTINGS
-      settingsLoaded = true
+      if (requestVersion !== entry.requestVersion) return
+      entry.error = err.message
+      entry.data = EMPTY_SETTINGS
+      entry.loaded = true
     } finally {
-      settingsInFlight = null
-      notifySettings()
+      if (requestVersion === entry.requestVersion) {
+        entry.inFlight = null
+        notifySettings()
+      }
     }
   })()
+  entry.inFlight = request
 
-  await settingsInFlight
+  await request
 }
 
 /**
@@ -272,26 +314,36 @@ async function fetchSettingsInternal() {
  *
  * @returns {{ settings: Object, loading: boolean, error: string|null, refetch: () => Promise<void> }}
  */
-export function useSettings() {
-  useEffect(() => {
-    fetchSettingsInternal()
-  }, [])
+export function useSettings(scopeKey = "") {
+  const contextScope = useContext(SharedDataScopeContext)
+  const scope = scopeKey || contextScope || ""
+  const getSnapshot = useCallback(() => getSettingsSnapshot(scope), [scope])
 
-  const snapshot = useSyncExternalStore(subscribeSettings, getSettingsSnapshot, getSettingsSnapshot)
+  useEffect(() => {
+    fetchSettingsInternal(scope)
+  }, [scope])
+
+  const snapshot = useSyncExternalStore(subscribeSettings, getSnapshot, getSnapshot)
   const parsed = JSON.parse(snapshot)
   const isLoading = !parsed.loaded && parsed.data === null && parsed.error === null
 
   const refetch = useCallback(async () => {
-    settingsLoaded = false
-    settingsCache = null
-    settingsError = null
-    await fetchSettingsInternal()
-  }, [])
+    const entry = getSettingsEntry(scope)
+    entry.requestVersion += 1
+    entry.loaded = false
+    entry.data = null
+    entry.error = null
+    entry.inFlight = null
+    notifySettings()
+    await fetchSettingsInternal(scope)
+  }, [scope])
+
+  const entry = getSettingsEntry(scope)
 
   return {
-    settings: parsed.data || EMPTY_SETTINGS,
+    settings: entry.data || EMPTY_SETTINGS,
     loading: isLoading,
-    error: parsed.error,
+    error: entry.error,
     refetch,
   }
 }
@@ -382,103 +434,119 @@ export function useDebts() {
 }
 
 // ─── Bills shared cache ─────────────────────────────────────────────
-let billsCache = null
-let billsLoaded = false
+const billsEntries = new Map()
 let billsListeners = new Set()
-let billsInFlight = null
-let billsError = null
-let billsRequestVersion = 0
+
+function getBillsEntry(scopeKey) {
+  let entry = billsEntries.get(scopeKey)
+  if (!entry) {
+    entry = { data: null, loaded: false, inFlight: null, error: null, requestVersion: 0 }
+    billsEntries.set(scopeKey, entry)
+  }
+  return entry
+}
 
 function subscribeBills(listener) {
   billsListeners.add(listener)
   return () => billsListeners.delete(listener)
 }
 
-function getBillsSnapshot() {
-  return JSON.stringify({ data: billsCache, loaded: billsLoaded, error: billsError })
+function getBillsSnapshot(scopeKey) {
+  const entry = getBillsEntry(scopeKey)
+  return JSON.stringify({ data: entry.data, loaded: entry.loaded, error: entry.error })
 }
 
 function notifyBills() {
   billsListeners.forEach((fn) => fn())
 }
 
-function clearBillsCache() {
-  billsRequestVersion += 1
-  billsCache = null
-  billsLoaded = false
-  billsError = null
-  billsInFlight = null
+function clearBillsCache(scopeKey) {
+  const entry = getBillsEntry(scopeKey)
+  entry.requestVersion += 1
+  entry.data = null
+  entry.loaded = false
+  entry.error = null
+  entry.inFlight = null
   notifyBills()
 }
 
-async function fetchBillsInternal() {
-  if (billsLoaded && billsCache !== null) return
+async function fetchBillsInternal(scopeKey) {
+  const entry = getBillsEntry(scopeKey)
+  if (entry.loaded && entry.data !== null) return
 
-  if (billsInFlight) {
-    await billsInFlight
+  if (entry.inFlight) {
+    await entry.inFlight
     return
   }
 
-  billsError = null
+  entry.error = null
   notifyBills()
 
-  const requestVersion = billsRequestVersion
-  billsInFlight = (async () => {
+  const requestVersion = entry.requestVersion
+  const request = (async () => {
     try {
       const res = await fetch("/api/bills")
       const data = await res.json()
-      if (requestVersion !== billsRequestVersion) return
+      if (requestVersion !== entry.requestVersion) return
       if (res.ok) {
-        billsCache = data.bills || []
+        entry.data = data.bills || []
       } else {
-        billsError = data.error || "Gagal memuat tagihan"
-        billsCache = []
+        entry.error = data.error || "Gagal memuat tagihan"
+        entry.data = []
       }
-      billsLoaded = true
+      entry.loaded = true
     } catch (err) {
-      if (requestVersion !== billsRequestVersion) return
-      billsError = err.message
-      billsCache = []
-      billsLoaded = true
+      if (requestVersion !== entry.requestVersion) return
+      entry.error = err.message
+      entry.data = []
+      entry.loaded = true
     } finally {
-      if (requestVersion === billsRequestVersion) {
-        billsInFlight = null
+      if (requestVersion === entry.requestVersion) {
+        entry.inFlight = null
         notifyBills()
       }
     }
   })()
+  entry.inFlight = request
 
-  await billsInFlight
+  await request
 }
 
-export function useBills(enabled = true) {
+export function useBills(enabled = true, scopeKey = "") {
+  const contextScope = useContext(SharedDataScopeContext)
+  const scope = scopeKey || contextScope || ""
+  const getSnapshot = useCallback(() => getBillsSnapshot(scope), [scope])
+
   useEffect(() => {
     if (!enabled) {
-      clearBillsCache()
+      clearBillsCache(scope)
       return
     }
-    fetchBillsInternal()
-  }, [enabled])
+    fetchBillsInternal(scope)
+  }, [enabled, scope])
 
-  const snapshot = useSyncExternalStore(subscribeBills, getBillsSnapshot, getBillsSnapshot)
+  const snapshot = useSyncExternalStore(subscribeBills, getSnapshot, getSnapshot)
   const parsed = JSON.parse(snapshot)
   const isLoading = enabled && !parsed.loaded && parsed.data === null && parsed.error === null
 
   const refetch = useCallback(async () => {
     if (!enabled) return
-    billsLoaded = false
-    billsCache = null
-    billsError = null
-    billsInFlight = null
-    billsRequestVersion += 1
+    const entry = getBillsEntry(scope)
+    entry.loaded = false
+    entry.data = null
+    entry.error = null
+    entry.inFlight = null
+    entry.requestVersion += 1
     notifyBills()
-    await fetchBillsInternal()
-  }, [enabled])
+    await fetchBillsInternal(scope)
+  }, [enabled, scope])
+
+  const entry = getBillsEntry(scope)
 
   return {
-    bills: parsed.data || [],
+    bills: entry.data || [],
     loading: isLoading,
-    error: parsed.error,
+    error: entry.error,
     refetch,
   }
 }
@@ -491,11 +559,18 @@ export function _resetBudgetCache() {
 }
 
 export function _resetGoalsCache() {
-  goalsCache = null
-  goalsLoaded = false
-  goalsError = null
-  goalsInFlight = null
+  goalsEntries.clear()
   notifyGoals()
+}
+
+export function _resetSettingsCache() {
+  settingsEntries.clear()
+  notifySettings()
+}
+
+export function _resetBillsCache() {
+  billsEntries.clear()
+  notifyBills()
 }
 
 // ─── Events shared cache ────────────────────────────────────────────

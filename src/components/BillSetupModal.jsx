@@ -7,19 +7,21 @@ import SelectField from "@/app/dashboard/_components/SelectField"
 import QuotaNotice from "./QuotaNotice"
 import { useSettings } from "@/lib/useSharedData"
 
-export default function BillSetupModal({ bill, onClose, onSaved }) {
-  const { settings } = useSettings()
+export default function BillSetupModal({ bill, initialValues, onClose, onSaved, sessionKey }) {
+  const { settings } = useSettings(sessionKey)
   const isEdit = !!bill
-  const [tipe, setTipe] = useState(bill?.tipe || "expense")
-  const [nama, setNama] = useState(bill?.nama || "")
-  const [jumlah, setJumlah] = useState(bill ? String(bill.jumlah) : "")
-  const [rawJumlah, setRawJumlah] = useState(bill ? formatInputRupiah(String(bill.jumlah)) : "")
-  const [kategoriBill, setKategoriBill] = useState(bill?.kategoriBill || "")
-  const [kategoriTransaksi, setKategoriTransaksi] = useState(bill?.kategoriTransaksi || "")
-  const [frekuensi, setFrekuensi] = useState(bill?.frekuensi || "monthly")
-  const [tanggalJatuhTempo, setTanggalJatuhTempo] = useState(bill?.tanggalJatuhTempo?.toString() || "")
-  const [akunBank, setAkunBank] = useState(bill?.akunBank || "")
-  const [catatan, setCatatan] = useState(bill?.catatan || "")
+  const values = bill || initialValues || {}
+  const initialAmount = values.jumlah ?? ""
+  const [tipe, setTipe] = useState(values.tipe || "expense")
+  const [nama, setNama] = useState(values.nama || "")
+  const [jumlah, setJumlah] = useState(initialAmount === "" ? "" : String(initialAmount))
+  const [rawJumlah, setRawJumlah] = useState(initialAmount === "" ? "" : formatInputRupiah(String(initialAmount)))
+  const [kategoriBill, setKategoriBill] = useState(values.kategoriBill || "")
+  const [kategoriTransaksi, setKategoriTransaksi] = useState(values.kategoriTransaksi || "")
+  const [frekuensi, setFrekuensi] = useState(values.frekuensi || "monthly")
+  const [tanggalJatuhTempo, setTanggalJatuhTempo] = useState(values.tanggalJatuhTempo?.toString() || "")
+  const [akunBank, setAkunBank] = useState(values.akunBank || "")
+  const [catatan, setCatatan] = useState(values.catatan || "")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 

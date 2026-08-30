@@ -12,6 +12,8 @@ import { useBudgets, useBills, useSettings } from "@/lib/useSharedData"
 import { getFocusNote } from "./_components/focusNote"
 import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
 import { isSpecialExpense } from "@/lib/expenseClass"
+import { getWibDateParts } from "@/lib/wibCalendar"
+import { matchesBudgetPeriod } from "@/lib/budgetPace"
 
 function SpecialBadge() {
   return (
@@ -49,6 +51,7 @@ export default function HomeTab({
   allTransactions, filteredTransactions,
   insights,
   entitlement,
+  sessionKey,
 }) {
   const animatedBalance = useCountUpOvershoot(data?.netWorth || 0)
   const monthlyDelta = data?.netWorthMonthlyDelta || 0
@@ -62,15 +65,16 @@ export default function HomeTab({
     ? `${selectedMonth} ${selectedYear}`
     : "Periode yang dipilih"
   const deltaLabel = monthlyDelta >= 0 ? "Bertumbuh" : "Turun"
+  const currentDate = getWibDateParts()
   const budgetMonth = selectedMonth && selectedMonth !== "Semua Bulan"
     ? selectedMonth
-    : AVAILABLE_MONTHS[new Date().getMonth()]
+    : AVAILABLE_MONTHS[currentDate.monthIndex]
   const budgetYear = selectedYear && selectedYear !== "Semua Tahun"
     ? selectedYear
-    : String(new Date().getFullYear())
+    : String(currentDate.year)
   const { budgets } = useBudgets(budgetMonth, budgetYear)
-  const { bills } = useBills()
-  const { settings } = useSettings()
+  const { bills } = useBills(true, sessionKey)
+  const { settings } = useSettings(sessionKey)
   const visibleInsights = hasFeature(entitlement, "insights") ? insights : []
   const configuredSavings = settings?.categories?.savings
   const liquidSavingsCategories = Array.isArray(configuredSavings)
@@ -101,16 +105,12 @@ export default function HomeTab({
       })
     }
 
-    const monthExpenses = (allTransactions || []).filter((t) =>
-      t.type === "expense" && t.month === budgetMonth && String(t.year) === String(budgetYear)
-    )
-    const spentByCategory = monthExpenses.reduce((acc, tx) => {
-      acc[tx.category] = (acc[tx.category] || 0) + tx.amount
-      return acc
-    }, {})
     const urgentBudget = (budgets || [])
       .map((budget) => {
-        const spent = spentByCategory[budget.kategori] || 0
+        const spent = (allTransactions || []).reduce((sum, tx) => {
+          if (tx.type !== "expense" || tx.category !== budget.kategori || (budget.akun && tx.account !== budget.akun) || !matchesBudgetPeriod(tx, budget)) return sum
+          return sum + (Number(tx.amount) || 0)
+        }, 0)
         const pct = budget.limit > 0 ? (spent / budget.limit) * 100 : 0
         return { ...budget, spent, pct }
       })
@@ -119,7 +119,7 @@ export default function HomeTab({
 
     if (urgentBudget && actions.length < 2) {
       actions.push({
-        key: `budget-${urgentBudget.kategori}`,
+        key: `budget-${urgentBudget.kategori}-${urgentBudget.bulan}-${urgentBudget.tahun}-${urgentBudget.akun || ""}`,
         eyebrow: urgentBudget.pct >= 100 ? "Budget jebol" : "Budget menipis",
         title: `Cek budget ${urgentBudget.kategori}`,
         description: `${urgentBudget.pct.toFixed(0)}% terpakai • Buka Rencana untuk cek dan atur budget.`,

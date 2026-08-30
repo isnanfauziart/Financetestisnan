@@ -12,6 +12,40 @@ export const dynamic = 'force-dynamic'
 const SHEET_NAME = "Settings"
 const RANGE = `${SHEET_NAME}!A:B`
 const MAX_FINANCIAL_FREEDOM_EXPENSE_OVERRIDE = 999999999999
+const MAX_RECURRING_EXPENSE_DISMISSALS = 50
+const MAX_RECURRING_EXPENSE_FINGERPRINT_LENGTH = 200
+const MAX_LEGACY_RECURRING_EXPENSE_FINGERPRINT_LENGTH = 1000
+const settingsWriteLocks = new Map()
+
+// ponytail: serialize writes per spreadsheet in this process; durable locking is unnecessary for this bounded UI update.
+async function withSettingsWriteLock(spreadsheetId, task) {
+  const previous = settingsWriteLocks.get(spreadsheetId) || Promise.resolve()
+  const operation = previous.catch(() => {}).then(task)
+  settingsWriteLocks.set(spreadsheetId, operation)
+  try {
+    return await operation
+  } finally {
+    if (settingsWriteLocks.get(spreadsheetId) === operation) settingsWriteLocks.delete(spreadsheetId)
+  }
+}
+
+function parseRecurringExpenseDismissals(value, { allowLegacy = false } = {}) {
+  let parsed = value
+  if (typeof value === "string") {
+    try { parsed = JSON.parse(value) } catch { return [] }
+  }
+  if (!Array.isArray(parsed)) return []
+  return [...new Set(parsed
+    .filter(item => typeof item === "string")
+    .map(item => item.trim())
+    .filter(item => {
+      if (!item) return false
+      const isLegacy = allowLegacy && item.startsWith("recurring:v1:")
+      const maxLength = isLegacy ? MAX_LEGACY_RECURRING_EXPENSE_FINGERPRINT_LENGTH : MAX_RECURRING_EXPENSE_FINGERPRINT_LENGTH
+      return item.length <= maxLength
+    }))]
+    .slice(-MAX_RECURRING_EXPENSE_DISMISSALS)
+}
 
 function parseFinancialFreedomExpenseOverride(value) {
   if (value === null || value === undefined || value === "") return null
@@ -33,8 +67,10 @@ async function fetchSettings(accessToken, spreadsheetId) {
     userName: "",
     userNamePromptDismissed: false,
     financialFreedomMonthlyExpenseOverride: null,
+    recurringExpenseDismissals: [],
     categories: getLegacyCategories(),
   }
+  const recurringExpenseDismissals = []
   for (let i = 0; i < rows.length; i++) {
     const key = String(rows[i]?.[0] || "").trim().toLowerCase()
     const val = rows[i]?.[1]
@@ -48,10 +84,15 @@ async function fetchSettings(accessToken, spreadsheetId) {
       settings.userNamePromptDismissed = val === "true"
     } else if (key === "financialfreedommonthlyexpenseoverride") {
       settings.financialFreedomMonthlyExpenseOverride = parseFinancialFreedomExpenseOverride(val)
+    } else if (key === "recurringexpensedismissals") {
+      recurringExpenseDismissals.push(...parseRecurringExpenseDismissals(val, { allowLegacy: true }))
+    } else if (key === "recurringexpensedismissal") {
+      recurringExpenseDismissals.push(...parseRecurringExpenseDismissals([val], { allowLegacy: true }))
     } else if (key === CATEGORIES_KEY.toLowerCase()) {
       settings.categories = parseStoredCategories(val) || getLegacyCategories()
     }
   }
+  settings.recurringExpenseDismissals = [...new Set(recurringExpenseDismissals)].slice(-MAX_RECURRING_EXPENSE_DISMISSALS)
   return settings
 }
 
@@ -61,6 +102,7 @@ const SETTING_KEYS = {
   username: "userName",
   usernamepromptdismissed: "userNamePromptDismissed",
   financialfreedommonthlyexpenseoverride: "financialFreedomMonthlyExpenseOverride",
+  recurringexpensedismissals: "recurringExpenseDismissals",
 }
 
 function canonicalSettingKey(value) {
@@ -90,6 +132,13 @@ function collectUpdates(body) {
     const categories = normalizeCategories(body.categories)
     if (!categories) throw new Error("Invalid categories")
     entries.push([CATEGORIES_KEY, JSON.stringify(categories)])
+  }
+
+  if (body.addRecurringExpenseDismissal !== undefined) {
+    if (typeof body.addRecurringExpenseDismissal !== "string") throw new Error("Invalid recurring expense dismissal")
+    const fingerprint = body.addRecurringExpenseDismissal.trim()
+    if (!fingerprint || fingerprint.length > MAX_RECURRING_EXPENSE_FINGERPRINT_LENGTH) throw new Error("Invalid recurring expense dismissal")
+    entries.push(["recurringExpenseDismissals", fingerprint, "append"])
   }
 
   if (entries.length === 0) throw new Error("No updates provided")
@@ -124,6 +173,19 @@ function serializeSettingValue(key, value) {
     if (parsed === null) throw new Error("Invalid financial freedom monthly expense override")
     return String(parsed)
   }
+  if (key === "recurringExpenseDismissals") {
+    if (!Array.isArray(value) || value.length > MAX_RECURRING_EXPENSE_DISMISSALS) throw new Error("Invalid recurring expense dismissals")
+    if (value.some(item => {
+      if (typeof item !== "string" || !item.trim()) return true
+      const fingerprint = item.trim()
+      const isLegacy = fingerprint.startsWith("recurring:v1:")
+      const maxLength = isLegacy ? MAX_LEGACY_RECURRING_EXPENSE_FINGERPRINT_LENGTH : MAX_RECURRING_EXPENSE_FINGERPRINT_LENGTH
+      return fingerprint.length > maxLength
+    })) {
+      throw new Error("Invalid recurring expense dismissals")
+    }
+    return JSON.stringify(parseRecurringExpenseDismissals(value, { allowLegacy: true }))
+  }
   return String(value ?? "")
 }
 
@@ -154,59 +216,78 @@ export async function PUT(request) {
     let entries
     try {
       entries = collectUpdates(body || {})
-      entries = entries.map(([key, value]) => [key, serializeSettingValue(key, value)])
+      entries = entries.map(([key, value, mode]) => [key, mode === "append" ? value : serializeSettingValue(key, value), mode])
     } catch (error) {
       return Response.json({ error: error.message }, { status: 400 })
     }
 
-    let rows = []
-    try {
-      rows = await getSheetData(accessToken, RANGE, spreadsheetId) || []
-    } catch {
-      rows = []
-    }
-    const existingKeys = {}
-    for (let i = 0; i < rows.length; i++) {
-      const key = String(rows[i]?.[0] || "").trim()
-      if (key) existingKeys[key.toLowerCase()] = i + 1
-    }
-
-    for (const [key, value] of entries) {
-      const targetRow = existingKeys[key.toLowerCase()]
-
-      if (targetRow) {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${SHEET_NAME}!A${targetRow}:B${targetRow}`)}?valueInputOption=RAW`
-        const res = await fetch(url, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ values: [[key, value]] }),
-        })
-        if (!res.ok) {
-          const err = await res.text()
-          throw new Error(`Sheets API error: ${err}`)
-        }
-      } else {
-        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(RANGE)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`
-        const res = await fetch(appendUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ values: [[key, value]] }),
-        })
-        if (!res.ok) {
-          const err = await res.text()
-          throw new Error(`Sheets API error: ${err}`)
-        }
-        existingKeys[key.toLowerCase()] = (rows.length + 1)
+    return await withSettingsWriteLock(spreadsheetId, async () => {
+      let rows = []
+      try {
+        rows = await getSheetData(accessToken, RANGE, spreadsheetId) || []
+      } catch {
+        rows = []
       }
-    }
+      const existingKeys = {}
+      for (let i = 0; i < rows.length; i++) {
+        const key = String(rows[i]?.[0] || "").trim()
+        if (key) existingKeys[key.toLowerCase()] = i + 1
+      }
 
-    return Response.json({ success: true, message: "Settings updated" })
+      for (const [key, value, mode] of entries) {
+        if (mode === "append") {
+          const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(RANGE)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`
+          const res = await fetch(appendUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ values: [["recurringExpenseDismissal", value]] }),
+          })
+          if (!res.ok) {
+            const err = await res.text()
+            throw new Error(`Sheets API error: ${err}`)
+          }
+          continue
+        }
+
+        const targetRow = existingKeys[key.toLowerCase()]
+
+        if (targetRow) {
+          const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`${SHEET_NAME}!A${targetRow}:B${targetRow}`)}?valueInputOption=RAW`
+          const res = await fetch(url, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ values: [[key, value]] }),
+          })
+          if (!res.ok) {
+            const err = await res.text()
+            throw new Error(`Sheets API error: ${err}`)
+          }
+        } else {
+          const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(RANGE)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`
+          const res = await fetch(appendUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ values: [[key, value]] }),
+          })
+          if (!res.ok) {
+            const err = await res.text()
+            throw new Error(`Sheets API error: ${err}`)
+          }
+          existingKeys[key.toLowerCase()] = rows.length + 1
+        }
+      }
+
+      return Response.json({ success: true, message: "Settings updated" })
+    })
   } catch (err) {
     console.error("[Settings]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })

@@ -252,6 +252,128 @@ describe("settings route", () => {
     expect((await parsedFalse.json()).settings.userNamePromptDismissed).toBe(false)
   })
 
+  it("serializes recurring expense dismissals as a bounded unique list", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([["recurringExpenseDismissals", JSON.stringify(["old", "old", "new"])]] )
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}), text: async () => "" })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { GET, PUT } = await import("@/app/api/settings/route")
+    const saveResponse = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["recurringExpenseDismissals", ["one", "one", "two"]]] }),
+    }))
+    const readResponse = await GET(new Request("http://localhost/api/settings"))
+
+    expect(saveResponse.status).toBe(200)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Settings!A%3AB:append"),
+      expect.objectContaining({ body: JSON.stringify({ values: [["recurringExpenseDismissals", '["one","two"]']] }) })
+    )
+    expect((await readResponse.json()).settings.recurringExpenseDismissals).toEqual(["old", "new"])
+  })
+
+  it("accepts bounded fingerprints produced from valid long transaction descriptions", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData.mockResolvedValue([])
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}), text: async () => "" })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { PUT } = await import("@/app/api/settings/route")
+    const response = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ addRecurringExpenseDismissal: `recurring:v2:${"a".repeat(16)}` }),
+    }))
+
+    expect(response.status).toBe(200)
+  })
+
+  it("keeps previously stored long v1 fingerprints readable", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    const legacyFingerprint = `recurring:v1:${"x".repeat(300)}`
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData.mockResolvedValue([[
+      "recurringExpenseDismissals",
+      JSON.stringify([legacyFingerprint]),
+    ]])
+
+    const { GET } = await import("@/app/api/settings/route")
+    const response = await GET(new Request("http://localhost/api/settings"))
+
+    expect((await response.json()).settings.recurringExpenseDismissals).toEqual([legacyFingerprint])
+  })
+
+  it("preserves long v1 fingerprints when updating dismissal settings", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    const legacyFingerprint = `recurring:v1:${"x".repeat(300)}`
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData.mockResolvedValue([])
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}), text: async () => "" })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { PUT } = await import("@/app/api/settings/route")
+    const response = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["recurringExpenseDismissals", [legacyFingerprint]]] }),
+    }))
+
+    expect(response.status).toBe(200)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Settings!A%3AB:append"),
+      expect.objectContaining({ body: JSON.stringify({ values: [["recurringExpenseDismissals", JSON.stringify([legacyFingerprint])]] }) })
+    )
+  })
+
+  it("merges concurrent recurring dismissal writes", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+
+    let rows = []
+    getSheetData.mockImplementation(async () => rows.map(row => [...row]))
+    const fetchSpy = vi.fn().mockImplementation(async (_url, options) => {
+      const body = JSON.parse(options.body)
+      rows = options.method === "POST" ? [...rows, ...body.values] : body.values
+      return { ok: true, json: async () => ({}), text: async () => "" }
+    })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { PUT } = await import("@/app/api/settings/route")
+    await Promise.all([
+      PUT(new Request("http://localhost/api/settings", {
+        method: "PUT",
+        body: JSON.stringify({ addRecurringExpenseDismissal: "dismiss-a" }),
+      })),
+      PUT(new Request("http://localhost/api/settings", {
+        method: "PUT",
+        body: JSON.stringify({ addRecurringExpenseDismissal: "dismiss-b" }),
+      })),
+    ])
+
+    expect(rows.map(row => row[1])).toEqual(expect.arrayContaining(["dismiss-a", "dismiss-b"]))
+  })
+
+  it("rejects malformed recurring expense dismissal updates", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    const { PUT } = await import("@/app/api/settings/route")
+
+    const response = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: [["recurringExpenseDismissals", ["valid", 123]]] }),
+    }))
+
+    expect(response.status).toBe(400)
+  })
+
   it.each([
     ["a non-string name", [["userName", 123]]],
     ["a name longer than 60 characters", [["userName", "😀".repeat(61)]]],

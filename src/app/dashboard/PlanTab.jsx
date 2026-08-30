@@ -87,9 +87,15 @@ export default function PlanTab({
   activeSection,
   onSectionChange,
   onUsageChange,
-  onBillsChanged,
-  transactionUsage,
-  entitlement,
+   onBillsChanged,
+   transactionUsage,
+   entitlement,
+   bills,
+   billsLoading,
+   billsError,
+   settings,
+   onSettingsChanged,
+   sessionKey,
 }) {
   const [internalActiveSection, setInternalActiveSection] = useState("overview")
   const visibleSections = PLAN_SECTIONS.filter(section => {
@@ -210,10 +216,11 @@ export default function PlanTab({
         )}
 
         {currentSection === "goal" && hasFeature(entitlement, "goals") && (
-          <GoalsSection
-            data={data}
-            transactions={transactions}
-            onToast={onToast}
+           <GoalsSection
+             data={data}
+             transactions={transactions}
+             now={now}
+             onToast={onToast}
             refreshTrigger={goalsRefreshTrigger}
             onUsageChange={onUsageChange}
             transactionUsage={transactionUsage}
@@ -227,10 +234,14 @@ export default function PlanTab({
               selectedYear={selectedYear}
               selectedAccount={selectedAccount}
               filteredTransactions={filteredTransactions}
-              expenseCategories={expenseCategories}
-              onToast={onToast}
-              onUsageChange={onUsageChange}
-            />
+             expenseCategories={expenseCategories}
+             onToast={onToast}
+             onUsageChange={onUsageChange}
+             bills={bills}
+             billsLoading={billsLoading}
+             billsError={billsError}
+             now={now}
+           />
           </div>
         )}
 
@@ -239,9 +250,15 @@ export default function PlanTab({
             onToast={onToast}
             refreshTrigger={billsRefreshTrigger || 0}
             onUsageChange={onUsageChange}
-            onBillsChanged={onBillsChanged}
-            transactionUsage={transactionUsage}
-          />
+             onBillsChanged={onBillsChanged}
+             transactionUsage={transactionUsage}
+             transactions={transactions}
+             now={now}
+             entitlement={entitlement}
+             settings={settings}
+             onSettingsChanged={onSettingsChanged}
+             sessionKey={sessionKey}
+           />
         )}
 
         {currentSection === "utang" && hasFeature(entitlement, "debts") && <DebtsSection onToast={onToast} onUsageChange={onUsageChange} transactionUsage={transactionUsage} />}
