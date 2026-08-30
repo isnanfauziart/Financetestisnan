@@ -5,7 +5,7 @@ const EVENT_ICONS = { sekolah: GraduationCap, lebaran: Moon, keluarga: HeartHand
 export default function EventBudgetRail({ events }) {
   return (
     <section className="chapter event-budget" aria-labelledby="events-title">
-      <div className="chapter-heading chapter-heading--split">
+      <div className="chapter-heading chapter-heading--split" data-reveal="">
         <div>
           <p className="eyebrow">Hidup tidak selalu bulanan</p>
           <h2 id="events-title">Satu rencana utuh untuk momen yang penting.</h2>
@@ -16,7 +16,7 @@ export default function EventBudgetRail({ events }) {
       </div>
 
       <div className="event-planner">
-        <div className="event-selector">
+        <div className="event-selector" data-reveal="">
           <div className="event-selector__head"><span>Event budget</span><strong>{events.length} rencana</strong></div>
           {events.map((event, index) => {
             const Icon = EVENT_ICONS[event.id] || CalendarDays
@@ -38,7 +38,7 @@ export default function EventBudgetRail({ events }) {
           {events.map((event, index) => {
             const ActiveIcon = EVENT_ICONS[event.id] || CalendarDays
             return (
-              <article className={index === 0 ? "event-detail event-detail--default" : "event-detail"} id={`event-${event.id}`} key={event.id}>
+              <article className={index === 0 ? "event-detail event-detail--default" : "event-detail"} id={`event-${event.id}`} key={event.id} data-reveal="">
                 <div className="event-detail__head">
                   <div className="event-detail__icon"><ActiveIcon /></div>
                   <div><span>{event.status}</span><h3>{event.name}</h3><p>{event.date}</p></div>
@@ -53,7 +53,7 @@ export default function EventBudgetRail({ events }) {
                   {event.categories.map(({ name, amount, progress }) => (
                     <div key={name}>
                       <span>{name}<small>{amount}</small></span>
-                      <div><i style={{ width: `${progress}%` }} /></div>
+                      <div><i data-bar="" style={{ width: `${progress}%` }} /></div>
                       <strong>{progress}%</strong>
                     </div>
                   ))}

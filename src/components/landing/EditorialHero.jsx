@@ -12,7 +12,7 @@ export default function EditorialHero({ links }) {
     <section className="hero chapter" id="awal" aria-labelledby="hero-title">
       <HeroShader />
 
-      <div className="hero__copy">
+      <div className="hero__copy" data-reveal-group="">
         <p className="eyebrow">Keuangan pribadi yang bisa dibaca</p>
         <h1 id="hero-title">Pahami uangmu. Rencanakan hidupmu.</h1>
         <p className="hero__lede">Track, think and plan di satu aplikasi.</p>
@@ -31,8 +31,8 @@ export default function EditorialHero({ links }) {
         <div className="hero-float hero-float--score">
           <div className="app-icon app-icon--violet"><ChartNoAxesCombined /></div>
           <span>Financial Health</span>
-          <strong>78 <small>/ 100</small></strong>
-          <div className="mini-progress"><i style={{ width: "78%" }} /></div>
+          <strong><span data-count-to="78">78</span> <small>/ 100</small></strong>
+          <div className="mini-progress"><i data-bar="" style={{ width: "78%" }} /></div>
         </div>
 
         <div className="hero-float hero-float--sheet">
@@ -44,7 +44,7 @@ export default function EditorialHero({ links }) {
         <div className="hero-float hero-float--budget">
           <div className="float-title"><WalletCards /><span>Budget bulan ini</span></div>
           <strong>Rp3,8 jt <small>dari Rp5 jt</small></strong>
-          <div className="mini-progress"><i style={{ width: "76%" }} /></div>
+          <div className="mini-progress"><i data-bar="" style={{ width: "76%" }} /></div>
           <span className="float-note">Rp1,2 jt masih tersedia</span>
         </div>
 
@@ -56,7 +56,7 @@ export default function EditorialHero({ links }) {
         <div className="hero-float hero-float--forecast">
           <div className="float-title"><span>Proyeksi arus kas</span><strong>+Rp2,4 jt</strong></div>
           <svg viewBox="0 0 260 72" role="presentation">
-            <path d="M3 58 C36 55, 48 30, 80 38 S126 65, 151 35 S207 12, 257 18" />
+            <path data-draw="" d="M3 58 C36 55, 48 30, 80 38 S126 65, 151 35 S207 12, 257 18" />
             <path className="forecast-area" d="M3 58 C36 55, 48 30, 80 38 S126 65, 151 35 S207 12, 257 18 L257 72 L3 72 Z" />
           </svg>
         </div>

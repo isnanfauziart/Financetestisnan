@@ -41,7 +41,7 @@ export default function FeatureBento({ features }) {
 
   return (
     <section className="chapter features" id="fitur" aria-labelledby="features-title" ref={sectionRef}>
-      <div className="chapter-heading chapter-heading--split">
+      <div className="chapter-heading chapter-heading--split" data-reveal="">
         <div>
           <p className="eyebrow">Insight dan rencana dalam satu alur</p>
           <h2 id="features-title">Tampilan yang bekerja seperti Artami.</h2>
@@ -59,7 +59,7 @@ export default function FeatureBento({ features }) {
 
           <div className="heatmap-axis" aria-hidden="true"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div>
           <p className="heatmap-legend">Intensitas transaksi: rendah → tinggi</p>
-          <div className="transaction-heatmap" aria-hidden="true">
+          <div className="transaction-heatmap" data-reveal-group="" data-reveal-stagger="0.02" aria-hidden="true">
             {HEATMAP_CELLS.map(({ level, label }, index) => (
               <span className={`heatmap-cell heatmap-cell--${level}`} key={`${level}-${index}`}>{label}</span>
             ))}
@@ -70,7 +70,7 @@ export default function FeatureBento({ features }) {
           </p>
           <div className="heatmap-score">
             <div><span>Financial Health Score</span><small><TrendingUp aria-hidden="true" /> +6 dari bulan lalu</small></div>
-            <strong>78</strong><b>Baik</b>
+            <strong><span data-count-to="78">78</span></strong><b>Baik</b>
           </div>
         </article>
 
@@ -89,7 +89,7 @@ export default function FeatureBento({ features }) {
                 <div className={index === 1 ? "budget-icon budget-icon--alert" : "budget-icon"}>
                   {index === 1 ? <Utensils aria-hidden="true" /> : <span />}
                 </div>
-                <div><span>{name}<small>{amount}</small></span><div><i style={{ width: `${width}%` }} /></div></div>
+                <div><span>{name}<small>{amount}</small></span><div><i data-bar="" style={{ width: `${width}%` }} /></div></div>
                 <strong>{pct}</strong>
               </div>
             ))}
@@ -103,13 +103,13 @@ export default function FeatureBento({ features }) {
           <p className="feature-panel__intro">Artami membandingkan bulan ini dengan tiga bulan terakhir agar lonjakan kecil tidak luput.</p>
 
           <div className="anomaly-signal"><div className="anomaly-icon"><CircleAlert aria-hidden="true" /></div><span>Pengeluaran tidak biasa</span><strong>Jajan naik 42%</strong><p>Rp420.000 lebih tinggi dari rata-rata 3 bulan terakhir.</p></div>
-          <div className="anomaly-comparison"><i style={{ width: "58%" }} /><i style={{ width: "86%" }} /></div>
+          <div className="anomaly-comparison"><i data-bar="" style={{ width: "58%" }} /><i data-bar="" style={{ width: "86%" }} /></div>
           <div className="anomaly-labels"><span>Biasanya <b>Rp1 jt</b></span><span>Bulan ini <b>Rp1,42 jt</b></span></div>
           <p className="feature-panel__summary"><strong>Waktunya cek konteks.</strong> Kamu tetap memegang keputusan, dengan sinyal yang lebih mudah ditemukan.</p>
         </article>
       </div>
 
-      <ul className="feature-caption-list">
+      <ul className="feature-caption-list" data-reveal-group="">
         {features.map((feature) => (
           <li key={feature.id}><strong>{feature.title}</strong><span>{feature.description}</span></li>
         ))}

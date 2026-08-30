@@ -16,7 +16,7 @@ export default function Pricing({ plans, links }) {
 
   return (
     <section className="chapter pricing" id="harga" aria-labelledby="pricing-title">
-      <div className="chapter-heading chapter-heading--split">
+      <div className="chapter-heading chapter-heading--split" data-reveal="">
         <div>
           <p className="eyebrow">Mulai sesuai kebutuhanmu</p>
           <h2 id="pricing-title">Bayar sekali. Pakai seterusnya.</h2>
@@ -25,13 +25,13 @@ export default function Pricing({ plans, links }) {
       </div>
 
       <div className="pricing-stage">
-        <article className="price-card price-card--free">
+        <article className="price-card price-card--free" data-reveal="">
           <div><span className="plan-kicker">Untuk mulai mencatat</span><h3>{free.name}</h3><p className="price">{free.price}</p></div>
           <p>{free.detail}</p>
           <a className="button button--outline" href={links.webApp}>Mulai gratis</a>
         </article>
 
-        <article className="price-card price-card--featured">
+        <article className="price-card price-card--featured" data-reveal="">
           <div className="pro-badge"><Sparkles /> Pilihan lengkap</div>
           <div>
             <span className="plan-kicker">Sekali bayar, selamanya</span>
@@ -48,6 +48,7 @@ export default function Pricing({ plans, links }) {
             ].map((item) => <li key={item}><Check />{item}</li>)}
           </ul>
           <AuthAwareLink className="button button--paper" href={links.upgrade}>Pilih Artami Pro</AuthAwareLink>
+          <p className="price-note">Sekali bayar via QRIS. Pro aktif setelah pembayaran diverifikasi - tanpa tagihan berulang.</p>
         </article>
 
         <table className="price-comparison">
@@ -59,7 +60,7 @@ export default function Pricing({ plans, links }) {
               <th scope="col">Pro</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody data-reveal-group="" data-reveal-stagger="0.05">
             {COMPARISON.map(([feature, freeValue, proValue]) => (
               <tr className="comparison-row" key={feature}>
                 <th scope="row">{feature}</th>

@@ -3,7 +3,7 @@ import { ArrowRight, FileSpreadsheet, Landmark, Lightbulb } from "lucide-react"
 export default function FinalCTA({ links }) {
   return (
     <section className="chapter final-cta" aria-labelledby="final-cta-title">
-      <div className="final-cta__content">
+      <div className="final-cta__content" data-reveal-group="">
         <p className="eyebrow">Mulai dari catatan yang sudah kamu punya</p>
         <h2 id="final-cta-title">Baca keuanganmu. Pilih langkah berikutnya.</h2>
         <p>Gunakan Artami di web hari ini. Aplikasi Android sedang dipersiapkan untuk Play Store.</p>

@@ -1,7 +1,7 @@
 export default function WhatIfScenario({ scenarios }) {
   return (
     <section className="chapter scenario" id="skenario" aria-labelledby="scenario-title">
-      <div className="scenario-copy">
+      <div className="scenario-copy" data-reveal="">
         <p className="eyebrow">Uji perubahan sebelum menjalaninya</p>
         <h2 id="scenario-title">Bagaimana jika satu kebiasaan berubah?</h2>
         <p>
@@ -10,7 +10,7 @@ export default function WhatIfScenario({ scenarios }) {
         <p className="fine-print">Simulasi ini bersifat ilustratif, bukan nasihat keuangan.</p>
       </div>
 
-      <div className="scenario-panel">
+      <div className="scenario-panel" data-reveal-group="">
         <div className="scenario-baseline">
           <div><span>Target</span><strong>Beli HP Baru</strong></div>
           <div><span>Nominal</span><strong>Rp10.000.000</strong></div>

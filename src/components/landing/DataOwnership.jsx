@@ -17,7 +17,7 @@ const TRUST_POINTS = [
 export default function DataOwnership({ content }) {
   return (
     <section className="chapter ownership" id="privasi" aria-labelledby="ownership-title">
-      <div className="ownership-intro">
+      <div className="ownership-intro" data-reveal="">
         <p className="eyebrow">Kepemilikan data sebagai fondasi</p>
         <h2 id="ownership-title">{content.headline}</h2>
         <p>{content.description}</p>
@@ -26,7 +26,7 @@ export default function DataOwnership({ content }) {
         </p>
       </div>
 
-      <div className="ownership-visual" aria-label="Alur data Artami">
+      <div className="ownership-visual" data-reveal="" aria-label="Alur data Artami">
         <div className="sheet-stack">
           <div className="sheet-stack__back" />
           <div className="sheet-stack__front">
@@ -47,7 +47,7 @@ export default function DataOwnership({ content }) {
         </div>
       </div>
 
-      <ul className="trust-list">
+      <ul className="trust-list" data-reveal-group="">
         {TRUST_POINTS.map(({ icon: Icon, title, copy }) => (
           <li key={title}><Icon /><div><strong>{title}</strong><span>{copy}</span></div></li>
         ))}

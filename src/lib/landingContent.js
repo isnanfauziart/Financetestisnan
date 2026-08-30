@@ -2,6 +2,7 @@ export const NAV_ITEMS = Object.freeze([
   { label: "Fitur", href: "#fitur" },
   { label: "Privasi", href: "#privasi" },
   { label: "Harga", href: "#harga" },
+  { label: "FAQ", href: "#faq" },
 ])
 
 export const DATA_OWNERSHIP = Object.freeze({
@@ -113,5 +114,50 @@ export const SCENARIOS = Object.freeze([
     id: "tambah-penghasilan",
     adjustment: "Tambah penghasilan Rp1.000.000/bulan",
     outcome: "Tambahan arus kas langsung memperbesar setoran menuju HP baru.",
+  },
+])
+
+export const FAQ_ITEMS = Object.freeze([
+  {
+    id: "data-aman",
+    question: "Apakah data keuangan saya aman?",
+    answer:
+      "Aman. Catatan transaksi tersimpan di Google Sheet milikmu sendiri, bukan di database Artami. Artami hanya mendapat izin terbatas pada file yang kamu pilih, dan kamu bisa mencabut izin itu kapan saja dari akun Google-mu.",
+  },
+  {
+    id: "izin-google",
+    question: "Kenapa Artami meminta izin Google?",
+    answer:
+      "Izin dibutuhkan supaya Artami bisa membaca dan menulis catatan di Sheet milikmu saat fitur digunakan. Cakupannya terbatas pada file yang kamu izinkan (drive.file), bukan seluruh Google Drive-mu.",
+  },
+  {
+    id: "bank",
+    question: "Apakah saya perlu menghubungkan rekening bank?",
+    answer:
+      "Tidak perlu. Artami tidak pernah meminta kredensial rekening atau e-wallet. Kamu mencatat transaksi sendiri, dan Artami yang merapikannya menjadi insight.",
+  },
+  {
+    id: "berhenti",
+    question: "Apa yang terjadi dengan data saya jika saya berhenti pakai?",
+    answer:
+      "Tidak ada yang berubah. Sheet tetap milikmu dan bisa kamu buka langsung di Google Sheets. Data tidak ikut terhapus saat akun Artami tidak lagi digunakan.",
+  },
+  {
+    id: "upgrade",
+    question: "Bagaimana cara upgrade ke Artami Pro?",
+    answer:
+      "Bayar sekali Rp40.000 lewat QRIS, lalu unggah bukti pembayaran. Setelah diverifikasi, semua fitur Pro langsung aktif tanpa tagihan berulang.",
+  },
+  {
+    id: "nasihat",
+    question: "Apakah Artami memberi nasihat keuangan?",
+    answer:
+      "Bukan. Insight, proyeksi, dan simulasi di Artami bersifat ilustratif berdasarkan catatanmu - bukan nasihat keuangan profesional.",
+  },
+  {
+    id: "android",
+    question: "Kapan aplikasi Android tersedia?",
+    answer:
+      "Aplikasi Android sedang dipersiapkan untuk Play Store. Untuk sekarang, Artami bisa dipakai langsung lewat browser.",
   },
 ])

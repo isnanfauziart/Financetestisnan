@@ -50,6 +50,9 @@ describe("Artami landing page integration", () => {
     expect(content).toContain("Financial Health Score")
     expect(content).toContain("Anak Masuk Sekolah")
     expect(content).toContain("Kurangi Jajan Rp300.000/bulan")
+    expect(content).toContain("Apakah data keuangan saya aman?")
+    expect(page).toContain("FAQ_ITEMS")
+    expect(page).toContain("application/ld+json")
     expect(page).toContain('getServerSession(authOptions)')
     expect(page).toContain('redirect("/dashboard")')
     expect(page).toContain("tabIndex={-1}")
@@ -62,10 +65,12 @@ describe("Artami landing page integration", () => {
       "EditorialHero",
       "EventBudgetRail",
       "FeatureBento",
+      "Faq",
       "FinalCTA",
       "FinancialBriefing",
       "Footer",
       "FutureForecast",
+      "LandingMotion",
       "Navigation",
       "Pricing",
       "WhatIfScenario",
@@ -83,6 +88,7 @@ describe("Artami landing page integration", () => {
       "src/components/landing/Navigation.jsx",
       "src/components/landing/FeatureBento.jsx",
       "src/components/landing/HeroShader.jsx",
+      "src/components/landing/LandingMotion.jsx",
     ]) {
       expect(await source(file)).toMatch(/^\s*["']use client["']/)
     }
@@ -91,6 +97,7 @@ describe("Artami landing page integration", () => {
       "DataOwnership.jsx",
       "EditorialHero.jsx",
       "EventBudgetRail.jsx",
+      "Faq.jsx",
       "FinalCTA.jsx",
       "FinancialBriefing.jsx",
       "Footer.jsx",
@@ -133,6 +140,8 @@ describe("Artami landing page integration", () => {
     expect(css).toContain("scroll-margin-top")
     expect(css).toContain(":has(.event-detail:target)")
     expect(css).toContain("--landing-clay-deep")
+    expect(css).not.toContain("landing-float-card")
+    expect(css).not.toContain("landing-cta-evidence-drift")
     expect(css).toContain(".price-card--featured a:focus-visible")
     expect(css).not.toMatch(/^\s*(?:html|body|:root)\s*\{/m)
     expect(css).not.toMatch(/^\s*\*\s*\{/m)
