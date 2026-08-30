@@ -275,3 +275,70 @@ describe("BillsSection record reachability", () => {
     })
   })
 })
+
+describe("BillsSection render stability", () => {
+  let fetchMock
+
+  beforeEach(() => {
+    fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      bills: [{
+        id: "bill-1",
+        nama: "Internet",
+        jumlah: 250000,
+        tipe: "expense",
+        kategoriBill: "Internet/WiFi",
+        frekuensi: "monthly",
+        aktif: true,
+        status: "upcoming",
+        daysUntilDue: 10,
+        tanggalJatuhTempo: 10,
+      }],
+    }), { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  const billsFetchCount = () =>
+    fetchMock.mock.calls.filter(([url]) => url === "/api/bills?all=true").length
+
+  it("does not refetch or close the setup modal when onToast changes identity across re-renders", async () => {
+    const { rerender } = render(<BillsSection onToast={vi.fn()} sessionKey="user-a" />)
+
+    await waitFor(() => expect(billsFetchCount()).toBe(1))
+
+    // Open the create-bill modal
+    fireEvent.click(screen.getByRole("button", { name: "Tambah tagihan baru" }))
+    expect(screen.getByRole("button", { name: "Mock simpan baru" })).toBeInTheDocument()
+
+    // Simulate dashboard re-renders (scroll, clicks, timers) that pass a fresh
+    // showToast identity each time. These must not restart the fetch/reset
+    // effect: no refetch, list intact, modal stays open.
+    rerender(<BillsSection onToast={vi.fn()} sessionKey="user-a" />)
+    rerender(<BillsSection onToast={vi.fn()} sessionKey="user-a" />)
+
+    expect(screen.getByRole("button", { name: "Mock simpan baru" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /bayar internet/i })).toBeInTheDocument()
+    expect(billsFetchCount()).toBe(1)
+  })
+
+  it("refetches when the session scope changes", async () => {
+    const { rerender } = render(<BillsSection onToast={vi.fn()} sessionKey="user-a" />)
+    await waitFor(() => expect(billsFetchCount()).toBe(1))
+
+    rerender(<BillsSection onToast={vi.fn()} sessionKey="user-b" />)
+
+    await waitFor(() => expect(billsFetchCount()).toBe(2))
+  })
+
+  it("reports fetch failures through the latest onToast identity", async () => {
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ error: "Gagal" }), { status: 500 }))
+    const firstToast = vi.fn()
+    const latestToast = vi.fn()
+
+    const { rerender } = render(<BillsSection onToast={firstToast} sessionKey="user-a" />)
+    rerender(<BillsSection onToast={latestToast} sessionKey="user-a" />)
+
+    await waitFor(() => expect(latestToast).toHaveBeenCalledWith("Gagal", "error"))
+    expect(firstToast).not.toHaveBeenCalled()
+  })
+})

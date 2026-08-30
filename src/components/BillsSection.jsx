@@ -43,6 +43,12 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
   const [showInactive, setShowInactive] = useState(false)
   const requestVersionRef = useRef(0)
   const [billsScope, setBillsScope] = useState(sessionKey)
+  // onToast's identity can change on every dashboard re-render (unstable parent
+  // callbacks). Keep it in a ref so a fresh onToast cannot invalidate fetchBills
+  // and restart the fetch/reset effect below, which would wipe the list, close
+  // open modals, and refetch on every scroll/click.
+  const onToastRef = useRef(onToast)
+  onToastRef.current = onToast
 
   const fetchBills = useCallback(async () => {
     const requestVersion = ++requestVersionRef.current
@@ -57,11 +63,11 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
       if (requestVersion !== requestVersionRef.current) return
       const message = err.message || "Gagal memuat tagihan"
       setError(message)
-      onToast?.(message, "error")
+      onToastRef.current?.(message, "error")
     } finally {
       if (requestVersion === requestVersionRef.current) setLoading(false)
     }
-  }, [onToast, sessionKey])
+  }, [sessionKey])
 
   useEffect(() => {
     setBillsScope(sessionKey)

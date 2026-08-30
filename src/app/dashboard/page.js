@@ -463,7 +463,10 @@ export default function Dashboard() {
   const contentRef = useRef(null)
 
   const handleTouchStart = useCallback((e) => {
-    if (contentRef.current && contentRef.current.scrollTop <= 0) {
+    // The dashboard scrolls at window level; the content div is not an overflow
+    // container, so its scrollTop is always 0 and can never gate the pull.
+    // Gate on window.scrollY so pull-to-refresh only starts at the actual top.
+    if (window.scrollY <= 0) {
       pullStartY.current = e.touches[0].clientY
       pullLocked.current = false
     }
@@ -788,9 +791,13 @@ export default function Dashboard() {
   }, [routineFilteredTransactions, isAllMonths, isAllAccounts, selectedMonth, selectedYear, routineStatIncome, routineStatExpense, routineStatSavings, routineExpenseCategories, data, routineTransactions])
   const gatedInsights = hasFeature(entitlement, "insights") ? insights : []
 
-  const showToast = (msg, type = "success", action = null, options = {}) => {
+  // Stable identity: showToast is passed down as onToast to every tab/section.
+  // A new identity per render would invalidate section-level useCallback deps
+  // (e.g. BillsSection fetchBills) and restart their fetch effects on every
+  // scroll/click re-render.
+  const showToast = useCallback((msg, type = "success", action = null, options = {}) => {
     setToast({ msg, type, action, duration: options.duration })
-  }
+  }, [])
 
   const dismissToast = useCallback(() => {
     setToast(null)
