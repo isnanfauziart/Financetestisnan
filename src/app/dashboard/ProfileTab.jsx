@@ -8,6 +8,7 @@ import { useSettings } from "@/lib/useSharedData"
 import Sheet from "./_components/Sheet"
 import SegmentedButtons from "./_components/SegmentedButtons"
 import CategoryManager from "@/components/CategoryManager"
+import DocsSection from "@/components/DocsSection"
 import UserNameSetup from "@/components/UserNameSetup"
 
 const THEME_OPTIONS = ["Terang", "Gelap", "Sistem"]
@@ -303,6 +304,10 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
           }}
         />
       )}
+
+      <SectionCard title="Panduan">
+        <DocsSection />
+      </SectionCard>
 
       <SectionCard title="Data & akun">
         {editingSaldo ? (
