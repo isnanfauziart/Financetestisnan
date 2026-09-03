@@ -5,7 +5,6 @@ import {
   DATA_OWNERSHIP,
   EVENT_BUDGETS,
   FAQ_ITEMS,
-  FEATURES,
   NAV_ITEMS,
   PRICING_PLANS,
   SCENARIOS,
@@ -13,17 +12,16 @@ import {
 import { SITE_LINKS } from "@/lib/landingLinks"
 import DataOwnership from "@/components/landing/DataOwnership"
 import EditorialHero from "@/components/landing/EditorialHero"
-import EventBudgetRail from "@/components/landing/EventBudgetRail"
 import Faq from "@/components/landing/Faq"
-import FeatureBento from "@/components/landing/FeatureBento"
 import FinalCTA from "@/components/landing/FinalCTA"
-import FinancialBriefing from "@/components/landing/FinancialBriefing"
+import FinancialIntelligence from "@/components/landing/FinancialIntelligence"
 import Footer from "@/components/landing/Footer"
-import FutureForecast from "@/components/landing/FutureForecast"
+import ProductShowcase from "@/components/landing/InsightPlanStage"
 import LandingMotion from "@/components/landing/LandingMotion"
 import Navigation from "@/components/landing/Navigation"
+import PlatformPillars from "@/components/landing/PlatformPillars"
 import Pricing from "@/components/landing/Pricing"
-import WhatIfScenario from "@/components/landing/WhatIfScenario"
+import ImpactLab from "@/components/landing/WhatIfScenario"
 
 export const dynamic = "force-dynamic"
 
@@ -68,12 +66,11 @@ export default async function Home() {
 
       <main id="konten-utama" tabIndex={-1}>
         <EditorialHero links={SITE_LINKS} />
-        <FinancialBriefing />
-        <FeatureBento features={FEATURES} />
-        <EventBudgetRail events={EVENT_BUDGETS} />
+        <PlatformPillars />
+        <ProductShowcase events={EVENT_BUDGETS} />
         <DataOwnership content={DATA_OWNERSHIP} />
-        <FutureForecast />
-        <WhatIfScenario scenarios={SCENARIOS} />
+        <FinancialIntelligence />
+        <ImpactLab scenarios={SCENARIOS} />
         <Pricing plans={PRICING_PLANS} links={SITE_LINKS} />
         <Faq items={FAQ_ITEMS} />
         <FinalCTA links={SITE_LINKS} />

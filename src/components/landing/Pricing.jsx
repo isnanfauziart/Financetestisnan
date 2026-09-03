@@ -18,7 +18,6 @@ export default function Pricing({ plans, links }) {
     <section className="chapter pricing" id="harga" aria-labelledby="pricing-title">
       <div className="chapter-heading chapter-heading--split" data-reveal="">
         <div>
-          <p className="eyebrow">Mulai sesuai kebutuhanmu</p>
           <h2 id="pricing-title">Bayar sekali. Pakai seterusnya.</h2>
         </div>
         <p>Tidak ada biaya bulanan, biaya berulang, atau iklan yang mengganggu catatanmu.</p>
@@ -47,7 +46,7 @@ export default function Pricing({ plans, links }) {
               "Tanpa iklan, tanpa biaya bulanan",
             ].map((item) => <li key={item}><Check />{item}</li>)}
           </ul>
-          <AuthAwareLink className="button button--paper" href={links.upgrade}>Pilih Artami Pro</AuthAwareLink>
+          <AuthAwareLink className="button" href={links.upgrade}>Pilih Artami Pro</AuthAwareLink>
           <p className="price-note">Sekali bayar via QRIS. Pro aktif setelah pembayaran diverifikasi - tanpa tagihan berulang.</p>
         </article>
 

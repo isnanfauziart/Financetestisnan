@@ -1,5 +1,6 @@
 export const NAV_ITEMS = Object.freeze([
-  { label: "Fitur", href: "#fitur" },
+  { label: "Produk", href: "#produk" },
+  { label: "Kecerdasan", href: "#kecerdasan" },
   { label: "Privasi", href: "#privasi" },
   { label: "Harga", href: "#harga" },
   { label: "FAQ", href: "#faq" },
@@ -8,7 +9,7 @@ export const NAV_ITEMS = Object.freeze([
 export const DATA_OWNERSHIP = Object.freeze({
   headline: "Datamu, tetap milikmu.",
   description:
-    "Data transaksi disimpan di Google Sheets milikmu, bukan disalin ke database transaksi Artami.",
+    "Catatan tetap tersimpan di Google Sheet milikmu—bukan disalin ke database transaksi Artami.",
 })
 
 export const FEATURES = Object.freeze([

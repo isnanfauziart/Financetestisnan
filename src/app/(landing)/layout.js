@@ -1,16 +1,16 @@
-import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google"
+import { DM_Sans, Source_Serif_4 } from "next/font/google"
 import "../landing.css"
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
-  variable: "--font-landing-sans",
+  variable: "--font-landing-display",
 })
 
-const jetBrainsMono = JetBrains_Mono({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-landing-mono",
+  variable: "--font-landing-body",
 })
 
 export default function LandingLayout({ children }) {
-  return <div className={`${plusJakartaSans.variable} ${jetBrainsMono.variable}`}>{children}</div>
+  return <div className={`${sourceSerif.variable} ${dmSans.variable}`}>{children}</div>
 }
