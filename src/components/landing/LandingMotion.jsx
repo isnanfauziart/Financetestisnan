@@ -16,8 +16,14 @@ export default function LandingMotion({ ctaHref = "/dashboard" }) {
     const media = gsap.matchMedia()
     const utilityTriggers = []
 
-    media.add("(prefers-reduced-motion: no-preference)", () => {
+    media.add({
+      motion: "(prefers-reduced-motion: no-preference)",
+      desktop: "(min-width: 48rem)",
+    }, (context) => {
+      if (!context.conditions.motion) return
+      const desktop = context.conditions.desktop
       gsap.utils.toArray(".landing-page [data-reveal]").forEach((element) => {
+        if (desktop && element.matches(".platform-pillars__heading")) return
         gsap.from(element, {
           autoAlpha: 0,
           y: 34,
@@ -39,6 +45,7 @@ export default function LandingMotion({ ctaHref = "/dashboard" }) {
       })
 
       gsap.utils.toArray(".landing-page [data-draw]").forEach((path) => {
+        if (desktop && path.closest("[data-hero-stage]")) return
         if (typeof path.getTotalLength !== "function") return
         const length = path.getTotalLength()
         if (!length) return
@@ -51,7 +58,7 @@ export default function LandingMotion({ ctaHref = "/dashboard" }) {
             duration: 1.5,
             ease: "power2.inOut",
             scrollTrigger: {
-              trigger: path.closest("section") || path,
+              trigger: path,
               start: "top 74%",
               once: true,
             },
@@ -78,6 +85,8 @@ export default function LandingMotion({ ctaHref = "/dashboard" }) {
         const heroSources = hero ? gsap.utils.toArray("[data-hero-morph-source]", hero) : []
         const heroCursors = hero ? gsap.utils.toArray(".hero-cursor", hero) : []
         const heroCue = hero?.querySelector(".hero__scroll-cue")
+        const heroChart = hero?.querySelector("[data-draw]")
+        const pillarsHeading = document.querySelector(".landing-page .platform-pillars__heading")
 
         if (hero && heroCopy && heroProduct) {
           const morphPairs = heroSources.map((source) => ({
@@ -91,8 +100,20 @@ export default function LandingMotion({ ctaHref = "/dashboard" }) {
           const measureMorphPairs = () => {
             if (morphMeasurements) return morphMeasurements
             const frameRect = heroProduct.getBoundingClientRect()
-            const sourceRects = morphPairs.map(({ source }) => source.getBoundingClientRect())
-            const targetRects = morphPairs.map(({ target }) => target.getBoundingClientRect())
+            // Read untransformed centers even when refreshing halfway through a scrub.
+            const sourceRects = morphPairs.map(({ source }) => {
+              const rect = source.getBoundingClientRect()
+              return {
+                left: rect.left + rect.width / 2 - source.offsetWidth / 2 - Number(gsap.getProperty(source, "x")),
+                top: rect.top + rect.height / 2 - source.offsetHeight / 2 - Number(gsap.getProperty(source, "y")),
+                width: source.offsetWidth,
+                height: source.offsetHeight,
+              }
+            })
+            const targetRects = morphPairs.map(({ target }) => {
+              const rect = target.getBoundingClientRect()
+              return { left: rect.left, top: rect.top - Number(gsap.getProperty(heroProduct, "y")), width: rect.width, height: rect.height }
+            })
             const targetTravelY = getHeroProductTravel(
               { top: window.innerHeight - 24, height: frameRect.height },
               { viewportHeight: window.innerHeight },
@@ -110,6 +131,7 @@ export default function LandingMotion({ ctaHref = "/dashboard" }) {
 
           const productTravelY = () => measureMorphPairs().targetTravelY
 
+          gsap.set(hero.querySelector(".hero-fragments"), { zIndex: 6 })
           gsap.set(morphTargets, { autoAlpha: 0 })
           const heroTimeline = gsap.timeline({
             scrollTrigger: {
@@ -123,30 +145,44 @@ export default function LandingMotion({ ctaHref = "/dashboard" }) {
           })
 
           heroTimeline
-            .to(heroCopy, { autoAlpha: 0, y: -126, ease: "none", duration: 0.24 }, 0.02)
-            .to(heroCue, { autoAlpha: 0, y: 12, ease: "none", duration: 0.14 }, 0)
-            .to(heroCursors, { autoAlpha: 0, scale: 0.9, ease: "power2.in", duration: 0.2 }, 0.08)
-            .to(heroProduct, { y: productTravelY, ease: "power2.out", duration: 0.68 }, 0.1)
+            .to(heroCopy, { autoAlpha: 0, y: -96, ease: "none", duration: 0.24 }, 0.1)
+            .to(heroCue, { autoAlpha: 0, y: 12, ease: "none", duration: 0.14 }, 0.06)
+            .to(heroCursors, { autoAlpha: 0, scale: 0.9, ease: "power2.out", duration: 0.2 }, 0.12)
+            .to(heroProduct, { y: productTravelY, ease: "power2.out", duration: 0.48 }, 0.16)
 
           morphPairs.forEach(({ key, source, target }, index) => {
             const measured = (property) => () => measureMorphPairs().pairs.get(key)[property]
-            const start = 0.36 + index * 0.025
+            const start = 0.34 + index * 0.025
 
             heroTimeline
               .to(source, {
                 x: measured("x"),
                 y: measured("y"),
-                scaleX: measured("scaleX"),
-                scaleY: measured("scaleY"),
+                scale: measured("scale"),
                 transformOrigin: "center center",
                 ease: "power2.inOut",
-                duration: 0.34,
+                duration: 0.3,
               }, start)
-              .to(target, { autoAlpha: 1, ease: "none", duration: 0.13 }, start + 0.22)
-              .to(source, { autoAlpha: 0, ease: "none", duration: 0.13 }, start + 0.22)
+              .to(target, { autoAlpha: 1, ease: "none", duration: 0.12 }, start + 0.18)
+              .to(source, { autoAlpha: 0, ease: "none", duration: 0.12 }, start + 0.18)
           })
 
-          heroTimeline.to(heroProduct, { y: productTravelY, ease: "none", duration: 0.2 }, 0.8)
+          if (heroChart) {
+            const length = heroChart.getTotalLength()
+            heroTimeline.fromTo(heroChart,
+              { strokeDasharray: length, strokeDashoffset: length },
+              { strokeDashoffset: 0, ease: "none", duration: 0.2 }, 0.64)
+          }
+          // A short reading beat, then native sticky release carries the dashboard up.
+          heroTimeline.to({}, { duration: 0.16 }, 0.84)
+          if (pillarsHeading) {
+            gsap.from(pillarsHeading, {
+              autoAlpha: 0, y: 36, ease: "none",
+              scrollTrigger: {
+                trigger: pillarsHeading, start: "top 96%", end: "top 72%", scrub: 0.2,
+              },
+            })
+          }
         }
 
       },

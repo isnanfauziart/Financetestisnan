@@ -7,8 +7,9 @@ export function getHeroMorphTransform(sourceRect, targetRect, targetTravelY = 0)
   return {
     x: targetCenterX - sourceCenterX,
     y: targetCenterY - sourceCenterY,
-    scaleX: sourceRect.width > 0 ? targetRect.width / sourceRect.width : 1,
-    scaleY: sourceRect.height > 0 ? targetRect.height / sourceRect.height : 1,
+    scale: sourceRect.width > 0 && sourceRect.height > 0
+      ? Math.min(targetRect.width / sourceRect.width, targetRect.height / sourceRect.height)
+      : 1,
   }
 }
 

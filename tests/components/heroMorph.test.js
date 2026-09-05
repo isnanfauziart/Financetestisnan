@@ -10,8 +10,7 @@ describe("getHeroMorphTransform", () => {
     expect(getHeroMorphTransform(source, target, -500)).toEqual({
       x: 360,
       y: 20,
-      scaleX: 0.6,
-      scaleY: 0.6,
+      scale: 0.6,
     })
   })
 
@@ -20,9 +19,17 @@ describe("getHeroMorphTransform", () => {
     const target = { left: 10, top: 20, width: 80, height: 40 }
 
     expect(getHeroMorphTransform(source, target, 0)).toMatchObject({
-      scaleX: 1,
-      scaleY: 1,
+      scale: 1,
     })
+  })
+
+  it("preserves text proportions when source and destination aspect ratios differ", () => {
+    const source = { left: 100, top: 180, width: 200, height: 100 }
+    const target = { left: 500, top: 720, width: 120, height: 30 }
+    const result = getHeroMorphTransform(source, target, -500)
+    expect(result.scale).toBe(0.3)
+    expect(source.left + source.width / 2 + result.x).toBe(560)
+    expect(source.top + source.height / 2 + result.y).toBe(235)
   })
 
   it("places a laptop-sized dashboard fully inside the sticky viewport", () => {

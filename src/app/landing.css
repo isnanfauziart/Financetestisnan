@@ -271,8 +271,8 @@ body:has(.landing-page) {
 /* Hero: one stable scene and one coherent product canvas. */
 .hero {
   position: relative;
-  height: 300vh;
-  min-height: 150rem;
+  height: 240vh;
+  min-height: 110rem;
   background: var(--landing-paper);
 }
 
@@ -990,6 +990,12 @@ body:has(.landing-page) {
 /* Editorial value cards. */
 .platform-pillars {
   padding-top: clamp(8rem, 12vw, 12rem);
+}
+
+@media (min-width: 48rem) and (prefers-reduced-motion: no-preference) {
+  .platform-pillars {
+    padding-top: clamp(2rem, 4vh, 3rem);
+  }
 }
 
 .platform-pillars__heading {
