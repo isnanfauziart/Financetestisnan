@@ -5,12 +5,14 @@ const setGlobalFeatureFlagMock = vi.fn()
 const setUserFeatureOverrideMock = vi.fn()
 const clearUserFeatureOverrideMock = vi.fn()
 const fromMock = vi.fn()
+const capacityMock = vi.fn()
 
 vi.mock("@/lib/adminAuth", () => ({ requireAdmin: requireAdminMock }))
 vi.mock("@/lib/featureFlags", () => ({
   FEATURE_REGISTRY: {
     budgets: { flagKey: "budgets_enabled", protected: false, paidOnly: false },
     healthScore: { flagKey: "health_score", protected: false, paidOnly: true },
+    proRegistration: { flagKey: "pro_registration", protected: false, paidOnly: false, globalOnly: true },
     authentication: { protected: true },
   },
   setGlobalFeatureFlag: setGlobalFeatureFlagMock,
@@ -18,6 +20,7 @@ vi.mock("@/lib/featureFlags", () => ({
   clearUserFeatureOverride: clearUserFeatureOverrideMock,
 }))
 vi.mock("@/lib/supabaseAdmin", () => ({ supabaseAdmin: { from: fromMock } }))
+vi.mock("@/lib/paymentRegistration", () => ({ getPaymentRegistrationCapacity: capacityMock }))
 
 function request(body) {
   return new Request("http://localhost/api/admin/features", {
@@ -51,6 +54,7 @@ describe("admin feature controls", () => {
     setGlobalFeatureFlagMock.mockResolvedValue(undefined)
     setUserFeatureOverrideMock.mockResolvedValue(undefined)
     clearUserFeatureOverrideMock.mockResolvedValue(undefined)
+    capacityMock.mockResolvedValue({ awaitingCount: 0, pendingCount: 0 })
   })
 
   afterEach(() => vi.useRealTimers())
@@ -81,6 +85,29 @@ describe("admin feature controls", () => {
       expect.objectContaining({ key: "budgets", enabled: true, scheduledAt: future, scheduledEnabled: false }),
       expect.objectContaining({ key: "authentication", protected: true, enabled: true, scheduledAt: null }),
     ]))
+  })
+
+  it("reports Pro registration capacity and evaluates a due schedule as the effective state", async () => {
+    capacityMock.mockResolvedValue({ awaitingCount: 4, pendingCount: 3 })
+    fromMock.mockReturnValue(query([
+      { key: "pro_registration", enabled: true, scheduled_enabled: false, scheduled_at: "2020-01-01T00:00:00.000Z", updated_at: "2020-01-01T00:00:00.000Z", updated_by: "admin@example.com" },
+    ]))
+    const { GET } = await import("@/app/api/admin/features/route")
+
+    const response = await GET(new Request("http://localhost/api/admin/features"))
+    const body = await response.json()
+    const feature = body.features.find(row => row.key === "proRegistration")
+
+    expect(response.status).toBe(200)
+    expect(feature).toEqual(expect.objectContaining({
+      key: "proRegistration",
+      globalOnly: true,
+      enabled: false,
+      awaitingCount: 4,
+      pendingCount: 3,
+      scheduledAt: null,
+      scheduledEnabled: null,
+    }))
   })
 
   it("updates a global flag and replaces a pending schedule with an immediate write", async () => {
@@ -178,6 +205,20 @@ describe("admin feature controls", () => {
     expect(invalidResponse.status).toBe(400)
     expect(pastResponse.status).toBe(400)
     expect(setGlobalFeatureFlagMock).not.toHaveBeenCalled()
+  })
+
+  it("rejects user-scope overrides for the global-only Pro registration control", async () => {
+    const { POST } = await import("@/app/api/admin/features/route")
+    const response = await POST(request({
+      key: "proRegistration",
+      scope: "users",
+      enabled: false,
+      userIds: ["11111111-1111-4111-8111-111111111111"],
+    }))
+
+    expect(response.status).toBe(400)
+    expect(setUserFeatureOverrideMock).not.toHaveBeenCalled()
+    expect(clearUserFeatureOverrideMock).not.toHaveBeenCalled()
   })
 
   it("treats scalar JSON bodies as invalid requests", async () => {

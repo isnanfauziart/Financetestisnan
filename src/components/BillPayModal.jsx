@@ -29,7 +29,7 @@ const FREQ_LABELS = {
   yearly: "Tahunan",
 }
 
-export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactionUsage }) {
+export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactionUsage, proRegistrationOpen = true }) {
   const [paying, setPaying] = useState(false)
   const [error, setError] = useState(null)
 
@@ -145,7 +145,7 @@ export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactio
           )}
         </div>
 
-        <TransactionQuotaStatus usage={transactionUsage} error={error} />
+        <TransactionQuotaStatus usage={transactionUsage} error={error} proRegistrationOpen={proRegistrationOpen} />
 
         {/* Actions */}
         <div className="space-y-2 pt-2">

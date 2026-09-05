@@ -14,7 +14,7 @@ import CashFlowForecast from "@/components/CashFlowForecast"
 import SavingsRateTrend from "@/components/SavingsRateTrend"
 import AnomalyAlerts from "@/components/AnomalyAlerts"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
-import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
+import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featureAccess"
 import { chartTheme } from "@/lib/chartTheme"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
@@ -101,6 +101,7 @@ export default function StatsTab({
   entitlement,
 }) {
   const effectiveEntitlement = entitlement === undefined ? { features: { anomalyAlerts: true, cashFlowForecast: true, yearInReview: true } } : entitlement
+  const proRegistrationOpen = isProRegistrationOpen(effectiveEntitlement)
   const [showDateRange, setShowDateRange] = useState(false)
   const [activeSection, setActiveSection] = useState("ringkasan")
   const [analysisMode, setAnalysisMode] = useState("routine")
@@ -368,7 +369,7 @@ export default function StatsTab({
             </div>
           )}
 
-          {!isFeatureEnabled(effectiveEntitlement, "anomalyAlerts") ? <LockedFeaturePreview title="Anomaly Alerts" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "anomalyAlerts") ? <AnomalyAlerts transactions={allTransactions} selectedMonth={selectedMonth} selectedYear={selectedYear} onCategoryClick={onCategoryClick} /> : <LockedFeaturePreview title="Anomaly Alerts" description="Deteksi pola transaksi tidak biasa tersedia di Pro." />}
+          {!isFeatureEnabled(effectiveEntitlement, "anomalyAlerts") ? <LockedFeaturePreview title="Anomaly Alerts" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(effectiveEntitlement, "anomalyAlerts") ? <AnomalyAlerts transactions={allTransactions} selectedMonth={selectedMonth} selectedYear={selectedYear} onCategoryClick={onCategoryClick} /> : <LockedFeaturePreview title="Anomaly Alerts" description="Deteksi pola transaksi tidak biasa tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
         </>
       )}
 
@@ -482,7 +483,7 @@ export default function StatsTab({
             )
           )}
 
-          {!isFeatureEnabled(effectiveEntitlement, "cashFlowForecast") ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={routineAnalyticsMonthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." />}
+          {!isFeatureEnabled(effectiveEntitlement, "cashFlowForecast") ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={routineAnalyticsMonthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
           <SavingsRateTrend monthlyData={routineAnalyticsMonthlyData} />
 
           {/* Month comparison */}
@@ -666,7 +667,7 @@ export default function StatsTab({
                 userName={userName}
                 entitlement={effectiveEntitlement}
               />
-              {!isFeatureEnabled(effectiveEntitlement, "yearInReview") ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} routineMonthlyData={routineMonthlyData} userName={userName} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." />}
+              {!isFeatureEnabled(effectiveEntitlement, "yearInReview") ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} routineMonthlyData={routineMonthlyData} userName={userName} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." proRegistrationOpen={proRegistrationOpen} />}
             </div>
           </div>
           <RecapSection transactions={data?.transactions || []} history={data?.history} onEdit={onEditTx} onDelete={onDeleteTx} />

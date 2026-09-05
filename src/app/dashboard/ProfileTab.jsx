@@ -10,6 +10,7 @@ import SegmentedButtons from "./_components/SegmentedButtons"
 import CategoryManager from "@/components/CategoryManager"
 import DocsSection from "@/components/DocsSection"
 import UserNameSetup from "@/components/UserNameSetup"
+import { isProRegistrationOpen } from "@/lib/featureAccess"
 
 const THEME_OPTIONS = ["Terang", "Gelap", "Sistem"]
 const THEME_MODE_BY_LABEL = { Terang: "light", Gelap: "dark", Sistem: "system" }
@@ -99,6 +100,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
   const [editDate, setEditDate] = useState("")
   const [savingSaldo, setSavingSaldo] = useState(false)
   const tierLabel = formatTierLabel(entitlement?.tier || data?.tier)
+  const proRegistrationOpen = isProRegistrationOpen(entitlement)
   const quotaEntries = Object.entries(entitlement?.usage || {})
   const displayName = userName || session?.user?.name || ""
 
@@ -231,7 +233,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
             href="/upgrade"
             className="mt-4 block w-full rounded-2xl bg-violet-600 px-4 py-3 text-center text-sm font-bold text-white hover:bg-violet-700"
           >
-            Upgrade ke Pro
+            {proRegistrationOpen ? "Upgrade ke Pro" : "Pro sementara ditutup"}
           </Link>
         )}
       </SectionCard>

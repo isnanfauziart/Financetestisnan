@@ -9,7 +9,7 @@ import BillPayModal from "./BillPayModal"
 import FeatureEducation from "./FeatureEducation"
 import LockedFeaturePreview from "./LockedFeaturePreview"
 import RecurringExpenseRadar from "./RecurringExpenseRadar"
-import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
+import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featureAccess"
 
 const STATUS_ICONS = {
   overdue: AlertTriangle,
@@ -33,7 +33,7 @@ const FREQ_LABELS = {
   yearly: "Tahunan",
 }
 
-export default function BillsSection({ onToast, refreshTrigger, onUsageChange, onBillsChanged, transactionUsage, transactions = [], now, entitlement, settings, onSettingsChanged, sessionKey }) {
+export default function BillsSection({ onToast, refreshTrigger, onUsageChange, onBillsChanged, transactionUsage, transactions = [], now, entitlement, settings, onSettingsChanged, sessionKey, proRegistrationOpen: proRegistrationOpenProp }) {
   const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -140,6 +140,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
 
   const radarAvailable = entitlement && isFeatureEnabled(entitlement, "recurringExpenseRadar")
   const radarEnabled = entitlement && hasFeature(entitlement, "recurringExpenseRadar")
+  const proRegistrationOpen = proRegistrationOpenProp === undefined ? isProRegistrationOpen(entitlement) : proRegistrationOpenProp
   const handleRecurringDismiss = async (fingerprint) => {
     const response = await fetch("/api/settings", {
       method: "PUT",
@@ -403,10 +404,10 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
               onDismiss={handleRecurringDismiss}
             />
           ) : (
-            <LockedFeaturePreview title="Recurring Expense Radar" description="Deteksi pengeluaran rutin tersedia di Pro." />
+            <LockedFeaturePreview title="Recurring Expense Radar" description="Deteksi pengeluaran rutin tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />
           )
         ) : (
-          <LockedFeaturePreview title="Recurring Expense Radar" description="Fitur sedang tidak tersedia." unavailable />
+          <LockedFeaturePreview title="Recurring Expense Radar" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} />
         )
       )}
 
@@ -448,6 +449,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
             await onBillsChanged?.()
             onUsageChange?.()
           }}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
 
@@ -462,6 +464,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
             setSetupState({ mode: "edit", bill })
           }}
           transactionUsage={transactionUsage}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
     </div>

@@ -22,6 +22,7 @@ import { PAYMENT_AMOUNT, whatsappUrl } from "@/lib/payments"
 const QR_PATH = "/payment/qris-gopay.jpeg"
 const HISTORY_LIMIT = 20
 const ACTIVE_STATUSES = new Set(["awaiting_payment", "pending"])
+const PRO_REGISTRATION_CLOSED_DETAIL = "pendaftaran Pro sedang ditutup sementara. Silakan coba lagi nanti."
 const FINAL_STATUS_LABELS = {
   approved: "Disetujui",
   rejected: "Ditolak",
@@ -121,6 +122,7 @@ export default function PaymentQrisFlow() {
   const [busy, setBusy] = useState("")
   const [error, setError] = useState("")
   const [available, setAvailable] = useState(true)
+  const [registrationOpen, setRegistrationOpen] = useState(true)
   const [copied, setCopied] = useState("")
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState("")
@@ -131,7 +133,7 @@ export default function PaymentQrisFlow() {
   const activePayment = useMemo(() => getActivePayment(payments), [payments])
   const paymentState = useMemo(() => getPaymentState(activePayment, now), [activePayment, now])
   const history = payments.filter((payment) => payment.id !== activePayment?.id)
-  const isPro = tier === "pro" || payments.some((payment) => payment.status === "approved")
+  const isPro = tier === "pro" || tier === "paid" || payments.some((payment) => payment.status === "approved")
 
   useEffect(() => {
     loadPayments(0)
@@ -158,9 +160,11 @@ export default function PaymentQrisFlow() {
       setPayments((current) => nextOffset === 0 ? data.payments : [...current, ...data.payments])
       setTotal(data.total || 0)
       setTier(data.tier || "free")
+      setRegistrationOpen(data.proRegistrationOpen !== false)
       setOffset(nextOffset + HISTORY_LIMIT)
     } catch (err) {
       if (err.code === "FEATURE_DISABLED") setAvailable(false)
+      if (err.code === "PRO_REGISTRATION_CLOSED") setRegistrationOpen(false)
       setError(err.message)
     } finally {
       setLoading(false)
@@ -185,8 +189,15 @@ export default function PaymentQrisFlow() {
       ])
       setTotal((current) => current + 1)
     } catch (err) {
-      if (err.code === "FEATURE_DISABLED") setAvailable(false)
-      setError(err.message)
+      if (err.code === "FEATURE_DISABLED") {
+        setAvailable(false)
+        setError(err.message)
+      } else if (err.code === "PRO_REGISTRATION_CLOSED") {
+        setRegistrationOpen(false)
+        setError("")
+      } else {
+        setError(err.message)
+      }
     } finally {
       setBusy("")
     }
@@ -252,6 +263,7 @@ export default function PaymentQrisFlow() {
   }
 
   const supportUrl = whatsappUrl(activePayment?.reference || "Upgrade Artami", "pembayaran QRIS")
+  const showPaymentDetails = registrationOpen || Boolean(activePayment) || isPro
 
   if (!available) {
     return (
@@ -278,15 +290,19 @@ export default function PaymentQrisFlow() {
             <h1 className="mt-3 font-display text-4xl font-bold leading-tight md:text-5xl">
               Artami Pro sekali bayar.
             </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-cream-100">
-              Bayar via QRIS, unggah bukti, lalu admin mengaktifkan Pro setelah verifikasi.
-            </p>
+            {showPaymentDetails ? (
+              <p className="mt-4 max-w-xl text-base leading-7 text-cream-100">
+                Bayar via QRIS, unggah bukti, lalu admin mengaktifkan Pro setelah verifikasi.
+              </p>
+            ) : null}
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <InfoTile label="Nominal" value={rupiah(PAYMENT_AMOUNT)} />
-              <InfoTile label="Merchant" value="FAWAID DIGITAL STORE, DIGITAL & KREATIF" />
-              <InfoTile label="Akses" value="Lifetime" />
-            </div>
+            {showPaymentDetails ? (
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                <InfoTile label="Nominal" value={rupiah(PAYMENT_AMOUNT)} />
+                <InfoTile label="Merchant" value="FAWAID DIGITAL STORE, DIGITAL & KREATIF" />
+                <InfoTile label="Akses" value="Lifetime" />
+              </div>
+            ) : null}
 
             {isPro ? (
               <div className="mt-6 flex items-start gap-3 rounded-2xl bg-sage-100 p-4 text-sage-700">
@@ -323,6 +339,8 @@ export default function PaymentQrisFlow() {
                   supportUrl={supportUrl}
                 />
               )
+            ) : !registrationOpen && !isPro ? (
+              <ClosedRegistrationPanel />
             ) : (
               <StartPanel busy={busy} isPro={isPro} onStart={() => startPayment(false)} />
             )}
@@ -344,6 +362,20 @@ export default function PaymentQrisFlow() {
         />
       </div>
     </main>
+  )
+}
+
+function ClosedRegistrationPanel() {
+  return (
+    <div className="flex min-h-[440px] flex-col justify-center">
+      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
+        <h2 className="font-display text-2xl font-bold">Upgrade Pro sedang penuh</h2>
+        <p className="mt-3 text-sm leading-6">Untuk menjaga Artami tetap stabil, {PRO_REGISTRATION_CLOSED_DETAIL}</p>
+      </div>
+      <Link href="/dashboard" className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl bg-earth-900 px-4 text-sm font-bold text-white hover:bg-earth-800">
+        Kembali ke dashboard
+      </Link>
+    </div>
   )
 }
 

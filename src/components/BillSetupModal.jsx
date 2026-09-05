@@ -7,7 +7,7 @@ import SelectField from "@/app/dashboard/_components/SelectField"
 import QuotaNotice from "./QuotaNotice"
 import { useSettings } from "@/lib/useSharedData"
 
-export default function BillSetupModal({ bill, initialValues, onClose, onSaved, sessionKey }) {
+export default function BillSetupModal({ bill, initialValues, onClose, onSaved, sessionKey, proRegistrationOpen = true }) {
   const { settings } = useSettings(sessionKey)
   const isEdit = !!bill
   const values = bill || initialValues || {}
@@ -199,7 +199,7 @@ export default function BillSetupModal({ bill, initialValues, onClose, onSaved, 
           />
         </div>
 
-        <QuotaNotice error={error} />
+        <QuotaNotice error={error} proRegistrationOpen={proRegistrationOpen} />
 
         {/* Save button */}
         <button

@@ -6,7 +6,7 @@ import { formatRpFull, formatInputRupiah } from "@/app/dashboard/_components/hel
 import Sheet from "@/app/dashboard/_components/Sheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
 
-export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, transactionUsage }) {
+export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, transactionUsage, proRegistrationOpen = true }) {
   const [rawAmount, setRawAmount] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -131,7 +131,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
           )}
         </div>
 
-        <TransactionQuotaStatus usage={transactionUsage} error={error} />
+        <TransactionQuotaStatus usage={transactionUsage} error={error} proRegistrationOpen={proRegistrationOpen} />
 
         <button
           onClick={() => handlePay(false)}

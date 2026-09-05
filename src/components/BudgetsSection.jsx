@@ -22,6 +22,7 @@ export default function BudgetsSection({
   billsLoading = false,
   billsError = null,
   now,
+  proRegistrationOpen = true,
 }) {
   const [setupState, setSetupState] = useState(null)
   const [detailBudget, setDetailBudget] = useState(null)
@@ -203,13 +204,14 @@ export default function BudgetsSection({
       )}
 
       {setupState && (
-        <BudgetSetupModal
+          <BudgetSetupModal
           budget={setupState.budget}
           defaultMonth={selectedMonth !== "Semua Bulan" ? selectedMonth : undefined}
           defaultYear={selectedYear !== "Semua Tahun" ? selectedYear : undefined}
           prefillKategori={setupState.prefillKategori}
           onClose={closeSetup}
           onSaved={handleSaved}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
 

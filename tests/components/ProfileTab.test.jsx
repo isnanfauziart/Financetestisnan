@@ -158,4 +158,16 @@ describe("ProfileTab ownership cleanup", () => {
     expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveAttribute("href", "/upgrade")
     expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveClass("bg-violet-600")
   })
+
+  it("labels the Profile upgrade entry as temporarily closed when registration is unavailable", () => {
+    render(<ProfileTab {...createProps({
+      entitlement: {
+        tier: "free",
+        featureAvailability: { proRegistration: false },
+        usage: {},
+      },
+    })} />)
+
+    expect(screen.getByRole("link", { name: "Pro sementara ditutup" })).toHaveAttribute("href", "/upgrade")
+  })
 })

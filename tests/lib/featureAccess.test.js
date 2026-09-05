@@ -20,4 +20,13 @@ describe("effective feature access", () => {
     expect(hasFeature(null, "healthScore")).toBe(false)
     expect(hasFeature({ entitlementVerified: false, features: { healthScore: true } }, "healthScore")).toBe(false)
   })
+
+  it("exposes global Pro registration availability without treating missing metadata as closed", async () => {
+    const { isProRegistrationOpen } = await import("@/lib/featureAccess")
+
+    expect(isProRegistrationOpen({ featureAvailability: { proRegistration: false } })).toBe(false)
+    expect(isProRegistrationOpen({ featureAccess: { proRegistration: true } })).toBe(true)
+    expect(isProRegistrationOpen({ featureAvailability: { budgets: false } })).toBe(true)
+    expect(isProRegistrationOpen({ featureAvailability: { budgets: false }, featureAccess: { proRegistration: false } })).toBe(false)
+  })
 })

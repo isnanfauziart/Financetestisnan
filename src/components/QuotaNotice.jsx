@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 
-export default function QuotaNotice({ error }) {
+export default function QuotaNotice({ error, proRegistrationOpen = true }) {
   const [dismissed, setDismissed] = useState(false)
   useEffect(() => { setDismissed(false) }, [error])
   if (!error || dismissed) return null
@@ -13,7 +13,7 @@ export default function QuotaNotice({ error }) {
       <div className="flex items-center gap-1 flex-shrink-0">
         {error?.code === "FEATURE_LIMIT_REACHED" && (
           <Link href="/upgrade" className="btn-filled min-h-[40px] px-4 py-2 text-xs">
-            Upgrade ke Pro
+            {proRegistrationOpen === false || error?.code === "PRO_REGISTRATION_CLOSED" ? "Pro sementara ditutup" : "Upgrade ke Pro"}
           </Link>
         )}
         <button

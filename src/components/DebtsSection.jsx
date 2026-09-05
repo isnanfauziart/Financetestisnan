@@ -11,7 +11,7 @@ import FeatureEducation from "./FeatureEducation"
 import ConfirmSheet from "@/app/dashboard/_components/ConfirmSheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
 
-export default function DebtsSection({ onToast, onUsageChange, transactionUsage }) {
+export default function DebtsSection({ onToast, onUsageChange, transactionUsage, proRegistrationOpen = true }) {
   const { debts, loading, error, refetch } = useDebts()
   const [setupOpen, setSetupOpen] = useState(false)
   const [editingDebt, setEditingDebt] = useState(null)
@@ -217,6 +217,7 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
           debt={editingDebt}
           onClose={() => { setSetupOpen(false); setEditingDebt(null) }}
           onSaved={handleSaved}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
 
@@ -227,6 +228,7 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
           onSaved={handleSaved}
           onToast={onToast}
           transactionUsage={transactionUsage}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
 
@@ -240,7 +242,7 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage 
           onClose={() => { if (!settling) { setSettleDebt(null); setSettleError(null) } }}
           confirming={settling}
         >
-          <TransactionQuotaStatus usage={transactionUsage} error={settleError} />
+          <TransactionQuotaStatus usage={transactionUsage} error={settleError} proRegistrationOpen={proRegistrationOpen} />
         </ConfirmSheet>
       )}
 

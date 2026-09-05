@@ -11,7 +11,7 @@ import { useSettings } from "@/lib/useSharedData"
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = [String(CURRENT_YEAR - 1), String(CURRENT_YEAR), String(CURRENT_YEAR + 1)]
 
-export default function BudgetSetupModal({ budget, defaultMonth, defaultYear, prefillKategori, onClose, onSaved }) {
+export default function BudgetSetupModal({ budget, defaultMonth, defaultYear, prefillKategori, onClose, onSaved, proRegistrationOpen = true }) {
   const { settings } = useSettings()
   const isEdit = Boolean(budget)
   const [kategori, setKategori] = useState(budget?.kategori || prefillKategori || "")
@@ -113,7 +113,7 @@ export default function BudgetSetupModal({ budget, defaultMonth, defaultYear, pr
           />
         </div>
 
-        <QuotaNotice error={error} />
+        <QuotaNotice error={error} proRegistrationOpen={proRegistrationOpen} />
 
         <button
           type="submit"

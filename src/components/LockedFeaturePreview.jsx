@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { Lock, Sparkles } from "lucide-react"
 
-export default function LockedFeaturePreview({ title, description, href = "/upgrade", unavailable = false }) {
+export default function LockedFeaturePreview({ title, description, href = "/upgrade", unavailable = false, proRegistrationOpen = true }) {
   if (unavailable) {
     return (
       <section className="bento-tile bg-md3-surface border border-md3-outline-variant p-5" aria-label={`${title} tidak tersedia`}>
@@ -23,7 +23,7 @@ export default function LockedFeaturePreview({ title, description, href = "/upgr
         <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center flex-shrink-0"><Lock size={16} aria-hidden="true" /></div>
         <div className="min-w-0 flex-1"><h3 className="text-sm font-bold text-md3-on-surface">{title}</h3><p className="text-xs text-md3-on-surface-variant mt-1">{description}</p></div>
       </div>
-      <Link href={href} aria-label={`Buka Pro untuk ${title}`} className="mt-4 inline-flex items-center gap-2 rounded-full bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-700"><Sparkles size={13} aria-hidden="true" /> Buka Pro</Link>
+      <Link href={href} aria-label={proRegistrationOpen === false ? "Pro sementara ditutup" : `Buka Pro untuk ${title}`} className="mt-4 inline-flex items-center gap-2 rounded-full bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-700"><Sparkles size={13} aria-hidden="true" /> {proRegistrationOpen === false ? "Pro sementara ditutup" : "Buka Pro"}</Link>
     </section>
   )
 }

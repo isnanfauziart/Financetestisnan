@@ -37,6 +37,16 @@ describe("feature flag foundation", () => {
     expect((await resolveFeatureAccess({ id: "u2", tier: "paid" }, { client })).budgets).toBe(true)
   })
 
+  it("keeps Pro registration global-only even when a crafted user override exists", async () => {
+    const { resolveFeatureAccess } = await import("@/lib/featureFlags")
+    const client = makeClient({
+      flags: [{ key: "pro_registration", enabled: true }],
+      overrides: [{ user_id: "u1", feature_key: "proRegistration", enabled: false }],
+    })
+
+    expect((await resolveFeatureAccess({ id: "u1", tier: "free" }, { client })).proRegistration).toBe(true)
+  })
+
   it("applies due schedules, leaves future schedules pending, and replaces them", async () => {
     const { resolveFeatureAccess } = await import("@/lib/featureFlags")
     const update = vi.fn(() => ({ eq: () => ({ eq: () => ({ select: async () => ({ data: [], error: null }) }) }) }))

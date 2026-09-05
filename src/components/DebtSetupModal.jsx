@@ -7,7 +7,7 @@ import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import QuotaNotice from "./QuotaNotice"
 
-export default function DebtSetupModal({ debt, onClose, onSaved }) {
+export default function DebtSetupModal({ debt, onClose, onSaved, proRegistrationOpen = true }) {
   const isEditing = Boolean(debt?.id)
   const [namaOrang, setNamaOrang] = useState(debt?.namaOrang || "")
   const [rawJumlah, setRawJumlah] = useState(debt?.jumlah ? formatInputRupiah(String(debt.jumlah)) : "")
@@ -170,7 +170,7 @@ export default function DebtSetupModal({ debt, onClose, onSaved }) {
           />
         </div>
 
-        <QuotaNotice error={error} />
+        <QuotaNotice error={error} proRegistrationOpen={proRegistrationOpen} />
 
         <button
           type="submit"

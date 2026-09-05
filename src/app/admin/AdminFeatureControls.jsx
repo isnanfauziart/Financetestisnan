@@ -19,6 +19,7 @@ const LABELS = {
   recurringExpenseRadar: "Recurring Expense Radar",
   pdfReports: "Laporan PDF",
   paymentQris: "Pembayaran QRIS",
+  proRegistration: "Pendaftaran Pro",
   authentication: "Autentikasi",
   dataIntegrity: "Integritas data",
 }
@@ -68,7 +69,11 @@ export default function AdminFeatureControls({ onSuccess }) {
   const [selectedUsers, setSelectedUsers] = useState([])
   const [usersLoading, setUsersLoading] = useState(false)
 
-  const controllableFeatures = useMemo(() => features.filter(feature => !feature.protected), [features])
+  const controllableFeatures = useMemo(() => features.filter(feature => !feature.protected && !feature.globalOnly), [features])
+  const orderedFeatures = useMemo(() => {
+    const registration = features.find(feature => feature.key === "proRegistration")
+    return registration ? [registration, ...features.filter(feature => feature.key !== "proRegistration")] : features
+  }, [features])
 
   useEffect(() => {
     let active = true
@@ -78,7 +83,7 @@ export default function AdminFeatureControls({ onSuccess }) {
         if (!active) return
         setFeatures(Array.isArray(data.features) ? data.features : [])
         if (!targetFeature && data.features?.length) {
-          const first = data.features.find(feature => !feature.protected)
+          const first = data.features.find(feature => !feature.protected && !feature.globalOnly)
           setTargetFeature(first?.key || "")
         }
       })
@@ -110,7 +115,12 @@ export default function AdminFeatureControls({ onSuccess }) {
 
   const toggleGlobal = async (feature) => {
     const enabled = !feature.enabled
-    if (!enabled && !window.confirm(`Nonaktifkan ${labelFor(feature.key)} untuk semua pengguna? Data pengguna tetap aman dan fitur bisa diaktifkan lagi.`)) return
+    if (!enabled) {
+      const confirmation = feature.key === "proRegistration"
+        ? `Tutup Pendaftaran Pro untuk pendaftaran baru? Saat ini ${feature.awaitingCount || 0} menunggu bayar dan ${feature.pendingCount || 0} menunggu review. Permintaan aktif tetap dapat membayar atau ditinjau.`
+        : `Nonaktifkan ${labelFor(feature.key)} untuk semua pengguna? Data pengguna tetap aman dan fitur bisa diaktifkan lagi.`
+      if (!window.confirm(confirmation)) return
+    }
     const ok = await postFeature({ feature: feature.key, scope: "global", enabled }, `global-${feature.key}`, `${labelFor(feature.key)} ${enabled ? "diaktifkan" : "dinonaktifkan"}.`)
     if (ok) {
       setFeatures(current => current.map(item => item.key === feature.key ? {
@@ -142,6 +152,21 @@ export default function AdminFeatureControls({ onSuccess }) {
       ...item,
       scheduledAt,
       scheduledEnabled,
+      updatedAt: ok.updatedAt || new Date().toISOString(),
+      updatedBy: ok.updatedBy || item.updatedBy,
+    } : item))
+  }
+
+  const cancelSchedule = async (feature) => {
+    const ok = await postFeature({
+      feature: feature.key,
+      scope: "global",
+      enabled: feature.enabled,
+    }, `cancel-schedule-${feature.key}`, `Jadwal ${labelFor(feature.key)} dibatalkan.`)
+    if (ok) setFeatures(current => current.map(item => item.key === feature.key ? {
+      ...item,
+      scheduledAt: null,
+      scheduledEnabled: null,
       updatedAt: ok.updatedAt || new Date().toISOString(),
       updatedBy: ok.updatedBy || item.updatedBy,
     } : item))
@@ -202,10 +227,13 @@ export default function AdminFeatureControls({ onSuccess }) {
       {notice && <p className="mt-4 rounded-2xl border border-moss-100 bg-moss-50 px-4 py-3 text-sm font-semibold text-moss-700" role="status">{notice}</p>}
 
       <div className="mt-5 grid gap-3">
-        {features.map(feature => {
+        {orderedFeatures.map(feature => {
           const draft = scheduleDrafts[feature.key] || { at: "", enabled: feature.enabled }
+          const isRegistration = feature.key === "proRegistration"
           return (
-            <article key={feature.key} className="rounded-2xl border border-earth-100 bg-white p-4">
+            <div key={feature.key}>
+              {isRegistration && <div className="mb-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3"><p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-600">Kontrol kapasitas global</p><p className="mt-1 text-xs leading-5 text-earth-600">Menutup pendaftaran hanya menghentikan permintaan baru; pembayaran aktif tetap berjalan.</p></div>}
+            <article className={`rounded-2xl border bg-white p-4 ${isRegistration ? "border-2 border-violet-300 shadow-warm" : "border-earth-100"}`}>
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -214,7 +242,9 @@ export default function AdminFeatureControls({ onSuccess }) {
                     {feature.paidOnly && <span className="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-bold uppercase text-violet-600">Pro</span>}
                   </div>
                   <p className="mt-1 text-xs text-earth-500">{feature.description}</p>
-                  {!feature.protected && <p className="mt-1 text-xs font-semibold text-earth-400">Override pengguna: {feature.overrideCount || 0}</p>}
+                    {isRegistration && <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-earth-700"><span className="rounded-full bg-amber-50 px-2.5 py-1">{feature.awaitingCount || 0} menunggu bayar</span><span className="rounded-full bg-violet-50 px-2.5 py-1">{feature.pendingCount || 0} menunggu review</span></div>}
+                    {!feature.protected && !feature.globalOnly && <p className="mt-1 text-xs font-semibold text-earth-400">Override pengguna: {feature.overrideCount || 0}</p>}
+                    {isRegistration && <p className="mt-2 text-xs leading-5 text-earth-600">Saat ditutup, permintaan menunggu bayar tetap dapat membayar atau membatalkan, dan permintaan menunggu review tetap dapat ditinjau admin.</p>}
                   {feature.updatedAt && <p className="mt-1 text-xs text-earth-400">Terakhir diubah {formatWib(feature.updatedAt)}{feature.updatedBy ? ` oleh ${feature.updatedBy}` : ""}</p>}
                   {feature.scheduledAt && <p className="mt-2 text-xs font-semibold text-amber-700">Jadwal: {feature.scheduledEnabled ? "Aktif" : "Nonaktif"} pada {formatWib(feature.scheduledAt)}</p>}
                 </div>
@@ -249,10 +279,14 @@ export default function AdminFeatureControls({ onSuccess }) {
                       <option value="false">Nonaktif</option>
                     </select>
                   </label>
-                  <button type="button" onClick={() => scheduleGlobal(feature)} disabled={busy === `schedule-${feature.key}`} className="rounded-xl border border-earth-200 px-3 py-2 text-sm font-bold text-earth-700 hover:bg-earth-50 disabled:opacity-50">{busy === `schedule-${feature.key}` ? "Menyimpan..." : "Simpan jadwal"}</button>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => scheduleGlobal(feature)} disabled={busy === `schedule-${feature.key}`} className="rounded-xl border border-earth-200 px-3 py-2 text-sm font-bold text-earth-700 hover:bg-earth-50 disabled:opacity-50">{busy === `schedule-${feature.key}` ? "Menyimpan..." : "Simpan jadwal"}</button>
+                    {feature.scheduledAt && <button type="button" onClick={() => cancelSchedule(feature)} disabled={busy === `cancel-schedule-${feature.key}`} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-50">{busy === `cancel-schedule-${feature.key}` ? "Membatalkan..." : "Batalkan jadwal"}</button>}
+                  </div>
                 </div>
               )}
             </article>
+            </div>
           )
         })}
       </div>

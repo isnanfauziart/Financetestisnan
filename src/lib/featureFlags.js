@@ -18,6 +18,7 @@ export const FEATURE_REGISTRY = Object.freeze({
   recurringExpenseRadar: { flagKey: "recurring_expense_radar", protected: false, paidOnly: true, safeOnFailure: false },
   pdfReports: { flagKey: "pdf_reports", protected: false, paidOnly: false, safeOnFailure: false },
   paymentQris: { flagKey: "payment_qris", protected: false, paidOnly: false, safeOnFailure: false },
+  proRegistration: { flagKey: "pro_registration", protected: false, paidOnly: false, safeOnFailure: false, globalOnly: true },
   authentication: { protected: true },
   dataIntegrity: { protected: true },
 })
@@ -101,7 +102,7 @@ export async function resolveFeatureAccess(user, { client = supabaseAdmin, now =
         access[key] = true
         continue
       }
-      const row = override[key]
+      const row = definition.globalOnly ? null : override[key]
       const globalRow = global[definition.flagKey]
       const selected = row || globalRow
       if (!selected) {
@@ -159,7 +160,7 @@ export async function setGlobalFeatureFlag(key, enabled, { scheduledEnabled = nu
 
 export async function setUserFeatureOverride(userId, key, enabled, { scheduledEnabled = null, scheduledAt = null, updatedBy, client = supabaseAdmin } = {}) {
   const definition = FEATURE_REGISTRY[key]
-  if (!definition || definition.protected) throw new Error("invalid_feature_flag")
+  if (!definition || definition.protected || definition.globalOnly) throw new Error("invalid_feature_flag")
   const updatedAt = new Date().toISOString()
   const result = await client.from("feature_flag_overrides").upsert({
     user_id: userId,

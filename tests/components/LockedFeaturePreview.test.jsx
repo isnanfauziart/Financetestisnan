@@ -16,4 +16,19 @@ describe("LockedFeaturePreview", () => {
     expect(screen.getByText("Lihat ringkasan kesehatan finansial.")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /buka pro untuk health score/i })).toHaveAttribute("href", "/upgrade")
   })
+
+  it("uses the temporary-closure CTA when Pro registration is closed", async () => {
+    const { default: LockedFeaturePreview } = await import("@/components/LockedFeaturePreview")
+
+    render(
+      <LockedFeaturePreview
+        title="Health Score"
+        description="Ringkasan kesehatan finansial tersedia di Pro."
+        href="/upgrade"
+        proRegistrationOpen={false}
+      />
+    )
+
+    expect(screen.getByRole("link", { name: "Pro sementara ditutup" })).toHaveAttribute("href", "/upgrade")
+  })
 })

@@ -15,6 +15,7 @@ import {
   RequestValidationError,
 } from "@/lib/validation"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import { getPaymentRegistrationCapacity } from "@/lib/paymentRegistration"
 
 export const dynamic = "force-dynamic"
 
@@ -88,6 +89,7 @@ export async function GET(request) {
     ])
     if (error) throw error
     if (overrideError) throw overrideError
+    const capacity = await getPaymentRegistrationCapacity()
     const overrideCounts = (overrideRows || []).reduce((counts, row) => {
       counts[row.feature_key] = (counts[row.feature_key] || 0) + 1
       return counts
@@ -96,17 +98,26 @@ export async function GET(request) {
     const rows = Object.entries(FEATURE_REGISTRY).map(([key, definition]) => {
       const row = (data || []).find(item => item.key === definition.flagKey)
       const scheduledAt = row?.scheduled_at ? new Date(row.scheduled_at) : null
-      const pending = scheduledAt && Number.isFinite(scheduledAt.getTime()) && scheduledAt.getTime() > Date.now()
+      const validSchedule = scheduledAt && Number.isFinite(scheduledAt.getTime()) && typeof row?.scheduled_enabled === "boolean"
+      const pending = validSchedule && scheduledAt.getTime() > Date.now()
+      const due = validSchedule && scheduledAt.getTime() <= Date.now()
+      const enabled = definition.protected
+        ? true
+        : due
+          ? Boolean(row?.scheduled_enabled)
+          : Boolean(row?.enabled ?? definition.safeOnFailure)
       return {
         key,
         flagKey: definition.flagKey || null,
         description: row?.description || definition.flagKey || key,
-        enabled: definition.protected ? true : Boolean(row?.enabled ?? definition.safeOnFailure),
+        enabled,
         protected: Boolean(definition.protected),
         paidOnly: Boolean(definition.paidOnly),
         updatedAt: row?.updated_at || null,
         updatedBy: row?.updated_by || null,
-        overrideCount: overrideCounts[key] || 0,
+        globalOnly: Boolean(definition.globalOnly),
+        overrideCount: definition.globalOnly ? 0 : overrideCounts[key] || 0,
+        ...(key === "proRegistration" ? capacity : {}),
         scheduledAt: pending ? scheduledAt.toISOString() : null,
         scheduledEnabled: pending && typeof row.scheduled_enabled === "boolean" ? row.scheduled_enabled : null,
       }
@@ -127,6 +138,10 @@ export async function POST(request) {
     const key = requireFeatureKey(body.feature ?? body.key)
     const scope = oneOf(body.scope, ["global", "users"])
     const schedule = readSchedule(body, new Date())
+
+    if (scope === "users" && FEATURE_REGISTRY[key]?.globalOnly) {
+      throw new RequestValidationError("GLOBAL_ONLY_FEATURE")
+    }
 
     if (scope === "global") {
       const enabled = booleanValue(body.enabled)

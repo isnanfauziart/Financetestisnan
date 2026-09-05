@@ -22,7 +22,7 @@ function getDefaultDateRange(templateKey) {
   }
 }
 
-export default function EventSetupModal({ event, onClose, onSaved }) {
+export default function EventSetupModal({ event, onClose, onSaved, proRegistrationOpen = true }) {
   const isEdit = !!event
 
   const [selectedTemplate, setSelectedTemplate] = useState(event?.tipe || "")
@@ -252,7 +252,7 @@ export default function EventSetupModal({ event, onClose, onSaved }) {
             className="w-full px-4 py-3 rounded-2xl text-sm glass text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200 resize-none" />
         </div>
 
-        <QuotaNotice error={error} />
+        <QuotaNotice error={error} proRegistrationOpen={proRegistrationOpen} />
 
         {/* Save */}
         <button onClick={handleSave} disabled={saving || !nama.trim() || !rawBudget || !tanggalMulai || !tanggalSelesai}

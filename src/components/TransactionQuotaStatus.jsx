@@ -1,7 +1,7 @@
 "use client"
 import QuotaNotice from "./QuotaNotice"
 
-export default function TransactionQuotaStatus({ usage, error }) {
+export default function TransactionQuotaStatus({ usage, error, proRegistrationOpen = true }) {
   const reachedError = error || (usage?.warning === "reached" ? {
     error: `Batas ${usage.limit} transaksi bulan ini sudah tercapai.`,
     code: "FEATURE_LIMIT_REACHED",
@@ -13,7 +13,7 @@ export default function TransactionQuotaStatus({ usage, error }) {
           {usage.current} dari {usage.limit} transaksi bulan ini. Batas akan direset pada periode berikutnya.
         </p>
       )}
-      <QuotaNotice error={reachedError} />
+      <QuotaNotice error={reachedError} proRegistrationOpen={proRegistrationOpen} />
     </>
   )
 }

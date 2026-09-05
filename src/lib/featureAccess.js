@@ -20,3 +20,12 @@ export function hasFeature(entitlement, key) {
 
   return true
 }
+
+export function isProRegistrationOpen(entitlement) {
+  if (entitlement === null || entitlement === undefined) return true
+  const availability = entitlement?.featureAvailability
+  if (availability && Object.prototype.hasOwnProperty.call(availability, "proRegistration")) return Boolean(availability.proRegistration)
+  const access = entitlement?.featureAccess
+  if (access && Object.prototype.hasOwnProperty.call(access, "proRegistration")) return Boolean(access.proRegistration)
+  return true
+}

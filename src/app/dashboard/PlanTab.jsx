@@ -9,7 +9,7 @@ import BudgetsSection from "@/components/BudgetsSection"
 import BillsSection from "@/components/BillsSection"
 import EventBudgetsSection from "@/components/EventBudgetsSection"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
-import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
+import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featureAccess"
 
 const FITrackerCard = dynamic(() => import("@/components/FITrackerCard"), { ssr: false })
 
@@ -108,6 +108,7 @@ export default function PlanTab({
     ? requestedSection
     : visibleSections[0]?.key
   const simulationAvailable = isFeatureEnabled(entitlement, "financialIndependence") || isFeatureEnabled(entitlement, "whatIf")
+  const proRegistrationOpen = isProRegistrationOpen(entitlement)
 
   const handleSectionChange = (sectionKey) => {
     if (onSectionChange) {
@@ -224,6 +225,7 @@ export default function PlanTab({
             refreshTrigger={goalsRefreshTrigger}
             onUsageChange={onUsageChange}
             transactionUsage={transactionUsage}
+            proRegistrationOpen={proRegistrationOpen}
           />
         )}
 
@@ -241,6 +243,7 @@ export default function PlanTab({
              billsLoading={billsLoading}
              billsError={billsError}
              now={now}
+             proRegistrationOpen={proRegistrationOpen}
            />
           </div>
         )}
@@ -258,18 +261,19 @@ export default function PlanTab({
              settings={settings}
              onSettingsChanged={onSettingsChanged}
              sessionKey={sessionKey}
+             proRegistrationOpen={proRegistrationOpen}
            />
         )}
 
-        {currentSection === "utang" && hasFeature(entitlement, "debts") && <DebtsSection onToast={onToast} onUsageChange={onUsageChange} transactionUsage={transactionUsage} />}
+        {currentSection === "utang" && hasFeature(entitlement, "debts") && <DebtsSection onToast={onToast} onUsageChange={onUsageChange} transactionUsage={transactionUsage} proRegistrationOpen={proRegistrationOpen} />}
 
-        {currentSection === "event" && hasFeature(entitlement, "momental") && <EventBudgetsSection filteredTransactions={filteredTransactions} onToast={onToast} refreshTrigger={eventsRefreshTrigger || 0} onUsageChange={onUsageChange} />}
+        {currentSection === "event" && hasFeature(entitlement, "momental") && <EventBudgetsSection filteredTransactions={filteredTransactions} onToast={onToast} refreshTrigger={eventsRefreshTrigger || 0} onUsageChange={onUsageChange} proRegistrationOpen={proRegistrationOpen} />}
 
         {currentSection === "simulasi" && (
           <div className="space-y-5">
-             {!isFeatureEnabled(entitlement, "financialIndependence") ? <LockedFeaturePreview title="Financial Freedom" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(entitlement, "financialIndependence") ? <FITrackerCard netWorth={data?.netWorth} monthlyData={monthlyData} netWorthHistory={netWorthHistory} now={now} /> : <LockedFeaturePreview title="Financial Freedom" description="Pelacak Financial Freedom tersedia di Pro." />}
+             {!isFeatureEnabled(entitlement, "financialIndependence") ? <LockedFeaturePreview title="Financial Freedom" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(entitlement, "financialIndependence") ? <FITrackerCard netWorth={data?.netWorth} monthlyData={monthlyData} netWorthHistory={netWorthHistory} now={now} /> : <LockedFeaturePreview title="Financial Freedom" description="Pelacak Financial Freedom tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
 
-            {!isFeatureEnabled(entitlement, "whatIf") ? <LockedFeaturePreview title="What-If" description="Fitur sedang tidak tersedia." unavailable /> : hasFeature(entitlement, "whatIf") ? <button onClick={onWhatIfOpen} className="w-full bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm active:scale-[0.99] transition-transform text-left" aria-label="Open What-If Scenario simulator"><div className="flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: THEME.primaryBg, color: THEME.primary }}><Calculator size={16} aria-hidden="true" /></div><div><p className="text-sm font-bold text-md3-on-surface">What-If Scenario</p><p className="text-[10px] text-md3-on-surface-variant mt-0.5">Simulasi dampak pengurangan pengeluaran ke goal</p></div></div><ArrowRight size={14} className="text-earth-400" aria-hidden="true" /></div></button> : <LockedFeaturePreview title="What-If" description="Simulasi dampak pengurangan pengeluaran tersedia di Pro." />}
+            {!isFeatureEnabled(entitlement, "whatIf") ? <LockedFeaturePreview title="What-If" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(entitlement, "whatIf") ? <button onClick={onWhatIfOpen} className="w-full bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm active:scale-[0.99] transition-transform text-left" aria-label="Open What-If Scenario simulator"><div className="flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: THEME.primaryBg, color: THEME.primary }}><Calculator size={16} aria-hidden="true" /></div><div><p className="text-sm font-bold text-md3-on-surface">What-If Scenario</p><p className="text-[10px] text-md3-on-surface-variant mt-0.5">Simulasi dampak pengurangan pengeluaran ke goal</p></div></div><ArrowRight size={14} className="text-earth-400" aria-hidden="true" /></div></button> : <LockedFeaturePreview title="What-If" description="Simulasi dampak pengurangan pengeluaran tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
           </div>
         )}
       </div>

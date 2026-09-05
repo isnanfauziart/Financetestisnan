@@ -11,7 +11,7 @@ import GoalSetupModal from "./GoalSetupModal"
 import GoalContributeModal from "./GoalContributeModal"
 import GoalSettleModal from "./GoalSettleModal"
 
-export default function GoalsSection({ data, transactions, onToast, refreshTrigger, onUsageChange, transactionUsage, now }) {
+export default function GoalsSection({ data, transactions, onToast, refreshTrigger, onUsageChange, transactionUsage, now, proRegistrationOpen = true }) {
   const { goals, loading, error, refetch } = useGoals()
   const [setupState, setSetupState] = useState(null)
   const [contributeGoal, setContributeGoal] = useState(null)
@@ -262,6 +262,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
             refetch()
             onUsageChange?.()
           }}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
 
@@ -276,6 +277,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
             onUsageChange?.()
           }}
           transactionUsage={transactionUsage}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
 

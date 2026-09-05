@@ -7,7 +7,7 @@ import EventCard from "./EventCard"
 import EventSetupModal from "./EventSetupModal"
 import EventDetailModal from "./EventDetailModal"
 
-export default function EventBudgetsSection({ filteredTransactions, onToast, refreshTrigger, onUsageChange }) {
+export default function EventBudgetsSection({ filteredTransactions, onToast, refreshTrigger, onUsageChange, proRegistrationOpen = true }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -193,6 +193,7 @@ export default function EventBudgetsSection({ filteredTransactions, onToast, ref
             fetchEvents()
             onUsageChange?.()
           }}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
 

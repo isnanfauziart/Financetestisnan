@@ -10,7 +10,7 @@ import HealthScoreCard from "@/components/HealthScoreCard"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import { useBudgets, useBills, useSettings } from "@/lib/useSharedData"
 import { getFocusNote } from "./_components/focusNote"
-import { hasFeature, isFeatureEnabled } from "@/lib/featureAccess"
+import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featureAccess"
 import { isSpecialExpense } from "@/lib/expenseClass"
 import { getWibDateParts } from "@/lib/wibCalendar"
 import { matchesBudgetPeriod } from "@/lib/budgetPace"
@@ -53,6 +53,7 @@ export default function HomeTab({
   entitlement,
   sessionKey,
 }) {
+  const proRegistrationOpen = isProRegistrationOpen(entitlement)
   const animatedBalance = useCountUpOvershoot(data?.netWorth || 0)
   const monthlyDelta = data?.netWorthMonthlyDelta || 0
   const cashFlowIncome = Number(statIncome) || 0
@@ -387,11 +388,11 @@ export default function HomeTab({
 
       {/* Financial Health Score follows the planning narrative and insights. */}
       {!isFeatureEnabled(entitlement, "healthScore") ? (
-        <LockedFeaturePreview title="Health Score" description="Fitur sedang tidak tersedia." unavailable />
+        <LockedFeaturePreview title="Health Score" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} />
       ) : hasFeature(entitlement, "healthScore") ? (
         <HealthScoreCard transactions={data?.transactions} monthlyData={monthlyData} selectedMonth={selectedMonth} selectedYear={selectedYear} liquidSavingsCategories={liquidSavingsCategories} />
       ) : (
-        <LockedFeaturePreview title="Health Score" description="Ringkasan kesehatan keuangan tersedia di Pro." />
+        <LockedFeaturePreview title="Health Score" description="Ringkasan kesehatan keuangan tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />
       )}
 
       {/* Recent transactions */}

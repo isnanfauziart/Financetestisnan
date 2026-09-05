@@ -102,7 +102,7 @@ Implementation surface:
 
 | Route / file | Purpose |
 |---|---|
-| `/api/payments` | Create request, upload proof, list own history |
+| `/api/payments` | Create request, upload proof, list own history; new requests honor the global Pro registration valve |
 | `/api/payments/[id]` | Cancel own request, fetch own status |
 | `/api/payments/[id]/proof` | Short-lived signed URL for own proof |
 | `/api/admin/payments` | Pending queue, searchable history |
@@ -117,6 +117,37 @@ Implementation surface:
 | `src/app/dashboard/_components/PaymentStatusBanner.jsx` | Approved/rejected/revoked banners |
 | Supabase Storage `payment-proofs` | Private bucket; never expose the storage path |
 | `supabase/007-payments-phase2.sql` | Tables, audit fields, active-request constraint, atomic review function |
+| `supabase/012-pro-registration-capacity.sql` | Global-only `pro_registration` flag and service-role atomic payment creation RPC |
+
+### Pro registration capacity flow
+
+`proRegistration` (`Pendaftaran Pro`) is a global-only admin control. It is open
+by default after migration `012`; it records `updated_at`/`updated_by` and uses
+the existing one-time schedule pattern. Admin scheduling accepts WIB in the
+Feature Controls UI, stores UTC, and evaluates the transition at request time;
+no cron process is required. A pending schedule can be replaced or cancelled.
+
+When the valve is closed, `/api/payments` rejects only new or replacement
+payment requests with `PRO_REGISTRATION_CLOSED`. The check and insert run in a
+short service-role Postgres RPC that locks the registration row, so a close
+that commits first cannot admit a later request. Missing or unreadable state
+fails closed. Existing `awaiting_payment` requests can continue their current
+proof/cancel flow until their existing deadlines, `pending` requests remain reviewable, and payment history
+and authorized proof access remain available. `paymentQris` remains the
+stronger emergency control for all payment GET/PATCH/creation paths.
+
+The admin Feature Controls tab presents `Pendaftaran Pro` above the normal
+feature list with current `menunggu bayar` and `menunggu review` counts, change
+metadata, schedule status, and immediate/scheduled Open/Close actions. Closing
+requires confirmation that states both counts and that active requests continue.
+User-scope overrides are rejected for this global-only control.
+
+On `/upgrade`, a Free user without an active request sees `Upgrade Pro sedang
+penuh` and a dashboard return action when registration is closed; QRIS details
+and the start action stay hidden. Active `awaiting_payment`/`pending` requests
+retain their existing flow, including while closed. Dashboard Profile, quota,
+and locked-Pro entry points keep linking to `/upgrade` and use
+`Pro sementara ditutup` while the valve is closed.
 
 ## Phase 3: Feature Gating
 

@@ -71,7 +71,7 @@ function buildDeadline(month, year) {
   return `${year}-${String(idx + 1).padStart(2, "0")}`
 }
 
-export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClose, onSaved }) {
+export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClose, onSaved, proRegistrationOpen = true }) {
   const { settings } = useSettings()
   const isEdit = Boolean(goal)
   const initDeadline = parseDeadline(goal?.deadline)
@@ -221,7 +221,7 @@ export default function GoalSetupModal({ goal, defaultMonth, defaultYear, onClos
           </div>
         </div>
 
-        <QuotaNotice error={error} />
+        <QuotaNotice error={error} proRegistrationOpen={proRegistrationOpen} />
 
         <button type="submit" disabled={submitting} className="btn-filled w-full mt-2">
           {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : isEdit ? "Simpan Perubahan" : "Buat Goal"}

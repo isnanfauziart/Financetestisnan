@@ -34,7 +34,7 @@ import UserNameSetup from "@/components/UserNameSetup"
 import PaymentStatusBanner from "./_components/PaymentStatusBanner"
 import { SharedDataScopeContext, useBills, useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
-import { hasFeature } from "@/lib/featureAccess"
+import { hasFeature, isProRegistrationOpen } from "@/lib/featureAccess"
 import { getEffectiveUserName } from "@/lib/userDisplayName"
 import { isSpecialExpense } from "@/lib/expenseClass"
 import { getCategoryVisual } from "@/lib/categoryIcons"
@@ -254,6 +254,7 @@ export default function Dashboard() {
   const hasSessionData = status === "authenticated" && !!sessionKey && storedDataOwner === sessionKey
   const data = hasSessionData ? storedData : null
   const dashboardLoading = status === "authenticated" && !hasSessionData ? true : loading
+  const proRegistrationOpen = isProRegistrationOpen(entitlement)
   const lastSyncAt = hasSessionData ? storedLastSyncAt : null
 
   useEffect(() => {
@@ -833,7 +834,7 @@ export default function Dashboard() {
           result.error || "Gagal menyimpan",
           "error",
           result.code === "FEATURE_LIMIT_REACHED"
-            ? { label: "Upgrade", onClick: () => window.location.assign("/upgrade") }
+            ? { label: proRegistrationOpen ? "Upgrade" : "Pro sementara ditutup", onClick: () => window.location.assign("/upgrade") }
             : null
         )
         return { ok: false, error: result }
@@ -1343,6 +1344,7 @@ export default function Dashboard() {
              onBillsChanged={handleBillsChanged}
              transactionUsage={entitlement?.usage?.transactions}
              entitlement={entitlement}
+             proRegistrationOpen={proRegistrationOpen}
               bills={bills}
               billsLoading={billsLoading}
               billsError={billsError}
@@ -1433,6 +1435,7 @@ export default function Dashboard() {
         onSubmit={submitTransaction}
         onGoalContribute={openGoalPicker}
         transactionUsage={entitlement?.usage?.transactions}
+        proRegistrationOpen={proRegistrationOpen}
         specialSuggestion={specialSuggestion}
         transactions={data?.transactions || []}
       />
@@ -1467,6 +1470,7 @@ export default function Dashboard() {
         }}
         transactions={data?.transactions || []}
         transactionUsage={entitlement?.usage?.transactions}
+        proRegistrationOpen={proRegistrationOpen}
         onSaved={() => {
           fetchData()
           setGoalsRefreshTrigger(t => t + 1)
@@ -1487,6 +1491,7 @@ export default function Dashboard() {
           onPaid={handleBillPaid}
           onEdit={handleBillEditFromPay}
           transactionUsage={entitlement?.usage?.transactions}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
 
@@ -1496,6 +1501,7 @@ export default function Dashboard() {
           bill={billEditTarget}
           onClose={() => setBillEditTarget(null)}
           onSaved={handleBillEditSaved}
+          proRegistrationOpen={proRegistrationOpen}
         />
       )}
 

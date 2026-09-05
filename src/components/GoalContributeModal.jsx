@@ -7,7 +7,7 @@ import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
 
-export default function GoalContributeModal({ goal, onClose, onSaved, transactionUsage }) {
+export default function GoalContributeModal({ goal, onClose, onSaved, transactionUsage, proRegistrationOpen = true }) {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split("T")[0])
   const [rawAmount, setRawAmount] = useState("")
   const [akunBank, setAkunBank] = useState("")
@@ -95,7 +95,7 @@ export default function GoalContributeModal({ goal, onClose, onSaved, transactio
             className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-violet-200" />
         </div>
 
-        <TransactionQuotaStatus usage={transactionUsage} error={error} />
+        <TransactionQuotaStatus usage={transactionUsage} error={error} proRegistrationOpen={proRegistrationOpen} />
 
         <button type="submit" disabled={submitting} className="btn-filled w-full mt-2">
           {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Plus size={18} aria-hidden="true" /> Tambah Kontribusi</>}

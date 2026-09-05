@@ -1,12 +1,29 @@
 import { getPaymentUser } from "@/lib/paymentAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
-import { getPaymentWindow, normalizePaymentForClient, PAYMENT_AMOUNT } from "@/lib/payments"
+import { normalizePaymentForClient, PAYMENT_AMOUNT } from "@/lib/payments"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import {
+  createPaymentRequest,
+  getProRegistrationState,
+  PRO_REGISTRATION_CLOSED_MESSAGE,
+} from "@/lib/paymentRegistration"
 
 export const dynamic = "force-dynamic"
 
-function jsonError(message, status) {
-  return Response.json({ error: message }, { status })
+function jsonError(message, status, code = null) {
+  return Response.json(code ? { error: code, message } : { error: message }, { status })
+}
+
+function registrationErrorResponse(error) {
+  if (error?.code === "PRO_REGISTRATION_CLOSED") {
+    return jsonError(PRO_REGISTRATION_CLOSED_MESSAGE, 403, "PRO_REGISTRATION_CLOSED")
+  }
+  if (error?.code === "ACTIVE_PAYMENT") return jsonError("Anda masih memiliki satu pembayaran aktif.", 409)
+  if (error?.code === "ALREADY_PRO") return jsonError("Akun Anda sudah memiliki akses Pro.", 409)
+  if (error?.code === "PRO_REGISTRATION_UNAVAILABLE") return jsonError("Pendaftaran Pro belum dapat diproses. Coba lagi sebentar.", 503)
+  if (error?.code === "USER_NOT_FOUND") return jsonError("Silakan masuk terlebih dahulu.", 401)
+  if (error?.code === "INVALID_PAYMENT_REQUEST") return jsonError("Permintaan pembayaran tidak valid.", 400)
+  return null
 }
 
 async function expireOldRequests(userId) {
@@ -37,6 +54,7 @@ export async function GET(request) {
       payments: (data || []).map(normalizePaymentForClient),
       total: count || 0,
       tier: user.tier === "paid" || hasApprovedPayment ? "paid" : (user.tier || "free"),
+      proRegistrationOpen: await getProRegistrationState().then(state => state.open).catch(() => false),
     })
   } catch (error) {
     console.error("[Payments:GET]", error)
@@ -52,33 +70,17 @@ export async function POST(request) {
     if (blocked) return blocked
     if (user.tier === "paid") return jsonError("Akun Anda sudah memiliki akses Pro.", 409)
     const body = await request.json().catch(() => ({}))
-    await expireOldRequests(user.id)
-    const { data: active, error: activeError } = await supabaseAdmin.from("payments")
-      .select("*").eq("user_id", user.id).in("status", ["awaiting_payment", "pending"])
-      .maybeSingle()
-    if (activeError) throw activeError
-    if (active) {
-      const window = getPaymentWindow(active.created_at)
-      if (active.status === "awaiting_payment" && window.inGrace && body.replaceExpired === true) {
-        const { error } = await supabaseAdmin.from("payments").update({
-          status: "expired", expired_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-        }).eq("id", active.id).eq("user_id", user.id).eq("status", "awaiting_payment")
-        if (error) throw error
-      } else {
-        return jsonError("Anda masih memiliki satu pembayaran aktif.", 409)
-      }
-    }
     const now = new Date()
-    const { data, error } = await supabaseAdmin.from("payments").insert({
-      user_id: user.id,
+    const data = await createPaymentRequest({
+      userId: user.id,
       amount: PAYMENT_AMOUNT,
-      status: "awaiting_payment",
-      expires_at: new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(),
-    }).select().single()
-    if (error?.code === "23505") return jsonError("Anda masih memiliki satu pembayaran aktif.", 409)
-    if (error) throw error
+      expiresAt: new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(),
+      replaceExpired: body.replaceExpired === true,
+    })
     return Response.json({ payment: normalizePaymentForClient(data) }, { status: 201 })
   } catch (error) {
+    const registrationResponse = registrationErrorResponse(error)
+    if (registrationResponse) return registrationResponse
     console.error("[Payments:POST]", error)
     return jsonError("Gagal membuat pembayaran.", 500)
   }

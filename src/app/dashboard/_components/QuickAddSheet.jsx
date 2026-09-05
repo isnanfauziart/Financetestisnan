@@ -23,7 +23,7 @@ const DEFAULT_FORM_DATA = () => ({
   sifat: "Rutin",
 })
 
-export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute, transactionUsage, specialSuggestion, transactions = [] }) {
+export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute, transactionUsage, specialSuggestion, transactions = [], proRegistrationOpen = true }) {
   const { settings } = useSettings()
   const [txType, setTxType] = useState(initialType)
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA)
@@ -142,7 +142,7 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <TransactionQuotaStatus usage={transactionUsage} error={quotaError} />
+          <TransactionQuotaStatus usage={transactionUsage} error={quotaError} proRegistrationOpen={proRegistrationOpen} />
           <div>
             <label htmlFor="qa-amount" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Jumlah</label>
             <input id="qa-amount" type="text" inputMode="numeric" placeholder="0" value={rawAmount} onChange={e => setRawAmount(formatInputRupiah(e.target.value))} aria-label="Jumlah transaksi"

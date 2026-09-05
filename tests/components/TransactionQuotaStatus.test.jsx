@@ -12,9 +12,10 @@ describe("TransactionQuotaStatus", () => {
     rerender(
       <TransactionQuotaStatus
         usage={{ current: 75, limit: 75, warning: "reached" }}
+        proRegistrationOpen={false}
       />
     )
     expect(screen.getByRole("alert")).toHaveTextContent("Batas 75 transaksi")
-    expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveAttribute("href", "/upgrade")
+    expect(screen.getByRole("link", { name: "Pro sementara ditutup" })).toHaveAttribute("href", "/upgrade")
   })
 })
