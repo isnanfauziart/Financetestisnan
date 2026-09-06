@@ -1,11 +1,12 @@
 "use client"
 import { useState, useMemo } from "react"
-import { Plus, Target, Sparkles } from "lucide-react"
+import { Copy, Plus, Target, Sparkles } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import { useBudgets, useSettings } from "@/lib/useSharedData"
 import BudgetCard from "./BudgetCard"
 import BudgetSetupModal from "./BudgetSetupModal"
+import BudgetCopyModal from "./BudgetCopyModal"
 import BudgetDetailModal from "./BudgetDetailModal"
 import FeatureEducation from "./FeatureEducation"
 import { matchesBudgetPeriod } from "@/lib/budgetPace"
@@ -23,14 +24,17 @@ export default function BudgetsSection({
   billsError = null,
   now,
   proRegistrationOpen = true,
+  entitlement,
 }) {
   const [setupState, setSetupState] = useState(null)
   const [detailBudget, setDetailBudget] = useState(null)
+  const [copyOpen, setCopyOpen] = useState(false)
 
   const monthParam = selectedMonth && selectedMonth !== "Semua Bulan" ? selectedMonth : ""
   const yearParam = selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : ""
 
   const { budgets, loading, error, refetch } = useBudgets(monthParam, yearParam)
+  const allBudgetState = useBudgets("", "")
   const { settings } = useSettings()
 
   const visibleBudgets = useMemo(() => {
@@ -107,6 +111,13 @@ export default function BudgetsSection({
     onUsageChange?.()
   }
 
+  async function handleCopySaved(count) {
+    await Promise.all([refetch(), allBudgetState.refetch()])
+    onUsageChange?.()
+    setCopyOpen(false)
+    onToast?.(`${count} anggaran berhasil disalin ✓`, "success")
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3 px-1">
@@ -117,13 +128,22 @@ export default function BudgetsSection({
             <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">· {selectedMonth} {selectedYear}</span>
           )}
         </div>
-        <button
-          onClick={() => openCreate("")}
-          aria-label="Tambah anggaran baru"
-          className="min-h-11 min-w-11 text-[11px] font-bold py-1.5 px-3 rounded-xl text-white flex items-center gap-1 shadow-pop active:scale-95 transition-transform bg-sage-500 hover:bg-sage-600"
-        >
-          <Plus size={12} aria-hidden="true" /> Tambah Anggaran
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCopyOpen(true)}
+            aria-label="Salin anggaran historis"
+            className="min-h-11 min-w-11 text-[11px] font-bold py-1.5 px-3 rounded-xl text-md3-on-surface flex items-center gap-1 border border-md3-outline-variant bg-md3-surface hover:bg-md3-surface-container-high active:scale-95 transition-transform"
+          >
+            <Copy size={12} aria-hidden="true" /> Salin Anggaran
+          </button>
+          <button
+            onClick={() => openCreate("")}
+            aria-label="Tambah anggaran baru"
+            className="min-h-11 min-w-11 text-[11px] font-bold py-1.5 px-3 rounded-xl text-white flex items-center gap-1 shadow-pop active:scale-95 transition-transform bg-sage-500 hover:bg-sage-600"
+          >
+            <Plus size={12} aria-hidden="true" /> Tambah Anggaran
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -211,6 +231,20 @@ export default function BudgetsSection({
           prefillKategori={setupState.prefillKategori}
           onClose={closeSetup}
           onSaved={handleSaved}
+          proRegistrationOpen={proRegistrationOpen}
+        />
+      )}
+
+      {copyOpen && (
+        <BudgetCopyModal
+          budgets={allBudgetState.budgets}
+          defaultMonth={selectedMonth !== "Semua Bulan" ? selectedMonth : undefined}
+          defaultYear={selectedYear !== "Semua Tahun" ? selectedYear : undefined}
+          expenseCategories={expenseCategories}
+          entitlement={entitlement}
+          onClose={() => setCopyOpen(false)}
+          onSaved={handleCopySaved}
+          onRefresh={allBudgetState.refetch}
           proRegistrationOpen={proRegistrationOpen}
         />
       )}

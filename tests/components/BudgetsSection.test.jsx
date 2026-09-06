@@ -41,6 +41,7 @@ describe("BudgetsSection education", () => {
 
     expect(screen.getByRole("heading", { name: "Anggaran" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Tambah anggaran baru" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Salin anggaran historis" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Jaga pengeluaran tetap terkendali" })).toBeInTheDocument()
     expect(screen.getByText("Pilih kategori")).toBeInTheDocument()
     expect(screen.getByText("Tentukan limit")).toBeInTheDocument()

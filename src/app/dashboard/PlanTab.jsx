@@ -244,6 +244,7 @@ export default function PlanTab({
              billsError={billsError}
              now={now}
              proRegistrationOpen={proRegistrationOpen}
+             entitlement={entitlement}
            />
           </div>
         )}
