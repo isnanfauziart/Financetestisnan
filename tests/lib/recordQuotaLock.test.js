@@ -69,6 +69,30 @@ describe("record creation lock", () => {
     expect(getSheetData).not.toHaveBeenCalled()
   })
 
+  it("serializes unlimited batch creation when requested", async () => {
+    const { runRecordCreations } = await import("@/lib/recordQuota")
+    const create = vi.fn(async () => Response.json({ success: true }))
+    const response = await runRecordCreations({ ...auth, tier: "paid" }, "budgets", {}, 4, create, { serializeUnlimited: true })
+
+    expect(response.status).toBe(200)
+    expect(create).toHaveBeenCalledWith(null)
+    expect(rpc.mock.calls.map(call => call[0])).toEqual([
+      "claim_feature_creation",
+      "release_feature_creation",
+    ])
+    expect(getSheetData).not.toHaveBeenCalled()
+  })
+
+  it("rejects an unlimited batch when another unlimited creation holds the lock", async () => {
+    rpc.mockResolvedValueOnce({ data: false, error: null })
+    const { runRecordCreations } = await import("@/lib/recordQuota")
+    const create = vi.fn()
+    const response = await runRecordCreations({ ...auth, tier: "paid" }, "budgets", {}, 2, create, { serializeUnlimited: true })
+
+    expect(response.status).toBe(409)
+    expect(create).not.toHaveBeenCalled()
+  })
+
   it("fails closed before locking when entitlement is unverifiable", async () => {
     const { runRecordCreation } = await import("@/lib/recordQuota")
     const response = await runRecordCreation({ ...auth, entitlementVerified: false }, "goals", {}, vi.fn())

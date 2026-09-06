@@ -82,12 +82,13 @@ export async function releaseRecordCreation(userId, feature, token) {
   if (error) throw error
 }
 
-export async function runRecordCreations(auth, feature, options, count, create) {
+export async function runRecordCreations(auth, feature, options, count, create, { serializeUnlimited = false } = {}) {
   if (!Number.isInteger(count) || count < 1) {
     throw new Error("count must be a positive integer")
   }
   if (!auth?.entitlementVerified) return recordQuotaResponse(feature, null)
-  if (auth.tier === "paid" || auth.isAdmin) return create(null)
+  const unlimited = auth.tier === "paid" || auth.isAdmin
+  if (unlimited && !serializeUnlimited) return create(null)
   let lockToken
   try {
     lockToken = await claimRecordCreation(auth.user.id, feature)
@@ -104,6 +105,7 @@ export async function runRecordCreations(auth, feature, options, count, create) 
     return recordQuotaResponse(feature, null)
   }
   try {
+    if (unlimited) return await create(null)
     let rows
     try {
       rows = await getSheetData(auth.accessToken, RECORD_RANGES[feature], auth.spreadsheetId)

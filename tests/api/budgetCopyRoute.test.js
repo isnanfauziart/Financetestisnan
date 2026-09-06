@@ -81,6 +81,7 @@ describe("budget copy route", () => {
       { month: "Sep", year: "2026" },
       2,
       expect.any(Function),
+      { serializeUnlimited: true },
     )
     expect(appendSheetValues).toHaveBeenCalledOnce()
     expect(appendSheetValues).toHaveBeenCalledWith(
@@ -160,5 +161,26 @@ describe("budget copy route", () => {
     expect(response.status).toBe(409)
     await expect(response.json()).resolves.toMatchObject({ code: "BUDGET_COPY_DUPLICATE" })
     expect(appendSheetValues).not.toHaveBeenCalled()
+  })
+
+  it("returns a refresh-safe response when the append outcome is ambiguous", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { appendSheetValues } = await import("@/lib/sheets")
+    const { runRecordCreations } = await import("@/lib/recordQuota")
+    getAuthContext.mockResolvedValue(auth)
+    runRecordCreations.mockImplementation(async (_auth, _feature, _options, _count, create) => create(rows))
+    appendSheetValues.mockRejectedValue(new Error("network timeout"))
+    const { POST } = await import("@/app/api/budgets/copy/route")
+
+    const response = await POST(new Request("http://localhost/api/budgets/copy", {
+      method: "POST",
+      body: JSON.stringify({ ...body, items: [body.items[0]] }),
+    }))
+
+    expect(response.status).toBe(500)
+    await expect(response.json()).resolves.toMatchObject({
+      code: "BUDGET_COPY_RETRY",
+      retryable: true,
+    })
   })
 })

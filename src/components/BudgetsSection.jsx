@@ -128,7 +128,7 @@ export default function BudgetsSection({
             <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">· {selectedMonth} {selectedYear}</span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             onClick={() => setCopyOpen(true)}
             aria-label="Salin anggaran historis"

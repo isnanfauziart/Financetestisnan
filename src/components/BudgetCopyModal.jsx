@@ -163,7 +163,7 @@ export default function BudgetCopyModal({
   const unlimited = entitlement?.tier === "paid" || entitlement?.isAdmin === true
   const remainingSlots = unlimited ? null : Math.max(FREE_LIMITS.budgets - destinationCount, 0)
   const selectedItems = sourceRows
-    .filter(row => selectedRows.has(row.rowIndex))
+    .filter(row => selectedRows.has(row.rowIndex) && !row.disabled)
     .map(row => ({
       rowIndex: row.rowIndex,
       kategori: row.kategori,
@@ -239,12 +239,17 @@ export default function BudgetCopyModal({
       const result = await response.json()
       if (!response.ok) {
         setError(result)
-        setRequiresRefresh(result?.code === "BUDGET_COPY_STALE")
+        setRequiresRefresh(result?.code === "BUDGET_COPY_STALE" || result?.code === "BUDGET_COPY_RETRY")
         return
       }
       await onSaved?.(result.copied || selectedItems.length)
     } catch (submitError) {
-      setError({ error: submitError.message || "Gagal menyalin anggaran." })
+      setError({
+        error: "Penyalinan mungkin sudah tersimpan. Muat ulang anggaran sebelum mencoba lagi.",
+        code: "BUDGET_COPY_RETRY",
+        retryable: true,
+      })
+      setRequiresRefresh(true)
     } finally {
       setSubmitting(false)
     }
@@ -333,7 +338,7 @@ export default function BudgetCopyModal({
                             value={editedLimits[row.rowIndex] ?? formatLimit(row.limit)}
                             onChange={event => handleLimitChange(row.rowIndex, event.target.value)}
                             disabled={row.disabled}
-                            aria-label={`Limit ${row.kategori}`}
+                            aria-label={`Limit ${row.kategori} · ${accountLabel}`}
                             className="min-h-11 w-32 rounded-xl border border-md3-outline-variant bg-md3-surface px-3 text-right text-sm font-semibold text-md3-on-surface outline-none focus:ring-2 focus:ring-violet-200 disabled:cursor-not-allowed disabled:bg-md3-surface-container-low"
                           />
                         </div>

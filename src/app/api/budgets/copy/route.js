@@ -36,6 +36,7 @@ export async function POST(request) {
   const blocked = featureUnavailableResponse(auth, "budgets", request)
   if (blocked) return blocked
 
+  let appendAttempted = false
   try {
     const body = await request.json()
     const { errors, source, destination, items } = validateBudgetCopyBody(body)
@@ -43,7 +44,7 @@ export async function POST(request) {
       return Response.json({ error: errors.join("; "), code: "BUDGET_COPY_INVALID" }, { status: 400 })
     }
 
-    return runRecordCreations(auth, "budgets", {
+    return await runRecordCreations(auth, "budgets", {
       month: destination.bulan,
       year: destination.tahun,
     }, items.length, async quotaRows => {
@@ -84,15 +85,22 @@ export async function POST(request) {
         values.push([item.kategori, destination.bulan, destination.tahun, item.limit, item.akun, ""])
       }
 
+      appendAttempted = true
       await appendSheetValues(auth.accessToken, RANGE, values, auth.spreadsheetId, "USER_ENTERED")
       return Response.json({
         success: true,
         copied: values.length,
         destination,
       })
-    })
+    }, { serializeUnlimited: true })
   } catch (error) {
     console.error("[Budget Copy]", error)
-    return Response.json({ error: "Terjadi kesalahan internal", code: "BUDGET_COPY_FAILED" }, { status: 500 })
+    return Response.json({
+      error: appendAttempted
+        ? "Penyalinan mungkin sudah tersimpan. Muat ulang anggaran sebelum mencoba lagi."
+        : "Terjadi kesalahan internal",
+      code: appendAttempted ? "BUDGET_COPY_RETRY" : "BUDGET_COPY_FAILED",
+      retryable: appendAttempted,
+    }, { status: 500 })
   }
 }

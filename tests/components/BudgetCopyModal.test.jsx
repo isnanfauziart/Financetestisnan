@@ -39,7 +39,7 @@ describe("BudgetCopyModal", () => {
 
     fireEvent.click(screen.getByRole("checkbox", { name: /Jajan/ }))
     expect(screen.getByRole("button", { name: /Salin 1 anggaran/i })).toBeEnabled()
-    expect(screen.getByLabelText("Limit Jajan")).toHaveValue("500.000")
+    expect(screen.getByLabelText(/Limit Jajan/)).toHaveValue("500.000")
   })
 
   it("selects all eligible rows while keeping an existing destination duplicate disabled", () => {
@@ -76,12 +76,41 @@ describe("BudgetCopyModal", () => {
     }))
     render(<BudgetCopyModal {...props} />)
     fireEvent.click(screen.getByRole("checkbox", { name: /Jajan/ }))
-    fireEvent.change(screen.getByLabelText("Limit Jajan"), { target: { value: "600000" } })
+    fireEvent.change(screen.getByLabelText(/Limit Jajan/), { target: { value: "600000" } })
     fireEvent.click(screen.getByRole("button", { name: /Salin 1 anggaran/i }))
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/Muat ulang/))
     expect(screen.getByRole("checkbox", { name: /Jajan/ })).toBeChecked()
-    expect(screen.getByLabelText("Limit Jajan")).toHaveValue("600.000")
+    expect(screen.getByLabelText(/Limit Jajan/)).toHaveValue("600.000")
+  })
+
+  it("requires a refresh when the browser loses the copy response", async () => {
+    global.fetch = vi.fn(() => Promise.reject(new Error("network offline")))
+    const onRefresh = vi.fn(async () => {})
+    render(<BudgetCopyModal {...props} onRefresh={onRefresh} />)
+    fireEvent.click(screen.getByRole("checkbox", { name: /Jajan/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Salin 1 anggaran/i }))
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Muat ulang anggaran" })).toBeInTheDocument())
+    expect(screen.getByRole("alert")).toHaveTextContent(/Muat ulang anggaran sebelum mencoba lagi/i)
+  })
+
+  it("requires a refresh after an ambiguous write failure", async () => {
+    global.fetch = vi.fn(() => Promise.resolve({
+      ok: false,
+      json: () => Promise.resolve({
+        error: "Penyalinan mungkin sudah tersimpan. Muat ulang anggaran sebelum mencoba lagi.",
+        code: "BUDGET_COPY_RETRY",
+      }),
+    }))
+    const onRefresh = vi.fn(async () => {})
+    render(<BudgetCopyModal {...props} onRefresh={onRefresh} />)
+    fireEvent.click(screen.getByRole("checkbox", { name: /Jajan/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Salin 1 anggaran/i }))
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Muat ulang anggaran" })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole("button", { name: "Muat ulang anggaran" }))
+    await waitFor(() => expect(onRefresh).toHaveBeenCalledOnce())
   })
 
   it("submits selected rows and reports the copied count", async () => {
@@ -91,7 +120,7 @@ describe("BudgetCopyModal", () => {
     }))
     render(<BudgetCopyModal {...props} />)
     fireEvent.click(screen.getByRole("checkbox", { name: /Jajan/ }))
-    fireEvent.change(screen.getByLabelText("Limit Jajan"), { target: { value: "600000" } })
+    fireEvent.change(screen.getByLabelText(/Limit Jajan/), { target: { value: "600000" } })
     fireEvent.click(screen.getByRole("button", { name: /Salin 1 anggaran/i }))
 
     await waitFor(() => expect(props.onSaved).toHaveBeenCalledWith(1))
