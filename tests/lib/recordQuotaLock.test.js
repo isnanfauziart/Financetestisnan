@@ -76,4 +76,50 @@ describe("record creation lock", () => {
     expect(response.status).toBe(503)
     expect(rpc).not.toHaveBeenCalled()
   })
+
+  it("rejects a batch when the complete count would exceed the Free period quota", async () => {
+    getSheetData.mockResolvedValue([
+      ["Kategori", "Bulan", "Tahun"],
+      ["Makan", "Jul", "2026"],
+      ["Transport", "Jul", "2026"],
+    ])
+    const { runRecordCreations } = await import("@/lib/recordQuota")
+    const create = vi.fn()
+    const response = await runRecordCreations(auth, "budgets", { month: "Jul", year: "2026" }, 2, create)
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toMatchObject({
+      code: "FEATURE_LIMIT_REACHED",
+      feature: "budgets",
+      current: 2,
+      limit: 3,
+    })
+    expect(create).not.toHaveBeenCalled()
+    expect(rpc.mock.calls.map(call => call[0])).toEqual([
+      "claim_feature_creation",
+      "release_feature_creation",
+    ])
+  })
+
+  it("bypasses batch counting for Paid users", async () => {
+    const { runRecordCreations } = await import("@/lib/recordQuota")
+    const create = vi.fn(async () => Response.json({ copied: 4 }))
+    const response = await runRecordCreations({ ...auth, tier: "paid" }, "budgets", {}, 4, create)
+
+    expect(response.status).toBe(200)
+    expect(create).toHaveBeenCalledWith(null)
+    expect(getSheetData).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it("releases the batch lock when creation fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const { runRecordCreations } = await import("@/lib/recordQuota")
+
+    await expect(runRecordCreations(auth, "budgets", { month: "Jul", year: "2026" }, 2, async () => {
+      throw new Error("batch write failed")
+    })).rejects.toThrow("batch write failed")
+
+    expect(rpc.mock.calls.at(-1)[0]).toBe("release_feature_creation")
+  })
 })

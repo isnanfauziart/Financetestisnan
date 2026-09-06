@@ -82,7 +82,10 @@ export async function releaseRecordCreation(userId, feature, token) {
   if (error) throw error
 }
 
-export async function runRecordCreation(auth, feature, options, create) {
+export async function runRecordCreations(auth, feature, options, count, create) {
+  if (!Number.isInteger(count) || count < 1) {
+    throw new Error("count must be a positive integer")
+  }
   if (!auth?.entitlementVerified) return recordQuotaResponse(feature, null)
   if (auth.tier === "paid" || auth.isAdmin) return create(null)
   let lockToken
@@ -109,7 +112,7 @@ export async function runRecordCreation(auth, feature, options, create) {
       return recordQuotaResponse(feature, null)
     }
     const current = countRecordRows(feature, rows, options)
-    if (current >= FREE_LIMITS[feature]) return recordQuotaResponse(feature, current)
+    if (current + count > FREE_LIMITS[feature]) return recordQuotaResponse(feature, current)
     return await create(rows)
   } finally {
     if (lockToken) {
@@ -120,4 +123,8 @@ export async function runRecordCreation(auth, feature, options, create) {
       }
     }
   }
+}
+
+export async function runRecordCreation(auth, feature, options, create) {
+  return runRecordCreations(auth, feature, options, 1, create)
 }
