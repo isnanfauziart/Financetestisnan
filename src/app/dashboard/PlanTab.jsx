@@ -109,6 +109,8 @@ export default function PlanTab({
     : visibleSections[0]?.key
   const simulationAvailable = isFeatureEnabled(entitlement, "financialIndependence") || isFeatureEnabled(entitlement, "whatIf")
   const proRegistrationOpen = isProRegistrationOpen(entitlement)
+  const activeBills = (bills || []).filter(bill => bill?.aktif !== false)
+  const urgentBills = activeBills.filter(bill => bill?.status === "overdue" || bill?.status === "due_today" || bill?.status === "due_soon")
 
   const handleSectionChange = (sectionKey) => {
     if (onSectionChange) {
@@ -119,10 +121,22 @@ export default function PlanTab({
   }
 
   return (
-    <div className="px-5 pt-4 animate-bento-in" key="plan-tab">
-      <div className="space-y-5">
-        <nav className="glass rounded-2xl p-2" aria-label="Navigasi Rencana">
-          <div className="grid grid-cols-2 min-[360px]:grid-cols-3 sm:grid-cols-7 gap-2">
+    <div className="plan-tab px-5 pt-4 animate-bento-in" key="plan-tab">
+      <div className="mx-auto max-w-6xl space-y-5">
+        <header className="plan-hero" aria-labelledby="plan-page-title">
+          <div className="plan-hero__copy">
+            <p className="plan-hero__eyebrow">Rencana keuangan</p>
+            <h1 id="plan-page-title">Rencanakan keuanganmu.</h1>
+            <p className="plan-hero__description">Atur anggaran, tagihan, dan target bulan ini.</p>
+          </div>
+          <div className="plan-hero__meta">
+            <span className="plan-hero__eyebrow">Bulan dipilih</span>
+            <strong>{selectedMonth || "Bulan ini"} {selectedYear || ""}</strong>
+          </div>
+        </header>
+
+        <nav className="plan-chapter-nav" aria-label="Navigasi Rencana">
+          <div className="plan-chapter-nav__rail">
             {visibleSections.map((section) => {
               const isActive = currentSection === section.key
               const Icon = section.icon
@@ -132,7 +146,7 @@ export default function PlanTab({
                   type="button"
                   aria-current={isActive ? "page" : undefined}
                   onClick={() => handleSectionChange(section.key)}
-                  className={`min-h-11 rounded-2xl px-3 py-2.5 text-xs font-bold transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${
+                  className={`min-h-11 rounded-2xl px-3 py-2.5 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${
                     isActive
                       ? "bg-earth-900 text-white shadow-warm"
                       : "bg-md3-surface-container-lowest text-md3-on-surface-variant hover:bg-md3-surface-container-low hover:text-md3-on-surface"
@@ -150,133 +164,137 @@ export default function PlanTab({
           </div>
         </nav>
 
-        {currentSection === "overview" && (
-          <section className="space-y-4" aria-labelledby="plan-overview-title">
-            <div className="rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest p-5 shadow-warm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant">Rencana</p>
-              <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
-                <h2 id="plan-overview-title" className="text-xl font-display font-bold text-md3-on-surface">Rencana bulan ini</h2>
-                <span className="text-xs font-semibold text-md3-on-surface-variant">{selectedMonth || "Bulan ini"} {selectedYear || ""}</span>
+        <div key={currentSection} className="plan-section-transition">
+          {currentSection === "overview" && (
+            <section className="plan-overview" aria-labelledby="plan-overview-title">
+              <div className="plan-overview__header">
+                <p className="plan-kicker">Ringkasan bulan</p>
+                <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
+                  <h2 id="plan-overview-title">Rencana bulan ini</h2>
+                  <span className="text-xs font-semibold text-md3-on-surface-variant">{selectedMonth || "Bulan ini"} {selectedYear || ""}</span>
+                </div>
+                <p>Pilih satu langkah kecil untuk membuat arus kas bulan ini lebih tenang.</p>
               </div>
-              <p className="mt-2 text-xs leading-relaxed text-md3-on-surface-variant">Pilih satu langkah kecil untuk membuat arus kas bulan ini lebih tenang.</p>
-            </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {PLAN_PILLARS.map(({ key, feature, label, description, icon: Icon }) => {
-                const available = hasFeature(entitlement, feature)
-                const tone = PLAN_PILLAR_TONES[key]
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    disabled={!available}
-                    onClick={() => available && handleSectionChange(key)}
-                    aria-label={`${available ? "Buka" : "Fitur terkunci"} ${label}`}
-                    className={`group min-h-[132px] rounded-2xl border p-4 text-left transition-[background-color,border-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${available ? `border-t-2 ${tone.border} border-md3-outline-variant bg-md3-surface-container-lowest shadow-warm ${tone.hover} active:scale-[0.99]` : "border-md3-outline-variant bg-md3-surface-container-low opacity-70"}`}
-                  >
-                    <span data-plan-icon-tile className={`flex h-11 w-11 items-center justify-center rounded-2xl ${tone.icon}`}>
-                      <Icon size={16} aria-hidden="true" />
-                    </span>
-                    <span className="mt-4 block text-sm font-bold text-md3-on-surface">{label}</span>
-                    <span className="mt-1 block text-[11px] leading-relaxed text-md3-on-surface-variant">{available ? description : "Fitur ini belum bisa kamu pakai."}</span>
-                    {available && (
-                      <span className={`mt-3 inline-flex items-center gap-1 text-[11px] font-bold ${tone.affordance}`}>
-                        Buka <ArrowRight size={14} aria-hidden="true" />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {PLAN_PILLARS.map(({ key, feature, label, description, icon: Icon }) => {
+                  const available = hasFeature(entitlement, feature)
+                  const tone = PLAN_PILLAR_TONES[key]
+                  const signal = key === "tagihan"
+                    ? urgentBills.length > 0 ? `${urgentBills.length} perlu perhatian` : activeBills.length > 0 ? `${activeBills.length} terjadwal` : "Belum ada jadwal"
+                    : key === "budget" ? "Lihat ritme belanja" : "Ikuti langkahmu"
+                  const detail = key === "tagihan" ? "Berikutnya di agenda pembayaran" : key === "budget" ? "Sisa dan pace bulan ini" : "Progress menuju tujuan"
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={!available}
+                      onClick={() => available && handleSectionChange(key)}
+                      aria-label={`${available ? "Buka" : "Fitur terkunci"} ${label}`}
+                      className={`plan-signal-card group ${available ? `border-t-2 ${tone.border} border-md3-outline-variant bg-md3-surface-container-lowest shadow-warm ${tone.hover} active:scale-[0.99]` : "border-md3-outline-variant bg-md3-surface-container-lowest opacity-70"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2`}
+                    >
+                      <span data-plan-icon-tile className={`plan-signal-card__icon h-11 w-11 ${tone.icon}`}>
+                        <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
                       </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-
-            <section className="rounded-2xl border border-violet-200 bg-violet-50 p-5 shadow-warm" aria-labelledby="plan-simulation-overview-title">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-md3-surface-container-lowest text-violet-600">
-                  <Calculator size={18} aria-hidden="true" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600">Simulasi</p>
-                   <h2 id="plan-simulation-overview-title" className="mt-1 text-lg font-display font-bold text-md3-on-surface">Target bebas finansial dan What-If</h2>
-                   <p className="mt-2 text-xs leading-relaxed text-md3-on-surface-variant">Dana yang kamu butuhkan dan What-If untuk melihat efek perubahan kebiasaan terhadap waktu pencapaian.</p>
-                </div>
+                      <span className="plan-signal-card__label">{label}</span>
+                      <span className="plan-signal-card__value">{available ? `${signal} · ${detail}` : "Fitur ini belum bisa kamu pakai."}</span>
+                      {available && (
+                        <span className={`plan-signal-card__action ${tone.affordance}`}>
+                          Buka <ArrowRight size={14} aria-hidden="true" />
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
-              {simulationAvailable ? (
-                <button
-                   type="button"
-                   onClick={() => handleSectionChange("simulasi")}
-                   aria-label="Buka target & What-If"
-                   className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-violet-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
-                 >
-                   Buka target &amp; What-If <ArrowRight size={14} aria-hidden="true" />
-                </button>
-              ) : (
-                <p className="mt-4 text-xs font-semibold text-md3-on-surface-variant">Simulasi belum bisa dipakai saat ini.</p>
-              )}
+
+              <section className="plan-secondary-panel" aria-labelledby="plan-simulation-overview-title">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-md3-surface-container-lowest text-violet-600">
+                    <Calculator size={18} aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600">Simulasi</p>
+                    <h2 id="plan-simulation-overview-title" className="mt-1 text-lg font-display font-bold text-md3-on-surface">Target bebas finansial dan What-If</h2>
+                    <p className="mt-2 text-xs leading-relaxed text-md3-on-surface-variant">Dana yang kamu butuhkan dan What-If untuk melihat efek perubahan kebiasaan terhadap waktu pencapaian.</p>
+                  </div>
+                </div>
+                {simulationAvailable ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSectionChange("simulasi")}
+                    aria-label="Buka target & What-If"
+                    className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-violet-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+                  >
+                    Buka target &amp; What-If <ArrowRight size={14} aria-hidden="true" />
+                  </button>
+                ) : (
+                  <p className="mt-4 text-xs font-semibold text-md3-on-surface-variant">Simulasi belum bisa dipakai saat ini.</p>
+                )}
+              </section>
             </section>
-          </section>
-        )}
+          )}
 
-        {currentSection === "goal" && hasFeature(entitlement, "goals") && (
-           <GoalsSection
-             data={data}
-             transactions={transactions}
-             now={now}
-             onToast={onToast}
-            refreshTrigger={goalsRefreshTrigger}
-            onUsageChange={onUsageChange}
-            transactionUsage={transactionUsage}
-            proRegistrationOpen={proRegistrationOpen}
-          />
-        )}
+          {currentSection === "goal" && hasFeature(entitlement, "goals") && (
+            <GoalsSection
+              data={data}
+              transactions={transactions}
+              now={now}
+              onToast={onToast}
+              refreshTrigger={goalsRefreshTrigger}
+              onUsageChange={onUsageChange}
+              transactionUsage={transactionUsage}
+              proRegistrationOpen={proRegistrationOpen}
+            />
+          )}
 
-        {currentSection === "budget" && hasFeature(entitlement, "budgets") && (
-          <div className="space-y-5">
+          {currentSection === "budget" && hasFeature(entitlement, "budgets") && (
             <BudgetsSection
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
               selectedAccount={selectedAccount}
               filteredTransactions={filteredTransactions}
-             expenseCategories={expenseCategories}
-             onToast={onToast}
-             onUsageChange={onUsageChange}
-             bills={bills}
-             billsLoading={billsLoading}
-             billsError={billsError}
-             now={now}
-             proRegistrationOpen={proRegistrationOpen}
-             entitlement={entitlement}
-           />
-          </div>
-        )}
+              expenseCategories={expenseCategories}
+              onToast={onToast}
+              onUsageChange={onUsageChange}
+              bills={bills}
+              billsLoading={billsLoading}
+              billsError={billsError}
+              now={now}
+              proRegistrationOpen={proRegistrationOpen}
+              entitlement={entitlement}
+            />
+          )}
 
-        {currentSection === "tagihan" && hasFeature(entitlement, "bills") && (
-          <BillsSection
-            onToast={onToast}
-            refreshTrigger={billsRefreshTrigger || 0}
-            onUsageChange={onUsageChange}
-             onBillsChanged={onBillsChanged}
-             transactionUsage={transactionUsage}
-             transactions={transactions}
-             now={now}
-             entitlement={entitlement}
-             settings={settings}
-             onSettingsChanged={onSettingsChanged}
-             sessionKey={sessionKey}
-             proRegistrationOpen={proRegistrationOpen}
-           />
-        )}
+          {currentSection === "tagihan" && hasFeature(entitlement, "bills") && (
+            <BillsSection
+              onToast={onToast}
+              refreshTrigger={billsRefreshTrigger || 0}
+              onUsageChange={onUsageChange}
+              onBillsChanged={onBillsChanged}
+              transactionUsage={transactionUsage}
+              transactions={transactions}
+              now={now}
+              entitlement={entitlement}
+              settings={settings}
+              onSettingsChanged={onSettingsChanged}
+              sessionKey={sessionKey}
+              proRegistrationOpen={proRegistrationOpen}
+            />
+          )}
 
-        {currentSection === "utang" && hasFeature(entitlement, "debts") && <DebtsSection onToast={onToast} onUsageChange={onUsageChange} transactionUsage={transactionUsage} proRegistrationOpen={proRegistrationOpen} />}
+          {currentSection === "utang" && hasFeature(entitlement, "debts") && <DebtsSection onToast={onToast} onUsageChange={onUsageChange} transactionUsage={transactionUsage} proRegistrationOpen={proRegistrationOpen} />}
 
-        {currentSection === "event" && hasFeature(entitlement, "momental") && <EventBudgetsSection filteredTransactions={filteredTransactions} onToast={onToast} refreshTrigger={eventsRefreshTrigger || 0} onUsageChange={onUsageChange} proRegistrationOpen={proRegistrationOpen} />}
+          {currentSection === "event" && hasFeature(entitlement, "momental") && <EventBudgetsSection filteredTransactions={filteredTransactions} onToast={onToast} refreshTrigger={eventsRefreshTrigger || 0} onUsageChange={onUsageChange} proRegistrationOpen={proRegistrationOpen} />}
 
-        {currentSection === "simulasi" && (
-          <div className="space-y-5">
-             {!isFeatureEnabled(entitlement, "financialIndependence") ? <LockedFeaturePreview title="Financial Freedom" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(entitlement, "financialIndependence") ? <FITrackerCard netWorth={data?.netWorth} monthlyData={monthlyData} netWorthHistory={netWorthHistory} now={now} /> : <LockedFeaturePreview title="Financial Freedom" description="Pelacak Financial Freedom tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
+          {currentSection === "simulasi" && (
+            <div className="space-y-5">
+              {!isFeatureEnabled(entitlement, "financialIndependence") ? <LockedFeaturePreview title="Financial Freedom" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(entitlement, "financialIndependence") ? <FITrackerCard netWorth={data?.netWorth} monthlyData={monthlyData} netWorthHistory={netWorthHistory} now={now} /> : <LockedFeaturePreview title="Financial Freedom" description="Pelacak Financial Freedom tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
 
-            {!isFeatureEnabled(entitlement, "whatIf") ? <LockedFeaturePreview title="What-If" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(entitlement, "whatIf") ? <button onClick={onWhatIfOpen} className="w-full bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm active:scale-[0.99] transition-transform text-left" aria-label="Open What-If Scenario simulator"><div className="flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: THEME.primaryBg, color: THEME.primary }}><Calculator size={16} aria-hidden="true" /></div><div><p className="text-sm font-bold text-md3-on-surface">What-If Scenario</p><p className="text-[10px] text-md3-on-surface-variant mt-0.5">Simulasi dampak pengurangan pengeluaran ke goal</p></div></div><ArrowRight size={14} className="text-earth-400" aria-hidden="true" /></div></button> : <LockedFeaturePreview title="What-If" description="Simulasi dampak pengurangan pengeluaran tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
-          </div>
-        )}
+              {!isFeatureEnabled(entitlement, "whatIf") ? <LockedFeaturePreview title="What-If" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(entitlement, "whatIf") ? <button onClick={onWhatIfOpen} className="plan-card w-full p-4 text-left active:scale-[0.99]" aria-label="Open What-If Scenario simulator"><div className="flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: THEME.primaryBg, color: THEME.primary }}><Calculator size={16} aria-hidden="true" /></div><div><p className="text-sm font-bold text-md3-on-surface">What-If Scenario</p><p className="mt-0.5 text-[10px] text-md3-on-surface-variant">Simulasi dampak pengurangan pengeluaran ke goal</p></div></div><ArrowRight size={14} className="text-earth-400" aria-hidden="true" /></div></button> : <LockedFeaturePreview title="What-If" description="Simulasi dampak pengurangan pengeluaran tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

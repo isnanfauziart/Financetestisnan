@@ -9,9 +9,9 @@ function withTouchTarget(action) {
   })
 }
 
-export default function FeatureEducation({ title, description, steps, action, example }) {
+export default function FeatureEducation({ title, description, steps, action, example, className = "" }) {
   return (
-    <article className="rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest p-4 shadow-warm">
+    <article className={`rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest p-4 shadow-warm ${className}`}>
       <div className="mb-4">
         <h3 className="text-base font-display font-bold text-md3-on-surface">{title}</h3>
         <p className="mt-1 text-xs leading-relaxed text-md3-on-surface-variant">{description}</p>

@@ -169,7 +169,7 @@ Feature-by-feature history lives in `git log` and `progress.md`. Two facts that 
 - `src/app/dashboard/ProfileTab.jsx` — Profile tab
 - `src/components/CategoryManager.jsx` — Per-user expense, income, and savings category manager
 - `src/app/dashboard/_components/` — Shared components and constants (THEME, categories, banks, helpers, SelectField, modals, goalUtils)
-- `src/components/` — New feature components (NetWorthCard, BudgetCard, BudgetProgressBar, BudgetSetupModal, BudgetDetailModal, BudgetsSection, GoalProgressRing, GoalSetupModal, GoalContributeModal, GoalCelebration, GoalCard, BillsSection, BillsCard, BillSetupModal, BillPayModal)
+- `src/components/` — New feature components (NetWorthCard, BudgetCard, BudgetProgressBar, BudgetSetupModal, BudgetDetailModal, BudgetsSection, GoalProgressRing, TargetGauge, GoalSetupModal, GoalContributeModal, GoalCelebration, GoalCard, BillsSection, BillsCard, BillSetupModal, BillPayModal)
 - `src/app/api/dashboard/route.js` — Google Sheets aggregation (with netWorth, netWorthMonthlyDelta, netWorthHistory, billsSummary)
 - `src/app/api/budgets/route.js` — Budgets CRUD
 - `src/app/api/goals/route.js` — Goals CRUD

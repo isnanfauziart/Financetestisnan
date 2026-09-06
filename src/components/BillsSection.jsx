@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Plus, Receipt, AlertTriangle, Clock, CheckCircle, Power, Trash2 } from "lucide-react"
+import { Plus, Receipt, AlertTriangle, Clock, CheckCircle, Power, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRpFull } from "@/app/dashboard/_components/helpers"
 import { getBillVisual } from "@/lib/categoryIcons"
@@ -134,6 +134,13 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
   const scopedBills = billsScope === sessionKey ? bills : []
   const activeBills = scopedBills.filter(b => b.aktif)
   const inactiveBills = scopedBills.filter(b => !b.aktif)
+  const orderedActiveBills = [...activeBills].sort((a, b) => {
+    const aDays = Number.isFinite(Number(a.daysUntilDue)) ? Number(a.daysUntilDue) : Number.POSITIVE_INFINITY
+    const bDays = Number.isFinite(Number(b.daysUntilDue)) ? Number(b.daysUntilDue) : Number.POSITIVE_INFINITY
+    return aDays - bDays || String(a.id).localeCompare(String(b.id))
+  })
+  const urgentBillCount = activeBills.filter(b => b.status === "overdue" || b.status === "due_today" || b.status === "due_soon").length
+  const nextBill = orderedActiveBills[0]
   const totalMonthly = activeBills
     .filter(b => b.tipe === "expense" && b.frekuensi === "monthly")
     .reduce((s, b) => s + b.jumlah, 0)
@@ -169,26 +176,31 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
 
   if (loading) {
     return (
-      <div className="mt-6 animate-bento-in">
-        <div className="flex items-center gap-1.5 mb-3 px-1">
+      <div className="plan-section-shell animate-bento-in">
+        <div className="plan-section-heading">
+          <div className="plan-section-heading__title">
           <Receipt size={14} style={{ color: THEME.primary }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Tagihan</h3>
+            <h2>Tagihan</h2>
+          </div>
         </div>
-        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-6 shadow-warm text-center">
-          <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" />
+        <div className="plan-loading-state text-center" role="status" aria-label="Memuat tagihan" aria-busy="true">
+          <span className="sr-only">Memuat tagihan…</span>
+          <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" aria-hidden="true" />
         </div>
       </div>
     )
   }
 
-  if (error) {
+  if (error && scopedBills.length === 0) {
     return (
-      <div className="mt-6 animate-bento-in">
-        <div className="flex items-center gap-1.5 mb-3 px-1">
+      <div className="plan-section-shell animate-bento-in">
+        <div className="plan-section-heading">
+          <div className="plan-section-heading__title">
           <Receipt size={14} style={{ color: THEME.primary }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Tagihan</h3>
+            <h2>Tagihan</h2>
+          </div>
         </div>
-        <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
+        <div className="plan-error-state bg-rose-50 p-4" role="alert">
           <p className="text-sm font-semibold text-rose-800">Gagal memuat tagihan</p>
           <p className="text-xs text-rose-700 mt-1">{error}</p>
           <button
@@ -204,28 +216,43 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
   }
 
   return (
-    <div className="mt-6 animate-bento-in">
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-1.5">
+    <div className="plan-section-shell animate-bento-in">
+      <div className="plan-section-heading">
+        <div className="plan-section-heading__title">
           <Receipt size={14} style={{ color: THEME.primary }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Tagihan</h3>
+          <h2>Tagihan</h2>
           {activeBills.length > 0 && (
-            <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">
+            <span className="plan-section-heading__meta">
               {activeBills.length} aktif
             </span>
           )}
         </div>
         <button
           onClick={() => setSetupState({ mode: "create" })}
-          className="min-h-11 min-w-11 rounded-xl px-2 text-[11px] font-bold text-sage-600 flex items-center gap-1 hover:gap-2 transition-[color,gap]"
+          className="plan-section-action min-h-11 min-w-11 rounded-xl px-2 flex items-center gap-1 hover:gap-2"
           aria-label="Tambah tagihan baru"
         >
           <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah Tagihan
         </button>
       </div>
 
+      {error && scopedBills.length > 0 && (
+        <div className="plan-error-state mb-4 bg-rose-50 p-3" role="alert">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-rose-800">Tagihan terakhir masih ditampilkan</p>
+              <p className="mt-1 text-xs text-rose-700">{error}</p>
+            </div>
+            <button type="button" onClick={() => fetchBills()} className="min-h-11 min-w-11 flex-shrink-0 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700">
+              Coba lagi
+            </button>
+          </div>
+        </div>
+      )}
+
       {scopedBills.length === 0 ? (
         <FeatureEducation
+          className="plan-empty-state"
           title="Jangan lewatkan tanggal penting"
           description="Simpan jadwal pembayaran supaya kamu tahu apa yang perlu disiapkan."
           steps={[
@@ -247,72 +274,70 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
         />
       ) : (
         <>
-          {/* Total monthly */}
-          {totalMonthly > 0 && (
-            <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3 mb-3 rounded-2xl">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Total Bulanan</span>
-                <span className="text-sm font-bold" style={{ color: THEME.expense }}>
-                  {formatRpFull(totalMonthly)}
-                </span>
-              </div>
+          <div className="plan-summary-strip">
+            <div className="plan-summary-strip__item">
+              <span>Jadwal aktif</span>
+              <strong>{activeBills.length}</strong>
+              <em>{urgentBillCount > 0 ? `${urgentBillCount} perlu perhatian` : "Tidak ada yang mendesak"}</em>
             </div>
-          )}
+            <div className="plan-summary-strip__item">
+              <span>Berikutnya</span>
+              <strong>{nextBill ? nextBill.nama : "—"}</strong>
+              <em>{nextBill ? (nextBill.status === "overdue" ? "Sudah lewat" : nextBill.status === "due_today" ? "Jatuh tempo hari ini" : nextBill.status === "due_soon" ? "Jatuh tempo besok" : `Tanggal ${nextBill.tanggalJatuhTempo}`) : "Belum ada jadwal"}</em>
+            </div>
+            <div className="plan-summary-strip__item">
+              <span>Total bulanan</span>
+              <strong>{totalMonthly > 0 ? formatRpFull(totalMonthly) : "—"}</strong>
+              <em>Tagihan rutin bulanan</em>
+            </div>
+          </div>
 
           {/* Active bills */}
-          <div className="space-y-2">
-            {activeBills.map(bill => {
+          <div className="plan-bill-agenda">
+            {orderedActiveBills.map(bill => {
               const StatusIcon = STATUS_ICONS[bill.status] || Clock
               const statusColor = STATUS_COLORS[bill.status] || THEME.textTertiary
               const { icon: BillIcon, tint } = getBillVisual(bill.kategoriBill)
+              const urgent = bill.status === "overdue" || bill.status === "due_today" || bill.status === "due_soon"
               return (
                 <div
                   key={bill.id}
-                  className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3.5 rounded-2xl flex items-center gap-3 group"
+                  className={`plan-bill-row ${urgent ? "plan-bill-row--urgent" : ""}`}
                 >
-                  <div
-                    className="relative w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
-                    style={{ background: tint.bg, color: tint.color }}
-                  >
-                    <BillIcon size={16} strokeWidth={2.1} aria-hidden="true" />
-                    <span
-                      className="absolute -right-1 -bottom-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center"
-                      style={{ background: statusColor, color: "white" }}
+                  <div className={`plan-card plan-bill-card ${urgent ? "plan-bill-card--urgent" : ""} flex items-center gap-3 p-3.5 group`}>
+                    <div
+                      className="relative w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/70"
+                      style={{ background: tint.bg, color: tint.color }}
                     >
-                      <StatusIcon size={10} strokeWidth={2.6} aria-hidden="true" />
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-md3-on-surface truncate">{bill.nama}</p>
-                      {bill.status === "overdue" && (
-                        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.dangerBg, color: THEME.danger }}>
-                          {Math.abs(bill.daysUntilDue)}h lalu
-                        </span>
-                      )}
-                      {bill.status === "due_today" && (
-                        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
-                          Hari ini
-                        </span>
-                      )}
-                      {bill.status === "due_soon" && (
-                        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: THEME.warningBg, color: THEME.warning }}>
-                          Besok
-                        </span>
-                      )}
+                      <BillIcon size={16} strokeWidth={2.1} aria-hidden="true" />
+                      <span
+                        className="absolute -right-1 -bottom-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center"
+                        style={{ background: statusColor, color: "white" }}
+                      >
+                        <StatusIcon size={10} strokeWidth={2.6} aria-hidden="true" />
+                      </span>
                     </div>
-                    <p className="text-[11px] text-md3-on-surface-variant mt-0.5">
-                      {FREQ_LABELS[bill.frekuensi] || bill.frekuensi} · {bill.kategoriBill}
-                      {bill.akunBank ? ` · ${bill.akunBank}` : ""}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold" style={{ color: bill.tipe === "income" ? THEME.income : THEME.expense }}>
-                      {formatRpFull(bill.jumlah)}
-                    </p>
-                    <p className="text-[10px] text-earth-400">tgl {bill.tanggalJatuhTempo}</p>
-                  </div>
-                  <div className="flex flex-col gap-1 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="plan-card__title truncate">{bill.nama}</p>
+                        {urgent && (
+                          <span className="rounded-full px-1.5 py-0.5 text-[11px] font-bold" style={{ background: bill.status === "overdue" ? THEME.dangerBg : THEME.warningBg, color: bill.status === "overdue" ? THEME.danger : THEME.warning }}>
+                            {bill.status === "overdue" ? `${Math.abs(bill.daysUntilDue)} hari lalu` : bill.status === "due_today" ? "Hari ini" : bill.status === "due_soon" ? "Besok" : "Mendatang"}
+                          </span>
+                        )}
+                      </div>
+                      <p className="plan-card__meta mt-1">
+                        {FREQ_LABELS[bill.frekuensi] || bill.frekuensi} · {bill.kategoriBill}
+                        {bill.akunBank ? ` · ${bill.akunBank}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="plan-bill-card__amount" style={{ color: bill.tipe === "income" ? THEME.income : THEME.expense }}>
+                        {formatRpFull(bill.jumlah)}
+                      </p>
+                      <p className="plan-bill-card__due">tgl {bill.tanggalJatuhTempo}</p>
+                    </div>
+                    <div className="flex flex-col gap-1 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => setPayBill(bill)}
                       aria-label={`Bayar ${bill.nama}`}
@@ -335,6 +360,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                     >
                       <Trash2 size={10} />
                     </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -348,7 +374,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                 onClick={() => setShowInactive(!showInactive)}
                 className="min-h-11 min-w-11 flex items-center gap-1.5 text-[11px] font-bold text-md3-on-surface-variant hover:text-md3-on-surface-variant transition-colors mb-2"
               >
-                {showInactive ? "▲" : "▼"} Nonaktif ({inactiveBills.length})
+                {showInactive ? <ChevronDown size={13} aria-hidden="true" /> : <ChevronRight size={13} aria-hidden="true" />} Nonaktif ({inactiveBills.length})
               </button>
               {showInactive && (
                 <div className="space-y-2">
@@ -357,7 +383,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                     return (
                       <div
                         key={bill.id}
-                        className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3.5 rounded-2xl flex items-center gap-3 opacity-60"
+                        className="plan-card p-3.5 flex items-center gap-3 opacity-60"
                       >
                         <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/70" style={{ background: tint.bg, color: tint.color }}>
                           <BillIcon size={16} strokeWidth={2.1} aria-hidden="true" />

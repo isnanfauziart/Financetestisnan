@@ -74,6 +74,12 @@ export default function BudgetsSection({
       .slice(0, 4)
   }, [visibleBudgets, expenseCategories])
 
+  const budgetTotals = useMemo(() => {
+    const limit = visibleBudgets.reduce((sum, budget) => sum + (Number(budget.limit) || 0), 0)
+    const spent = visibleBudgets.reduce((sum, budget) => sum + (spentByBudget[`${budget.kategori}|${budget.bulan}|${budget.tahun}|${budget.akun || ""}`] || 0), 0)
+    return { limit, spent, percentage: limit > 0 ? Math.round((spent / limit) * 100) : 0 }
+  }, [spentByBudget, visibleBudgets])
+
   function openCreate(prefillKategori = "") {
     setSetupState({ mode: "create", budget: null, prefillKategori })
   }
@@ -119,35 +125,35 @@ export default function BudgetsSection({
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-1.5">
+    <div className="plan-section-shell">
+      <div className="plan-section-heading">
+        <div className="plan-section-heading__title">
           <Target size={14} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Anggaran</h3>
+          <h2>Anggaran</h2>
           {selectedMonth && selectedMonth !== "Semua Bulan" && (
-            <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">· {selectedMonth} {selectedYear}</span>
+            <span className="plan-section-heading__meta">{selectedMonth} {selectedYear}</span>
           )}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             onClick={() => setCopyOpen(true)}
             aria-label="Salin anggaran historis"
-            className="min-h-11 min-w-11 text-[11px] font-bold py-1.5 px-3 rounded-xl text-md3-on-surface flex items-center gap-1 border border-md3-outline-variant bg-md3-surface hover:bg-md3-surface-container-high active:scale-95 transition-transform"
+            className="plan-section-action min-w-11 border border-md3-outline-variant px-3 py-1.5 text-md3-on-surface flex items-center gap-1 hover:bg-md3-surface-container-high active:scale-95"
           >
             <Copy size={12} aria-hidden="true" /> Salin Anggaran
           </button>
           <button
             onClick={() => openCreate("")}
             aria-label="Tambah anggaran baru"
-            className="min-h-11 min-w-11 text-[11px] font-bold py-1.5 px-3 rounded-xl text-white flex items-center gap-1 shadow-pop active:scale-95 transition-transform bg-sage-500 hover:bg-sage-600"
+            className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white shadow-pop flex items-center gap-1 transition-colors hover:bg-sage-600 active:scale-95"
           >
             <Plus size={12} aria-hidden="true" /> Tambah Anggaran
           </button>
         </div>
       </div>
 
-      {error ? (
-        <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
+      {error && visibleBudgets.length === 0 ? (
+        <div className="plan-error-state bg-rose-50 p-4" role="alert">
           <p className="text-sm font-semibold text-rose-800">Gagal memuat anggaran</p>
           <p className="text-xs text-rose-700 mt-1">{error}</p>
           <button
@@ -159,16 +165,19 @@ export default function BudgetsSection({
           </button>
         </div>
       ) : loading ? (
-        <div className="shimmer-bg rounded-2xl h-24" aria-hidden="true" />
+        <div className="plan-loading-state shimmer-bg" role="status" aria-label="Memuat anggaran" aria-busy="true">
+          <span className="sr-only">Memuat anggaran…</span>
+        </div>
       ) : visibleBudgets.length === 0 ? (
         <FeatureEducation
+          className="plan-empty-state"
           title="Jaga pengeluaran tetap terkendali"
           description="Tetapkan batas yang membantu kamu menjaga pengeluaran tetap tenang sepanjang bulan."
           steps={[
             { icon: <Target size={16} aria-hidden="true" />, title: "Pilih kategori", description: "Mulai dari kebutuhan yang paling penting." },
             { icon: <Target size={16} aria-hidden="true" />, title: "Tentukan limit", description: "Isi batas pengeluaran untuk bulan ini." },
             { icon: <Target size={16} aria-hidden="true" />, title: "Catat seperti biasa", description: "Transaksi tetap berjalan seperti biasanya." },
-            { icon: <Target size={16} aria-hidden="true" />, title: "Cek sisa anggaran", description: "Lihat ruang yang masih tersedia." },
+            { icon: <Target size={16} aria-hidden="true" />, title: "Cek sisa anggaran", description: "Lihat sisa anggaran bulan ini." },
           ]}
           example="Jajan / Transportasi"
           action={
@@ -182,23 +191,56 @@ export default function BudgetsSection({
           }
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {visibleBudgets.map((b, i) => {
-            const key = `${b.kategori}|${b.bulan}|${b.tahun}|${b.akun || ""}`
-            return (
-              <div key={key} className="animate-fade-in-up" style={{ animationDelay: `${0.05 * i}s` }}>
-                <BudgetCard
-                  budget={b}
-                  spent={spentByBudget[`${b.kategori}|${b.bulan}|${b.tahun}|${b.akun || ""}`] || 0}
-                  categoryMeta={settings?.categories?.expense?.find(item => (typeof item === "string" ? item : item?.name) === b.kategori)}
-                  onClick={() => setDetailBudget(b)}
-                  onEdit={() => openEdit(b)}
-                  onDelete={() => handleDelete(b)}
-                  now={now}
-                />
-              </div>
-            )
-          })}
+        <>
+          <div className="plan-summary-strip">
+            <div className="plan-summary-strip__item">
+              <span>Total batas</span>
+              <strong>{formatRp(budgetTotals.limit)}</strong>
+              <em>{formatRp(budgetTotals.spent)} terpakai</em>
+            </div>
+            <div className="plan-summary-strip__item">
+              <span>Ritme bulan ini</span>
+              <strong>{budgetTotals.percentage}%</strong>
+              <em>pengeluaran dari seluruh batas</em>
+            </div>
+            <div className="plan-summary-strip__item">
+              <span>Petunjuk</span>
+              <strong>Garis pace</strong>
+              <em>patokan belanja sesuai waktu</em>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {visibleBudgets.map((b, i) => {
+              const key = `${b.kategori}|${b.bulan}|${b.tahun}|${b.akun || ""}`
+              return (
+                <div key={key} className="animate-fade-in-up" style={{ animationDelay: `${Math.min(i, 7) * 0.04}s` }}>
+                  <BudgetCard
+                    budget={b}
+                    spent={spentByBudget[`${b.kategori}|${b.bulan}|${b.tahun}|${b.akun || ""}`] || 0}
+                    categoryMeta={settings?.categories?.expense?.find(item => (typeof item === "string" ? item : item?.name) === b.kategori)}
+                    onClick={() => setDetailBudget(b)}
+                    onEdit={() => openEdit(b)}
+                    onDelete={() => handleDelete(b)}
+                    now={now}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {error && visibleBudgets.length > 0 && (
+        <div className="plan-error-state mb-4 bg-rose-50 p-3" role="alert">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-rose-800">Anggaran terakhir masih ditampilkan</p>
+              <p className="mt-1 text-xs text-rose-700">{error}</p>
+            </div>
+            <button type="button" onClick={() => refetch()} className="min-h-11 min-w-11 flex-shrink-0 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700">
+              Coba lagi
+            </button>
+          </div>
         </div>
       )}
 

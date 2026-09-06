@@ -21,10 +21,8 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
   const pace = computeBudgetPace({ ...budget, spent, now })
 
   return (
-    <div
-      className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm transition-[box-shadow] hover:shadow-pop group"
-    >
-      <div className="flex items-start justify-between gap-3 mb-2.5">
+    <div className="plan-card plan-card--amber p-4 sm:p-5 group">
+      <div className="flex items-start justify-between gap-3 mb-4">
         <button
           onClick={onClick}
           aria-label={`View ${budget.kategori} transactions`}
@@ -39,7 +37,7 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                <p className="text-sm font-bold text-md3-on-surface truncate">{budget.kategori}</p>
+                <p className="plan-card__title truncate">{budget.kategori}</p>
                 {budget.akun && (
                   <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-md3-surface text-md3-on-surface-variant flex-shrink-0">
                     {budget.akun}
@@ -66,10 +64,15 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
         </div>
       </div>
       <button onClick={onClick} className="w-full min-h-11 text-left" aria-label={`Open ${budget.kategori} drill-down`}>
-        <BudgetProgressBar spent={spent} limit={budget.limit} />
-        <p className="text-[10px] text-md3-on-surface-variant mt-1.5 text-right font-semibold">{Math.round(pct)}% used</p>
+        <BudgetProgressBar spent={spent} limit={budget.limit} expectedSpent={pace?.expectedSpent} paceStatus={pace?.paceStatus} />
+        <div className="mt-1.5 flex items-center justify-between gap-3">
+          <p className="text-[10px] text-md3-on-surface-variant font-semibold">{Math.round(pct)}% used</p>
+          {pace?.expectedSpent !== null && pace?.expectedSpent !== undefined && (
+            <span className="plan-card__meta">Garis = ritme waktu</span>
+          )}
+        </div>
         {pace?.status === "active" && (
-          <p className="text-[10px] text-md3-on-surface-variant mt-1 text-left">
+          <p className="plan-card__meta mt-2 text-left">
             Sisa {formatRp(pace.remaining)} · sekitar {formatRp(pace.dailyRoom)}/hari
           </p>
         )}

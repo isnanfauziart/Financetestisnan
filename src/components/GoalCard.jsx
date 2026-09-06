@@ -3,7 +3,7 @@ import { Plus, Calendar, Check } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import RowActionsMenu from "@/app/dashboard/_components/RowActionsMenu"
-import GoalProgressRing from "./GoalProgressRing"
+import TargetGauge from "./TargetGauge"
 import { computeGoalPace } from "@/app/dashboard/_components/goalUtils"
 
 function deadlineLabel(deadline) {
@@ -24,7 +24,7 @@ function paceLabel(pace, deadline) {
   return `Perlu tambah ${formatRp(pace.additionalMonthly)}/bulan${deadline ? ` sampai ${deadline}` : ""}`
 }
 
-export default function GoalCard({ goal, progress, onContribute, onEdit, onDelete, onSettle, isCompleted, now, sharedCategory = false }) {
+export default function GoalCard({ goal, progress, onContribute, onEdit, onDelete, onSettle, isCompleted, now, sharedCategory = false, featured = false }) {
   const pct = goal.target > 0 ? (progress / goal.target) * 100 : 0
   const achieved = pct >= 100
   const settled = goal.status === "settled"
@@ -33,11 +33,12 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
   const pace = !settled && !achieved ? computeGoalPace(goal, progress, now) : null
 
   return (
-    <div className={`bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm transition-[box-shadow,opacity] hover:shadow-pop group ${settled ? "opacity-70" : ""}`}>
-      <div className="flex items-start justify-between gap-3 mb-3">
+    <div className={`plan-card plan-card--sage p-4 sm:p-5 group ${featured ? "plan-card--featured" : ""} ${settled ? "opacity-70" : ""}`}>
+      <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 mb-1">
-            <h4 className="text-sm font-bold text-md3-on-surface truncate">{goal.nama}</h4>
+          <div className="flex items-center gap-2 mb-1">
+            {featured && <span className="plan-card__eyebrow">Target utama</span>}
+            {!featured && <span className="plan-card__eyebrow">Target</span>}
             {settled && (
               <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: THEME.incomeBg, color: THEME.income }}>
                  ✓ Selesai
@@ -49,7 +50,8 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
               </span>
             )}
           </div>
-          <p className="text-[10px] text-md3-on-surface-variant">{goal.kategori}</p>
+          <h4 className="plan-card__title truncate">{goal.nama}</h4>
+          <p className="plan-card__meta mt-1">{goal.kategori}</p>
         </div>
         <RowActionsMenu
           onEdit={onEdit}
@@ -60,37 +62,42 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
         />
       </div>
 
-      <div className="flex items-center gap-3">
-        <GoalProgressRing progress={settled ? 100 : pct} color={color} completed={achieved || settled} />
-        <div className="min-w-0 flex-1">
+      <div className="space-y-3">
+        <TargetGauge
+          progress={settled ? Math.max(progress, goal.target) : progress}
+          target={goal.target}
+          featured={featured}
+          label={settled || achieved ? "Target tercapai" : "Progress target"}
+        />
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <p className="text-[11px] text-md3-on-surface-variant tabular-nums">
             <span className="font-bold" style={{ color }}>{formatRp(progress)}</span>
             <span className="text-md3-on-surface-variant"> / {formatRp(goal.target)}</span>
           </p>
           {deadline && (
-            <p className="text-[10px] text-md3-on-surface-variant flex items-center gap-1 mt-1">
-              <Calendar size={9} aria-hidden="true" /> sampai {deadline}
+            <p className="plan-card__meta flex items-center gap-1">
+              <Calendar size={11} aria-hidden="true" /> sampai {deadline}
             </p>
-          )}
-          {pace && (
-            <p className="text-[10px] font-semibold mt-0.5" style={{ color }}>
-              {paceLabel(pace, deadline)}
-            </p>
-          )}
-          {pace && sharedCategory && (
-            <p className="text-[10px] text-md3-on-surface-variant mt-1">
-              Kategori ini dipakai beberapa target; cek pembagiannya.
-            </p>
-          )}
-          {!settled && achieved && (
-            <p className="text-[10px] font-semibold mt-0.5" style={{ color: "#d4a853" }}>
-              Target tercapai
-            </p>
-          )}
-          {settled && (
-            <p className="text-[10px] text-earth-400 mt-0.5">Target tercapai dan selesai</p>
           )}
         </div>
+        {pace && (
+          <p className="plan-card__meta font-semibold" style={{ color }}>
+            {paceLabel(pace, deadline)}
+          </p>
+        )}
+        {pace && sharedCategory && (
+          <p className="plan-card__meta">
+            Kategori ini dipakai beberapa target; cek pembagiannya.
+          </p>
+        )}
+        {!settled && achieved && (
+          <p className="text-[10px] font-semibold" style={{ color: "#d4a853" }}>
+            Target tercapai
+          </p>
+        )}
+        {settled && (
+          <p className="plan-card__meta">Target tercapai dan selesai</p>
+        )}
       </div>
 
       {/* Active goal at 100% — show Settle button */}

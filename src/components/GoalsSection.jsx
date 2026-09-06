@@ -84,13 +84,16 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
 
   if (loading) {
     return (
-      <div className="mt-6 animate-bento-in">
-        <div className="flex items-center gap-1.5 mb-3 px-1">
+      <div className="plan-section-shell animate-bento-in">
+        <div className="plan-section-heading">
+          <div className="plan-section-heading__title">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Target</h3>
+            <h2>Target</h2>
+          </div>
         </div>
-        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-6 shadow-warm text-center">
-          <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" />
+        <div className="plan-loading-state text-center" role="status" aria-label="Memuat target" aria-busy="true">
+          <span className="sr-only">Memuat target…</span>
+          <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" aria-hidden="true" />
         </div>
       </div>
     )
@@ -98,12 +101,14 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
 
   if (error) {
     return (
-      <div className="mt-6 animate-bento-in">
-        <div className="flex items-center gap-1.5 mb-3 px-1">
+      <div className="plan-section-shell animate-bento-in">
+        <div className="plan-section-heading">
+          <div className="plan-section-heading__title">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Target</h3>
+            <h2>Target</h2>
+          </div>
         </div>
-        <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
+        <div className="plan-error-state bg-rose-50 p-4" role="alert">
           <p className="text-sm font-semibold text-rose-800">Gagal memuat target</p>
           <p className="text-xs text-rose-700 mt-1">{error}</p>
           <button
@@ -119,31 +124,31 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
   }
 
   return (
-    <div className="mt-6 animate-bento-in">
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-1.5">
+    <div className="plan-section-shell animate-bento-in">
+      <div className="plan-section-heading">
+        <div className="plan-section-heading__title">
           <Target size={14} className="text-moss-500" aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Target</h3>
+          <h2>Target</h2>
           {activeGoals.length > 0 && (
-            <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">
+            <span className="plan-section-heading__meta">
               {activeGoals.length} aktif
             </span>
           )}
         </div>
         <button
           onClick={() => setSetupState({ mode: "create" })}
-          className="min-h-11 min-w-11 rounded-xl px-2 text-[11px] font-bold text-sage-600 flex items-center gap-1 hover:gap-2 transition-[color,gap]"
+          className="plan-section-action min-w-11 px-2 flex items-center gap-1 hover:gap-2"
           aria-label="Tambah target baru"
         >
           <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah Target
         </button>
       </div>
 
-      <section className="bento-tile-dark mesh-hero text-white p-5 sm:p-6 shadow-pop" aria-label="Ringkasan tabungan">
+      <section className="plan-goal-summary" aria-label="Ringkasan tabungan">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/75">Total Tabungan</p>
         <p className="mt-2 text-3xl sm:text-4xl font-display font-bold tracking-tight break-words">{formatRpFull(netWorth)}</p>
         <p className="mt-1 text-[11px] font-semibold text-white/75">Sama dengan Kekayaan Bersih di Beranda</p>
-        <div className="mt-4 rounded-2xl px-4 py-3 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }}>
+        <div className="plan-goal-summary__available mt-4 rounded-2xl px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-semibold text-white/80">Tersedia untuk dibagi</span>
             <strong className="text-sm font-bold text-white">{formatRpFull(availableSavings)}</strong>
@@ -156,6 +161,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
 
       {goals.length === 0 ? (
         <FeatureEducation
+          className="plan-empty-state"
           title="Mulai dari satu target kecil"
           description="Ubah tujuan besar menjadi langkah yang terasa ringan dan mudah diikuti."
           steps={[
@@ -180,21 +186,23 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
           {/* Active Goals */}
           {activeGoals.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {activeGoals.map(goal => {
+              {activeGoals.map((goal, index) => {
                 const progress = progressByGoal[goal.id] || 0
                 const pct = goal.target > 0 ? (progress / goal.target) * 100 : 0
                 return (
-                  <GoalCard
-                    key={goal.id}
-                    goal={goal}
-                    progress={progress}
-                    onContribute={() => setContributeGoal(goal)}
-                    onEdit={() => setSetupState({ mode: "edit", goal })}
-                    onDelete={() => handleDelete(goal)}
-                    onSettle={pct >= 100 ? () => setSettleGoal(goal) : undefined}
-                    now={now}
-                    sharedCategory={sharedCategoryGoalIds.has(goal.id)}
-                  />
+                  <div key={goal.id} className={index === 0 ? "sm:col-span-2" : ""}>
+                    <GoalCard
+                      goal={goal}
+                      progress={progress}
+                      onContribute={() => setContributeGoal(goal)}
+                      onEdit={() => setSetupState({ mode: "edit", goal })}
+                      onDelete={() => handleDelete(goal)}
+                      onSettle={pct >= 100 ? () => setSettleGoal(goal) : undefined}
+                      now={now}
+                      sharedCategory={sharedCategoryGoalIds.has(goal.id)}
+                      featured={index === 0}
+                    />
+                  </div>
                 )
               })}
             </div>
