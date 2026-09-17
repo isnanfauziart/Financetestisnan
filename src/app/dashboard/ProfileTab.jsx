@@ -10,6 +10,7 @@ import SegmentedButtons from "./_components/SegmentedButtons"
 import CategoryManager from "@/components/CategoryManager"
 import DocsSection from "@/components/DocsSection"
 import UserNameSetup from "@/components/UserNameSetup"
+import BalanceCheckpointCard from "@/components/BalanceCheckpointCard"
 import { isProRegistrationOpen } from "@/lib/featureAccess"
 
 const THEME_OPTIONS = ["Terang", "Gelap", "Sistem"]
@@ -306,6 +307,10 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
           }}
         />
       )}
+
+      <SectionCard title="Total saldo saat ini">
+        <BalanceCheckpointCard data={data} onRefresh={onRefresh} onToast={onToast} header={false} />
+      </SectionCard>
 
       <SectionCard title="Panduan">
         <DocsSection />

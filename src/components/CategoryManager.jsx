@@ -252,8 +252,8 @@ export default function CategoryManager({ categories, onSaved, onClose }) {
               <div>
                 <label htmlFor="category-kind" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Jenis dana</label>
                 <select id="category-kind" value={savingsKind} onChange={event => setSavingsKind(event.target.value)} className="field-outlined w-full px-3 py-2.5 text-sm font-semibold">
-                  <option value="liquid">Dana likuid</option>
-                  <option value="investment">Investasi</option>
+                  <option value="liquid">Bisa digunakan</option>
+                  <option value="investment">Investasi (nilai nominal)</option>
                 </select>
               </div>
             )}

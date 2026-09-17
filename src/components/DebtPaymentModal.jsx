@@ -5,6 +5,7 @@ import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRpFull, formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
+import { submitFinancialWrite } from "@/lib/financialWriteClient"
 
 export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, transactionUsage, proRegistrationOpen = true }) {
   const [rawAmount, setRawAmount] = useState("")
@@ -34,22 +35,21 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
     setSubmitting(true)
     setError(null)
     try {
-      const res = await fetch("/api/debts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const write = await submitFinancialWrite({
+        url: "/api/debts",
+        body: {
           action: "pay",
           id: debt.id,
           amount: payAmount,
           paymentId,
-        }),
+        },
       })
-      const result = await res.json()
-      if (!res.ok) {
-        setError(result)
+      if (!write.ok) {
+        setError({ error: write.error, code: write.code, unresolved: write.outcome === "unresolved", operationId: write.operationId })
         setSubmitting(false)
         return
       }
+      const result = write.data
 
       onToast(
         result.newStatus === "settled"

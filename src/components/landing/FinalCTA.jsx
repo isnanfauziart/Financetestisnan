@@ -1,27 +1,37 @@
-import { FileSpreadsheet } from "lucide-react"
+import { ArrowUpRight } from "lucide-react"
 
 export default function FinalCTA({ links }) {
   return (
     <section className="chapter final-cta" aria-labelledby="final-cta-title">
-      <div className="final-cta__content" data-reveal-group="">
-        <h2 id="final-cta-title">Baca keuanganmu.<br />Pilih langkah berikutnya.</h2>
-        <p>Gunakan Artami di web hari ini. Aplikasi Android sedang dipersiapkan untuk Play Store.</p>
-        <div className="button-row button-row--center">
-          <a className="button" href={links.webApp}>Buka Artami</a>
-          {links.playStoreAvailable ? (
-            <a className="button button--ghost" href={links.playStore}>Unduh di Play Store</a>
-          ) : (
-            <span className="store-status" aria-disabled="true">Segera hadir di Play Store</span>
-          )}
+      <div className="final-cta__panel">
+        <div className="final-cta__content" data-reveal-group="">
+          <h2 id="final-cta-title">
+            <span>Lebih paham uangmu.</span>
+            <span>Lebih jelas langkahmu.</span>
+          </h2>
+          <p>
+            Catat pemasukan, pantau pengeluaran, dan susun rencana. Semuanya terhubung ke Google Sheet milikmu.
+          </p>
+          <div className="button-row">
+            <a className="button final-cta__primary" href={links.webApp}>
+              Mulai gratis
+              <ArrowUpRight aria-hidden="true" />
+            </a>
+            {links.playStoreAvailable ? (
+              <a className="button final-cta__secondary" href={links.playStore}>Unduh di Play Store</a>
+            ) : null}
+          </div>
         </div>
-      </div>
 
-      <div className="final-cta__flow" aria-hidden="true" data-reveal="">
-        <span className="final-cta__step"><FileSpreadsheet />Google Sheet-mu</span>
-        <i />
-        <span className="final-cta__step">Pemahaman</span>
-        <i />
-        <span className="final-cta__step">Keputusan berikutnya</span>
+        <div className="final-cta__artwork" aria-hidden="true">
+          <svg viewBox="0 0 640 640" focusable="false">
+            <circle cx="455" cy="320" r="320" fill="#c4dcd3" />
+            <circle cx="455" cy="320" r="256" fill="#b0cec2" />
+            <circle cx="455" cy="320" r="192" fill="#99bcad" />
+            <circle cx="455" cy="320" r="128" fill="#7fa694" />
+            <circle cx="455" cy="320" r="64" fill="#658e7d" />
+          </svg>
+        </div>
       </div>
     </section>
   )

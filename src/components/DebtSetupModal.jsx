@@ -6,6 +6,7 @@ import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import QuotaNotice from "./QuotaNotice"
+import { submitFinancialWrite } from "@/lib/financialWriteClient"
 
 export default function DebtSetupModal({ debt, onClose, onSaved, proRegistrationOpen = true }) {
   const isEditing = Boolean(debt?.id)
@@ -32,21 +33,20 @@ export default function DebtSetupModal({ debt, onClose, onSaved, proRegistration
     setSubmitting(true)
     setError(null)
     try {
-      const res = await fetch("/api/debts", {
+      const write = await submitFinancialWrite({
+        url: "/api/debts",
         method: isEditing ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           ...(isEditing ? { id: debt.id } : {}),
           namaOrang,
           jumlah,
           arah,
           jatuhTempo,
           catatan,
-        }),
+        },
       })
-      const result = await res.json()
-      if (!res.ok) {
-        setError(result)
+      if (!write.ok) {
+        setError({ error: write.error, code: write.code, unresolved: write.outcome === "unresolved", operationId: write.operationId })
         setSubmitting(false)
         return
       }

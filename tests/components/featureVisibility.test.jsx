@@ -35,6 +35,7 @@ vi.mock("@/components/DebtsSection", () => ({ default: () => <div>Debts</div> })
 vi.mock("@/components/EventBudgetsSection", () => ({ default: () => <div>Events</div> }))
 vi.mock("@/lib/useSharedData", () => ({
   useBudgets: () => ({ budgets: [] }),
+  useGoals: () => ({ goals: [] }),
   useBills: () => ({ bills: [] }),
   useSettings: () => ({ settings: {} }),
 }))

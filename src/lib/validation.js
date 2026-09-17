@@ -46,3 +46,18 @@ export function oneOf(value, allowed) {
   if (!allowed.includes(value)) throw new RequestValidationError("INVALID_OPTION")
   return value
 }
+
+/**
+ * Strict money amount for financial writes. Returns `null` for anything that is
+ * not a plain positive number: stripping separators alone would turn `-1` into
+ * `+1` and let text land as `0`.
+ */
+export function parsePositiveAmount(value, { max = 999999999999 } = {}) {
+  if (value === null || value === undefined) return null
+  const raw = String(value).trim()
+  if (raw === "" || raw.includes("-") || !/[0-9]/.test(raw)) return null
+  const cleaned = raw.replace(/[^0-9,.]/g, "").replace(/\./g, "").replace(",", ".")
+  const amount = Number.parseFloat(cleaned)
+  if (!Number.isFinite(amount) || amount <= 0 || amount > max) return null
+  return amount
+}

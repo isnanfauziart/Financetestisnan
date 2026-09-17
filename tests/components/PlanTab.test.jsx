@@ -3,6 +3,10 @@ import { render, screen, fireEvent, within } from "@testing-library/react"
 import PlanTab from "@/app/dashboard/PlanTab"
 
 const dynamicCapture = vi.hoisted(() => ({ props: null }))
+vi.mock("@/lib/useSharedData", () => ({
+  useBudgets: () => ({ budgets: [], loading: false, error: null }),
+  useGoals: () => ({ goals: [], loading: false, error: null }),
+}))
 
 vi.mock("next/dynamic", () => ({
   default: () => function DynamicMock(props) {
@@ -155,12 +159,10 @@ describe("PlanTab planning ownership", () => {
 
     overviewCards.forEach(([label, border, background, color, hover]) => {
       const card = screen.getByRole("button", { name: `Buka ${label}` })
-      expect(card).toHaveClass("bg-md3-surface-container-lowest", "border-t-2", border, "group", "active:scale-[0.99]")
+      expect(card).toHaveClass("plan-brief-row", color)
       expect(card).toHaveClass("focus-visible:ring-2")
-      expect(card).toHaveClass(hover)
-      expect(card.querySelector("[data-plan-icon-tile]")).toHaveClass("h-11", "w-11", background, color)
-      expect(within(card).getByText("Buka")).toBeInTheDocument()
-      expect(card.querySelectorAll("svg")).toHaveLength(2)
+      expect(card.closest(".plan-monthly-brief")).toBeInTheDocument()
+      expect(within(card).getByText(label)).toBeInTheDocument()
     })
   })
 

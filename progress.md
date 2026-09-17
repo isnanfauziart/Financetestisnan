@@ -1008,3 +1008,733 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 
 ### Blockers
 - None for this task. Browser visual QA was unavailable; unrelated worktree changes remain untouched.
+
+## 2026-08-17 - Rebuild Artami APK for canonical domain
+
+### Tasks Completed
+- Bumped the Android release to version `1.0.3` with `versionCode 4`.
+- Built a signed release APK from the Android TWA project.
+- Replaced the website-served APK and synchronized root APK with the new release artifact.
+- Confirmed the packaged APK launches `https://artami.web.id/dashboard` and no longer embeds the old `ultah.biz.id` host.
+
+### Files Changed
+- `android/app/build.gradle`
+- `scripts/create-android-project.js`
+- `scripts/generate-twa.js`
+- `twa-manifest.json`
+- `public/artami.apk`
+- `artami.apk`
+- `progress.md`
+
+### Decisions
+- Preserved package ID `com.artami.app`, `/dashboard` launch path, and the existing signing certificate so the release remains an upgrade of the installed app.
+- Kept unrelated pre-existing worktree changes untouched.
+
+### Verification
+- Clean signed release build passed: `assembleRelease`.
+- APK metadata: package `com.artami.app`, version code `4`, version `1.0.3`.
+- Packaged manifest: host `artami.web.id`, launch URL `https://artami.web.id/dashboard`.
+- Release APK is not debuggable.
+- APK signature verification passed with the existing asset-links certificate fingerprint.
+- Root, public, and release-output APK SHA-256 hashes match.
+- Full repository suite: 103 files passed, 559 tests passed, 1 file skipped, 2 tests skipped.
+
+### Blockers
+- None for this task.
+
+## 2026-08-17 - Remove sync info affordance
+
+### Tasks Completed
+- Removed the info icon beside the synchronization status.
+- Removed the associated synchronization info sheet, text constant, state, handler, and unused imports.
+- Preserved refresh behavior, synchronization status text, loading/offline states, haptics, and accessibility labels.
+- Updated the approved Beranda design record and regression coverage.
+
+### Files Changed
+- `src/app/dashboard/_components/SyncStatus.jsx`
+- `tests/components/SyncStatus.test.jsx`
+- `docs/superpowers/specs/2026-08-09-artami-calm-living-ledger-design.md`
+- `progress.md`
+
+### Decisions
+- Keep Google Sheets ownership explanations in their existing dedicated surfaces; remove only the separate synchronization-row affordance.
+- Leave unrelated worktree changes untouched; no commit was created.
+
+### Verification
+- Focused SyncStatus suite: 6 tests passed.
+- Full repository suite: 103 files passed, 561 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder values for the four absent local production variables; no secrets were written.
+- Independent scoped diff review found no blocking findings.
+- `git diff --check` passed; only existing CRLF conversion warnings were reported.
+
+### Blockers
+- None for this task. Browser visual QA was unavailable; unrelated worktree changes remain untouched.
+
+## 2026-08-17 - Clarify piutang receiving actions
+
+### Tasks Completed
+- Replaced misleading piutang `Bayar` actions with direction-aware `Terima` labels.
+- Updated piutang modal headings, amount labels, progress copy, validation, notifications, and full-settlement confirmations.
+- Updated debt first-use education to cover both payments and receipts.
+- Added regression coverage for piutang card and payment-modal wording.
+
+### Files Changed
+- `src/components/DebtCard.jsx`
+- `src/components/DebtPaymentModal.jsx`
+- `src/components/DebtsSection.jsx`
+- `tests/components/DebtManagement.test.jsx`
+- `tests/components/dataSectionsErrors.test.jsx`
+- `progress.md`
+
+### Decisions
+- Kept `Bayar` for utang and used `Terima` for piutang.
+- Preserved all API, Google Sheets, quota, idempotency, and accounting-direction behavior.
+- Left unrelated worktree changes untouched; no commit was created.
+
+### Verification
+- Focused component checks: 10 tests passed.
+- Debt payment API checks: 4 tests passed.
+- Full repository suite: 103 files passed, 561 tests passed, 1 file skipped, 2 tests skipped.
+- Production build passed with process-only placeholder values for four absent local production variables; no secrets were written.
+- `git diff --check` passed; only existing CRLF conversion warnings were reported.
+- Independent final diff review found no blocking findings.
+
+### Blockers
+- None for this task.
+
+---
+
+## Session — 2026-08-23: MD3 UI/UX Update Plan Document
+
+### Tasks Completed
+- Ran Material Design 3 audit via UI Designer + UX Architect subagents against current dashboard source.
+- Produced approved MD3 update plan (Batches A-E) with locked decisions: bottom nav stays fixed, glass contained to nav/header/sheets, dark mode completed properly, routing deferred.
+- Wrote full implementation plan to docs/MD3-ui-plan.md (task contract, findings with file:line evidence, batch tables with acceptance criteria, verification gates, gotchas, before/after mockups, RN-port compatibility notes).
+
+### Files Changed
+- docs/MD3-ui-plan.md (new)
+- progress.md (this entry)
+
+### Decisions
+- Navigation rail rejected; bottom navigation permanent at all screen sizes.
+- Optional add-ons (search view, FAB speed-dial, morphing FAB, seed theme picker) remain out of scope unless later approved.
+
+### Blockers
+- None. Implementation not started per user instruction.
+
+---
+
+## Session — 2026-08-23: MD3 UI/UX Update Implementation (Batches A-E)
+
+### Tasks Completed
+- Implemented the approved MD3 plan (docs/MD3-ui-plan.md) end-to-end via sequential implementation subagents:
+  - **Batch A** quick wins: dead WalletTab deleted + shared SpecialExpenseField; nav active-pill + 11px labels; Toast -> flat inverse-surface snackbar (no countdown/gradient); one .btn-filled replacing all gradient submits; chips -> secondary-container swap + checkmark; Pencil/X lucide icons with >=44px targets; FAB unified 56dp primary-container; PTR dismisses on fetch settle (400ms min-hold); sheet drag handles; SelectField focus ring; QuotaNotice banner anatomy; a11y floor (>=11px text, suffix contrast, tabular-nums sweep).
+  - **Batch B** token foundation: 29 --md-sys-color-* roles in :root seeded from existing violet/earth palette; tailwind colors.md3.* mapping; pure-JS src/lib/designTokens.js (RN-safe); src/lib/chartTheme.js applied to all StatsTab charts, heatmap clay ramp, today-ring primary; GoalProgressRing tokens.
+  - **Batch C**: motion tokens (--ease-emphasized family, slide-up/down keyframes, reduced-motion fallbacks); .field-outlined spec applied to 12 fields; SegmentedButtons primitive shipped+tested (period filters were already SelectFields, so unwired); all 6 create modals confirmed ALREADY bottom sheets (C1 no-op).
+  - **Batch D**: two-line transaction rows w/ category avatar circles + inset dividers (HomeTab recent + drill-down); RowActionsMenu (body-portal, mousedown-only outside click) replacing edit/delete pairs on drill-down/BudgetCard/GoalCard; semibold money hierarchy; bills badge (overdue+due_today, 9+ cap) on Rencana nav + requestNotificationPermission once after first successful pay; header scroll-away via existing rAF listener (inert-safe); QuickAdd recent-category suggestion chips prefilling kategori+akun.
+  - **Batch E** dark mode: full [data-theme=dark] remap of all 29 roles + legacy semantic vars + glass/chip/selection overrides; Terang/Gelap/Sistem toggle in ProfileTab Pengaturan persisted to localStorage artami-theme; FOUC-safe inline bootstrap in layout.js; E3 raw-class sweep across ~60 dashboard/components files; prefers-contrast block; designTokens.js themes export.
+- Reviewer blocking findings fixed in-gate: GoalProgressRing track tokenized via style-prop var(); countUrgentBills() extracted to helpers.js + 5 unit tests.
+
+### Files Changed
+- ~80 files under src/app/dashboard/**, src/components/**, src/lib/**, globals.css, tailwind.config.js, layout.js, tests/**
+- Deleted: src/app/dashboard/WalletTab.jsx, tests/components/WalletTab.test.jsx
+- New: SpecialExpenseField.jsx, designTokens.js, chartTheme.js, SegmentedButtons.jsx (+test), RowActionsMenu.jsx, helpers.badge.test.jsx
+- docs/MD3-ui-plan.md created earlier this session as source of truth.
+
+### Decisions
+- Bottom nav stays fixed-bottom everywhere (rail rejected by user).
+- Glass contained per invariant; RowActionsMenu uses glass-strong mirroring SelectField dropdown precedent (recorded as invariant-wording follow-up).
+- Charts read module-scope hexes; dark mode gives chart panels explicit light card bg (reactive chart theming deferred).
+- .btn-filled keeps brand green in dark (--primary not remapped) for contrast safety.
+- SegmentedButtons unwired until a suitable mutually-exclusive control needs it.
+
+### Verification
+- Focused checks after each batch: components/app suites 240 -> 250 passing across batches.
+- Independent final diff review (code-reviewer subagent): BLOCK x2 -> bounded corrections -> APPROVE.
+- Full repository suite: 104 files passed, 569 tests passed, 1 file skipped, 2 tests skipped (pre-existing Dashboard.smoke skips).
+- Production build passed with process-only placeholder values for four absent local production variables; no secrets written.
+- git diff --check clean (existing CRLF warnings only).
+
+### Blockers
+- None. Recorded follow-ups (non-blocking): earth-400 accent rename to md3 token, SavingsRateTrend tick -> chartTheme, StatsTab heatmap empty-color import nit, nav pill -> secondary-container token, BillSetupModal/EventSetupModal field-outlined adoption, theme-toggle automated coverage, manual dark-mode visual pass on device.
+
+---
+
+## Session — 2026-08-25: Freeze Y-Axis on All-Month Cash-Flow Chart
+
+### Tasks Completed
+- Split the all-month “Pemasukan vs Pengeluaran” chart into a fixed Rupiah Y-axis column and a horizontally scrollable monthly plot.
+- Kept bars, rolling-average lines, tooltips, month labels, and the accessible chart summary intact.
+- Added a regression test covering the fixed-axis/scroll-viewport structure.
+
+### Files Changed
+- `src/app/dashboard/StatsTab.jsx`
+- `tests/components/StatsTab.test.jsx`
+- `progress.md`
+
+### Decisions
+- Both chart instances use the same explicit Y-axis domain so the fixed labels stay aligned with the scrolled data.
+- The change applies only when the month filter is “Semua Bulan”; other charts and filters are unchanged.
+
+### Verification
+- Focused StatsTab suite: 31 passed.
+- Full repository suite: 104 files passed, 1 skipped; 570 tests passed, 2 skipped.
+- Independent final diff review: no blocking findings.
+- `git diff --check`: clean for the task files (existing CRLF warnings only).
+
+### Blockers
+- Local production build is blocked by the repository’s production fail-fast check because four required environment variables are not present: `LEGACY_SHEET_OWNER_EMAIL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`, and `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER`.
+
+---
+
+## Session — 2026-08-27: Active Bottom Navigation Pills
+
+### Tasks Completed
+- Updated the bottom navigation so only the active tab reveals its Indonesian label inside an expanding MD3 violet pill.
+- Kept the warm glass floating shell, tab semantics, haptics, Rencana overview reset, and urgent-bill badge.
+- Added a focused regression assertion for active/inactive label and spacing behavior.
+
+### Files Changed
+- `src/app/dashboard/page.js`
+- `tests/components/DashboardMotion.test.jsx`
+- `progress.md`
+
+### Decisions
+- Active tabs use `md3-primary`/`md3-on-primary`; inactive tabs use `md3-on-surface-variant`.
+- Flex expansion is used instead of a measured sliding indicator; inactive tabs use `gap-0` so icons stay centered.
+- Motion remains enabled for all users at the approved tokenized duration.
+
+### Verification
+- Focused navigation suite: 5 passed.
+- Full repository suite: 104 files passed, 1 skipped; 571 tests passed, 2 skipped.
+- Production build passed with process-local placeholder values; no secrets written.
+- Scoped `git diff --check` passed; existing CRLF warnings only.
+
+### Blockers
+- None for the navigation change.
+
+---
+
+## Session — 2026-08-29: Goal/Budget Pace and Recurring Expense Radar Hardening
+
+### Tasks Completed
+- Implemented Goal Pace, Budget Pace, and the Pro-only Recurring Expense Radar while preserving the existing Google Sheets and Supabase architecture.
+- Fixed Budget Pace period aliases (`bulan`/`tahun`), all-period aggregation, account filtering, Jakarta date handling, and budget detail matching.
+- Scoped shared settings, bills, budgets, and goals caches by normalized user account and added stale-request isolation coverage.
+- Hardened Radar dismissal persistence with append-only Settings records, bounded v2 fingerprints, and compatibility for existing long v1 fingerprints.
+- Added Radar feature-flag/entitlement wiring, bill prefills, UI coverage, API coverage, and regression tests.
+
+### Files Changed
+- `src/lib/wibCalendar.js`
+- `src/lib/budgetPace.js`
+- `src/lib/recurringExpenses.js`
+- `src/lib/useSharedData.js`
+- `src/app/api/settings/route.js`
+- `src/app/dashboard/page.js`
+- `src/app/dashboard/HomeTab.jsx`
+- `src/components/BudgetsSection.jsx`
+- `src/components/BudgetStatusCard.jsx`
+- `src/components/BillsSection.jsx`
+- `src/components/RecurringExpenseRadar.jsx`
+- `src/lib/tier.js`, `src/lib/featureFlags.js`, `supabase/011-recurring-expense-radar.sql`
+- Related files under `tests/api`, `tests/components`, and `tests/lib`
+- `progress.md`
+
+### Decisions
+- Kept the implementation within existing Sheets/Supabase flows; no new service, dependency, automatic transaction, transfer, or payment behavior.
+- Used append-only dismissal records to avoid cross-instance lost updates while retaining legacy read compatibility.
+- Final review used the named `Code Reviewer`; no P0/P1/P2 blockers remained after bounded fixes.
+
+### Verification
+- Full Vitest suite: 108 files passed, 1 skipped; 608 tests passed, 2 skipped.
+- `git diff --check`: exit 0; existing LF/CRLF conversion warnings only.
+
+### Blockers
+- `npm run build` is blocked by the production fail-fast check because these local environment variables are missing: `LEGACY_SHEET_OWNER_EMAIL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`, and `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER`.
+
+## Session — 2026-08-30: Tagihan Tab Auto-Refresh Bug Fix
+
+### Tasks Completed
+- Fixed the Rencana > Tagihan bug where scrolling or clicking anywhere re-fetched bills, cleared the list, showed the loading spinner, and closed open modals (Add/Pay/Delete), making the tab unscrollable and blocking bill creation.
+- Root cause: `showToast` in `src/app/dashboard/page.js` was a plain per-render function passed down as `onToast`; `BillsSection.fetchBills` depended on it, so every dashboard re-render (scroll listener `setScrollY`, clicks, 30s sync timer) restarted the BillsSection fetch/reset effect.
+- Fix 1 (root cause): memoized `showToast` with `useCallback(..., [])` in `page.js`, matching the existing `dismissToast` pattern; fixes the whole class of unstable-callback refetches across all sections.
+- Fix 2 (hardening): `BillsSection` now keeps `onToast` in a ref and `fetchBills` depends only on `[sessionKey]`, so the fetch/reset effect can no longer restart from parent re-renders; error toasts use the latest `onToast` identity.
+- Fix 3: pull-to-refresh gate switched from `contentRef.current.scrollTop <= 0` (always 0 — the content div is not an overflow container) to `window.scrollY <= 0`, so PTR only triggers at the actual top of the page.
+
+### Files Changed
+- `src/app/dashboard/page.js` — stable `showToast`, PTR gate on `window.scrollY`
+- `src/components/BillsSection.jsx` — `onToastRef`, `fetchBills` deps `[sessionKey]`
+- `tests/components/BillsSection.test.jsx` — 3 regression tests (no refetch/modal-close on unstable `onToast` re-renders, refetch on session change, error toast uses latest `onToast`)
+
+### Decisions
+- Fixed root cause plus defense-in-depth instead of only patching BillsSection; no behavior change when `onToast` is already stable.
+- Session-scope reset semantics preserved: changing `sessionKey` still clears state and refetches.
+- Did not touch `.env.local`; build verification used shell-only placeholder env values.
+
+### Verification
+- Focused: BillsSection (12), PlanTab (17), dataSectionsErrors (6), DashboardMotion (5) — all passed.
+- Full Vitest suite: 108 files passed, 1 skipped; 611 tests passed, 2 skipped.
+- `npm run build`: passed with placeholder values for the 4 locally missing env vars (previous session's build blocker resolved for verification only).
+- `git diff --check`: clean.
+
+### Blockers
+- None.
+
+## 2026-08-30 - Landing page revamp (fonts, scroll motion, FAQ, SEO, reorder)
+
+### Tasks Completed
+- P0 font bug fixed: `landing.css` referenced undefined `--font-landing-sans` / `--font-landing-mono`; body/eyebrows now use `--font-body` (DM Sans) and `h1`/`h2` use `--font-display` (Playfair Display), plus `tabular-nums` and `text-wrap: balance`.
+- New shared motion system `src/components/landing/LandingMotion.jsx` (only new client component): data-attribute scroll reveals (`data-reveal`, `data-reveal-group`, `data-reveal-stagger`), count-ups (`data-count-to`), bar fills (`data-bar`), SVG line draws (`data-draw`), hero-float and CTA-evidence scroll parallax, scroll progress bar, and mobile sticky CTA (appears past 85vh, focus-managed, desktop-hidden). All reveals gated by `prefers-reduced-motion` via `gsap.matchMedia`.
+- Removed both infinite CSS float loops (`landing-float-card`, `landing-cta-evidence-drift`); replaced with scroll-linked parallax. Locked by test assertions.
+- New FAQ section (`src/components/landing/Faq.jsx`, server-rendered native `<details name="artami-faq">`) with 7 Indonesian Q/As in `FAQ_ITEMS`; added after Pricing; "FAQ" added to nav.
+- SEO: `FAQPage` JSON-LD script and OpenGraph metadata (og:image temporarily `/icons/icon-512.png`; proper 1200x630 asset still TODO).
+- Section order: DataOwnership moved before FutureForecast (privacy differentiator earlier).
+- Pricing: QRIS verification microcopy under the Pro CTA.
+- Wired data attributes across all 10 landing section components.
+
+### Files Changed
+- `src/app/landing.css` - font wiring, heading font, tabular-nums, float-loop removal, progress bar / mobile CTA / price-note / FAQ styles
+- `src/app/(landing)/page.js` - LandingMotion mount, FAQ section, JSON-LD, OpenGraph, section reorder
+- `src/components/landing/LandingMotion.jsx` (new), `src/components/landing/Faq.jsx` (new)
+- All 10 landing section components - reveal/bar/count/draw attributes only, no copy changes
+- `src/lib/landingContent.js` - `FAQ_ITEMS`, FAQ nav item
+- `tests/landingPage.test.js` - LandingMotion client-boundary + Faq server-boundary, FAQ/JSON-LD assertions, float-loop removal assertions
+
+### Decisions
+- One client component owns all GSAP motion to respect the landing page's server/client boundary test invariant.
+- GSAP-only (already installed); no new dependencies; IntersectionObserver fallback unnecessary.
+- FeatureBento keeps its existing local panel animation; shared system handles the rest.
+- CTA evidence parallax restricted to >=48rem (items become a static grid on mobile).
+- No WhatsApp CS link yet (SITE_LINKS same-origin invariant; no CS number available).
+
+### Verification
+- Focused: `tests/landingPage.test.js` 7/7 passed.
+- Full Vitest suite: 108 files passed, 1 skipped; 611 tests passed, 2 skipped.
+- `npm run build`: compiled successfully (12/12 pages) with build-only placeholder values for the 4 locally missing env vars; nothing committed or deployed with placeholders.
+- `git diff --check`: clean.
+- Note: an aborted pre-plan attempt briefly overwrote `src/app/(landing)/page.js`; it was restored via `git checkout` before the planned rewrite was applied.
+
+### Blockers
+- None. (Proper og:image asset 1200x630 still TODO before launch.)
+
+## 2026-08-30 — Profile tab Docs (Panduan) hub
+
+### Tasks Completed
+- Added an in-app Panduan docs hub on the Profile tab: grouped topic list opening in the existing Sheet component, with per-topic detail view and back navigation.
+- New static content module src/lib/docsContent.js (4 groups, 15 topics, Bahasa Indonesia) covering Pengeluaran Rutin vs Spesial, Net Worth, Event Budget, Utang & Piutang, Saldo Awal, Health Score, Financial Independence, Forecast & Anomaly, What-If & Year-in-Review, Tagihan, Undo, Google Sheets data ownership, privacy, Free quotas, and Free vs Pro.
+- Pro-only topics carry a Pro badge; content is pure JS so it can be shared with the future Expo app unchanged.
+- New tests: tests/components/DocsSection.test.jsx (3) and tests/lib/docsContent.test.js (3).
+
+### Files Changed
+- src/lib/docsContent.js (new), src/components/DocsSection.jsx (new), src/app/dashboard/ProfileTab.jsx (+5 lines: import + Panduan SectionCard), tests/components/DocsSection.test.jsx (new), tests/lib/docsContent.test.js (new), progress.md
+
+### Decisions
+- Docs content lives client-side as a frozen static module (mirrors landingContent.js); no CMS, Supabase table, or API route.
+- Contextual deep-links from LockedFeaturePreview and quota warnings deferred as a follow-up (Option C).
+
+### Verification
+- Focused: vitest run DocsSection + docsContent — 6/6 passed. Full suite: 617 passed, 2 skipped, 0 failed. Production build: compiled successfully (local build needs placeholder values for LEGACY_SHEET_OWNER_EMAIL and NEXT_PUBLIC_GOOGLE_* Picker vars — pre-existing environment condition, unrelated to this task). git diff --check clean.
+
+### Blockers
+- None.
+
+## 2026-08-31 — Integrated landing page Editorial Orbit revamp
+
+### Tasks Completed
+- Rebuilt the integrated `/` landing page around a stable editorial hero scene with one coherent Artami product canvas, three restrained edge fragments, and scroll-synced copy-to-product progression.
+- Replaced the previous floating-card composition with three value pillars, an interactive product workspace, a peach data-ownership chapter, a deep-moss Financial Intelligence chapter, and an interactive What-If impact lab.
+- Removed the requested hero sentence, preserved signed-in redirect and same-origin CTA behavior, and retained accurate Google Sheets ownership, limited `drive.file` access, Rp40.000 lifetime pricing, and unavailable Play Store status.
+- Added responsive and reduced-motion behavior; mobile hides decorative fragments, avoids horizontal page overflow, and keeps a static product canvas. Corrected the final-review finding that initially applied desktop reduced-motion offsets to mobile.
+
+### Files Changed
+- `src/app/(landing)/layout.js`, `src/app/(landing)/page.js`, `src/app/landing.css`
+- `src/components/landing/EditorialHero.jsx`, `PlatformPillars.jsx`, `InsightPlanStage.jsx`, `DataOwnership.jsx`, `FinancialIntelligence.jsx`, `WhatIfScenario.jsx`, `LandingMotion.jsx`; removed the unused `HeroShader.jsx`
+- `src/lib/landingContent.js`, `tests/landingPage.test.js`, `tests/components/LandingProductShowcase.test.jsx`
+
+### Decisions
+- Adapted Steep's structural principles without copying its assets, code, logos, or exact visuals: one persistent hero canvas, large editorial chapters, real product proof, and restrained motion.
+- Product tabs change only through explicit user interaction; scroll motion reveals and composes the page but does not silently change product state.
+- Kept the landing route server-rendered except for navigation, product interaction, What-If controls, auth-aware upgrade, and the shared GSAP motion boundary.
+
+### Verification
+- Focused landing checks: 13/13 passed.
+- Desktop browser QA at 1280×720: initial hero, mid-scroll product resolution, product showcase, privacy chapter, and intelligence chapter verified; no browser errors.
+- Mobile browser QA at 390×844: fragments hidden, coherent cropped product canvas, and document width equals viewport width.
+- Independent final diff review: approved after the reduced-motion mobile correction.
+- Full Vitest suite: 111 files passed, 1 skipped; 620 tests passed, 2 skipped.
+- `git diff --check`: clean for the landing scope.
+
+### Blockers
+- `npm run build` is blocked before compilation by the existing local production environment check: `LEGACY_SHEET_OWNER_EMAIL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`, and `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` are not configured in this environment.
+
+## 2026-09-01 - Landing page Steep-reference redesign pass (in place)
+
+**Tasks completed**
+- Removed fake browser chrome (traffic-light dots + fake URL) from hero, product showcase, and What-If workspaces; replaced with a clean "Contoh tampilan" artboard label.
+- Reduced hero canvas density to one primary financial number, one chart, one Health Score, one budget status, and a short transaction list; mobile hides the demo sidebar and uses a tighter 47rem internal crop (no page-level horizontal scroll).
+- Added `TrustStrip` (server component) after the hero: Google Sheet ownership, no bank connection, one-time payment.
+- Converted the data-ownership band from peach to pale sage (Artami's customer-story chapter equivalent) with moss-tinted hairlines and shadows.
+- Converted the Pro price card from solid deep moss to pale sage with an ink action; Financial Intelligence stays the only dark chapter.
+- Replaced the dark rounded final CTA with a spacious white chapter plus a restrained Sheet -> understanding -> decision line flow.
+- Expanded the footer into a light-gray directory footer (Produk / Pelajari / Legal / Akses) with a large wordmark; no fabricated details.
+- Typography: hero h1 clamp(4.5rem, 6vw, 5.75rem) lh 1.0; chapter h2 clamp(3rem, 4.2vw, 4rem); mobile 40px/1.25; tabular numerals on the landing root.
+- Navigation 64px, lighter blur; pill buttons at 44px min-height with hover/active/focus-visible states.
+- Product tab surfaces now crossfade (opacity + 16px translate) via a one-time CSS animation; removed 6 of 8 eyebrow labels (kept "Produk" and "Financial Intelligence").
+- Sticky scene uses 100dvh; all existing motion/reduced-motion behavior preserved.
+
+**Files changed**
+- src/app/(landing)/page.js, src/app/landing.css
+- src/components/landing/{EditorialHero,PlatformPillars,InsightPlanStage,DataOwnership,WhatIfScenario,Pricing,Faq,FinalCTA,Footer}.jsx
+- src/components/landing/TrustStrip.jsx (new)
+- tests/landingPage.test.js (4 new refinement tests)
+
+**Decisions**
+- Sage replaces peach as the ownership-band background; peach remains a small accent (pillar card 1, pro badge, intelligence core).
+- Pillar mobile stays a single-column stack (allowed by brief); What-If mobile already places controls above the canvas.
+
+**Verification**
+- Focused landing tests: 14 passed.
+- Full suite: 624 passed / 2 skipped (111 files passed / 1 skipped).
+- Production build: compiled and generated successfully (4 required env vars absent locally; placeholders injected into the build process only - pre-existing environmental blocker, unchanged).
+- git diff --check clean.
+
+## 2026-09-02 — Landing interaction and motion enhancement
+
+### Tasks Completed
+- Added an Artami-colored WebGL hero shader with a CSS fallback, visibility pause, context recovery, and a static reduced-motion state.
+- Reworked the desktop hero scroll sequence so the Sheet, Health Score, and anomaly cards resolve into matching dashboard destinations; mobile stays compact and non-sticky, while no-JavaScript and reduced-motion modes show the completed dashboard composition.
+- Made the three platform pillars interactive with distinct peach, blue-lilac, and sage active states, expanding layouts, and replayable illustration motion across pointer, focus, and touch input.
+- Turned Financial Intelligence into four explicit, keyboard-accessible panels for Health Score, Cash Flow Forecast, Anomaly Alerts, and Freedom Number, with persistent Google Sheet ownership context and clearly labeled illustrative values.
+
+### Files Changed
+- `src/components/landing/HeroShader.jsx`, `EditorialHero.jsx`, `LandingMotion.jsx`, `heroMorph.js`, `PlatformPillars.jsx`, `FinancialIntelligence.jsx`
+- `src/app/landing.css`
+- `tests/landingPage.test.js`, `tests/components/HeroShader.test.jsx`, `heroMorph.test.js`, `PlatformPillars.test.jsx`, `FinancialIntelligence.test.jsx`
+- `docs/superpowers/plans/2026-09-01-artami-landing-interaction-enhancements.md`, `progress.md`
+
+### Decisions
+- Kept the shader decorative and non-interactive, using Artami peach, sage, mint, and deep-moss tones rather than copying reference-site assets.
+- Limited morphing to desktop geometry and preserved explicit user control for intelligence panels; no API, payment, quota, Supabase, mobile-app, or dependency changes were introduced.
+- Preserved signed-in redirect behavior, same-origin calls to action, Rp40.000 lifetime pricing, limited `drive.file` privacy language, and unavailable Play Store status.
+
+### Verification
+- Focused landing checks: 27/27 passed across 6 files.
+- Independent final diff review: approved after shader cleanup, ARIA, clipping, mobile sizing, pointer-event, motion-duration, and no-JavaScript fallback corrections.
+- Full Vitest suite: 115 files passed, 1 skipped; 637 tests passed, 2 skipped.
+- Local Next.js development compilation returned HTTP 200 for `/`; generated markup contained the shader, pillar controls, intelligence tabs, ownership statement, stable tab panel, and Rp40.000 copy.
+- `git diff --check`: clean for the landing scope (line-ending conversion warnings only).
+
+### Blockers
+- The one-time production build stopped at the existing fail-fast environment check because `LEGACY_SHEET_OWNER_EMAIL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`, and `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` are unavailable locally.
+- Automated in-app browser visual QA could not open the localhost URL under the active browser navigation policy; behavior is covered by component tests and local HTTP compilation, but final visual inspection remains a manual follow-up.
+
+## 2026-09-02 — Landing shader and motion performance correction
+
+### Tasks Completed
+- Corrected the landing-page performance regression after live review: reduced shader render density and noise complexity, capped WebGL drawing at approximately 30 FPS, removed per-frame resize work, and paused rendering when the hero is offscreen.
+- Increased the shader's time progression and visual opacity so the Artami peach, sage, mint, and moss movement is perceptible without changing the approved art direction.
+- Reduced the desktop hero ScrollTrigger scrub delay from 0.9 to 0.2 seconds and removed scroll-linked border-radius painting.
+- Replaced the pillar cards' 520ms flex animation with short transform/color transitions, avoiding repeated row layout while preserving active, hover, focus, and touch feedback.
+- Removed the fixed navigation backdrop blur to reduce continuous compositing work during scroll.
+
+### Files Changed
+- `src/components/landing/HeroShader.jsx`, `src/components/landing/LandingMotion.jsx`
+- `src/app/landing.css`
+- `tests/components/HeroShader.test.jsx`, `tests/landingPage.test.js`
+- `progress.md`
+
+### Decisions
+- Preserve the existing visual composition and feature behavior; optimize rendering rather than simplifying the landing-page content.
+- Keep a static shader frame for reduced-motion users and the existing CSS gradient fallback when WebGL is unavailable.
+- Keep the shader intentionally lower-resolution and CSS-upscaled because it is an atmospheric background, not a detail-critical product image.
+
+### Verification
+- Regression-first checks failed for the four intended missing behaviors before implementation.
+- Focused landing suite: 6 files passed, 30 tests passed.
+- User live review confirmed that shader movement is visible and the page is substantially less laggy.
+- Independent final diff review: approved with no blocking findings.
+- Full Vitest suite: 115 files passed, 1 skipped; 640 tests passed, 2 skipped.
+- `git diff --check`: clean apart from Windows line-ending conversion warnings.
+
+### Blockers
+- The one-time production build stopped at the existing fail-fast environment check because `LEGACY_SHEET_OWNER_EMAIL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`, and `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` are unavailable locally.
+
+## 2026-09-03 — Landing trust-copy refinement
+
+### Tasks Completed
+- Removed the three-item trust strip directly below the hero.
+- Renamed the product showcase headline to “Dari catatan menjadi keputusan.”
+- Strengthened the privacy section with “Kami tidak menyimpan data transaksimu.” and an immediate Google Sheet ownership clarification.
+
+### Files Changed
+- `src/app/(landing)/page.js`
+- `src/components/landing/InsightPlanStage.jsx`, `src/components/landing/DataOwnership.jsx`
+- `src/lib/landingContent.js`, `tests/landingPage.test.js`
+- Removed `src/components/landing/TrustStrip.jsx`; updated `progress.md`
+
+### Decisions
+- Kept “Datamu, tetap milikmu.” as supporting copy and preserved the existing limited-access explanation.
+- Made no changes to animation, pricing, authentication, data access, calls to action, or application behavior.
+
+### Verification
+- Focused landing checks: 2 files passed, 15 tests passed.
+- Independent final diff review: approved with no blocking findings.
+- Full Vitest suite: 115 files passed, 1 skipped; 640 tests passed, 2 skipped.
+- Local Next.js development server returned HTTP 200 on `http://localhost:3001`; the new headlines and clarification were present, and all three removed trust-strip claims were absent.
+
+### Blockers
+- The one-time production build stopped before compilation at the existing fail-fast environment check because `LEGACY_SHEET_OWNER_EMAIL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`, and `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` are unavailable locally.
+
+## 2026-09-03 — Financial Intelligence copy refinement
+
+### Tasks Completed
+- Updated the Financial Intelligence introduction and rail label with the approved positioning.
+- Renamed the landing-page “Freedom Number” feature to “Financial Freedom” and added its early-retirement projection explanation.
+- Updated the Cash Flow Forecast explanation and replaced the closing statement with the approved financial-awareness message.
+
+### Files Changed
+- `src/components/landing/FinancialIntelligence.jsx`
+- `tests/components/FinancialIntelligence.test.jsx`
+- `progress.md`
+
+### Decisions
+- Used the user-approved wording verbatim.
+- Preserved the four-tab interaction, keyboard navigation, illustrative values, Google Sheet ownership path, and all non-copy behavior.
+
+### Verification
+- Focused landing checks: 2 files passed, 17 tests passed.
+- Independent final diff review: approved with no runtime or code findings.
+- Full Vitest suite: 115 files passed, 1 skipped; 641 tests passed, 2 skipped.
+- Local Next.js development server returned HTTP 200 on `http://localhost:3001` with all approved copy present and the old “Freedom Number” label absent.
+
+### Blockers
+- The one-time production build stopped before compilation at the existing fail-fast environment check because `LEGACY_SHEET_OWNER_EMAIL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`, and `NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` are unavailable locally.
+
+## 2026-09-05 — Hero assembly and section handoff
+
+### Completed
+- Implemented the approved assemble, settle, continue motion while retaining all three moving cards and the existing reduced-motion fallback.
+- Added headline breathing time, proportional card scaling, a foreground assembly layer, and a scroll-linked chart draw after assembly.
+- Tightened the desktop hero to 240vh (110rem minimum) and connected its native sticky release to the pillars heading with closer desktop spacing.
+- Preserved mobile layout, copy, links, and financial/authentication behavior. Root owned implementation and integration; one independent reviewer approved the final diff.
+
+### Files Changed
+- src/components/landing/LandingMotion.jsx
+- src/components/landing/heroMorph.js
+- src/app/landing.css
+- tests/components/heroMorph.test.js
+- progress.md (this appended entry; earlier uncommitted content preserved)
+
+### Verification
+- Regression-first geometry checks: failed before uniform scaling, passed after implementation.
+- Focused checks: 17 tests passed. Full suite: 115 files passed, 1 skipped; 642 tests passed, 2 skipped.
+- Browser verified desktop assembly, foreground cards, delayed chart draw, next-heading handoff, reverse-scroll reset, and 390x844 mobile layout/desktop-transform cleanup.
+- Independent final diff review approved without blockers; scoped git diff --check passed.
+
+### Blockers / Separate Observations
+- Production build stopped at the existing missing environment-variable check: LEGACY_SHEET_OWNER_EMAIL, NEXT_PUBLIC_GOOGLE_CLIENT_ID, NEXT_PUBLIC_GOOGLE_PICKER_API_KEY, NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER.
+- Existing dashboard height clips its bottom at a 720px desktop viewport; responsive dashboard sizing was not expanded into this motion task.
+
+## 2026-09-05 — Admin-controlled Pro registration capacity
+
+### Tasks Completed
+- Added a global-only `Pendaftaran Pro` capacity valve that starts open and supports immediate or one-time scheduled Open/Close changes from the admin Feature Controls workspace.
+- Kept the existing QRIS feature flag as the stronger emergency shutdown while allowing existing awaiting and pending payment flows to continue after registration closes.
+- Added atomic, service-role-only payment-request creation so a committed closure blocks new and replacement requests without relying on Netlify instance caching.
+- Added active-payment counts and closure confirmation for admins, plus the closed `/upgrade` state and `Pro sementara ditutup` labels across dashboard upgrade entry points.
+- Documented the capacity flow in `docs/Flow-system.md` and added focused API, SQL-adapter, feature-flag, admin, payment, and dashboard regression coverage.
+
+### Files Changed
+- `supabase/012-pro-registration-capacity.sql`
+- `src/lib/paymentRegistration.js`, `src/lib/featureFlags.js`, `src/lib/featureAccess.js`
+- Payment and admin feature APIs, admin controls, upgrade flow, and affected dashboard/component prop paths
+- Focused tests under `tests/api`, `tests/lib`, and `tests/components`
+- `docs/Flow-system.md`, `progress.md`
+
+### Decisions
+- Registration is Open after the migration and remains under one global admin control with no per-user override.
+- Closing blocks only new or replacement payment requests; it does not revoke Pro, cancel active payments, hide history, or stop admin review.
+- Closed messaging has no waitlist or WhatsApp action, and automatic Netlify usage monitoring remains outside scope.
+
+### Verification
+- Regression-first checks failed on the intended missing behaviors before implementation and passed after implementation.
+- Independent final diff review found one existing-Pro closed-state regression; the original implementation owner added a failing regression test, corrected it, and the reviewer confirmed the blocker resolved.
+- Full Vitest suite: 117 files passed, 1 skipped; 660 tests passed, 2 skipped.
+- Production build passed with temporary non-secret placeholders for four locally missing fail-fast variables; no environment file or deployment configuration was changed.
+- Scoped `git diff --check` passed with Windows line-ending conversion warnings only.
+
+### Blockers / External Verification
+- Migration `012` has not been applied to the live Supabase project in this session, so live RPC permissions and real concurrent Close-versus-create behavior remain to be verified after migration.
+
+## 2026-09-06 — Smart Anggaran historical copy
+
+### Tasks Completed
+- Added a Free/Paid-safe historical budget copy flow with a compact one-screen review sheet.
+- Added source-month history selection, editable copied limits, manual selection, `Pilih semua`, duplicate preservation, inactive/invalid row states, and destination-period editing.
+- Added a server-side batch endpoint that validates source row indexes, destination composite keys, positive limits, and the complete target-month quota while holding one creation lock.
+- Preserved the existing single-budget CRUD flow and Google Sheets A–F schema; no recurring schedule, template tab, AI recommendation, or Supabase migration was added.
+
+### Files Changed
+- `src/lib/recordQuota.js`, `src/lib/budgetCopy.js`
+- `src/app/api/budgets/copy/route.js`
+- `src/components/BudgetCopyModal.jsx`, `src/components/BudgetsSection.jsx`, `src/app/dashboard/PlanTab.jsx`
+- Focused tests under `tests/lib`, `tests/api`, and `tests/components`
+- `docs/Flow-system.md`, `docs/superpowers/specs/2026-09-06-smart-budget-copy-design.md`, `docs/superpowers/plans/2026-09-06-smart-budget-copy.md`
+
+### Decisions
+- Use the compact single-screen layout selected during the visual companion review.
+- Keep all rows unchecked initially; `Pilih semua` may select beyond Free capacity, but saving remains disabled until the selection fits.
+- Never overwrite destination duplicates; copy category, account, and edited limit with a blank note.
+- Treat stale source/destination state as a retryable conflict and preserve the review state.
+
+### Verification
+- Baseline full suite before implementation: 117 files passed, 1 skipped; 660 tests passed, 2 skipped.
+- Focused implementation checks: 5 files passed, 32 tests passed after the final corrections across quota, API, and copy-sheet behavior.
+- Independent final diff review cleared all three task-caused blockers (ambiguous browser response, Paid/Admin lock serialization, and accessible account-aware labels).
+- Final full suite: 120 files passed, 1 skipped; 685 tests passed, 2 skipped.
+- Production build passed with temporary non-secret process placeholders for four locally missing fail-fast variables; no environment file or deployment configuration changed.
+- Final `git diff --check` passed with Windows line-ending conversion warnings only.
+
+### Blockers
+- No known task-caused blocker; live Google Sheets copy acceptance remains a deployment/manual verification step.
+
+## 2026-09-06 — Rencana tab editorial planner revamp
+
+### Tasks Completed
+- Reworked the Rencana tab into a calm editorial planner with a motivating journey: persistent page heading, chapter rail, overview signals, section transitions, and responsive mobile stacking.
+- Refined Anggaran with pace-aware progress bars and a time-based reference marker, Tagihan with a chronological agenda rail and urgency states, and Target with a continuous blue-to-teal-to-green gauge.
+- Added precise Indonesian copy, editorial typography/shape tokens, accessible loading/error states, focus treatments, and reduced-motion handling without changing financial logic or existing handlers.
+
+### Files Changed
+- `src/app/dashboard/PlanTab.jsx`, `src/app/globals.css`
+- `src/components/BudgetProgressBar.jsx`, `src/components/BudgetCard.jsx`, `src/components/BudgetsSection.jsx`
+- `src/components/TargetGauge.jsx`, `src/components/GoalCard.jsx`, `src/components/GoalsSection.jsx`
+- `src/components/BillsSection.jsx`, `src/components/FeatureEducation.jsx`
+- `tests/components/BudgetProgressBar.test.jsx`, `tests/components/TargetGauge.test.jsx`
+- `AGENTS.md`, `progress.md`
+
+### Decisions
+- Keep the headline simple: `Rencanakan keuanganmu.`
+- Use `Sisa anggaran bulan ini` instead of ambiguous “ruang yang masih aman” language.
+- Keep data, quota, entitlement, and persistence behavior unchanged; only presentation and local UI states were revised.
+
+### Verification
+- Focused plan suite: 8 files passed, 54 tests passed.
+- Full Vitest suite: 122 files passed, 1 skipped; 689 tests passed, 2 skipped.
+- Production build passed with temporary non-secret process placeholders for four locally missing fail-fast variables; no environment file or deployment configuration changed.
+- Independent final diff review approved with no blocking findings.
+- Final `git diff --check` passed with normal Windows line-ending conversion warnings only.
+
+### Blockers
+- No known task-caused blocker; authenticated browser acceptance remains a deployment/manual verification step.
+
+## 2026-09-07 — Rencana navigation and monthly brief correction
+
+### Tasks Completed
+- Restored the Rencana chapter labels to the prior wrapped grid behavior, including seven columns at the previous desktop breakpoint and no horizontal scrolling.
+- Replaced the separate Ringkasan signal cards with the approved single monthly brief panel containing Anggaran, Tagihan, and Target rows.
+- Connected each row to its existing data source, protected dynamic values with accessible descriptions, and kept the budget summary independent from unrelated Stats filters.
+
+### Files Changed
+- `src/app/dashboard/PlanTab.jsx`, `src/app/globals.css`, `src/components/PlanBriefSignal.jsx`
+- `tests/components/PlanTab.test.jsx`, `tests/components/PlanBriefSignal.test.jsx`, `tests/components/featureVisibility.test.jsx`
+
+### Decisions
+- Preserve the prior seven-label navigation hierarchy and responsive breakpoints.
+- Keep the Ringkasan panel concise and data-led: Anggaran, Tagihan, then Target.
+- Keep all financial writes, quotas, entitlement checks, and persistence behavior unchanged.
+
+### Verification
+- Focused suite: 2 files passed, 20 tests passed; feature visibility regression: 6 tests passed.
+- Full Vitest suite: 123 files passed, 1 skipped; 692 tests passed, 2 skipped.
+- Production build passed with temporary non-secret process placeholders for four locally missing fail-fast variables; no environment file or deployment configuration changed.
+- Independent final diff review approved with no remaining task-caused blockers.
+- Local commit requested; no remote push performed.
+
+## 2026-09-08 — Landing closing CTA redesign
+
+### Tasks Completed
+- Replaced the centered closing CTA with a rounded sage panel, left-aligned editorial copy, and five static concentric arcs.
+- Updated the closing invitation to `Lebih paham uangmu. Lebih jelas langkahmu.` with one clear `Mulai gratis` action.
+- Removed the obsolete process pills and unavailable Play Store message from the closing section while preserving the conditional published Play Store action.
+- Added focused regression coverage for the approved copy, link contract, conditional store branch, and decorative artwork accessibility.
+
+### Files Changed
+- `src/components/landing/FinalCTA.jsx`
+- `src/app/landing.css`
+- `tests/landingPage.test.js`
+- `progress.md`
+
+### Decisions
+- Keep the CTA server-rendered and preserve its existing `/dashboard` destination.
+- Use the existing Source Serif 4 and DM Sans pairing, Artami sage and forest tokens, and a static SVG without new dependencies or motion.
+- Stack the artwork in a separate 112px strip below the CTA content on mobile so it never competes with the copy.
+
+### Verification
+- Regression-first landing check failed on the missing approved CTA before implementation and passed after the change.
+- Focused landing suite: 1 file passed, 14 tests passed.
+- Full repository suite: 123 files passed, 1 skipped; 693 tests passed, 2 skipped.
+- Production build passed with temporary non-secret process placeholders for four locally missing fail-fast variables; no environment file or deployment configuration changed.
+- Browser layout checks covered 360, 390, 768, 1024, and 1440 CSS pixels without horizontal overflow; keyboard Enter reached `/dashboard`.
+- Contrast measured 9.85:1 for forest text on sage and 12.08:1 for white text on the primary button.
+- Independent final diff review approved with no blocking findings.
+- `git diff --check` passed with normal Windows line-ending conversion warnings only.
+
+### Blockers
+- None. Desktop and 390px mobile visual acceptance were captured locally alongside live responsive layout measurements and accessibility-tree inspection.
+
+## 2026-09-13 — Paired event collaboration implementation plan
+
+### Tasks Completed
+- Consolidated the agreed two-person paired-event feature into a decision-complete implementation plan.
+- Defined the event-only privacy boundary, dedicated Google Sheet architecture, open-code plus owner-approval flow, Pro entitlement, contributor role, actual-deposit accounting, personal mirrors, revocation, and retry/concurrency safeguards.
+
+### Files Changed
+- `docs/superpowers/plans/2026-09-13-paired-event-collaboration.md`
+- `progress.md`
+
+### Decisions
+- Pairing applies to any generic Momental event, not only weddings.
+- Exactly two Pro users participate: one owner and one contributor.
+- A contribution is actual deposited money; expenses may use the shared fund or the acting partner's private account.
+- Shared financial rows remain in a dedicated event Sheet; Supabase stores collaboration metadata only.
+- The open code creates a pending request; the owner approves Drive access using the partner's authenticated identity.
+
+### Verification
+- Plan self-review completed: no placeholder markers, interface-name mismatches, or task-caused whitespace errors found.
+- `git diff --check -- docs/superpowers/plans/2026-09-13-paired-event-collaboration.md` passed.
+
+### Blockers
+- Runtime implementation has not started. The plan requires a two-account Google Drive/Picker smoke test before any production batch.
+
+## 2026-09-17 — Financial foundations implementation (checkpoint balances, allocation-owned goals, protected write pipeline)
+
+### Tasks Completed
+- Canonical money model in `src/lib/balances.js`: `Saldo Tercatat` (starting-balance month cutoff), `Kekayaan Bersih` (+Piutang −Utang), `Saldo uang saat ini` (checkpoint-adjusted), `Dana yang bisa dipakai` (minus liquid reservations), and shortfall; single `buildMovements` classification shared by display totals and balances.
+- Additive idempotent Sheet schema (`src/lib/financialSchema.js`): `Pemasukan`→P:S, `Pengeluaran`→Q:T after `Sifat` at P, `Tabungan`→P:U, `Utang`→J:M, hidden `_ArtamiOperations` receipt tab; occupied target cells produce a read-only `SCHEMA_CONFLICT` instead of overwrites.
+- One protected write pipeline (`src/lib/financialWrites.js`): client-generated `operationId`, `op:<uuid>` write claims, per-user `financial-write` lock, optional quota reservation, atomic `batchUpdate` mutation + receipt; replays return `already_committed` without consuming quota; failure resolution reads the receipt before releasing anything, and unreadable receipts fail closed as `OPERATION_UNRESOLVED`.
+- All existing mutation routes adopted the pipeline: transaction create/edit/delete/Undo, bill pay, debt create/pay/delete. New endpoints: `POST /api/balance-checkpoint`, `GET /api/financial-operations/[operationId]`, `GET|POST /api/savings/allocations`, `POST /api/goals/spend`.
+- Strict money validation (`parsePositiveAmount`) after finding `-1` became `+1` and text became `0` under the old regex; strict checkpoint parser after `parseRupiah("banyak")` returned 0.
+- Client half: `src/lib/financialWriteClient.js` (operation-id retention, one automatic verification after transport failure, retry-only-when-definitely-absent) and `src/lib/financialWriteState.js` (offline/stale/schema-conflict/unresolved write blocking with `Periksa lagi`).
+- Dashboard serves the canonical payload under `balances`; goal progress across GoalsSection, GoalPickerModal, PlanBriefSignal, WhatIfModal, and page.js now follows explicit `goalId` allocations via the allocation summary, with legacy category-matched progress retired.
+- Minimum UI: Beranda hero keeps Kekayaan Bersih and adds `Dana yang bisa dipakai saat ini` with its basis label, plus a `Rincian saldo` breakdown (recorded balance, Utang/Piutang, target reservations, unassigned savings, investment, informational unpaid bills, needs-review estimate); Profile gains the permanent `Total saldo saat ini` editor (Rp0 saves as confirmed); current-month labels renamed to `Uang masuk` / `Uang keluar` / `Arus kas bersih`; category wording now `Bisa digunakan` / `Investasi (nilai nominal)`.
+
+### Files Changed
+- New: `src/lib/{balances,movement,financialSchema,financialOperations,financialWrites,financialWriteClient,financialWriteState,savingsAllocation,checkpoint,ledgerRows}.js`, `src/components/BalanceCheckpointCard.jsx`, `src/app/api/{balance-checkpoint,financial-operations/[operationId],savings/allocations,goals/spend}/route.js`
+- Modified: `src/app/api/dashboard/route.js` (rewritten around buildMovements), `src/app/api/{transaction,transaction/[id],bills/pay,debts,settings}/route.js`, `src/lib/{sheets,validation,goalUtils,categories}.js`
+- UI: `src/app/dashboard/page.js`, `HomeTab.jsx`, `ProfileTab.jsx`, `PlanTab.jsx`, `_components/{balanceCopy,EditTransactionModal}.jsx`, `src/components/{GoalsSection,GoalPickerModal,PlanBriefSignal,WhatIfModal,BillPayModal,DebtPaymentModal,DebtSetupModal,DebtsSection,GoalContributeModal,CategoryManager,HealthScoreCard}`
+- Tests: 16 new files (schema, checkpoint, balances, allocations, writes, receipts, client, isolation, plus route suites for checkpoint/lookup/allocations/spend/dashboard balances); updated route and component suites to the new contracts.
+- Docs: roadmap decision-record header, `docs/sheets-{debts,goals,settings}.md`, `docs/Flow-system.md` wording.
+
+### Decisions
+- `Saldo uang saat ini` derives from unfiltered rows: tier history filtering limits browsing, not ownership.
+- Receipt reads fail closed: a missing `_ArtamiOperations` tab is a knowable absence, any other read error is unresolved.
+- A checkpoint is never quota-consuming; assignment/release also write no ledger row; goal-funded spending consumes exactly one unit.
+- Pro limits and Free caps unchanged; no Supabase migration was needed (existing creation lock + write claims carry the new keys).
+
+### Verification
+- Focused suites per batch; full local suite at completion: 136 test files passed, 1 skipped; 881 tests passed, 2 skipped (plus one production build and `git diff --check` after the final review, which found no blocking findings).
+
+### Blockers
+- Assignment/release/spend screens ship API-only by approved scope; the review screen is the next UI milestone.
+- Legacy savings with blank goal metadata read as reserved/unassigned until the review screen exists.

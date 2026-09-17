@@ -10,6 +10,7 @@ import DebtPaymentModal from "./DebtPaymentModal"
 import FeatureEducation from "./FeatureEducation"
 import ConfirmSheet from "@/app/dashboard/_components/ConfirmSheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
+import { submitFinancialWrite } from "@/lib/financialWriteClient"
 
 export default function DebtsSection({ onToast, onUsageChange, transactionUsage, proRegistrationOpen = true }) {
   const { debts, loading, error, refetch } = useDebts()
@@ -48,19 +49,17 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage,
     if (!settlePaymentId) setSettlePaymentId(paymentId)
     setSettling(true)
     try {
-      const res = await fetch("/api/debts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const write = await submitFinancialWrite({
+        url: "/api/debts",
+        body: {
           action: "pay",
           id: settleDebt.id,
           amount: settleDebt.sisaSaldo,
           paymentId,
-        }),
+        },
       })
-      const result = await res.json()
-      if (!res.ok) {
-        setSettleError(result)
+      if (!write.ok) {
+        setSettleError({ error: write.error, code: write.code, unresolved: write.outcome === "unresolved", operationId: write.operationId })
         setSettling(false)
         return
       }
@@ -81,13 +80,8 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage,
     if (!deleteDebt) return
     setDeleting(true)
     try {
-      const res = await fetch("/api/debts", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: deleteDebt.id }),
-      })
-      const result = await res.json()
-      if (!res.ok) throw new Error(result.error || "Gagal menghapus utang")
+      const write = await submitFinancialWrite({ url: "/api/debts", method: "DELETE", body: { id: deleteDebt.id } })
+      if (!write.ok) throw new Error(write.error || "Gagal menghapus utang")
       onToast("Utang/piutang dihapus", "success")
       setDeleteDebt(null)
       handleSaved()

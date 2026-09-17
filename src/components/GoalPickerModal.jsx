@@ -9,11 +9,11 @@ import Sheet from "@/app/dashboard/_components/Sheet"
 import GoalContributeModal from "./GoalContributeModal"
 import GoalProgressRing from "./GoalProgressRing"
 
-export default function GoalPickerModal({ open, onClose, onSaved, onOpenGoals, transactions, transactionUsage, proRegistrationOpen = true }) {
+export default function GoalPickerModal({ open, onClose, onSaved, onOpenGoals, transactions, allocations, transactionUsage, proRegistrationOpen = true }) {
   const { goals, loading, error, refetch } = useGoals()
   const [selectedGoal, setSelectedGoal] = useState(null)
 
-  const progressMap = useMemo(() => computeAllGoalProgress(goals, transactions), [goals, transactions])
+  const progressMap = useMemo(() => computeAllGoalProgress(goals, allocations), [goals, allocations])
 
   const pickableGoals = useMemo(() => {
     return goals.filter(g => {

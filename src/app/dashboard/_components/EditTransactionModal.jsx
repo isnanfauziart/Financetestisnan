@@ -7,6 +7,7 @@ import Sheet from "./Sheet"
 import SpecialExpenseField from "./SpecialExpenseField"
 import EventTagPicker from "@/components/EventTagPicker"
 import { useSettings } from "@/lib/useSharedData"
+import { submitFinancialWrite } from "@/lib/financialWriteClient"
 
 const SHEET_FOR_TYPE = { income: "Pemasukan", expense: "Pengeluaran", savings: "Tabungan" }
 
@@ -49,13 +50,12 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
       }
       if (type === "expense") payload.sifat = sifat === "Spesial" ? "Spesial" : "Rutin"
 
-      const res = await fetch(`/api/transaction/${transaction.id}`, {
+      const write = await submitFinancialWrite({
+        url: `/api/transaction/${transaction.id}`,
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: payload,
       })
-      const result = await res.json()
-      if (!res.ok) throw new Error(result.error || "Gagal menyimpan")
+      if (!write.ok) throw new Error(write.error || "Gagal menyimpan")
       onSaved()
     } catch (err) {
       setError(err.message)

@@ -29,15 +29,20 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
     if (error) onToast?.(error, "error")
   }, [error, onToast])
 
+  const allocations = data?.balances?.allocations
   const progressByGoal = useMemo(() => {
-    return computeAllGoalProgress(goals, transactions)
-  }, [goals, transactions])
+    return computeAllGoalProgress(goals, allocations)
+  }, [goals, allocations])
 
   const netWorth = Number.isFinite(Number(data?.netWorth)) ? Number(data.netWorth) : 0
+  // Money still free to assign: cash left after the reservations already made.
+  // Falls back to the legacy estimate while a cached payload has no balances.
   const allocatedSavings = useMemo(() => {
     return Object.values(progressByGoal).reduce((total, progress) => total + (Number(progress) || 0), 0)
   }, [progressByGoal])
-  const availableSavings = Math.max(0, netWorth - allocatedSavings)
+  const availableSavings = allocations
+    ? Math.max(0, (Number(data?.balances?.available?.value) || 0) + (Number(allocations.liquidUnassigned) || 0))
+    : Math.max(0, netWorth - allocatedSavings)
 
   const activeGoals = useMemo(() => {
     return goals.filter(g => g.status !== "settled")
@@ -155,7 +160,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
           </div>
         </div>
         <p className="mt-3 text-[11px] leading-relaxed text-white/75">
-          Total tabunganmu dihitung dari pemasukan dikurangi pengeluaran tiap bulan.
+          Total tabunganmu mengikuti Kekayaan Bersih, dan tiap target hanya menerima tabungan yang kamu alokasikan ke target itu.
         </p>
       </section>
 

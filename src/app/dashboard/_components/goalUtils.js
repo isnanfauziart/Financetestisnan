@@ -78,25 +78,33 @@ export function computeGoalPace(goal, progress, now = new Date()) {
   }
 }
 
-export function computeGoalProgress(goal, transactions) {
-  if (!goal) return 0
-  const goalCreated = goal.createdAt ? new Date(goal.createdAt).getTime() : 0
-  let sum = 0
-  for (const t of transactions || []) {
-    if (t.type !== "savings") continue
-    if (t.category !== goal.kategori) continue
-    if (!t.date) continue
-    const txTime = parseDateLoose(t.date)
-    if (txTime < goalCreated) continue
-    sum += t.amount
-  }
-  return sum
+/**
+ * Goal progress is the remaining allocation a goal explicitly owns.
+ *
+ * A savings row contributes only through its `goalId`; blank metadata stays in
+ * the unassigned review list instead of silently crediting whichever goal
+ * happens to share the row's category. Progress is therefore a real reservation
+ * of money the user owns, not a running total of matching deposits.
+ */
+export function computeGoalProgress(goal, allocations) {
+  const goalId = typeof goal === "string" ? goal : String(goal?.id || "")
+  if (!goalId) return 0
+  const byGoal = allocations?.byGoal || null
+  if (!byGoal) return 0
+  const bucket = byGoal[goalId]
+  if (!bucket) return 0
+  return Math.max(0, Number(bucket.remaining) || 0)
 }
 
-export function computeAllGoalProgress(goals, transactions) {
+export function computeAllGoalProgress(goals, allocations) {
   const map = {}
   for (const goal of goals || []) {
-    map[goal.id] = computeGoalProgress(goal, transactions)
+    map[goal.id] = computeGoalProgress(goal, allocations)
   }
   return map
+}
+
+/** Total the user reserved across every goal, straight from the allocation summary. */
+export function totalAllocatedProgress(allocations) {
+  return Math.max(0, Number(allocations?.liquidAssigned) || 0)
 }

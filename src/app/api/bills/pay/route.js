@@ -1,12 +1,21 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
-import { batchUpdateSheetValues, ensureExpenseClassHeader, getSheetData } from "@/lib/sheets"
-import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { ensureExpenseClassHeader, findNextEmptyRow, getSheetData } from "@/lib/sheets"
 import { rowToBill } from "@/lib/bills"
-import { quotaErrorResponse, releaseTransaction, reserveTransaction } from "@/lib/transactionQuota"
-import { claimFeatureWrite, releaseFeatureWrite } from "@/lib/writeClaims"
+import { quotaErrorResponse } from "@/lib/transactionQuota"
+import { OPERATION_KINDS } from "@/lib/financialOperations"
+import { buildLedgerRow, ledgerRange, wibToday } from "@/lib/ledgerRows"
+import { resolveCheckpoint, readCheckpointSettings } from "@/lib/checkpoint"
+import { MOVEMENT_KINDS } from "@/lib/movement"
+import {
+  FinancialWriteError,
+  financialWriteErrorResponse,
+  isValidOperationId,
+  operationIdError,
+  runFinancialWrite,
+} from "@/lib/financialWrites"
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
 const SHEET_NAME = "Tagihan"
 const RANGE = `${SHEET_NAME}!A:M`
@@ -15,9 +24,9 @@ async function fetchAllBills(accessToken, spreadsheetId) {
   const rows = await getSheetData(accessToken, RANGE, spreadsheetId)
   const out = []
   for (let i = 1; i < rows.length; i++) {
-    const r = rows[i]
-    if (!r || !r[0] || !r[1]) continue
-    out.push(rowToBill(r, i + 1))
+    const row = rows[i]
+    if (!row || !row[0] || !row[1]) continue
+    out.push(rowToBill(row, i + 1))
   }
   return out
 }
@@ -27,143 +36,146 @@ async function transactionExistsById(accessToken, sheetName, txId, spreadsheetId
   return rows.some((row, index) => index > 0 && String(row?.[0] || "").trim() === txId)
 }
 
-async function findNextEmptyRow(accessToken, sheetName, spreadsheetId) {
-  const colA = await getSheetData(accessToken, `${sheetName}!A:A`, spreadsheetId)
-  let lastNonEmpty = 0
-  for (let i = 0; i < colA.length; i++) {
-    const cell = colA[i] && colA[i][0]
-    if (cell && String(cell).trim().length > 0) {
-      lastNonEmpty = i
-    }
+async function readActiveCheckpoint(accessToken, spreadsheetId) {
+  try {
+    const rows = await getSheetData(accessToken, "Settings!A:B", spreadsheetId)
+    return resolveCheckpoint(readCheckpointSettings(rows))
+  } catch {
+    return resolveCheckpoint({})
   }
-  return lastNonEmpty + 2
+}
+
+/**
+ * Cheap read-only pre-check so a repeat submit never reserves quota. The
+ * authoritative check still runs inside the serialized write.
+ */
+async function findRecordedPayment(accessToken, spreadsheetId, billId) {
+  try {
+    const all = await fetchAllBills(accessToken, spreadsheetId)
+    const bill = all.find(candidate => candidate.id === String(billId))
+    if (!bill || !["income", "expense"].includes(bill.tipe)) return null
+    const targetSheet = bill.tipe === "income" ? "Pemasukan" : "Pengeluaran"
+    const txId = `billpay:${bill.id}:${wibToday().tanggal}`
+    if (await transactionExistsById(accessToken, targetSheet, txId, spreadsheetId)) {
+      return { success: true, idempotent: true, message: "Pembayaran tagihan ini sudah tercatat hari ini" }
+    }
+    return null
+  } catch {
+    return null
+  }
 }
 
 export async function POST(request) {
   const auth = await getAuthContext(request)
-  if (!auth) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  if (!auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
   const blocked = featureUnavailableResponse(auth, "bills", request)
   if (blocked) return blocked
-  const { accessToken, spreadsheetId } = auth
-  let reservation = null
-  let writeKey = null
 
   try {
     const body = await request.json()
-    if (!body.billId) {
-      return Response.json({ error: "billId required" }, { status: 400 })
-    }
+    const operationId = String(body?.operationId || "").trim()
+    if (!isValidOperationId(operationId)) return financialWriteErrorResponse(operationIdError(operationId))
+    if (!body.billId) return Response.json({ error: "billId required" }, { status: 400 })
 
-    // 1. Fetch the bill
-    const all = await fetchAllBills(accessToken, spreadsheetId)
-    const bill = all.find(b => b.id === String(body.billId))
-    if (!bill) {
-      return Response.json({ error: "Tagihan tidak ditemukan" }, { status: 404 })
-    }
+    const recorded = await findRecordedPayment(auth.accessToken, auth.spreadsheetId, body.billId)
+    if (recorded) return Response.json(recorded)
 
-    // 2. Auto-create transaction
-    const now = new Date()
-    const dateParts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit",
-    }).formatToParts(now).map(part => [part.type, part.value]))
-    const tanggal = `${dateParts.year}-${dateParts.month}-${dateParts.day}`
-    const formattedDate = `${Number(dateParts.day)} ${AVAILABLE_MONTHS[Number(dateParts.month) - 1]} ${dateParts.year}`
-    const month = AVAILABLE_MONTHS[Number(dateParts.month) - 1]
-    const year = dateParts.year
-    const kategori = bill.kategoriTransaksi
-    const keterangan = `Bayar tagihan: ${bill.nama}`
-    const amount = bill.jumlah
-    const akunBank = bill.akunBank
-    const catatan = bill.catatan || ""
+    const result = await runFinancialWrite({
+      auth,
+      operationId,
+      kind: OPERATION_KINDS.billPayment,
+      quotaUnits: 1,
+      // Bill rows keep their existing cell semantics; only the transaction row
+      // gains the new metadata columns.
+      valueInputOption: "USER_ENTERED",
+      prepare: async ({ accessToken, spreadsheetId }) => {
+        const all = await fetchAllBills(accessToken, spreadsheetId)
+        const bill = all.find(candidate => candidate.id === String(body.billId))
+        if (!bill) {
+          throw new FinancialWriteError("BILL_NOT_FOUND", "Tagihan tidak ditemukan", { status: 404 })
+        }
 
-    const targetSheet = bill.tipe === "income" ? "Pemasukan" : "Pengeluaran"
-    const txId = `billpay:${bill.id}:${tanggal}`
-    if (!["income", "expense"].includes(bill.tipe) || !Number.isFinite(amount) || amount <= 0 || !String(kategori || "").trim()) {
-      return Response.json({ error: "Data tagihan tidak valid" }, { status: 400 })
-    }
+        const { tanggal, formatted, monthName, year } = wibToday()
+        const kategori = bill.kategoriTransaksi
+        const amount = bill.jumlah
+        const targetSheet = bill.tipe === "income" ? "Pemasukan" : "Pengeluaran"
 
-    const billRow = [
-      bill.id, bill.nama, bill.jumlah, bill.tipe, bill.kategoriBill, bill.kategoriTransaksi,
-      bill.frekuensi, bill.tanggalJatuhTempo, bill.akunBank, bill.aktif ? "TRUE" : "FALSE",
-      tanggal, bill.catatan, bill.createdAt,
-    ]
-    if (await transactionExistsById(accessToken, targetSheet, txId, spreadsheetId)) {
-      if (bill.terakhirDibayar !== tanggal) {
-        await batchUpdateSheetValues(accessToken, spreadsheetId, [{
-          range: `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, values: [billRow],
-        }])
-      }
-      return Response.json({
-        success: true,
-        idempotent: true,
-        message: "Pembayaran tagihan ini sudah tercatat hari ini",
-      })
-    }
+        if (!["income", "expense"].includes(bill.tipe) || !Number.isFinite(amount) || amount <= 0 || !String(kategori || "").trim()) {
+          throw new FinancialWriteError("INVALID_BILL", "Data tagihan tidak valid", { status: 400 })
+        }
 
-    const targetRow = await findNextEmptyRow(accessToken, targetSheet, spreadsheetId)
+        // One payment per bill per day, keyed by the stable ledger id so a
+        // duplicate submit cannot record the expense twice.
+        const txId = `billpay:${bill.id}:${tanggal}`
+        if (await transactionExistsById(accessToken, targetSheet, txId, spreadsheetId)) {
+          return {
+            shortCircuit: true,
+            response: {
+              success: true,
+              idempotent: true,
+              message: "Pembayaran tagihan ini sudah tercatat hari ini",
+            },
+          }
+        }
 
-    const txRow = [
-      formattedDate,
-      txId,
-      keterangan,
-      kategori,
-      amount,
-      "",
-      "",
-      akunBank,
-      amount,
-      catatan,
-      month,
-      year,
-      year,
-      "",
-      "",
-    ]
-    if (targetSheet === "Pengeluaran") {
-      await ensureExpenseClassHeader(accessToken, spreadsheetId)
-      txRow.push("Rutin")
-    }
+        if (targetSheet === "Pengeluaran") await ensureExpenseClassHeader(accessToken, spreadsheetId)
 
-    writeKey = `bill:${txId}`
-    if (!await claimFeatureWrite(auth.user.id, writeKey)) {
-      return Response.json({ success: true, idempotent: true, message: "Pembayaran sedang atau sudah diproses" })
-    }
-    try {
-      reservation = await reserveTransaction(auth)
-    } catch (error) {
-      await releaseFeatureWrite(auth.user.id, writeKey)
-      writeKey = null
-      throw error
-    }
-    try {
-      await batchUpdateSheetValues(accessToken, spreadsheetId, [
-        { range: `${targetSheet}!A${targetRow}:${targetSheet === "Pengeluaran" ? "P" : "O"}${targetRow}`, values: [txRow] },
-        { range: `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, values: [billRow] },
-      ])
-    } catch (error) {
-      await releaseTransaction(reservation)
-      await releaseFeatureWrite(auth.user.id, writeKey)
-      reservation = null
-      writeKey = null
-      throw error
-    }
+        const checkpoint = await readActiveCheckpoint(accessToken, spreadsheetId)
+        const targetRow = await findNextEmptyRow(accessToken, targetSheet, spreadsheetId)
 
-    return Response.json({
-      success: true,
-      message: "Tagihan dibayar dan transaksi dibuat",
-      transaction: {
-        sheet: targetSheet,
-        row: targetRow,
-        kategori,
-        jumlah: amount,
-        keterangan,
+        const txRow = buildLedgerRow({
+          tab: targetSheet,
+          tanggal,
+          id: txId,
+          keterangan: `Bayar tagihan: ${bill.nama}`,
+          kategori,
+          amount,
+          akunBank: bill.akunBank,
+          catatan: bill.catatan || "",
+          sifat: "Rutin",
+          movementKind: targetSheet === "Pengeluaran" ? MOVEMENT_KINDS.operationalExpense : MOVEMENT_KINDS.operationalIncome,
+          checkpointId: checkpoint.checkpointId,
+          recordedAt: new Date().toISOString(),
+        })
+
+        const billRow = [
+          bill.id, bill.nama, bill.jumlah, bill.tipe, bill.kategoriBill, bill.kategoriTransaksi,
+          bill.frekuensi, bill.tanggalJatuhTempo, bill.akunBank, bill.aktif ? "TRUE" : "FALSE",
+          tanggal, bill.catatan, bill.createdAt,
+        ]
+
+        return {
+          data: [
+            { range: `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, values: [billRow] },
+            { range: ledgerRange(targetSheet, targetRow), values: [txRow] },
+          ],
+          relatedId: `${targetSheet}!A${targetRow}`,
+          response: {
+            message: "Tagihan dibayar dan transaksi dibuat",
+            transaction: {
+              sheet: targetSheet,
+              row: targetRow,
+              kategori,
+              jumlah: amount,
+              keterangan: `Bayar tagihan: ${bill.nama}`,
+              tanggal,
+              formatted,
+              month: monthName,
+              year,
+            },
+          },
+        }
       },
     })
-  } catch (err) {
-    if (err?.code) return quotaErrorResponse(err)
-    console.error("[Bills PAY]", err)
+
+    return Response.json(result.response)
+  } catch (error) {
+    const mapped = financialWriteErrorResponse(error)
+    if (mapped) return mapped
+    if (error?.code === "FEATURE_LIMIT_REACHED" || error?.code === "ENTITLEMENT_UNAVAILABLE") {
+      return quotaErrorResponse(error)
+    }
+    console.error("[Bills PAY]", error)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }

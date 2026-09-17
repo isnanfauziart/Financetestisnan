@@ -6,6 +6,7 @@ import { formatInputRupiah } from "@/app/dashboard/_components/helpers"
 import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
+import { submitFinancialWrite } from "@/lib/financialWriteClient"
 
 export default function GoalContributeModal({ goal, onClose, onSaved, transactionUsage, proRegistrationOpen = true }) {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split("T")[0])
@@ -29,22 +30,23 @@ export default function GoalContributeModal({ goal, onClose, onSaved, transactio
     setSubmitting(true)
     setError(null)
     try {
-      const res = await fetch("/api/transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // Every savings contribution names the goal it belongs to: progress follows
+      // this id and never a category match.
+      const write = await submitFinancialWrite({
+        url: "/api/transaction",
+        body: {
           type: "savings",
           tanggal,
           keterangan: catatan || `Kontribusi: ${goal.nama}`,
           kategori: goal.kategori,
+          goalId: goal.id,
           jumlah: amount,
           akunBank,
           catatan: catatan || `Goal: ${goal.nama}`,
-        }),
+        },
       })
-      const result = await res.json()
-      if (!res.ok) {
-        setError(result)
+      if (!write.ok) {
+        setError({ error: write.error, code: write.code, unresolved: write.outcome === "unresolved", operationId: write.operationId })
         setSubmitting(false)
         return
       }

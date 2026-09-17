@@ -147,7 +147,8 @@ describe("/api/dashboard history gating", () => {
     const { getSheetData } = await import("@/lib/sheets")
 
     expect(response.status).toBe(200)
-    expect(getSheetData).toHaveBeenCalledWith("token", "Pengeluaran!A:P", "sheet-1")
+    // The extended range keeps A–P intact and adds the movement metadata columns.
+    expect(getSheetData).toHaveBeenCalledWith("token", "Pengeluaran!A:T", "sheet-1")
     expect(body.monthlyData).toEqual([
       {
         month: "Agu",

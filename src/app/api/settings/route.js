@@ -64,6 +64,8 @@ async function fetchSettings(accessToken, spreadsheetId) {
   const settings = {
     startingBalance: 0,
     startingBalanceDate: "",
+    // A confirmed Rp0 opening balance must differ from incomplete setup.
+    startingBalanceConfirmed: false,
     userName: "",
     userNamePromptDismissed: false,
     financialFreedomMonthlyExpenseOverride: null,
@@ -78,6 +80,8 @@ async function fetchSettings(accessToken, spreadsheetId) {
       settings.startingBalance = parseRupiah(val || 0)
     } else if (key === "startingbalancedate") {
       settings.startingBalanceDate = String(val || "").trim()
+    } else if (key === "startingbalanceconfirmed") {
+      settings.startingBalanceConfirmed = String(val ?? "").trim().toLowerCase() === "true"
     } else if (key === "username") {
       settings.userName = String(val ?? "").trim()
     } else if (key === "usernamepromptdismissed") {
@@ -99,6 +103,7 @@ async function fetchSettings(accessToken, spreadsheetId) {
 const SETTING_KEYS = {
   startingbalance: "startingBalance",
   startingbalancedate: "startingBalanceDate",
+  startingbalanceconfirmed: "startingBalanceConfirmed",
   username: "userName",
   usernamepromptdismissed: "userNamePromptDismissed",
   financialfreedommonthlyexpenseoverride: "financialFreedomMonthlyExpenseOverride",
@@ -142,6 +147,10 @@ function collectUpdates(body) {
   }
 
   if (entries.length === 0) throw new Error("No updates provided")
+  // Saving a saldo awal — including Rp0 — is what confirms it.
+  if (entries.some(([key]) => key === "startingBalance") && !entries.some(([key]) => key === "startingBalanceConfirmed")) {
+    entries.push(["startingBalanceConfirmed", true])
+  }
   return entries
 }
 
@@ -156,6 +165,10 @@ function serializeSettingValue(key, value) {
     const date = value.trim()
     if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Invalid starting balance date")
     return date
+  }
+  if (key === "startingBalanceConfirmed") {
+    if (typeof value !== "boolean") throw new Error("Invalid starting balance confirmation")
+    return value ? "true" : "false"
   }
   if (key === "userName") {
     if (typeof value !== "string") throw new Error("Invalid user name")

@@ -8,6 +8,7 @@ import DebtsSection from "@/components/DebtsSection"
 import BudgetsSection from "@/components/BudgetsSection"
 import BillsSection from "@/components/BillsSection"
 import EventBudgetsSection from "@/components/EventBudgetsSection"
+import { BudgetBrief, GoalBrief, BillBrief } from "@/components/PlanBriefSignal"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featureAccess"
 
@@ -109,8 +110,6 @@ export default function PlanTab({
     : visibleSections[0]?.key
   const simulationAvailable = isFeatureEnabled(entitlement, "financialIndependence") || isFeatureEnabled(entitlement, "whatIf")
   const proRegistrationOpen = isProRegistrationOpen(entitlement)
-  const activeBills = (bills || []).filter(bill => bill?.aktif !== false)
-  const urgentBills = activeBills.filter(bill => bill?.status === "overdue" || bill?.status === "due_today" || bill?.status === "due_soon")
 
   const handleSectionChange = (sectionKey) => {
     if (onSectionChange) {
@@ -167,23 +166,16 @@ export default function PlanTab({
         <div key={currentSection} className="plan-section-transition">
           {currentSection === "overview" && (
             <section className="plan-overview" aria-labelledby="plan-overview-title">
-              <div className="plan-overview__header">
+              <div className="plan-overview__header plan-monthly-brief">
                 <p className="plan-kicker">Ringkasan bulan</p>
                 <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
                   <h2 id="plan-overview-title">Rencana bulan ini</h2>
                   <span className="text-xs font-semibold text-md3-on-surface-variant">{selectedMonth || "Bulan ini"} {selectedYear || ""}</span>
                 </div>
-                <p>Pilih satu langkah kecil untuk membuat arus kas bulan ini lebih tenang.</p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {PLAN_PILLARS.map(({ key, feature, label, description, icon: Icon }) => {
+              <div className="plan-brief-rows">
+                {[PLAN_PILLARS[1], PLAN_PILLARS[2], PLAN_PILLARS[0]].map(({ key, feature, label }) => {
                   const available = hasFeature(entitlement, feature)
                   const tone = PLAN_PILLAR_TONES[key]
-                  const signal = key === "tagihan"
-                    ? urgentBills.length > 0 ? `${urgentBills.length} perlu perhatian` : activeBills.length > 0 ? `${activeBills.length} terjadwal` : "Belum ada jadwal"
-                    : key === "budget" ? "Lihat ritme belanja" : "Ikuti langkahmu"
-                  const detail = key === "tagihan" ? "Berikutnya di agenda pembayaran" : key === "budget" ? "Sisa dan pace bulan ini" : "Progress menuju tujuan"
                   return (
                     <button
                       key={key}
@@ -191,21 +183,15 @@ export default function PlanTab({
                       disabled={!available}
                       onClick={() => available && handleSectionChange(key)}
                       aria-label={`${available ? "Buka" : "Fitur terkunci"} ${label}`}
-                      className={`plan-signal-card group ${available ? `border-t-2 ${tone.border} border-md3-outline-variant bg-md3-surface-container-lowest shadow-warm ${tone.hover} active:scale-[0.99]` : "border-md3-outline-variant bg-md3-surface-container-lowest opacity-70"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2`}
+                      aria-describedby={`${key}-brief-detail${available ? ` ${key}-brief-value` : ""}`}
+                      className={`plan-brief-row ${tone.affordance} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2`}
                     >
-                      <span data-plan-icon-tile className={`plan-signal-card__icon h-11 w-11 ${tone.icon}`}>
-                        <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
-                      </span>
-                      <span className="plan-signal-card__label">{label}</span>
-                      <span className="plan-signal-card__value">{available ? `${signal} · ${detail}` : "Fitur ini belum bisa kamu pakai."}</span>
-                      {available && (
-                        <span className={`plan-signal-card__action ${tone.affordance}`}>
-                          Buka <ArrowRight size={14} aria-hidden="true" />
-                        </span>
-                      )}
+                      <span className="plan-brief-label">{label}</span>
+                      {!available ? <span id={`${key}-brief-detail`} className="plan-brief-detail">Fitur ini belum bisa kamu pakai.</span> : key === "budget" ? <BudgetBrief {...{ selectedMonth, selectedYear, selectedAccount, transactions, prefix: `${key}-brief` }} /> : key === "goal" ? <GoalBrief allocations={data?.balances?.allocations} prefix={`${key}-brief`} /> : <BillBrief {...{ bills, billsLoading, billsError, prefix: `${key}-brief` }} />}
                     </button>
                   )
                 })}
+              </div>
               </div>
 
               <section className="plan-secondary-panel" aria-labelledby="plan-simulation-overview-title">

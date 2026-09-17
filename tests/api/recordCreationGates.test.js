@@ -21,9 +21,12 @@ vi.mock("@/lib/recordQuota", () => ({
 describe("record creation route gates", () => {
   beforeEach(() => vi.clearAllMocks())
 
+  // Debt creation also requires a client-generated operation id; the quota gate
+  // still runs before any spreadsheet write.
+  const operationId = "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
   const cases = [
     ["goals", "@/app/api/goals/route", { nama: "Dana", target: 1000, deadline: "2026-12-01", kategori: "Dana Darurat" }],
-    ["debts", "@/app/api/debts/route", { namaOrang: "Budi", jumlah: 1000, arah: "utang", jatuhTempo: "2026-12-01" }],
+    ["debts", "@/app/api/debts/route", { operationId, namaOrang: "Budi", jumlah: 1000, arah: "utang", jatuhTempo: "2026-12-01" }],
     ["bills", "@/app/api/bills/route", { nama: "Listrik", jumlah: 1000, tipe: "expense", kategoriBill: "Utilitas", kategoriTransaksi: "Tagihan", frekuensi: "monthly", tanggalJatuhTempo: 10 }],
     ["momental", "@/app/api/momental/route", { nama: "Lebaran", tanggalMulai: "2026-03-01", tanggalSelesai: "2026-03-20", totalBudget: 1000 }],
   ]

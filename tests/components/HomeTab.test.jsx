@@ -83,7 +83,7 @@ describe("HomeTab priority actions", () => {
 
     expect(screen.getByText("Fokus Hari Ini")).toBeInTheDocument()
 
-    const cashFlowHeading = screen.getByText("Uang Masuk & Keluar Jul 2026")
+    const cashFlowHeading = screen.getByText("Uang masuk & Uang keluar Jul 2026")
     const priorityHeading = screen.getByText("Yang perlu kamu cek")
     const billAction = screen.getByRole("button", { name: /bayar tagihan internet wifi/i })
     const budgetAction = screen.getByRole("button", { name: /cek budget makanan/i })
@@ -105,36 +105,95 @@ describe("HomeTab priority actions", () => {
       statSavings: 1700000,
     })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Uang Masuk & Keluar Jul 2026" })
+    const cashFlow = screen.getByRole("region", { name: "Uang masuk & Uang keluar Jul 2026" })
 
-    expect(cashFlow).toHaveTextContent("Pemasukan")
+    expect(cashFlow).toHaveTextContent("Uang masuk")
     expect(cashFlow).toHaveTextContent("Rp 9.0 jt")
-    expect(cashFlow).toHaveTextContent("Pengeluaran")
+    expect(cashFlow).toHaveTextContent("Uang keluar")
     expect(cashFlow).toHaveTextContent("Rp 4.2 jt")
     expect(cashFlow).toHaveTextContent("Tabungan")
     expect(cashFlow).toHaveTextContent("Rp 1.7 jt")
-    expect(cashFlow).toHaveTextContent("Surplus/Defisit")
+    expect(cashFlow).toHaveTextContent("Arus kas bersih")
     expect(cashFlow).toHaveTextContent("Surplus")
     expect(cashFlow).toHaveTextContent("Rp 4.8 jt")
+  })
+
+  it("shows the canonical hero values and the provisional balance basis", () => {
+    render(<HomeTab {...createProps({
+      data: {
+        netWorth: 12500000,
+        totalIncome: 0, totalExpense: 0, totalSavings: 0, transactions: [],
+        balances: {
+          netWorth: 12500000,
+          available: { value: 3500000, shortfall: 0 },
+          currentCash: { value: 3500000, provisional: true, checkpointId: "" },
+          recordedBalance: 3500000,
+          rincian: { recordedBalance: 3500000, estimate: false, unpaidBills: { count: 0, total: 0 } },
+          outstanding: { utang: 0, piutang: 0 },
+        },
+      },
+    })} />)
+
+    expect(screen.getAllByText("Dana yang bisa dipakai saat ini").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Rp 3.500.000").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Berdasarkan data terakhir").length).toBeGreaterThan(0)
+  })
+
+  it("lists the rincian saldo breakdown including unpaid bills as informational", () => {
+    render(<HomeTab {...createProps({
+      data: {
+        netWorth: 8000000,
+        totalIncome: 0, totalExpense: 0, totalSavings: 0, transactions: [],
+        balances: {
+          netWorth: 8000000,
+          recordedBalance: 9000000,
+          available: { value: 4000000, shortfall: 0 },
+          currentCash: { value: 4000000, provisional: false, checkpointId: "abc", recordedAt: "2026-08-01T03:00:00.000Z" },
+          outstanding: { utang: 1000000, piutang: 0, utangCount: 1, piutangCount: 0 },
+          rincian: {
+            recordedBalance: 9000000,
+            goalReservations: 1500000,
+            unassignedSavings: 500000,
+            unassignedSavingsCount: 2,
+            investmentReserved: 0,
+            needsReviewCount: 0,
+            needsReviewTotal: 0,
+            estimate: false,
+            available: 4000000,
+            shortfall: 0,
+            unpaidBills: { count: 1, total: 300000 },
+          },
+        },
+      },
+    })} />)
+
+    const rincian = screen.getByRole("region", { name: /rincian saldo/i })
+    expect(rincian).toHaveTextContent("Saldo Tercatat")
+    expect(rincian).toHaveTextContent("Utang belum lunas")
+    expect(rincian).toHaveTextContent("Disisihkan untuk target")
+    expect(rincian).toHaveTextContent("Tabungan belum dibagi ke target")
+    expect(rincian).toHaveTextContent("Tagihan belum dibayar")
+    expect(rincian).toHaveTextContent("Tidak mengurangi dana yang bisa dipakai sampai benar-benar dibayar.")
+    expect(rincian).toHaveTextContent("Dana yang bisa dipakai saat ini")
   })
 
   it("uses a neutral scope label for all-period cash flow filters", () => {
     render(<HomeTab {...createProps({ selectedMonth: "Semua Bulan", selectedYear: "Semua Tahun" })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Uang Masuk & Keluar Periode yang dipilih" })
+    const cashFlow = screen.getByRole("region", { name: "Uang masuk & Uang keluar Periode yang dipilih" })
 
     expect(cashFlow).toHaveTextContent("Periode yang dipilih")
     expect(cashFlow).not.toHaveTextContent("Bulan berjalan")
-    expect(cashFlow).not.toHaveTextContent("Uang Masuk & Keluar Bulan Ini")
+    expect(cashFlow).not.toHaveTextContent("Uang masuk & Uang keluar Bulan Ini")
   })
 
   it("does not invent a selected-period label when one period filter is missing", () => {
     render(<HomeTab {...createProps({ selectedMonth: "Jul", selectedYear: undefined })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Uang Masuk & Keluar Periode yang dipilih" })
+    const cashFlow = screen.getByRole("region", { name: "Uang masuk & Uang keluar Periode yang dipilih" })
 
     expect(cashFlow).toHaveTextContent("Periode yang dipilih")
-    expect(cashFlow).not.toHaveTextContent("Uang Masuk & Keluar Jul")
+    expect(cashFlow).not.toHaveTextContent("Uang masuk & Uang keluar Jul")
   })
 
   it("does not add a plus sign to a balanced cash flow", () => {
@@ -145,7 +204,7 @@ describe("HomeTab priority actions", () => {
       statSavings: 0,
     })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Uang Masuk & Keluar Jul 2026" })
+    const cashFlow = screen.getByRole("region", { name: "Uang masuk & Uang keluar Jul 2026" })
     const balance = cashFlow.querySelector("p.text-base")
 
     expect(balance).toHaveTextContent("Rp 0")
@@ -224,7 +283,7 @@ describe("HomeTab priority actions", () => {
 
     const sections = [
       screen.getByText("Kekayaan Bersih"),
-      screen.getByText("Uang Masuk & Keluar Jul 2026"),
+      screen.getByText("Uang masuk & Uang keluar Jul 2026"),
       screen.getByText("Yang perlu kamu cek"),
       screen.getByTestId("budget-status-card"),
       screen.getByRole("heading", { name: "Insights utama" }),

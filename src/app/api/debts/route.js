@@ -1,14 +1,27 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
-import { batchUpdateSheetValues, ensureExpenseClassHeader, getSheetData, parseRupiah } from "@/lib/sheets"
-import { quotaErrorResponse, releaseTransaction, reserveTransaction } from "@/lib/transactionQuota"
-import { claimFeatureWrite, releaseFeatureWrite } from "@/lib/writeClaims"
+import { ensureExpenseClassHeader, findNextEmptyRow, getSheetData, parseRupiah } from "@/lib/sheets"
+import { quotaErrorResponse } from "@/lib/transactionQuota"
 import { runRecordCreation } from "@/lib/recordQuota"
+import { OPERATION_KINDS } from "@/lib/financialOperations"
+import { buildLedgerRow, ledgerRange, wibToday } from "@/lib/ledgerRows"
+import { resolveCheckpoint, readCheckpointSettings } from "@/lib/checkpoint"
+import { MOVEMENT_KINDS } from "@/lib/movement"
+import {
+  FinancialWriteError,
+  financialWriteErrorResponse,
+  isValidOperationId,
+  operationIdError,
+  runFinancialWrite,
+} from "@/lib/financialWrites"
 
 export const dynamic = 'force-dynamic'
 
 const SHEET_NAME = "Utang"
-const RANGE = `${SHEET_NAME}!A:I`
+const RANGE = `${SHEET_NAME}!A:M`
+const ENTRY_MODES = ["new", "historical"]
+
+export const DEBT_ENTRY_MODES = { new: "new", historical: "historical" }
 
 function rowToDebt(row, rowIndex) {
   return {
@@ -22,7 +35,45 @@ function rowToDebt(row, rowIndex) {
     sisaSaldo: parseRupiah(row[6] || 0),
     catatan: String(row[7] || "").trim(),
     createdAt: String(row[8] || "").trim(),
+    // Blank means a legacy row recorded before entry modes existed; those rows
+    // never generated a cash movement, which is exactly the historical mode.
+    entryMode: String(row[9] || "").trim().toLowerCase() || DEBT_ENTRY_MODES.historical,
+    akunBank: String(row[10] || "").trim(),
+    recordedAt: String(row[11] || "").trim(),
+    operationId: String(row[12] || "").trim(),
   }
+}
+
+export function buildDebtRow({
+  id,
+  namaOrang,
+  jumlah,
+  arah,
+  jatuhTempo,
+  status,
+  sisaSaldo,
+  catatan,
+  createdAt,
+  entryMode,
+  akunBank,
+  recordedAt,
+  operationId,
+}) {
+  return [
+    id,
+    namaOrang,
+    jumlah,
+    arah,
+    jatuhTempo,
+    status,
+    sisaSaldo,
+    catatan || "",
+    createdAt,
+    entryMode || DEBT_ENTRY_MODES.historical,
+    akunBank || "",
+    recordedAt || "",
+    operationId || "",
+  ]
 }
 
 function validateDebt(body) {
@@ -45,23 +96,6 @@ async function fetchAllDebts(accessToken, spreadsheetId) {
   return out
 }
 
-async function sheetsAppend(accessToken, range, values, spreadsheetId) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ values }),
-  })
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Sheets API error: ${err}`)
-  }
-  return res.json()
-}
-
 async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`
   const res = await fetch(url, {
@@ -77,6 +111,15 @@ async function sheetsUpdate(accessToken, range, values, spreadsheetId) {
     throw new Error(`Sheets API error: ${err}`)
   }
   return res.json()
+}
+
+async function readActiveCheckpoint(accessToken, spreadsheetId) {
+  try {
+    const rows = await getSheetData(accessToken, "Settings!A:B", spreadsheetId)
+    return resolveCheckpoint(readCheckpointSettings(rows))
+  } catch {
+    return resolveCheckpoint({})
+  }
 }
 
 export async function GET(request) {
@@ -104,143 +147,255 @@ export async function POST(request) {
   }
   const blocked = featureUnavailableResponse(auth, "debts", request)
   if (blocked) return blocked
-  const { accessToken, spreadsheetId } = auth
 
   try {
     const body = await request.json()
+    const operationId = String(body?.operationId || "").trim()
+    if (!isValidOperationId(operationId)) return financialWriteErrorResponse(operationIdError(operationId))
 
-    // Handle payment action
     if (body.action === "pay") {
-      return await handlePayment(auth, body)
+      return await handlePayment(auth, body, operationId)
     }
 
     const errors = validateDebt(body)
     if (errors.length) {
       return Response.json({ error: errors.join("; ") }, { status: 400 })
     }
+
+    const entryMode = body.entryMode === undefined || String(body.entryMode).trim() === ""
+      ? DEBT_ENTRY_MODES.historical
+      : String(body.entryMode).trim().toLowerCase()
+    if (!ENTRY_MODES.includes(entryMode)) {
+      return Response.json({ error: "entryMode must be 'new' or 'historical'" }, { status: 400 })
+    }
+    if (entryMode === DEBT_ENTRY_MODES.new && !String(body.akunBank || "").trim()) {
+      return Response.json({ error: "Transaksi baru membutuhkan akun yang terpengaruh" }, { status: 400 })
+    }
+
     return runRecordCreation(auth, "debts", {}, async () => {
       const id = String(Date.now())
       const createdAt = new Date().toISOString().split("T")[0]
       const jumlah = parseFloat(body.jumlah)
-      const row = [
-        id, body.namaOrang, jumlah, body.arah, body.jatuhTempo, "open",
-        jumlah, body.catatan || "", createdAt,
-      ]
-      await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
-      return Response.json({ success: true, id, message: "Debt created" })
+      const arah = String(body.arah).trim().toLowerCase()
+      const isNewMovement = entryMode === DEBT_ENTRY_MODES.new
+      const today = wibToday()
+
+      const result = await runFinancialWrite({
+        auth,
+        operationId,
+        kind: OPERATION_KINDS.debtCreate,
+        // A new-mode debt writes one ledger row; a historical entry writes none.
+        quotaUnits: isNewMovement ? 1 : 0,
+        prepare: async ({ accessToken, spreadsheetId }) => {
+          const debtRowIndex = await findNextEmptyRow(accessToken, SHEET_NAME, spreadsheetId)
+          const debtRow = buildDebtRow({
+            id,
+            namaOrang: String(body.namaOrang).trim(),
+            jumlah,
+            arah,
+            jatuhTempo: String(body.jatuhTempo).trim(),
+            status: "open",
+            sisaSaldo: jumlah,
+            catatan: body.catatan || "",
+            createdAt,
+            entryMode,
+            akunBank: isNewMovement ? String(body.akunBank).trim() : "",
+            recordedAt: isNewMovement ? new Date().toISOString() : "",
+            operationId,
+          })
+
+          const data = [{ range: `${SHEET_NAME}!A${debtRowIndex}:M${debtRowIndex}`, values: [debtRow] }]
+
+          if (isNewMovement) {
+            // The principal moves now: a received Utang is cash in, an issued
+            // Piutang is cash out, so the two sides offset in Kekayaan Bersih.
+            const targetSheet = arah === "piutang" ? "Pengeluaran" : "Pemasukan"
+            if (targetSheet === "Pengeluaran") await ensureExpenseClassHeader(accessToken, spreadsheetId)
+            const checkpoint = await readActiveCheckpoint(accessToken, spreadsheetId)
+            const txRowIndex = await findNextEmptyRow(accessToken, targetSheet, spreadsheetId)
+            const txRow = buildLedgerRow({
+              tab: targetSheet,
+              tanggal: today.tanggal,
+              id: `debtprincipal:${id}`,
+              keterangan: arah === "piutang" ? `Piutang ke ${body.namaOrang}` : `Utang dari ${body.namaOrang}`,
+              kategori: arah === "piutang" ? "Piutang" : "Utang",
+              amount: jumlah,
+              akunBank: String(body.akunBank).trim(),
+              catatan: body.catatan || "",
+              sifat: "Rutin",
+              movementKind: arah === "piutang" ? MOVEMENT_KINDS.receivablePrincipalOut : MOVEMENT_KINDS.debtPrincipalIn,
+              checkpointId: checkpoint.checkpointId,
+              relatedRecordId: `Utang!A${debtRowIndex}`,
+              recordedAt: new Date().toISOString(),
+            })
+            data.push({ range: ledgerRange(targetSheet, txRowIndex), values: [txRow] })
+          }
+
+          return {
+            data,
+            relatedId: `${SHEET_NAME}!A${debtRowIndex}`,
+            response: { id, entryMode, message: "Debt created" },
+          }
+        },
+      })
+
+      return Response.json(result.response)
     })
   } catch (err) {
-    if (err?.code) return quotaErrorResponse(err)
+    const mapped = financialWriteErrorResponse(err)
+    if (mapped) return mapped
+    if (err?.code === "FEATURE_LIMIT_REACHED" || err?.code === "ENTITLEMENT_UNAVAILABLE") {
+      return quotaErrorResponse(err)
+    }
     console.error("[Debts]", err)
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }
 }
 
-async function handlePayment(auth, body) {
-  const { accessToken, spreadsheetId } = auth
+/**
+ * Cheap read-only pre-check so a repeat submit never reserves quota. The
+ * authoritative check still runs inside the serialized write.
+ */
+async function findRecordedPayment(accessToken, spreadsheetId, debtId, paymentId) {
+  try {
+    const all = await fetchAllDebts(accessToken, spreadsheetId)
+    const existing = all.find(debt => debt.id === String(debtId))
+    if (!existing) return null
+    const txSheet = existing.arah === "piutang" ? "Pemasukan" : "Pengeluaran"
+    const txId = `debtpay:${existing.id}:${paymentId}`
+    const txIds = await getSheetData(accessToken, `${txSheet}!B:B`, spreadsheetId)
+    const alreadyRecorded = txIds.some((row, index) => index > 0 && String(row?.[0] || "").trim() === txId)
+    if (!alreadyRecorded) return null
+    return {
+      success: true,
+      idempotent: true,
+      message: "Pembayaran ini sudah tercatat",
+    }
+  } catch {
+    return null
+  }
+}
+
+async function handlePayment(auth, body, operationId) {
   if (!body.id || !body.paymentId || !/^[a-zA-Z0-9-]{1,100}$/.test(body.paymentId) || !body.amount || body.amount <= 0) {
     return Response.json({ error: "id, paymentId, and positive amount required for payment" }, { status: 400 })
   }
 
-  const all = await fetchAllDebts(accessToken, spreadsheetId)
-  const existing = all.find(d => d.id === String(body.id))
-  if (!existing) {
-    return Response.json({ error: "Debt not found" }, { status: 404 })
-  }
-  const txId = `debtpay:${existing.id}:${body.paymentId}`
-  const txSheet = existing.arah === "piutang" ? "Pemasukan" : "Pengeluaran"
-  const txIds = await getSheetData(accessToken, `${txSheet}!B:B`, spreadsheetId)
-  if (txIds.some((row, index) => index > 0 && String(row?.[0] || "").trim() === txId)) {
-    return Response.json({
-      success: true, idempotent: true, paymentAmount: Number(body.amount),
-      newSisa: existing.sisaSaldo, newStatus: existing.status,
-      message: "Pembayaran ini sudah tercatat",
-    })
-  }
-  if (existing.status === "settled") {
-    return Response.json({ error: "Debt already settled" }, { status: 400 })
-  }
-  const paymentAmount = Math.min(parseFloat(body.amount), existing.sisaSaldo)
-  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
-    return Response.json({ error: "Jumlah pembayaran tidak valid" }, { status: 400 })
-  }
-  const newSisa = existing.sisaSaldo - paymentAmount
-  const newStatus = newSisa <= 0 ? "settled" : "open"
+  const akunBank = String(body.akunBank || "").trim()
 
-  const desc = existing.arah === "utang"
-    ? `Bayar ke ${existing.namaOrang}`
-    : `Terima dari ${existing.namaOrang}`
-
-  const txRows = await getSheetData(accessToken, `${txSheet}!A:A`, spreadsheetId)
-  let lastRow = 0
-  txRows.forEach((row, index) => {
-    if (String(row?.[0] || "").trim()) lastRow = index
-  })
-  const nextRow = lastRow + 2
-  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(new Date()).map(part => [part.type, part.value]))
-  const monthName = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][Number(parts.month) - 1]
-  const dateStr = `${Number(parts.day)} ${monthName} ${parts.year}`
-
-  const txRow = [
-    dateStr,
-    txId,
-    desc,
-    existing.arah === "piutang" ? "Piutang" : "Utang",
-    paymentAmount,
-    0, // Pajak
-    0, // Biaya
-    "", // AkunBank
-    paymentAmount, // Net
-    `Auto: ${existing.arah} ${existing.namaOrang}`,
-    monthName,
-    parts.year,
-    parts.year,
-    "",
-    "",
-  ]
-  if (txSheet === "Pengeluaran") {
-    await ensureExpenseClassHeader(accessToken, spreadsheetId)
-    txRow.push("Rutin")
+  const recorded = await findRecordedPayment(auth.accessToken, auth.spreadsheetId, body.id, body.paymentId)
+  if (recorded) {
+    return Response.json({ ...recorded, paymentAmount: Number(body.amount) })
   }
-  const debtRow = [[
-    existing.id, existing.namaOrang, existing.jumlah, existing.arah, existing.jatuhTempo,
-    newStatus, Math.max(0, newSisa), existing.catatan, existing.createdAt,
-  ]]
-  const writeKey = `debt:${txId}`
-  if (!await claimFeatureWrite(auth.user.id, writeKey)) {
-    return Response.json({
-      success: true, idempotent: true, paymentAmount,
-      newSisa: existing.sisaSaldo, newStatus: existing.status,
-      message: "Pembayaran sedang atau sudah diproses",
-    })
-  }
-  let reservation
+
   try {
-    reservation = await reserveTransaction(auth)
-  } catch (error) {
-    await releaseFeatureWrite(auth.user.id, writeKey)
-    throw error
-  }
-  try {
-    await batchUpdateSheetValues(accessToken, spreadsheetId, [
-      { range: `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, values: debtRow },
-      { range: `${txSheet}!A${nextRow}:${txSheet === "Pengeluaran" ? "P" : "O"}${nextRow}`, values: [txRow] },
-    ])
-  } catch (error) {
-    await releaseTransaction(reservation)
-    await releaseFeatureWrite(auth.user.id, writeKey)
-    throw error
-  }
+    const result = await runFinancialWrite({
+      auth,
+      operationId,
+      kind: OPERATION_KINDS.debtPayment,
+      quotaUnits: 1,
+      prepare: async ({ accessToken, spreadsheetId }) => {
+        const all = await fetchAllDebts(accessToken, spreadsheetId)
+        const existing = all.find(debt => debt.id === String(body.id))
+        if (!existing) {
+          throw new FinancialWriteError("DEBT_NOT_FOUND", "Utang/piutang tidak ditemukan", { status: 404 })
+        }
 
-  return Response.json({
-    success: true,
-    paymentAmount,
-    newSisa: Math.max(0, newSisa),
-    newStatus,
-    message: newStatus === "settled" ? "Debt fully settled!" : `Payment of ${paymentAmount} recorded`,
-  })
+        const txId = `debtpay:${existing.id}:${body.paymentId}`
+        const txSheet = existing.arah === "piutang" ? "Pemasukan" : "Pengeluaran"
+        const txIds = await getSheetData(accessToken, `${txSheet}!B:B`, spreadsheetId)
+        if (txIds.some((row, index) => index > 0 && String(row?.[0] || "").trim() === txId)) {
+          return {
+            shortCircuit: true,
+            response: {
+              success: true,
+              idempotent: true,
+              paymentAmount: Number(body.amount),
+              newSisa: existing.sisaSaldo,
+              newStatus: existing.status,
+              message: "Pembayaran ini sudah tercatat",
+            },
+          }
+        }
+
+        if (existing.status === "settled") {
+          throw new FinancialWriteError("DEBT_SETTLED", "Utang/piutang ini sudah lunas", { status: 400 })
+        }
+
+        const paymentAmount = Math.min(parseFloat(body.amount), existing.sisaSaldo)
+        if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+          throw new FinancialWriteError("INVALID_PAYMENT", "Jumlah pembayaran tidak valid", { status: 400 })
+        }
+        const newSisa = existing.sisaSaldo - paymentAmount
+        const newStatus = newSisa <= 0 ? "settled" : "open"
+        const today = wibToday()
+        const isPiutang = existing.arah === "piutang"
+        const description = isPiutang
+          ? `Terima dari ${existing.namaOrang}`
+          : `Bayar ke ${existing.namaOrang}`
+
+        if (txSheet === "Pengeluaran") await ensureExpenseClassHeader(accessToken, spreadsheetId)
+        const checkpoint = await readActiveCheckpoint(accessToken, spreadsheetId)
+        const txRowIndex = await findNextEmptyRow(accessToken, txSheet, spreadsheetId)
+
+        const txRow = buildLedgerRow({
+          tab: txSheet,
+          tanggal: today.tanggal,
+          id: txId,
+          keterangan: description,
+          kategori: isPiutang ? "Piutang" : "Utang",
+          amount: paymentAmount,
+          akunBank,
+          catatan: `Auto: ${existing.arah} ${existing.namaOrang}`,
+          sifat: "Rutin",
+          movementKind: isPiutang ? MOVEMENT_KINDS.receivablePrincipalIn : MOVEMENT_KINDS.debtPrincipalOut,
+          checkpointId: checkpoint.checkpointId,
+          relatedRecordId: `${SHEET_NAME}!A${existing.rowIndex}`,
+          recordedAt: new Date().toISOString(),
+        })
+
+        const debtRow = buildDebtRow({
+          id: existing.id,
+          namaOrang: existing.namaOrang,
+          jumlah: existing.jumlah,
+          arah: existing.arah,
+          jatuhTempo: existing.jatuhTempo,
+          status: newStatus,
+          sisaSaldo: Math.max(0, newSisa),
+          catatan: existing.catatan,
+          createdAt: existing.createdAt,
+          entryMode: existing.entryMode,
+          akunBank: akunBank || existing.akunBank,
+          recordedAt: new Date().toISOString(),
+          operationId,
+        })
+
+        return {
+          data: [
+            { range: `${SHEET_NAME}!A${existing.rowIndex}:M${existing.rowIndex}`, values: [debtRow] },
+            { range: ledgerRange(txSheet, txRowIndex), values: [txRow] },
+          ],
+          relatedId: `${txSheet}!A${txRowIndex}`,
+          response: {
+            paymentAmount,
+            newSisa: Math.max(0, newSisa),
+            newStatus,
+            message: newStatus === "settled" ? "Debt fully settled!" : `Payment of ${paymentAmount} recorded`,
+          },
+        }
+      },
+    })
+
+    return Response.json(result.response)
+  } catch (err) {
+    const mapped = financialWriteErrorResponse(err)
+    if (mapped) return mapped
+    if (err?.code === "FEATURE_LIMIT_REACHED" || err?.code === "ENTITLEMENT_UNAVAILABLE") {
+      return quotaErrorResponse(err)
+    }
+    console.error("[Debts]", err)
+    return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
+  }
 }
 
 export async function PUT(request) {
@@ -304,7 +459,7 @@ export async function DELETE(request) {
       return Response.json({ error: "Debt not found" }, { status: 404 })
     }
 
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:I${existing.rowIndex}`, [[""]], spreadsheetId)
+    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:M${existing.rowIndex}`, [Array(13).fill("")], spreadsheetId)
     return Response.json({ success: true, message: "Debt deleted" })
   } catch (err) {
     console.error("[Debts]", err)

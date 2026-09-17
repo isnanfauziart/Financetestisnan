@@ -7,6 +7,8 @@ import { useCountUp, useSoundPref, playSuccessSound, parseTxDate, formatRp, rela
 import useHaptics from "./_components/useHaptics"
 import useHapticsPref from "./_components/useHapticsPref"
 import { computeAllGoalProgress, computeGoalProgress } from "./_components/goalUtils"
+import { submitFinancialWrite } from "@/lib/financialWriteClient"
+import { markSchemaConflict, markStale, markSynced, reportWriteOutcome } from "@/lib/financialWriteState"
 import { buildMonthlyCashFlowData, getStatsPeriodDefaults, getComparePeriodOptions, getCompareSeriesLabels } from "./_components/statsPeriod"
 import EmptyState from "./_components/EmptyState"
 import HomeTab from "./HomeTab"
@@ -315,7 +317,15 @@ export default function Dashboard() {
           setError(null)
           return
         }
+        if (d.code === "SCHEMA_CONFLICT") {
+          // Additive schema upgrade refused: cached figures stay on screen and
+          // money writes stop until the Sheet is reviewed.
+          markSchemaConflict(d.error)
+          setError(null)
+          return
+        }
         if (d.error) {
+          markStale(d.error)
           setError(d.error)
         } else {
           setNeedsSheetConnection(false)
@@ -324,10 +334,11 @@ export default function Dashboard() {
           setError(null)
           const ts = d.serverTimestamp || new Date().toISOString()
           setStoredLastSyncAt(ts)
+          markSynced(ts)
           writeCache(d, sessionKey)
         }
       })
-      .catch(e => { setError(e.message) })
+      .catch(e => { markStale(e.message); setError(e.message) })
       .finally(() => { setLoading(false); setRefreshing(false) })
   }, [session, sessionKey, data, fetchEntitlement])
 
@@ -393,10 +404,10 @@ export default function Dashboard() {
       if (!res.ok) return
       const d = await res.json()
       const goals = d.goals || []
-      const tx = data?.transactions || []
+      const allocations = data?.balances?.allocations
       const prev = prevGoalPctRef.current
       for (const goal of goals) {
-        const sum = computeGoalProgress(goal, tx)
+        const sum = computeGoalProgress(goal, allocations)
         const pct = goal.target > 0 ? (sum / goal.target) * 100 : 0
         const prevPct = prev[goal.id] || 0
         if (prevPct < 100 && pct >= 100) {
@@ -811,13 +822,13 @@ export default function Dashboard() {
     }
     try {
       const requestFormData = getSubmitFormDataForType(formData, txType)
-      const res = await fetch("/api/transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...requestFormData, jumlah: rawAmount.replace(/\./g, ""), type: txType }),
+      const write = await submitFinancialWrite({
+        url: "/api/transaction",
+        body: { ...requestFormData, jumlah: rawAmount.replace(/\./g, ""), type: txType },
       })
-      const result = await res.json()
-      if (result.success) {
+      const result = write.data || {}
+      reportWriteOutcome(write)
+      if (write.ok) {
         if (hapticsEnabled) haptics.success()
         if (soundEnabled) playSuccessSound()
         showToast("Transaksi berhasil disimpan", "success", null, { duration: 1500 })
@@ -831,13 +842,14 @@ export default function Dashboard() {
         return { ok: true }
       } else {
         showToast(
-          result.error || "Gagal menyimpan",
+          write.error || "Gagal menyimpan",
           "error",
           result.code === "FEATURE_LIMIT_REACHED"
             ? { label: proRegistrationOpen ? "Upgrade" : "Pro sementara ditutup", onClick: () => window.location.assign("/upgrade") }
-            : null
+            : null,
+          write.outcome === "unresolved" ? { duration: null } : undefined
         )
-        return { ok: false, error: result }
+        return { ok: false, error: { ...result, operationId: write.operationId } }
       }
     } catch (err) {
       showToast("Terjadi kesalahan", "error")
@@ -880,19 +892,17 @@ export default function Dashboard() {
     if (!tx) return
     setDeletingTx(true)
     try {
-      const res = await fetch(`/api/transaction/${tx.id}`, {
+      const write = await submitFinancialWrite({
+        url: `/api/transaction/${tx.id}`,
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           tab: tx.type === "income" ? "Pemasukan" : tx.type === "savings" ? "Tabungan" : "Pengeluaran",
           rowIndex: tx.rowIndex,
-        }),
+        },
       })
-      const result = await res.json()
-      if (!res.ok) {
-        const err = result
-        throw new Error(err.error || "Gagal menghapus")
-      }
+      reportWriteOutcome(write)
+      if (!write.ok) throw new Error(write.error || "Gagal menghapus")
+      const result = write.data || {}
       if (hapticsEnabled) haptics.warning()
       setDeleteConfirmTx(null)
       setGoalsRefreshTrigger(t => t + 1)
@@ -911,19 +921,15 @@ export default function Dashboard() {
   const restoreTransaction = async (undoToken) => {
     setToast(null)
     try {
-      const res = await fetch("/api/transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ undoToken }),
-      })
-      const result = await res.json()
-      if (result.success) {
+      const write = await submitFinancialWrite({ url: "/api/transaction", body: { undoToken } })
+      reportWriteOutcome(write)
+      if (write.ok) {
         if (hapticsEnabled) haptics.success()
         showToast("Transaksi dipulihkan ✓")
         fetchData()
         setGoalsRefreshTrigger(t => t + 1)
       } else {
-        showToast(result.error || "Gagal memulihkan", "error")
+        showToast(write.error || "Gagal memulihkan", "error")
       }
     } catch {
       showToast("Gagal memulihkan", "error")
@@ -1469,6 +1475,7 @@ export default function Dashboard() {
           openPlanSection("goal")
         }}
         transactions={data?.transactions || []}
+        allocations={data?.balances?.allocations}
         transactionUsage={entitlement?.usage?.transactions}
         proRegistrationOpen={proRegistrationOpen}
         onSaved={() => {
@@ -1481,7 +1488,7 @@ export default function Dashboard() {
       />
 
       {/* What-If Scenario Modal */}
-      {hasFeature(entitlement, "whatIf") && <WhatIfModal open={whatIfOpen} onClose={() => setWhatIfOpen(false)} transactions={data?.transactions || []} />}
+      {hasFeature(entitlement, "whatIf") && <WhatIfModal open={whatIfOpen} onClose={() => setWhatIfOpen(false)} transactions={data?.transactions || []} allocations={data?.balances?.allocations} />}
 
       {/* Bill Pay Modal */}
       {billPayTarget && (

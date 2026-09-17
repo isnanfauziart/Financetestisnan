@@ -14,6 +14,8 @@ import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featu
 import { isSpecialExpense } from "@/lib/expenseClass"
 import { getWibDateParts } from "@/lib/wibCalendar"
 import { matchesBudgetPeriod } from "@/lib/budgetPace"
+import { BALANCE_COPY, buildRincianRows, formatBalanceBasis } from "./_components/balanceCopy"
+import { useFinancialWriteGuard } from "@/lib/financialWriteState"
 
 function SpecialBadge() {
   return (
@@ -54,6 +56,9 @@ export default function HomeTab({
   sessionKey,
 }) {
   const proRegistrationOpen = isProRegistrationOpen(entitlement)
+  const guard = useFinancialWriteGuard()
+  const balances = data?.balances
+  const rincianRows = buildRincianRows(balances)
   const animatedBalance = useCountUpOvershoot(data?.netWorth || 0)
   const monthlyDelta = data?.netWorthMonthlyDelta || 0
   const cashFlowIncome = Number(statIncome) || 0
@@ -211,7 +216,7 @@ export default function HomeTab({
             <div className="space-y-3">
               <div className="flex items-center gap-1.5">
                 <Wallet size={12} className="opacity-70" aria-hidden="true" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-80">Kekayaan Bersih</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-80">{BALANCE_COPY.netWorth}</p>
               </div>
               <h2 className="text-[2.2rem] sm:text-5xl font-display font-bold tracking-tight animate-count-in leading-none break-words tabular-nums">
                 {formatRpFull(animatedBalance)}
@@ -219,6 +224,11 @@ export default function HomeTab({
               <p className="text-[12px] sm:text-sm font-semibold text-white/80">
                 {deltaLabel} {formatRp(Math.abs(monthlyDelta))} bulan ini
               </p>
+              <div className="rounded-2xl px-3 py-2 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{BALANCE_COPY.availableNow}</p>
+                <p className="mt-0.5 text-lg font-display font-bold tabular-nums">{formatRpFull(balances?.available?.value || 0)}</p>
+                <p className="text-[10px] font-semibold text-white/70">{formatBalanceBasis(balances?.currentCash?.provisional)}</p>
+              </div>
             </div>
             <div className="rounded-2xl px-4 py-3 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }}>
               <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">{focusNote.label}</p>
@@ -233,7 +243,7 @@ export default function HomeTab({
           <div className="flex items-start justify-between gap-3 mb-3 px-1">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant">{cashFlowPeriodLabel}</p>
-              <h3 id="home-cash-flow-title" className="text-sm sm:text-base font-bold font-display text-md3-on-surface">Uang Masuk &amp; Keluar {cashFlowPeriodLabel}</h3>
+              <h3 id="home-cash-flow-title" className="text-sm sm:text-base font-bold font-display text-md3-on-surface">Uang masuk &amp; Uang keluar {cashFlowPeriodLabel}</h3>
             </div>
             <span className="rounded-full bg-md3-surface px-2.5 py-1 text-[10px] font-bold text-md3-on-surface-variant">Ringkasan</span>
           </div>
@@ -244,12 +254,11 @@ export default function HomeTab({
               onClick={() => setDrillDown({ type: "income", title: "Pemasukan", transactions: scopedTransactions })}
               aria-label="Lihat 10 transaksi pemasukan terbesar"
               className="flex min-h-11 w-full items-center justify-between rounded-2xl px-3 text-left transition-colors hover:bg-md3-surface active:scale-[0.99]"
-            >
-              <span className="flex items-center gap-2 text-xs font-semibold text-md3-on-surface-variant">
+            >                <span className="flex items-center gap-2 text-xs font-semibold text-md3-on-surface-variant">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: THEME.incomeBg, color: THEME.income }}>
                   <ArrowDownRight size={14} strokeWidth={2.4} aria-hidden="true" />
                 </span>
-                Pemasukan
+                Uang masuk
               </span>
               <strong className="text-sm tabular-nums" style={{ color: THEME.income }}>{formatRp(cashFlowIncome)}</strong>
             </button>
@@ -258,12 +267,11 @@ export default function HomeTab({
               onClick={() => setDrillDown({ type: "expense", title: "Pengeluaran", transactions: scopedTransactions })}
               aria-label="Lihat 10 transaksi pengeluaran terbesar"
               className="flex min-h-11 w-full items-center justify-between rounded-2xl px-3 text-left transition-colors hover:bg-md3-surface active:scale-[0.99]"
-            >
-              <span className="flex items-center gap-2 text-xs font-semibold text-md3-on-surface-variant">
+            >                <span className="flex items-center gap-2 text-xs font-semibold text-md3-on-surface-variant">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: THEME.expenseBg, color: THEME.expense }}>
                   <ArrowUpRight size={14} strokeWidth={2.4} aria-hidden="true" />
                 </span>
-                Pengeluaran
+                Uang keluar
               </span>
               <strong className="text-sm tabular-nums" style={{ color: THEME.expense }}>{formatRp(cashFlowExpense)}</strong>
             </button>
@@ -288,7 +296,7 @@ export default function HomeTab({
 
           <div className="mt-3 flex items-center justify-between gap-3 border-t border-md3-outline-variant px-3 pt-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Surplus/Defisit</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Arus kas bersih</p>
               <p className="mt-0.5 text-[11px] font-semibold text-md3-on-surface-variant">{cashFlowBalanceLabel}</p>
             </div>
             <p className="text-base font-bold tabular-nums" style={{ color: cashFlowBalance >= 0 ? THEME.income : THEME.danger }}>
@@ -316,6 +324,48 @@ export default function HomeTab({
             </span>
           </button>
         </section>
+
+        {rincianRows.length > 0 && (
+          <section
+            className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-4 animate-bento-in stagger-3"
+            aria-labelledby="home-rincian-saldo-title"
+          >
+            <div className="mb-2 flex items-start justify-between gap-3 px-1">
+              <div>
+                <h3 id="home-rincian-saldo-title" className="text-sm font-bold font-display text-md3-on-surface">Rincian saldo</h3>
+                <p className="text-[11px] text-md3-on-surface-variant">Dari mana angka Kekayaan Bersih dan dana yang bisa dipakai berasal.</p>
+              </div>
+            </div>
+            <dl className="space-y-1">
+              {rincianRows.map((row) => (
+                <div
+                  key={row.key}
+                  className={`flex items-start justify-between gap-3 rounded-2xl px-3 py-2 ${row.emphasis ? "bg-md3-surface-container-high" : ""}`}
+                >
+                  <dt className="min-w-0">
+                    <span className="block text-xs font-semibold text-md3-on-surface">{row.label}</span>
+                    {row.note && <span className="mt-0.5 block text-[10px] leading-snug text-md3-on-surface-variant">{row.note}</span>}
+                    {row.count > 0 && <span className="mt-0.5 block text-[10px] text-md3-on-surface-variant">{row.count} catatan</span>}
+                  </dt>
+                  <dd
+                    className="flex-shrink-0 text-sm font-bold tabular-nums"
+                    style={{ color: row.negative ? THEME.danger : undefined }}
+                  >
+                    {row.negative ? "−" : ""}{formatRpFull(row.value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            {balances?.rincian?.estimate && (
+              <p className="mt-2 px-1 text-[11px] leading-relaxed text-md3-on-surface-variant">{BALANCE_COPY.estimateNote}</p>
+            )}
+            {guard.blocked && (
+              <p role="alert" className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
+                {guard.message}
+              </p>
+            )}
+          </section>
+        )}
 
         <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3 sm:p-4 animate-bento-in stagger-3">
           <div className="flex items-center justify-between gap-3 mb-3 px-1">

@@ -23,7 +23,7 @@ function formatDateFromDays(now, totalDays) {
   return `${AVAILABLE_MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
-export default function WhatIfModal({ open, onClose, transactions }) {
+export default function WhatIfModal({ open, onClose, transactions, allocations }) {
   const { goals } = useGoals()
   const [selectedCategory, setSelectedCategory] = useState("")
   const [rawReduction, setRawReduction] = useState("")
@@ -83,14 +83,14 @@ export default function WhatIfModal({ open, onClose, transactions }) {
     return activeGoals.find(g => `${g.nama} (${formatRp(g.target)})` === selectedGoalId) || null
   }, [selectedGoalId, activeGoals])
 
+  // Contributions follow the goal id the savings row was allocated to, not a
+  // shared category, so two goals can never claim the same deposit.
   const monthlyContributions = useMemo(() => {
     if (!selectedGoal || !transactions) return 0
     const savingsByMonth = {}
-    transactions.filter(t => t.type === "savings").forEach(t => {
-      if (!selectedGoal.kategori || t.category === selectedGoal.kategori) {
-        const k = `${t.month} ${t.year}`
-        savingsByMonth[k] = (savingsByMonth[k] || 0) + t.amount
-      }
+    transactions.filter(t => t.type === "savings" && t.goalId === selectedGoal.id).forEach(t => {
+      const k = `${t.month} ${t.year}`
+      savingsByMonth[k] = (savingsByMonth[k] || 0) + t.amount
     })
     const values = Object.values(savingsByMonth)
     if (values.length === 0) return 0
@@ -101,7 +101,7 @@ export default function WhatIfModal({ open, onClose, transactions }) {
     if (!totalExtra || !selectedGoal || !transactions) return null
     if (monthlyContributions <= 0) return { noContributions: true }
 
-    const currentProgress = computeGoalProgress(selectedGoal, transactions)
+    const currentProgress = computeGoalProgress(selectedGoal, allocations)
     const remaining = Math.max(0, selectedGoal.target - currentProgress)
     if (remaining <= 0) return { alreadyDone: true }
 

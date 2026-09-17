@@ -2876,64 +2876,99 @@ body:has(.landing-page) {
 
 .final-cta {
   width: min(80rem, calc(100% - 8vw));
+  padding-block: clamp(4rem, 7vw, 6rem) 5rem;
   background: transparent;
-  color: inherit;
-  text-align: center;
+  color: var(--landing-moss-deep);
+}
+
+.final-cta__panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 28rem;
+  padding: 4rem;
+  border-radius: 2rem;
+  background: var(--landing-sage);
 }
 
 .final-cta__content {
-  width: min(64rem, calc(100% - 3rem));
-  margin: auto;
+  position: relative;
+  z-index: 1;
+  width: min(66%, 42rem);
 }
 
 .final-cta h2 {
-  font-size: clamp(2.9rem, 4.6vw, 4.5rem);
+  font-size: clamp(2.25rem, 4.2vw, 3.75rem);
+  line-height: 1.08;
+}
+
+.final-cta h2 span {
+  display: block;
 }
 
 .final-cta__content > p:not(.eyebrow) {
-  width: min(40rem, 100%);
-  margin: 1.5rem auto 2rem;
-  color: var(--landing-muted);
+  max-width: 32rem;
+  margin: 1.25rem 0 1.75rem;
+  color: var(--landing-moss-deep);
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
-.store-status,
+.final-cta .button-row {
+  flex-wrap: wrap;
+}
+
+.final-cta__primary,
+.final-cta__secondary {
+  min-height: 3rem;
+  padding-inline: 1.55rem;
+}
+
+.final-cta__primary {
+  gap: 0.55rem;
+  border-color: var(--landing-moss-deep);
+  background: var(--landing-moss-deep);
+}
+
+.final-cta__primary svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.final-cta__secondary {
+  border-color: rgba(23, 60, 55, 0.45);
+  background: transparent;
+  color: var(--landing-moss-deep) !important;
+}
+
+.final-cta__secondary:hover {
+  border-color: var(--landing-moss-deep);
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.final-cta__artwork {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  user-select: none;
+}
+
+.final-cta__artwork svg {
+  position: absolute;
+  top: 50%;
+  right: -12rem;
+  width: 42rem;
+  height: 42rem;
+  max-width: none;
+  transform: translateY(-50%);
+}
+
 .navigation__store-status {
   color: var(--landing-muted);
   font-size: 0.76rem;
-}
-
-.final-cta__flow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  width: min(52rem, 100%);
-  margin: 5rem auto 0;
-}
-
-.final-cta__step {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.7rem 1.2rem;
-  border: 1px solid var(--landing-line);
-  border-radius: 999px;
-  background: #ffffff;
-  color: var(--landing-muted);
-  font-size: 0.78rem;
-  font-weight: 650;
-}
-
-.final-cta__step svg {
-  width: 0.95rem;
-  color: var(--landing-moss);
-}
-
-.final-cta__flow > i {
-  width: clamp(1.5rem, 6vw, 4rem);
-  height: 1px;
-  background: var(--landing-line);
 }
 
 .site-footer {
@@ -3137,6 +3172,28 @@ body:has(.landing-page) {
   .faq {
     grid-template-columns: 1fr;
     gap: 3rem;
+  }
+
+}
+
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+  .final-cta__panel {
+    min-height: 24rem;
+    padding: 2.5rem;
+  }
+
+  .final-cta__content {
+    width: min(68%, 36rem);
+  }
+
+  .final-cta h2 {
+    font-size: clamp(2.5rem, 5vw, 3rem);
+  }
+
+  .final-cta__artwork svg {
+    right: -14rem;
+    width: 38rem;
+    height: 38rem;
   }
 }
 
@@ -3449,15 +3506,47 @@ body:has(.landing-page) {
 
   .final-cta {
     width: calc(100% - 2rem);
+    padding-block: 3.5rem 5rem;
   }
 
-  .final-cta__flow {
-    gap: 0.7rem;
-    margin-top: 3.5rem;
+  .final-cta__panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 0;
+    padding: 1.5rem 1.5rem 0;
+    border-radius: 1.5rem;
   }
 
-  .final-cta__flow > i {
-    display: none;
+  .final-cta__content {
+    width: 100%;
+  }
+
+  .final-cta h2 {
+    font-size: 2.25rem;
+    line-height: 1.12;
+  }
+
+  .final-cta__content > p:not(.eyebrow) {
+    margin-bottom: 1.75rem;
+    font-size: 0.95rem;
+  }
+
+  .final-cta__artwork {
+    position: relative;
+    inset: auto;
+    flex: 0 0 7rem;
+    height: 7rem;
+    margin: 1.5rem -1.5rem 0;
+    border-radius: 0 0 1.5rem 1.5rem;
+  }
+
+  .final-cta__artwork svg {
+    top: -10rem;
+    right: -8rem;
+    width: 28rem;
+    height: 28rem;
+    transform: none;
   }
 
   .site-footer {

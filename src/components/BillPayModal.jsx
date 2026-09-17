@@ -6,6 +6,7 @@ import { formatRpFull } from "@/app/dashboard/_components/helpers"
 import { getBillVisual } from "@/lib/categoryIcons"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
+import { submitFinancialWrite } from "@/lib/financialWriteClient"
 
 const STATUS_LABELS = {
   overdue: "Terlambat",
@@ -37,17 +38,12 @@ export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactio
     setPaying(true)
     setError(null)
     try {
-      const res = await fetch("/api/bills/pay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billId: bill.id }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data)
+      const result = await submitFinancialWrite({ url: "/api/bills/pay", body: { billId: bill.id } })
+      if (!result.ok) {
+        setError({ error: result.error, code: result.code, unresolved: result.outcome === "unresolved", operationId: result.operationId })
         return
       }
-      onPaid(data)
+      onPaid(result.data)
     } catch (err) {
       setError(err.message)
     } finally {

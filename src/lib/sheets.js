@@ -128,6 +128,20 @@ export async function appendSheetValues(accessToken, range, values, spreadsheetI
   return res.json()
 }
 
+/**
+ * First row after the last non-empty cell in a column, matching the ledger
+ * convention of writing one row past the existing table.
+ */
+export async function findNextEmptyRow(accessToken, sheetName, spreadsheetId, column = "A") {
+  const rows = await getSheetData(accessToken, `${sheetName}!${column}:${column}`, spreadsheetId)
+  let lastNonEmpty = 0
+  for (let i = 0; i < rows.length; i++) {
+    const cell = rows[i] && rows[i][0]
+    if (cell && String(cell).trim().length > 0) lastNonEmpty = i
+  }
+  return lastNonEmpty + 2
+}
+
 export function parseRupiah(value) {
   if (!value) return 0
   const cleaned = String(value).replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", ".")

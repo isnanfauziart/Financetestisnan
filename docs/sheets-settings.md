@@ -16,7 +16,11 @@ Key-value pairs. Each row is a setting.
 | Key | Type | Description |
 |-----|------|-------------|
 | `startingBalance` | number | User's net worth at the time of entry (Rp) |
-| `startingBalanceDate` | string | Date when startingBalance was recorded (`YYYY-MM-DD`). Only transactions from this date forward count toward net worth. |
+| `startingBalanceDate` | string | Date when startingBalance was recorded (`YYYY-MM-DD`). Only transactions from this date forward count toward `Saldo Tercatat`. |
+| `startingBalanceConfirmed` | boolean | `true` once the user completed opening-balance setup, so a valid Rp0 balance differs from incomplete setup. |
+| `currentCashBalance` | number | Saved **Total saldo saat ini**: the combined bank, e-wallet, and cash balance at the moment it was saved (Rp). |
+| `currentCashBalanceCheckpointId` | uuid | Checkpoint id minted when the balance was saved. Later cash movements inherit it, so same-day and historical rows are counted exactly once. A valid balance **and** id together mark a confirmed checkpoint; Rp0 with an id is confirmed. |
+| `currentCashBalanceRecordedAt` | string | ISO timestamp of the last checkpoint save. |
 | `financialFreedomMonthlyExpenseOverride` | positive integer | Optional monthly expense basis for the Target Bebas Finansial calculation (Rp). Blank clears it; maximum `999999999999`. |
 | `categories_v1` | JSON string | Per-user active/archived expense, income, and savings categories. Savings entries include `savingsKind` (`liquid` or `investment`). |
 
@@ -33,6 +37,8 @@ Key-value pairs. Each row is a setting.
 ## Notes
 
 - If the tab doesn't exist, the app falls back to `startingBalance = 0` and `startingBalanceDate = ""`
-- Net worth = startingBalance + Σ(income - expense) for months >= startingBalanceMonth
-- Historical transactions are still visible in charts and insights — just not counted toward net worth
+- `Kekayaan Bersih` = `Saldo Tercatat` + outstanding Piutang − outstanding Utang, where `Saldo Tercatat` = startingBalance + cash income − cash expenses for months >= startingBalanceMonth
+- `Saldo uang saat ini` = saved `currentCashBalance` + movements carrying the active `currentCashBalanceCheckpointId`; before a checkpoint exists the latest recorded balance is shown provisionally (**Berdasarkan data terakhir**)
+- `Dana yang bisa dipakai saat ini` = max(0, `Saldo uang saat ini` − liquid savings reservations); unknown legacy savings classifications make the amount an estimate
+- Historical transactions are still visible in charts and insights — just not counted toward `Saldo Tercatat`
 - Additional settings can be added as new rows (key-value pattern)

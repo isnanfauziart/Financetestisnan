@@ -267,6 +267,23 @@ describe("Artami landing art direction refinements", () => {
     expect(css).not.toContain("cta-evidence")
   })
 
+  it("closes with the approved free-start invitation and decorative artwork", async () => {
+    const cta = await source("src/components/landing/FinalCTA.jsx")
+
+    expect(cta).toContain("Lebih paham uangmu.")
+    expect(cta).toContain("Lebih jelas langkahmu.")
+    expect(cta).toContain("Catat pemasukan, pantau pengeluaran, dan susun rencana.")
+    expect(cta).toContain("Semuanya terhubung ke Google Sheet milikmu.")
+    expect(cta).toContain('href={links.webApp}')
+    expect(cta).toContain("Mulai gratis")
+    expect(cta).toContain("links.playStoreAvailable")
+    expect(cta).toContain('aria-hidden="true"')
+    expect(cta).toContain('focusable="false"')
+    expect(cta).not.toContain("Buka Artami")
+    expect(cta).not.toContain("final-cta__flow")
+    expect(cta).not.toContain("Segera hadir di Play Store")
+  })
+
   it("keeps the directory footer honest and same-origin", async () => {
     const footer = await source("src/components/landing/Footer.jsx")
 

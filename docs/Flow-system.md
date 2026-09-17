@@ -16,7 +16,7 @@
 1. Newly created Artami Sheets receive the Indonesian starter categories in `Settings!categories_v1`.
 2. Existing Sheets without that key keep the legacy category lists until the user changes them.
 3. Profile > Preferensi > Kategori loads the user's expense, income, and savings lists from `/api/settings`.
-4. Users can add, archive, and restore categories and choose an icon; savings categories also choose `Dana likuid` or `Investasi`.
+4. Users can add, archive, and restore categories and choose an icon; savings categories also choose `Bisa digunakan` or `Investasi (nilai nominal)`.
 5. Archived names remain available for history and existing records but are excluded from new-entry pickers. `Utang` and `Piutang` remain protected for automated debt payments.
 6. The same per-user lists drive transaction forms, budgets, Goals, bill transaction mapping, recap filters, and Health Score liquidity calculations.
 
@@ -52,6 +52,7 @@ Supabase does not store the user's finance ledger.
 | `/api/transaction` | POST | Create transaction |
 | `/api/transaction/[id]` | PUT, DELETE | Update/delete transaction |
 | `/api/budgets` | GET, POST, PUT, DELETE | Budget CRUD |
+| `/api/budgets/copy` | POST | Validate and batch-copy historical budgets into a different month |
 | `/api/goals` | GET, POST, PUT, DELETE | Goal CRUD |
 | `/api/debts` | GET, POST, PUT, DELETE | Debt CRUD and payment action |
 | `/api/momental` | GET, POST, PUT, DELETE | Event CRUD |
@@ -91,6 +92,31 @@ quota, calendar totals, and the visible ledger. Routine trends, averages,
 anomaly alerts, forecast baselines, selected Health Score factors, and stable
 insights use routine expenses only. The entry control is labeled
 `Pengeluaran Spesial` and is manual/opt-in.
+
+## Historical Budget Copy Flow
+
+The Anggaran section exposes `Salin Anggaran` beside the manual creation action.
+The compact sheet loads every month that already contains budget rows, defaults
+to the latest available source and the dashboard-selected destination, and lets
+the user choose rows manually or use `Pilih semua`. Rows begin unchecked. The
+category, account, and source limit are shown; the limit can be edited and the
+new note is blank.
+
+Destination rows keep the existing composite key
+`Kategori | Bulan | Tahun | Akun`. A matching destination row is disabled as
+`Sudah ada` and is never overwritten. Archived categories and invalid legacy
+limits are also disabled. Free users see the remaining three budget slots for
+the destination month; Paid/Admin users have no row limit. Selecting more than
+the remaining Free slots keeps the review state visible but disables saving.
+
+`POST /api/budgets/copy` verifies authentication, the Budgets feature flag, the
+historical source row indexes, destination uniqueness, edited positive limits,
+and the complete target-month quota while holding the existing per-user feature
+creation lock. It appends the complete validated selection to `Budgets!A:F` in
+one Sheets request. Stale source/destination state returns a retryable conflict
+without an append; validation, duplicate, quota, and Sheets errors preserve the
+review state in the client. No recurring schedule, template tab, or AI limit
+recommendation is involved in this version.
 
 ## Phase 2: Payments + Admin
 
