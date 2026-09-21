@@ -66,7 +66,7 @@ beforeEach(async () => {
   findOperationReceipt.mockResolvedValue(null)
   getSheetData.mockImplementation(async (token, range) => {
     const target = String(range)
-    if (target.startsWith("Tagihan!")) {
+    if (target.startsWith("Tagihan")) {
       return [["headers"], ["bill-1", "Internet", 300000, "expense", "Internet", "Tagihan", "monthly", "7", "BCA", "TRUE", "", "", "2026-01-01"]]
     }
     if (target.startsWith("Utang!")) return [["ID"], ["d1", "Ari", 100, "utang", "2026-08-01", "open", 100, "", "2026-07-01"]]

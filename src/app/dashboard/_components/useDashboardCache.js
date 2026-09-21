@@ -43,6 +43,36 @@ export function invalidateCache(owner) {
   } catch {}
 }
 
+/**
+ * Approved return-to-app refresh threshold (Wave 1): a background auto-refresh
+ * only runs when the last successful sync is at least this old.
+ */
+export const AUTO_REFRESH_VISIBLE_THRESHOLD_MS = 5 * 60 * 1000
+
+/**
+ * Pure visibilitychange decision: refresh only when the tab has just become
+ * visible, a refresh is not already running, and the last successful sync is
+ * older than the approved threshold. A missing or unreadable lastSyncAt counts
+ * as stale so an account that never synced still retries on return.
+ */
+export function shouldAutoRefreshOnVisible({ lastSyncAt, refreshing, isOnline }) {
+  if (refreshing) return false
+  if (isOnline === false) return false
+  if (!lastSyncAt) return true
+  const last = new Date(lastSyncAt).getTime()
+  if (!Number.isFinite(last)) return true
+  return Date.now() - last >= AUTO_REFRESH_VISIBLE_THRESHOLD_MS
+}
+
+/** Removes the owner-scoped dashboard cache (logout / account deletion). */
+export function clearCache(owner) {
+  const key = getKey(owner)
+  if (!isBrowser() || !key) return
+  try {
+    localStorage.removeItem(key)
+  } catch {}
+}
+
 export function getLastSyncAgo(cachedAt, now = Date.now()) {
   if (!cachedAt) return null
   const t = new Date(cachedAt).getTime()

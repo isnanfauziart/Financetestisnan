@@ -8,7 +8,7 @@ import useHaptics from "./_components/useHaptics"
 import useHapticsPref from "./_components/useHapticsPref"
 import { computeAllGoalProgress, computeGoalProgress } from "./_components/goalUtils"
 import { submitFinancialWrite } from "@/lib/financialWriteClient"
-import { markSchemaConflict, markStale, markSynced, reportWriteOutcome } from "@/lib/financialWriteState"
+import { markPending, markSchemaConflict, markStale, markSynced, reportWriteOutcome, resetWriteState, useFinancialWriteGuard } from "@/lib/financialWriteState"
 import { buildMonthlyCashFlowData, getStatsPeriodDefaults, getComparePeriodOptions, getCompareSeriesLabels } from "./_components/statsPeriod"
 import EmptyState from "./_components/EmptyState"
 import HomeTab from "./HomeTab"
@@ -23,7 +23,7 @@ import Toast from "./_components/Toast"
 import Skeleton from "./_components/Skeleton"
 import QuickAddSheet from "./_components/QuickAddSheet"
 import SyncStatus from "./_components/SyncStatus"
-import { readCache, writeCache, getLastSyncAgo } from "./_components/useDashboardCache"
+import { readCache, writeCache, clearCache, getLastSyncAgo, shouldAutoRefreshOnVisible } from "./_components/useDashboardCache"
 import GoalCelebration from "@/components/GoalCelebration"
 import GoalPickerModal from "@/components/GoalPickerModal"
 import WhatIfModal from "@/components/WhatIfModal"
@@ -166,6 +166,7 @@ export default function Dashboard() {
   const [entitlement, setEntitlement] = useState(null)
   const [needsSheetConnection, setNeedsSheetConnection] = useState(false)
   const [storedLastSyncAt, setStoredLastSyncAt] = useState(null)
+  const [checkingRefresh, setCheckingRefresh] = useState(false)
   const [isOnline, setIsOnline] = useState(() => {
     if (typeof window === "undefined") return true
     return navigator.onLine
@@ -279,6 +280,9 @@ export default function Dashboard() {
     const cache = readCache(sessionKey)
     setStoredDataOwner(sessionKey)
     setStoredData(cache?.data || null)
+    // Wave 2 login freshness: cached figures may render immediately, but money
+    // writes wait for the first fresh fetch (or a known failure state).
+    if (cache?.data) markPending("cached")
     setStoredLastSyncAt(cache?.cachedAt || null)
     setLoading(!cache?.data)
     setRefreshing(false)
@@ -339,7 +343,7 @@ export default function Dashboard() {
         }
       })
       .catch(e => { markStale(e.message); setError(e.message) })
-      .finally(() => { setLoading(false); setRefreshing(false) })
+      .finally(() => { setLoading(false); setRefreshing(false); setCheckingRefresh(false) })
   }, [session, sessionKey, data, fetchEntitlement])
 
   useEffect(() => { if (session) fetchData() }, [session?.user?.email])
@@ -354,6 +358,24 @@ export default function Dashboard() {
       window.removeEventListener("offline", onOffline)
     }
   }, [])
+
+  const refreshingRef = useRef(false)
+  useEffect(() => { refreshingRef.current = refreshing }, [refreshing])
+
+  // Wave 1: auto-refresh when the app becomes visible again after a long pause.
+  // Figures stay on screen; SyncStatus shows "Memeriksa pembaruan…" meanwhile.
+  useEffect(() => {
+    if (status !== "authenticated") return undefined
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return
+      if (shouldAutoRefreshOnVisible({ lastSyncAt: storedLastSyncAt, refreshing: refreshingRef.current, isOnline })) {
+        setCheckingRefresh(true)
+        fetchData()
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
+  }, [status, storedLastSyncAt, isOnline, fetchData])
 
   // Register service worker for notifications
   useEffect(() => {
@@ -868,6 +890,12 @@ export default function Dashboard() {
     })
   }
 
+  const handleSignOut = useCallback(() => {
+    clearCache(sessionKey)
+    resetWriteState()
+    signOut({ callbackUrl: "/" })
+  }, [sessionKey])
+
   const openGoalPicker = () => setGoalPickerOpen(true)
 
   const handleEditSave = () => {
@@ -887,7 +915,16 @@ export default function Dashboard() {
     setDeleteConfirmTx(tx)
   }
 
+  const writeGuard = useFinancialWriteGuard()
+  const writeBlockedToast = useCallback(() => {
+    showToast(writeGuard.message || "Sinkronkan data sebelum menyimpan perubahan.", "error")
+  }, [writeGuard.message, showToast])
+
   const performDelete = async () => {
+    if (writeGuard.blocked) {
+      writeBlockedToast()
+      return
+    }
     const tx = deleteConfirmTx
     if (!tx) return
     setDeletingTx(true)
@@ -919,6 +956,10 @@ export default function Dashboard() {
   }
 
   const restoreTransaction = async (undoToken) => {
+    if (writeGuard.blocked) {
+      showToast(writeGuard.message || "Sinkronkan data sebelum memulihkan transaksi.", "error")
+      return
+    }
     setToast(null)
     try {
       const write = await submitFinancialWrite({ url: "/api/transaction", body: { undoToken } })
@@ -981,7 +1022,7 @@ export default function Dashboard() {
       <LegacySheetConnector
         userName={effectiveUserName}
         onConnected={() => window.location.reload()}
-        onSignOut={() => signOut({ callbackUrl: "/" })}
+        onSignOut={handleSignOut}
       />
     )
   }
@@ -999,7 +1040,7 @@ export default function Dashboard() {
             <button onClick={() => { setError(null); setLoading(true); fetchData() }} className="w-full py-3.5 rounded-2xl text-white font-semibold mesh-violet shadow-pop active:scale-95 transition-transform">
               Coba Lagi
             </button>
-            <button onClick={() => signOut({ callbackUrl: "/" })} className="w-full py-3.5 rounded-2xl text-rose-500 font-semibold bg-rose-50 active:scale-95 transition-transform">
+            <button onClick={handleSignOut} className="w-full py-3.5 rounded-2xl text-rose-500 font-semibold bg-rose-50 active:scale-95 transition-transform">
               Log Out & Relogin
             </button>
           </div>
@@ -1218,6 +1259,7 @@ export default function Dashboard() {
                 isOnline={isOnline}
                 onRefresh={fetchData}
                 getLastSyncAgo={getLastSyncAgo}
+                checkingRefresh={checkingRefresh}
                 now={syncNow}
                 haptics={haptics}
                 hapticsEnabled={hapticsEnabled}
@@ -1344,6 +1386,7 @@ export default function Dashboard() {
             expenseCategories={expenseCategories}
             onToast={showToast}
             onWhatIfOpen={() => setWhatIfOpen(true)}
+            onDataChanged={fetchData}
             activeSection={activePlanSection}
             onSectionChange={setActivePlanSection}
             onUsageChange={fetchEntitlement}
@@ -1360,7 +1403,7 @@ export default function Dashboard() {
             />
         )}
         {activeNav === "profile" && (
-          <ProfileTab userName={effectiveUserName} session={session} data={data} entitlement={entitlement} signOut={signOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} onToast={showToast} onRefresh={fetchData} />
+          <ProfileTab userName={effectiveUserName} session={session} data={data} entitlement={entitlement} signOut={handleSignOut} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticsEnabled={hapticsEnabled} setHapticsEnabled={setHapticsEnabled} onToast={showToast} onRefresh={fetchData} lastSyncAt={lastSyncAt} isOnline={isOnline} refreshing={refreshing} />
         )}
       </div>
 

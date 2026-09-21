@@ -51,7 +51,12 @@ export default function RecurringExpenseRadar({ transactions = [], bills = [], d
           <article key={candidate.fingerprint} className="rounded-2xl border border-violet-100 bg-white/85 p-3">
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-md3-on-surface">{candidate.description}</p>
+                <p className="truncate text-sm font-bold text-md3-on-surface">
+                  {candidate.description}
+                  {candidate.needsReview && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 align-middle text-[9px] font-bold uppercase tracking-wide text-amber-700">Perlu ditinjau</span>
+                  )}
+                </p>
                 <p className="mt-0.5 text-[11px] text-md3-on-surface-variant">
                   {candidate.category}{candidate.account ? ` · ${candidate.account}` : ""}
                 </p>
@@ -62,12 +67,19 @@ export default function RecurringExpenseRadar({ transactions = [], bills = [], d
               <span className="inline-flex items-center gap-1"><CalendarDays size={12} aria-hidden="true" /> Sekitar tanggal {Math.round(candidate.typicalDay)}</span>
               <span>Terlihat {candidate.monthCount} bulan</span>
             </div>
+            {candidate.needsReview && (
+              <p className="mt-2 text-[11px] leading-relaxed text-amber-700">
+                Sudah ada tagihan dengan nama serupa tapi kategori atau akun berbeda. Periksa daftar tagihan dulu.
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => onAdd?.(candidate)}
+                onClick={() => { if (!candidate.needsReview) onAdd?.(candidate) }}
+                disabled={Boolean(candidate.needsReview)}
                 aria-label={`Jadikan tagihan ${candidate.description}`}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-2 text-[11px] font-bold text-white transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+                title={candidate.needsReview ? "Sudah ada tagihan serupa. Periksa daftar tagihan." : undefined}
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-2 text-[11px] font-bold text-white transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Plus size={13} aria-hidden="true" /> Jadikan tagihan
               </button>

@@ -5,6 +5,7 @@ import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import { computeAllGoalProgress } from "@/app/dashboard/_components/goalUtils"
 import { useGoals } from "@/lib/useSharedData"
+import { useFinancialWriteGuard } from "@/lib/financialWriteState"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import GoalContributeModal from "./GoalContributeModal"
 import GoalProgressRing from "./GoalProgressRing"
@@ -12,6 +13,7 @@ import GoalProgressRing from "./GoalProgressRing"
 export default function GoalPickerModal({ open, onClose, onSaved, onOpenGoals, transactions, allocations, transactionUsage, proRegistrationOpen = true }) {
   const { goals, loading, error, refetch } = useGoals()
   const [selectedGoal, setSelectedGoal] = useState(null)
+  const writeGuard = useFinancialWriteGuard()
 
   const progressMap = useMemo(() => computeAllGoalProgress(goals, allocations), [goals, allocations])
 
@@ -63,14 +65,18 @@ export default function GoalPickerModal({ open, onClose, onSaved, onOpenGoals, t
           </div>
         ) : (
           <div className="space-y-2">
-            {pickableGoals.map(goal => {
+              {writeGuard.blocked && (
+                <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">{writeGuard.message}</p>
+              )}
+              {pickableGoals.map(goal => {
               const progress = progressMap[goal.id] || 0
               const pct = goal.target > 0 ? (progress / goal.target) * 100 : 0
               const color = goal.color || THEME.savings
               return (
                 <button key={goal.id}
                   onClick={() => setSelectedGoal(goal)}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-md3-surface hover:bg-md3-surface-container-high transition-colors text-left active:scale-[0.98]">
+                  disabled={writeGuard.blocked}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-md3-surface hover:bg-md3-surface-container-high transition-colors text-left active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50">
                   <GoalProgressRing progress={pct} color={color} size={36} stroke={5} />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-md3-on-surface truncate">{goal.nama}</p>
@@ -79,9 +85,9 @@ export default function GoalPickerModal({ open, onClose, onSaved, onOpenGoals, t
                   <ArrowRight size={14} className="text-earth-400 flex-shrink-0" />
                 </button>
               )
-            })}
-          </div>
-        )}
+              })}
+            </div>
+          )}
       </Sheet>
 
       {selectedGoal && (

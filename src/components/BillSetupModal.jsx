@@ -60,6 +60,7 @@ export default function BillSetupModal({ bill, initialValues, onClose, onSaved, 
           tanggalJatuhTempo: parseInt(tanggalJatuhTempo, 10),
           akunBank,
           catatan,
+          ...(values.sourceFingerprint ? { sourceFingerprint: values.sourceFingerprint } : {}),
         }),
       })
       const data = await res.json()

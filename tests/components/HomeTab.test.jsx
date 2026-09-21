@@ -134,7 +134,7 @@ describe("HomeTab priority actions", () => {
       },
     })} />)
 
-    expect(screen.getAllByText("Dana yang bisa dipakai saat ini").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Bisa dipakai sekarang").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Rp 3.500.000").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Berdasarkan data terakhir").length).toBeGreaterThan(0)
   })
@@ -168,13 +168,15 @@ describe("HomeTab priority actions", () => {
     })} />)
 
     const rincian = screen.getByRole("region", { name: /rincian saldo/i })
-    expect(rincian).toHaveTextContent("Saldo Tercatat")
+    expect(rincian).toHaveTextContent("Uang kamu")
     expect(rincian).toHaveTextContent("Utang belum lunas")
-    expect(rincian).toHaveTextContent("Disisihkan untuk target")
-    expect(rincian).toHaveTextContent("Tabungan belum dibagi ke target")
+    expect(rincian).toHaveTextContent("Disisihkan di tabungan")
+    expect(rincian).not.toHaveTextContent("Saldo Tercatat")
+    expect(rincian).not.toHaveTextContent("Kekayaan Bersih")
+    expect(rincian).not.toHaveTextContent("Dana yang bisa dipakai saat ini")
     expect(rincian).toHaveTextContent("Tagihan belum dibayar")
     expect(rincian).toHaveTextContent("Tidak mengurangi dana yang bisa dipakai sampai benar-benar dibayar.")
-    expect(rincian).toHaveTextContent("Dana yang bisa dipakai saat ini")
+    expect(rincian).toHaveTextContent("Bisa dipakai sekarang")
   })
 
   it("uses a neutral scope label for all-period cash flow filters", () => {

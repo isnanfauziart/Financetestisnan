@@ -7,6 +7,7 @@ import { getBillVisual } from "@/lib/categoryIcons"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
 import { submitFinancialWrite } from "@/lib/financialWriteClient"
+import { useFinancialWriteGuard } from "@/lib/financialWriteState"
 
 const STATUS_LABELS = {
   overdue: "Terlambat",
@@ -33,8 +34,10 @@ const FREQ_LABELS = {
 export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactionUsage, proRegistrationOpen = true }) {
   const [paying, setPaying] = useState(false)
   const [error, setError] = useState(null)
+  const writeGuard = useFinancialWriteGuard()
 
   const handlePay = async () => {
+    if (writeGuard.blocked) return
     setPaying(true)
     setError(null)
     try {
@@ -143,13 +146,17 @@ export default function BillPayModal({ bill, onClose, onPaid, onEdit, transactio
 
         <TransactionQuotaStatus usage={transactionUsage} error={error} proRegistrationOpen={proRegistrationOpen} />
 
+        {writeGuard.blocked && (
+          <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">{writeGuard.message}</p>
+        )}
+
         {/* Actions */}
         <div className="space-y-2 pt-2">
           <button
             onClick={handlePay}
-            disabled={paying}
+            disabled={paying || writeGuard.blocked}
             className="w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-            style={{ background: paying ? "#ccc" : THEME.primary }}
+            style={{ background: paying || writeGuard.blocked ? "#ccc" : THEME.primary }}
           >
             {paying ? "Membayar..." : `Bayar Sekarang · ${formatRpFull(bill.jumlah)}`}
           </button>

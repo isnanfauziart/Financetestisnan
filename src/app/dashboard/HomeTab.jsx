@@ -59,6 +59,11 @@ export default function HomeTab({
   const guard = useFinancialWriteGuard()
   const balances = data?.balances
   const rincianRows = buildRincianRows(balances)
+  const rincian = balances?.rincian || {}
+  // The money the hero subtracts: goal reservations plus everything still
+  // unassigned or awaiting review. Surfaced so "Bisa dipakai sekarang"
+  // reconciles with "Tersedia untuk dibagi" on the Rencana tab.
+  const heldInSavings = Math.max(0, (Number(rincian.goalReservations) || 0) + (Number(rincian.unassignedSavings) || 0) + (Number(rincian.investmentReserved) || 0))
   const animatedBalance = useCountUpOvershoot(data?.netWorth || 0)
   const monthlyDelta = data?.netWorthMonthlyDelta || 0
   const cashFlowIncome = Number(statIncome) || 0
@@ -228,6 +233,19 @@ export default function HomeTab({
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{BALANCE_COPY.availableNow}</p>
                 <p className="mt-0.5 text-lg font-display font-bold tabular-nums">{formatRpFull(balances?.available?.value || 0)}</p>
                 <p className="text-[10px] font-semibold text-white/70">{formatBalanceBasis(balances?.currentCash?.provisional)}</p>
+                {heldInSavings > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveNav("plan")
+                      openPlanSection?.("goal")
+                    }}
+                    className="mt-1.5 inline-flex min-h-8 items-center gap-1 rounded-full bg-white/15 px-2.5 text-[10px] font-bold text-white/90 transition-colors hover:bg-white/25"
+                    aria-label="Atur tabungan yang disisihkan di Rencana"
+                  >
+                    {formatRpFull(heldInSavings)} {BALANCE_COPY.heldInSavings.toLowerCase()} <ArrowRight size={10} aria-hidden="true" />
+                  </button>
+                )}
               </div>
             </div>
             <div className="rounded-2xl px-4 py-3 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }}>
@@ -333,7 +351,7 @@ export default function HomeTab({
             <div className="mb-2 flex items-start justify-between gap-3 px-1">
               <div>
                 <h3 id="home-rincian-saldo-title" className="text-sm font-bold font-display text-md3-on-surface">Rincian saldo</h3>
-                <p className="text-[11px] text-md3-on-surface-variant">Dari mana angka Kekayaan Bersih dan dana yang bisa dipakai berasal.</p>
+                <p className="text-[11px] text-md3-on-surface-variant">Dari mana angka utama di Beranda berasal.</p>
               </div>
             </div>
             <dl className="space-y-1">

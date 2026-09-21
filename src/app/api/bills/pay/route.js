@@ -1,6 +1,6 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
-import { ensureExpenseClassHeader, findNextEmptyRow, getSheetData } from "@/lib/sheets"
+import { ensureBillSourceHeader, ensureExpenseClassHeader, findNextEmptyRow, getSheetData } from "@/lib/sheets"
 import { rowToBill } from "@/lib/bills"
 import { quotaErrorResponse } from "@/lib/transactionQuota"
 import { OPERATION_KINDS } from "@/lib/financialOperations"
@@ -18,7 +18,8 @@ import {
 export const dynamic = "force-dynamic"
 
 const SHEET_NAME = "Tagihan"
-const RANGE = `${SHEET_NAME}!A:M`
+// Unbounded read: works on both legacy 13-column grids and expanded ones.
+const RANGE = SHEET_NAME
 
 async function fetchAllBills(accessToken, spreadsheetId) {
   const rows = await getSheetData(accessToken, RANGE, spreadsheetId)
@@ -143,10 +144,19 @@ export async function POST(request) {
           bill.frekuensi, bill.tanggalJatuhTempo, bill.akunBank, bill.aktif ? "TRUE" : "FALSE",
           tanggal, bill.catatan, bill.createdAt,
         ]
+        // Preserve the conversion fingerprint so forecast reconciliation keeps
+        // working after payments; legacy 13-column rows stay 13 columns wide.
+        if (bill.sourceFingerprint) {
+          billRow.push(bill.sourceFingerprint)
+          await ensureBillSourceHeader(accessToken, spreadsheetId)
+        }
+        const billRange = bill.sourceFingerprint
+          ? `${SHEET_NAME}!A${bill.rowIndex}:N${bill.rowIndex}`
+          : `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`
 
         return {
           data: [
-            { range: `${SHEET_NAME}!A${bill.rowIndex}:M${bill.rowIndex}`, values: [billRow] },
+            { range: billRange, values: [billRow] },
             { range: ledgerRange(targetSheet, targetRow), values: [txRow] },
           ],
           relatedId: `${targetSheet}!A${targetRow}`,

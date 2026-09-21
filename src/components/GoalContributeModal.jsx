@@ -7,6 +7,7 @@ import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
 import { submitFinancialWrite } from "@/lib/financialWriteClient"
+import { useFinancialWriteGuard } from "@/lib/financialWriteState"
 
 export default function GoalContributeModal({ goal, onClose, onSaved, transactionUsage, proRegistrationOpen = true }) {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split("T")[0])
@@ -15,9 +16,11 @@ export default function GoalContributeModal({ goal, onClose, onSaved, transactio
   const [catatan, setCatatan] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const writeGuard = useFinancialWriteGuard()
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (writeGuard.blocked) return
     if (!rawAmount) {
       setError("Jumlah wajib diisi")
       return
@@ -99,7 +102,11 @@ export default function GoalContributeModal({ goal, onClose, onSaved, transactio
 
         <TransactionQuotaStatus usage={transactionUsage} error={error} proRegistrationOpen={proRegistrationOpen} />
 
-        <button type="submit" disabled={submitting} className="btn-filled w-full mt-2">
+        {writeGuard.blocked && (
+          <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">{writeGuard.message}</p>
+        )}
+
+        <button type="submit" disabled={submitting || writeGuard.blocked} className="btn-filled w-full mt-2">
           {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Plus size={18} aria-hidden="true" /> Tambah Kontribusi</>}
         </button>
       </form>

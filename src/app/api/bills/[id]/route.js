@@ -1,11 +1,13 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
-import { getSheetData, parseRupiah } from "@/lib/sheets"
+import { ensureBillSourceHeader, getSheetData, parseRupiah } from "@/lib/sheets"
+import { normalizeSourceFingerprint } from "@/lib/bills"
 
 export const dynamic = 'force-dynamic'
 
 const SHEET_NAME = "Tagihan"
-const RANGE = `${SHEET_NAME}!A:M`
+// Unbounded read: works on both legacy 13-column grids and expanded ones.
+const RANGE = SHEET_NAME
 
 function rowToBill(row, rowIndex) {
   return {
@@ -23,6 +25,7 @@ function rowToBill(row, rowIndex) {
     terakhirDibayar: String(row[10] || "").trim(),
     catatan: String(row[11] || "").trim(),
     createdAt: String(row[12] || "").trim(),
+    sourceFingerprint: String(row[13] || "").trim(),
   }
 }
 
@@ -74,6 +77,14 @@ export async function PUT(request, { params }) {
       return Response.json({ error: "Tagihan tidak ditemukan" }, { status: 404 })
     }
 
+    const rawSource = typeof body.sourceFingerprint === "string" ? body.sourceFingerprint.trim() : ""
+    if (rawSource && !normalizeSourceFingerprint(rawSource)) {
+      return Response.json({ error: "sourceFingerprint tidak valid" }, { status: 400 })
+    }
+    const sourceFingerprint = rawSource
+      ? normalizeSourceFingerprint(rawSource)
+      : (existing.sourceFingerprint || "")
+
     const row = [
       existing.id,
       body.nama !== undefined ? body.nama : existing.nama,
@@ -89,7 +100,14 @@ export async function PUT(request, { params }) {
       body.catatan !== undefined ? body.catatan : existing.catatan,
       existing.createdAt,
     ]
-    await sheetsUpdate(accessToken, `${SHEET_NAME}!A${existing.rowIndex}:M${existing.rowIndex}`, [row], spreadsheetId)
+    if (sourceFingerprint) {
+      row.push(sourceFingerprint)
+      await ensureBillSourceHeader(accessToken, spreadsheetId)
+    }
+    const updateRange = sourceFingerprint
+      ? `${SHEET_NAME}!A${existing.rowIndex}:N${existing.rowIndex}`
+      : `${SHEET_NAME}!A${existing.rowIndex}:M${existing.rowIndex}`
+    await sheetsUpdate(accessToken, updateRange, [row], spreadsheetId)
     return Response.json({ success: true, message: "Tagihan diperbarui" })
   } catch (err) {
     console.error("[Bills PUT]", err)

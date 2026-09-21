@@ -1738,3 +1738,69 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 ### Blockers
 - Assignment/release/spend screens ship API-only by approved scope; the review screen is the next UI milestone.
 - Legacy savings with blank goal metadata read as reserved/unassigned until the review screen exists.
+
+## 2026-09-18 — Home simplification + savings review screen
+
+**Task:** Simplify Beranda's balance terminology after user feedback that the six terms (Saldo Tercatat, Total saldo saat ini, Kekayaan Bersih, Tabungan belum dibagi ke target, Tagihan belum dibayar, Dana yang bisa dipakai saat ini) read as synonyms, and ship the missing savings review UI so "Bisa dipakai sekarang" becomes actionable.
+
+**Decisions (confirmed with user):**
+- Direction: slim down + rename, not hide. Hero keeps Kekayaan Bersih + the spendable number; Rincian saldo answers "why is spendable smaller than net worth" without repeating hero values.
+- Merged ledger balance + saved checkpoint into one row, **Uang kamu** (user picked the name).
+- "Dana yang bisa dipakai saat ini" renamed **Bisa dipakai sekarang**; "Tabungan belum dibagi ke target" → **Tabungan tanpa target**.
+- The Rp1.89jt-vs-Rp18.8jt confusion traced to legacy Tabungan rows counting as reserved-but-unassigned (per approved policy). User chose UI + review screen; hero now shows the held amount and links to review.
+- Naming rule: one concept = one label = one place; hero numbers are never repeated inside Rincian saldo.
+
+**Files:** `src/app/dashboard/_components/balanceCopy.js` (renames, `buildRincianRows` slimmed 11→7 rows, merged saldo row), `src/app/dashboard/HomeTab.jsx` (hero "Disisihkan di tabungan" pill → opens review, rincian slimmed), `src/components/SavingsReviewModal.jsx` (new — lists unassigned Tabungan rows, assign/release via `/api/savings/allocations` with fingerprints + one operationId, stale reload, unresolved "Periksa lagi"), `src/components/GoalsSection.jsx` (review entrypoint in Tersedia-untuk-dibagi card, `onBalancesChanged` refresh), `src/app/dashboard/PlanTab.jsx` + `src/app/dashboard/page.js` (`onDataChanged={fetchData}` plumbing). Tests updated/added: HomeTab, GoalsSection, SavingsReviewModal (7 new tests).
+
+**Verification:** focused suites green (HomeTab 17, SavingsReviewModal 7, GoalsSection 6, PlanTab 17); full suite + build + `git diff --check` at final gate. No schema, quota, or pipeline changes; `/api/savings/allocations` already had the write-pipeline contract.
+
+## 2026-09-19 — Wave 1: honest sync status + universal write gating
+
+**Task:** First post-foundation wave from `docs/2026-09-09-product-improvement-roadmap.md` (plan persisted at `docs/superpowers/plans/2026-09-19-wave1-sync-and-write-gating.md`): the app must never look synced after a failed refresh, and every money-writing surface must refuse writes when the app cannot trust what it shows.
+
+**Batches:**
+- A — Sync truth + return refresh: `SyncStatus.jsx` now derives state from the shared `financialWriteState` store (overridable prop for tests) and shows approved copy: failed refresh → "Pembaruan data gagal — Menampilkan data terakhir yang berhasil disinkronkan [time]" with Coba lagi (aria-label swap), offline → "Anda sedang offline — Menampilkan data terakhir yang tersimpan di perangkat ini", schema conflict → its block message with warning icon; failure label clears only on `markSynced`. Added `shouldAutoRefreshOnVisible` (5-min threshold, pure + exported from `useDashboardCache.js`) and a `visibilitychange` effect in `page.js` that auto-refreshes on return, with `checkingRefresh` rendering "Memeriksa pembaruan…" while figures stay on screen.
+- B — Universal write gate: `useFinancialWriteGuard()` wired into QuickAddSheet, EditTransactionModal, BillPayModal, DebtPaymentModal (both buttons), DebtSetupModal, GoalContributeModal, GoalPickerModal (rows disabled); disabled submit + reason alert (`role="alert"`) in each; `performDelete` and `restoreTransaction` (Undo) in `page.js` refuse with an error toast when blocked. Healthy states unchanged; quota checks remain downstream of the gate.
+- C — Logout privacy: `clearCache(owner)` added to `useDashboardCache.js`; new `handleSignOut` in `page.js` clears the owner-scoped cache + `resetWriteState()` before `signOut`; used by connector, error screen, ProfileTab prop (covers Keluar + account deletion). Preferences untouched.
+
+**Tests:** `SyncStatus.test.jsx` rewritten regression-first (failure never shows "Tersinkron", offline distinct, store-driven derivation, checking-label); new `WriteGate.test.jsx` (10 tests, pre-render store mutation pattern — this env's RTL `act` is not callable) and `logoutCache.test.js`; `useDashboardCache.test.js` extended (threshold boundaries, clearCache scoping).
+
+**Decisions:** failed refresh treats unresolved-operation as failure, not sync; offline and stale stay visually separate; threshold helper counts a missing/invalid lastSyncAt as stale so an account that never synced retries on return; writeState prop kept on SyncStatus for deterministic tests.
+
+**Verification:** focused suites green per batch; final gate: full suite 919 passed / 2 skipped (140 files), production build passed, `git diff --check` clean. One task-caused regression (GoalPickerModal JSX structure during a formatting pass) was caught by the suite and repaired. Pre-existing unrelated worktree changes from other sessions were left untouched.
+
+**Blockers:** none for this wave. Next per audit order: Wave 2 (Google Sheets Anda ownership hub), then Wave 3 (recurring-to-bill forecast fingerprint).
+
+## 2026-09-19 — Wave 2: Google Sheets ownership and recovery hub
+
+**Task:** Second post-foundation wave from `docs/2026-09-09-product-improvement-roadmap.md` (plan persisted at `docs/superpowers/plans/2026-09-19-wave2-sheets-ownership-hub.md`): make the user's Sheet ownership visible and recoverable, and close the login-freshness gap in the write gate.
+
+**Batches:**
+- A — Connection metadata: migration `011-spreadsheet-metadata.sql` (nullable `spreadsheet_name`/`spreadsheet_url`); `createUserSheet` now returns `{ spreadsheetId, name, url }` from the Google create response; provisioning in `apiAuth.js` persists both with the same `.is("spreadsheet_id", null)` tenant guard (non-fatal on failure); `connect-legacy-sheet` backfills name/url via Drive `files.get` and refreshes them on same-file reconnection (metadata failure stays non-fatal); new tenant-scoped `GET /api/sheets/connection` returns `{ connected, needsLegacyReconnect, name, url }` with lazy backfill and a constant-format `docs.google.com/spreadsheets/d/<own-id>/edit` fallback.
+- B — Login freshness gate: `WRITE_BLOCK.pending` in `financialWriteState` ("Memuat data terbaru…"), set in page.js when a session key appears with cached data; cleared by `markSynced`, replaced by `markStale`; never downgrades schema-conflict or unresolved blocks. SyncStatus renders pending as the checking label; every write gate blocks while pending.
+- C — Hub UI + recovery copy: new `SheetsHubCard.jsx` in Profile (file name, Wave 1 connection states, last sync, Buka di Google Sheets, Coba lagi, three ownership paragraphs: ledger lives in your Drive, backup/export explanation, clearing cache ≠ deleting account ≠ deleting Sheet); specific recovery copy for schema conflict, expired Google session, and legacy reconnect; dashboard route classifies Google 401/UNAUTHENTICATED errors into `GOOGLE_AUTH_REQUIRED`; `LegacySheetConnector` copy rewritten (why the picker appears, how to identify the file, what cannot change after selection) — copy-only.
+
+**Tests:** new `sheetsConnection.test.js` (5), `dashboardGoogleAuth.test.js` (2), `financialWriteState.test.js` (7), `SheetsHubCard.test.jsx` (8); updated `legacySheetReconnect.test.js` (new response contract + metadata refresh), `ProfileTab.test.jsx` (connection fetch-aware), `SyncStatus.test.jsx` and `WriteGate.test.jsx` (pending cases).
+
+**Decisions:** metadata persistence and Drive reads are always non-fatal (connection stays functional without them); lazy backfill only targets the user's own row scoped by both `id` and `spreadsheet_id`; the fresh-empty account path is unaffected by the pending gate; URL never user-editable and only from Google-provided values or the constant format.
+
+**Verification:** focused suites green per batch; final gate: full suite 943 passed / 2 skipped (144 files), production build passed, `git diff --check` clean. One node segfault during a combined focused run was environmental and cleared on rerun. Pre-existing unrelated worktree changes remain untouched.
+
+**Blockers:** migration `011` needs to be applied to the live Supabase project (code degrades gracefully until then). Next per audit order: Wave 3 (recurring-to-bill forecast fingerprint).
+
+## 2026-09-21 — Wave 3: Recurring-expense and bill reconciliation
+
+**Task:** Third post-foundation wave from `docs/2026-09-09-product-improvement-roadmap.md` (plan persisted at `docs/superpowers/plans/2026-09-19-wave3-recurring-bill-reconciliation.md`): a converted recurring expense now contributes exactly one future obligation to the forecast, its history stops feeding the variable baseline, and ambiguous bill matches are never silently resolved. No Supabase migration needed (Sheet-side + libs only).
+
+**Batches:**
+- A — Tagihan `Sumber` column (N): provisioning schema extended 13→14 columns; new `ensureBillSourceHeader` in `sheets.js` (modeled on `ensureExpenseClassHeader`, conflicting header fails closed as schema conflict); `rowToBill` reads N as `sourceFingerprint`; bills GET ensures the header, POST/PUT persist a validated fingerprint (`recurring:` prefix + length cap, same rules as dismissals) in the same appended/updated row — one write, no half-state. Pay route reads the unbounded `Tagihan` range so legacy 13-col sheets and the new 14-col grid both work.
+- B — Forecast reconciliation: `computeForecast` excludes historical routine expenses whose recomputed fingerprint matches an aktif bill's stored `Sumber` (in addition to the `billpay:` exclusion), then adds each scheduled bill once via `scheduledBillTotals`; deleting/disabling a bill restores history into the baseline. `findRecurringExpenses` returns `needsReview: true` for partial matches (name matches, category/account differ) instead of silently dropping them; full matches suppress by stored fingerprint so suppression survives renames.
+- C — UI + copy: `RecurringExpenseRadar` shows a "Perlu ditinjau" state with the Tambah action disabled; `BillsSection`/`BillSetupModal` pass the fingerprint on convert and show "Terjadwal dari pengeluaran rutin" on sourced bills; `CashFlowForecast` explanation states already-scheduled routine spending is counted once — no `recurring:v1:…` identifiers in product copy. Bill payments stay replay-safe via the existing operation ID (verified, unchanged).
+
+**Tests:** new `billSourceFingerprint.test.js` (10: grid expansion, header conflict, same-row persistence, legacy reads, repeat-conversion idempotence), `billPaySourceColumn.test.js` (6: N written on pay row, reservation intact), `forecastReconciliation.test.js` (8: match/ambiguous/dismissed/converted/delete/disable/baseline-restore); extended `recurringExpenses.test.js` (needsReview cases) and `RecurringExpenseRadar.test.jsx` (review state); updated mocks in `billPayIdempotency.test.js`, `nextRowSelection.test.js`, `financialWriteIsolation.test.js` for the unbounded Tagihan read and new sheets export.
+
+**Decisions:** fingerprint validation reuses the dismissal rules (prefix + length, no round-trip semantics); conversion re-checks the receipt so a repeat convert returns 409 instead of double-scheduling; a bill's `Sumber` is never exposed for user editing; empty/unknown column values are treated as no source (full backward compatibility).
+
+**Verification:** focused suites green per batch (6 failures during development were test-side: URL-encoded `!` in matchers, missing mock exports, and two contradictory fixtures — all repaired); independent diff review clean; final gate: full suite **963 passed / 2 skipped** (147 files), production build passed (11 env placeholders), `git diff --check` clean. Pre-existing unrelated worktree changes untouched. Nothing committed.
+
+**Blockers:** none. Next per audit order: remaining Wave 4+ items from the roadmap.

@@ -11,6 +11,7 @@ import EventTagPicker from "@/components/EventTagPicker"
 import EventSuggestionChip from "@/components/EventSuggestionChip"
 import TransactionQuotaStatus from "@/components/TransactionQuotaStatus"
 import { useSettings } from "@/lib/useSharedData"
+import { useFinancialWriteGuard } from "@/lib/financialWriteState"
 
 const DEFAULT_FORM_DATA = () => ({
   tanggal: new Date().toISOString().split("T")[0],
@@ -25,6 +26,7 @@ const DEFAULT_FORM_DATA = () => ({
 
 export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute, transactionUsage, specialSuggestion, transactions = [], proRegistrationOpen = true }) {
   const { settings } = useSettings()
+  const writeGuard = useFinancialWriteGuard()
   const [txType, setTxType] = useState(initialType)
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA)
   const [rawAmount, setRawAmount] = useState("")
@@ -97,6 +99,7 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (writeGuard.blocked) return
     setSubmitting(true)
     setQuotaError(null)
     const result = await onSubmit(getSubmitPayload())
@@ -198,9 +201,14 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
             <input id="qa-note" type="text" placeholder="Tulis keterangan transaksi" value={formData.keterangan} onChange={e => setFormData(f => ({ ...f, keterangan: e.target.value }))} aria-label="Keterangan transaksi"
               className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-medium outline-none" />
           </div>
-          <button type="submit" disabled={submitting} aria-label="Simpan transaksi"
+          {writeGuard.blocked && (
+            <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
+              {writeGuard.message}
+            </p>
+          )}
+          <button type="submit" disabled={submitting || writeGuard.blocked} aria-label="Simpan transaksi"
             className="w-full py-3.5 mt-1 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-[background-color,opacity,transform] duration-200 active:scale-[0.97] disabled:opacity-50"
-            style={{ backgroundColor: submitting ? "#ccc" : THEME.primary }}>
+            style={{ backgroundColor: submitting || writeGuard.blocked ? "#ccc" : THEME.primary }}>
             {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Plus size={16} aria-hidden="true" /> Simpan Transaksi</>}
           </button>
           <button type="button" onClick={() => { onClose(); onGoalContribute?.() }} aria-label="Kontribusi ke goal"

@@ -8,6 +8,7 @@ import SpecialExpenseField from "./SpecialExpenseField"
 import EventTagPicker from "@/components/EventTagPicker"
 import { useSettings } from "@/lib/useSharedData"
 import { submitFinancialWrite } from "@/lib/financialWriteClient"
+import { useFinancialWriteGuard } from "@/lib/financialWriteState"
 
 const SHEET_FOR_TYPE = { income: "Pemasukan", expense: "Pengeluaran", savings: "Tabungan" }
 
@@ -17,6 +18,7 @@ function initialExpenseClass(expenseClass) {
 
 export default function EditTransactionModal({ transaction, onClose, onSaved }) {
   const { settings } = useSettings()
+  const writeGuard = useFinancialWriteGuard()
   const [type] = useState(transaction.type)
   const [tanggal, setTanggal] = useState(toDateInput(transaction.date))
   const [kategori, setKategori] = useState(transaction.category || "")
@@ -30,6 +32,7 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (writeGuard.blocked) return
     if (!kategori || !rawAmount) {
       setError("Kategori dan jumlah wajib diisi")
       return
@@ -103,8 +106,11 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
           <input id="edit-note" type="text" value={keterangan} onChange={e => setKeterangan(e.target.value)}
             className="field-outlined w-full px-4 py-3 text-sm font-medium" />
         </div>
+        {writeGuard.blocked && (
+          <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">{writeGuard.message}</p>
+        )}
         {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}
-        <button type="submit" disabled={submitting} className="btn-filled w-full mt-2">
+        <button type="submit" disabled={submitting || writeGuard.blocked} className="btn-filled w-full mt-2">
           {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Save Changes"}
         </button>
       </form>

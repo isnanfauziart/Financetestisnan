@@ -170,6 +170,9 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
         frekuensi: "monthly",
         tanggalJatuhTempo: Math.round(candidate.typicalDay),
         akunBank: candidate.account,
+        // Links the new bill to its recurring stream so the forecast counts
+        // this spending exactly once.
+        sourceFingerprint: candidate.fingerprint,
       },
     })
   }
@@ -329,6 +332,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                       <p className="plan-card__meta mt-1">
                         {FREQ_LABELS[bill.frekuensi] || bill.frekuensi} · {bill.kategoriBill}
                         {bill.akunBank ? ` · ${bill.akunBank}` : ""}
+                        {bill.sourceFingerprint ? " · Terjadwal dari pengeluaran rutin" : ""}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -390,7 +394,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-bold text-md3-on-surface-variant truncate">{bill.nama}</p>
-                          <p className="text-[11px] text-earth-400">{FREQ_LABELS[bill.frekuensi]} · {bill.kategoriBill}</p>
+                          <p className="text-[11px] text-earth-400">{FREQ_LABELS[bill.frekuensi]} · {bill.kategoriBill}{bill.sourceFingerprint ? " · Terjadwal dari pengeluaran rutin" : ""}</p>
                         </div>
                         <div className="flex gap-1">
                           <button

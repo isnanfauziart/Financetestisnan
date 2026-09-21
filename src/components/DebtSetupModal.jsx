@@ -7,6 +7,7 @@ import SelectField from "@/app/dashboard/_components/SelectField"
 import Sheet from "@/app/dashboard/_components/Sheet"
 import QuotaNotice from "./QuotaNotice"
 import { submitFinancialWrite } from "@/lib/financialWriteClient"
+import { useFinancialWriteGuard } from "@/lib/financialWriteState"
 
 export default function DebtSetupModal({ debt, onClose, onSaved, proRegistrationOpen = true }) {
   const isEditing = Boolean(debt?.id)
@@ -17,9 +18,11 @@ export default function DebtSetupModal({ debt, onClose, onSaved, proRegistration
   const [catatan, setCatatan] = useState(debt?.catatan || "")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const writeGuard = useFinancialWriteGuard()
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (writeGuard.blocked) return
     if (!namaOrang || !rawJumlah || !jatuhTempo) {
       setError("Nama, jumlah, dan jatuh tempo wajib diisi")
       return
@@ -172,9 +175,13 @@ export default function DebtSetupModal({ debt, onClose, onSaved, proRegistration
 
         <QuotaNotice error={error} proRegistrationOpen={proRegistrationOpen} />
 
+        {writeGuard.blocked && (
+          <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">{writeGuard.message}</p>
+        )}
+
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || writeGuard.blocked}
           className="btn-filled w-full mt-2"
         >
           {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Simpan"}

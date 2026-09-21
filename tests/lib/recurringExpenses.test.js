@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { findRecurringExpenses } from "@/lib/recurringExpenses"
+import { buildExpenseFingerprint, findRecurringExpenses } from "@/lib/recurringExpenses"
 
 const NOW = new Date("2026-08-20T04:00:00.000Z")
 
@@ -139,5 +139,68 @@ describe("findRecurringExpenses", () => {
     expect(result).toHaveLength(3)
     expect(result.every(item => item.account === "Bank BCA" || item.account === "OVO")).toBe(true)
     expect(result.some(item => item.description === "Cloud" && item.account === "OVO")).toBe(true)
+  })
+
+  it("surfaces a partial bill match for review instead of dropping it", () => {
+    const transactions = [
+      expense({ id: "may", date: "5 Mei 2026" }),
+      expense({ id: "jun", date: "5 Jun 2026" }),
+      expense({ id: "jul", date: "5 Jul 2026" }),
+    ]
+
+    const result = findRecurringExpenses({
+      transactions,
+      bills: [{ nama: "Netflix Family", kategoriTransaksi: "Streaming", akunBank: "Bank BCA", aktif: true }],
+      now: NOW,
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].needsReview).toBe(true)
+  })
+
+  it("suppresses a candidate by the stored source fingerprint even after a rename", () => {
+    const transactions = [
+      expense({ id: "may", date: "5 Mei 2026" }),
+      expense({ id: "jun", date: "5 Jun 2026" }),
+      expense({ id: "jul", date: "5 Jul 2026" }),
+    ]
+    const candidate = findRecurringExpenses({ transactions, now: NOW })[0]
+
+    expect(findRecurringExpenses({
+      transactions,
+      bills: [{ nama: "Langganan film", sourceFingerprint: candidate.fingerprint, aktif: true }],
+      now: NOW,
+    })).toHaveLength(0)
+  })
+
+  it("restores a candidate when the matching bill is inactive", () => {
+    const transactions = [
+      expense({ id: "may", date: "5 Mei 2026" }),
+      expense({ id: "jun", date: "5 Jun 2026" }),
+      expense({ id: "jul", date: "5 Jul 2026" }),
+    ]
+
+    const result = findRecurringExpenses({
+      transactions,
+      bills: [{ nama: "Netflix", kategoriTransaksi: "Hiburan", akunBank: "Bank BCA", aktif: false }],
+      now: NOW,
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].needsReview).toBeUndefined()
+  })
+
+  it("builds the same fingerprint for an individual transaction and a candidate", () => {
+    const transactions = [
+      expense({ id: "may", date: "5 Mei 2026" }),
+      expense({ id: "jun", date: "5 Jun 2026" }),
+      expense({ id: "jul", date: "5 Jul 2026" }),
+    ]
+    const candidate = findRecurringExpenses({ transactions, now: NOW })[0]
+
+    expect(buildExpenseFingerprint({ description: "Netflix", category: "Hiburan", account: "Bank BCA" }))
+      .toBe(candidate.fingerprint)
+    expect(buildExpenseFingerprint({ description: "", category: "Hiburan", account: "Bank BCA" }))
+      .toBeNull()
   })
 })

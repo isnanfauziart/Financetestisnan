@@ -1,13 +1,14 @@
 import { getAuthContext } from "@/lib/apiAuth"
 import { featureUnavailableResponse } from "@/lib/featureGuard"
-import { getSheetData } from "@/lib/sheets"
-import { computeBillStatus, rowToBill } from "@/lib/bills"
+import { ensureBillSourceHeader, getSheetData } from "@/lib/sheets"
+import { computeBillStatus, normalizeSourceFingerprint, rowToBill } from "@/lib/bills"
 import { runRecordCreation } from "@/lib/recordQuota"
 
 export const dynamic = 'force-dynamic'
 
 const SHEET_NAME = "Tagihan"
-const RANGE = `${SHEET_NAME}!A:M`
+// Unbounded read: works on both legacy 13-column grids and expanded ones.
+const RANGE = SHEET_NAME
 
 async function fetchAllBills(accessToken, spreadsheetId) {
   const rows = await getSheetData(accessToken, RANGE, spreadsheetId).catch(() => [])
@@ -107,7 +108,25 @@ export async function POST(request) {
     if (errors.length) {
       return Response.json({ error: errors.join("; ") }, { status: 400 })
     }
+
+    const rawSource = typeof body.sourceFingerprint === "string" ? body.sourceFingerprint.trim() : ""
+    if (rawSource && !normalizeSourceFingerprint(rawSource)) {
+      return Response.json({ error: "sourceFingerprint tidak valid" }, { status: 400 })
+    }
+    const sourceFingerprint = normalizeSourceFingerprint(rawSource) || ""
+
     return runRecordCreation(auth, "bills", {}, async () => {
+      // One active bill per recurring stream: a repeat conversion of the same
+      // fingerprint is a conflict, never a second scheduled obligation.
+      if (sourceFingerprint) {
+        const existingBills = await fetchAllBills(accessToken, spreadsheetId)
+        if (existingBills.some(bill => bill.aktif && bill.sourceFingerprint === sourceFingerprint)) {
+          return Response.json({ error: "Tagihan untuk pengeluaran rutin ini sudah ada" }, { status: 409 })
+        }
+      }
+
+      if (sourceFingerprint) await ensureBillSourceHeader(accessToken, spreadsheetId)
+
       const id = String(Date.now())
       const createdAt = new Date().toISOString().split("T")[0]
       const row = [
@@ -115,7 +134,11 @@ export async function POST(request) {
         body.kategoriTransaksi, body.frekuensi, parseInt(body.tanggalJatuhTempo, 10),
         body.akunBank || "", "TRUE", "", body.catatan || "", createdAt,
       ]
-      await sheetsAppend(accessToken, RANGE, [row], spreadsheetId)
+      if (sourceFingerprint) row.push(sourceFingerprint)
+      // Bounded write: legacy 13-column grids only gain column N when a
+      // fingerprint is actually stored.
+      const appendRange = sourceFingerprint ? `${SHEET_NAME}!A:N` : `${SHEET_NAME}!A:M`
+      await sheetsAppend(accessToken, appendRange, [row], spreadsheetId)
       return Response.json({ success: true, id, message: "Tagihan dibuat" })
     })
   } catch (err) {

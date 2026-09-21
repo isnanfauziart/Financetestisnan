@@ -137,14 +137,20 @@ export default function LegacySheetConnector({ userName, onConnected, onSignOut 
         </div>
 
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant mb-2">
-          Owner setup
+          Koneksi sekali saja
         </p>
         <h1 className="text-2xl font-display font-bold text-md3-on-surface leading-tight mb-3">
           Hubungkan spreadsheet Artami lama
         </h1>
-        <p className="text-sm text-md3-on-surface-variant leading-relaxed mb-6">
-          Halo{userName ? `, ${userName}` : ""}. Akun ini memakai spreadsheet pribadi yang sudah ada. Pilih file lama sekali saja, lalu Artami akan memakai file itu untuk dashboard ini.
+        <p className="text-sm text-md3-on-surface-variant leading-relaxed mb-3">
+          Halo{userName ? `, ${userName}` : ""}. Artami tidak membuatkan file baru untuk akun ini karena kamu sudah punya spreadsheet pribadi berisi catatan keuangan. Pilih file itu sekali, dan dashboard akan membaca serta menulis ke file milikmu sendiri.
         </p>
+        <div className="rounded-2xl bg-md3-surface p-3 text-[11px] leading-relaxed text-md3-on-surface-variant mb-6" role="note">
+          <p className="font-bold text-md3-on-surface">Cara mengenali file yang tepat:</p>
+          <p className="mt-1">Buka file yang punya tab <span className="font-semibold">Pemasukan</span>, <span className="font-semibold">Pengeluaran</span>, dan <span className="font-semibold">Tabungan</span> di baris judulnya.</p>
+          <p className="mt-1.5 font-bold text-md3-on-surface">Yang perlu kamu tahu:</p>
+          <p className="mt-1">Pilihan ini tidak bisa diganti ke file lain setelah terhubung. Kalau nanti Google tidak menemukan file ini lagi, layar yang sama akan muncul kembali untuk memilihnya lagi.</p>
+        </div>
 
         {error && (
           <div className="flex gap-2 rounded-2xl bg-rose-50 text-rose-600 p-3 text-xs font-semibold mb-4">

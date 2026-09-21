@@ -6,12 +6,14 @@ import { formatRpFull, formatInputRupiah } from "@/app/dashboard/_components/hel
 import Sheet from "@/app/dashboard/_components/Sheet"
 import TransactionQuotaStatus from "./TransactionQuotaStatus"
 import { submitFinancialWrite } from "@/lib/financialWriteClient"
+import { useFinancialWriteGuard } from "@/lib/financialWriteState"
 
 export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, transactionUsage, proRegistrationOpen = true }) {
   const [rawAmount, setRawAmount] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [paymentId] = useState(() => crypto.randomUUID())
+  const writeGuard = useFinancialWriteGuard()
 
   const isUtang = debt.arah === "utang"
   const accentColor = isUtang ? THEME.expense : THEME.income
@@ -22,6 +24,7 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
   const isSettleAll = amount >= debt.sisaSaldo && debt.sisaSaldo > 0
 
   async function handlePay(settleAll = false) {
+    if (writeGuard.blocked) return
     const payAmount = settleAll ? debt.sisaSaldo : amount
     if (!payAmount || payAmount <= 0) {
       setError(isUtang ? "Masukkan jumlah pembayaran" : "Masukkan jumlah yang akan diterima")
@@ -133,18 +136,22 @@ export default function DebtPaymentModal({ debt, onClose, onSaved, onToast, tran
 
         <TransactionQuotaStatus usage={transactionUsage} error={error} proRegistrationOpen={proRegistrationOpen} />
 
+        {writeGuard.blocked && (
+          <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">{writeGuard.message}</p>
+        )}
+
         <button
           onClick={() => handlePay(false)}
-          disabled={submitting || amount <= 0 || amount > debt.sisaSaldo}
+          disabled={submitting || amount <= 0 || amount > debt.sisaSaldo || writeGuard.blocked}
           className="w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2 shadow-pop transition-all active:scale-[0.97] disabled:opacity-50"
-          style={{ background: submitting || amount <= 0 ? "#ccc" : accentColor }}
+          style={{ background: submitting || amount <= 0 || writeGuard.blocked ? "#ccc" : accentColor }}
         >
           {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : `${actionLabel} ${amount > 0 ? formatRpFull(amount) : ""}`}
         </button>
 
         <button
           onClick={() => handlePay(true)}
-          disabled={submitting}
+          disabled={submitting || writeGuard.blocked}
           className="w-full py-3 rounded-2xl font-bold text-sm border-2 transition-all active:scale-[0.97]"
           style={{ borderColor: accentColor, color: accentColor }}
         >

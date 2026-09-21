@@ -13,6 +13,7 @@ export const WRITE_BLOCK = {
   stale: "stale",
   schemaConflict: "schema_conflict",
   unresolved: "unresolved",
+  pending: "pending",
 }
 
 export const WRITE_BLOCK_MESSAGES = {
@@ -20,6 +21,7 @@ export const WRITE_BLOCK_MESSAGES = {
   [WRITE_BLOCK.stale]: WRITE_MESSAGES.stale,
   [WRITE_BLOCK.schemaConflict]: WRITE_MESSAGES.schemaConflict,
   [WRITE_BLOCK.unresolved]: WRITE_MESSAGES.unresolved,
+  [WRITE_BLOCK.pending]: "Memuat data terbaru…",
 }
 
 let state = { reason: null, detail: "", lastSyncedAt: "" }
@@ -71,6 +73,17 @@ if (typeof window !== "undefined") {
 /** A successful, complete dashboard read clears stale and schema blocks. */
 export function markSynced(at = new Date().toISOString()) {
   setState({ reason: null, detail: "", lastSyncedAt: at })
+}
+
+/**
+ * Wave 2 login freshness gate: cached figures may be shown on a returning
+ * login, but financial writes stay blocked until the first fresh fetch
+ * resolves. Known stronger blocks (schema conflict, unresolved operation) are
+ * never downgraded; a failed fetch replaces pending with stale.
+ */
+export function markPending(detail = "") {
+  if (state.reason === WRITE_BLOCK.unresolved || state.reason === WRITE_BLOCK.schemaConflict) return
+  setState({ reason: WRITE_BLOCK.pending, detail: detail || "cached", lastSyncedAt: state.lastSyncedAt })
 }
 
 /** A refresh failed while cached figures stay on screen. */

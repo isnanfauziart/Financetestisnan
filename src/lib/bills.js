@@ -275,7 +275,23 @@ export function rowToBill(row, rowIndex) {
     terakhirDibayar: String(row[10] || "").trim(),
     catatan: String(row[11] || "").trim(),
     createdAt: String(row[12] || "").trim(),
+    // Optional additive column N: fingerprint of the recurring-expense stream
+    // this bill was converted from ("recurring:v1|v2:..."). Empty for manual bills.
+    sourceFingerprint: String(row[13] || "").trim(),
   }
+}
+
+/**
+ * Validate a stored source fingerprint. Accepts the same shapes as the
+ * recurring-expense fingerprints: v1 keys are capped at 1000 chars (legacy
+ * pre-hash rows), v2/hashed keys at 200. Returns the trimmed value or null.
+ */
+export function normalizeSourceFingerprint(value) {
+  const text = String(value ?? "").trim()
+  if (!text) return null
+  if (!text.startsWith("recurring:")) return null
+  const maxLength = text.startsWith("recurring:v1:") ? 1000 : 200
+  return text.length <= maxLength ? text : null
 }
 
 export function computeBillStatus(bill, now = new Date()) {

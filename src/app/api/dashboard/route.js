@@ -19,6 +19,13 @@ import { savingsCategoryKinds } from "@/lib/savingsAllocation"
 
 export const dynamic = 'force-dynamic'
 
+// Wave 2: Google's API reports an expired/insufficient authorization in several
+// shapes; classifying it lets the ownership card show specific recovery copy.
+function isGoogleAuthError(err) {
+  const raw = String(err?.message || err || "")
+  return /((^|[^0-9])401([^0-9]|$))|UNAUTHENTICATED|invalid[ _-]?authentication[ _-]?credentials|REQUEST HAD INVALID AUTHENTICATION CREDENTIALS/i.test(raw)
+}
+
 export async function GET(request) {
   const auth = await getAuthContext(request)
   if (!auth) {
@@ -200,6 +207,12 @@ export async function GET(request) {
     console.error("[Dashboard]", err)
     if (isLegacySheetOwner(auth.user?.email) && isSheetNotFoundError(err)) {
       return Response.json(sheetReconnectRequiredPayload(), { status: 409 })
+    }
+    if (isGoogleAuthError(err)) {
+      return Response.json(
+        { code: "GOOGLE_AUTH_REQUIRED", error: "Sesi Google berakhir. Masuk ulang ke Artami untuk memperbarui izin." },
+        { status: 401 }
+      )
     }
     return Response.json({ error: "Terjadi kesalahan internal" }, { status: 500 })
   }

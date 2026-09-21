@@ -6,11 +6,23 @@ vi.mock("@/lib/apiAuth", () => ({
 
 vi.mock("@/lib/sheetManager", () => ({
   ensureArtamiSheetSchema: vi.fn(async () => ({ addedTabs: [] })),
+  fetchSpreadsheetFileInfo: vi.fn(async () => ({
+    name: "Artami Lama",
+    url: "https://docs.google.com/spreadsheets/d/sheet-123/edit",
+  })),
 }))
 
 vi.mock("@/lib/supabaseAdmin", () => ({
   supabaseAdmin: {
-    from: vi.fn(),
+    from: vi.fn(() => ({
+      update: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          eq: vi.fn(async () => ({ error: null })),
+          is: vi.fn(async () => ({ data: [{ id: "user-1" }], error: null })),
+          select: vi.fn(async () => ({ data: [{ id: "user-1" }], error: null })),
+        })),
+      })),
+    })),
   },
 }))
 
@@ -55,10 +67,13 @@ describe("legacy sheet reconnection", () => {
     expect(await response.json()).toEqual({
       success: true,
       spreadsheetId: "sheet-123",
+      spreadsheetName: "Artami Lama",
+      spreadsheetUrl: "https://docs.google.com/spreadsheets/d/sheet-123/edit",
       addedTabs: [],
     })
     expect(ensureArtamiSheetSchema).toHaveBeenCalledWith("token", "sheet-123")
-    expect(supabaseAdmin.from).not.toHaveBeenCalled()
+    // Wave 2: same-file reconnection refreshes the cached name/url metadata.
+    expect(supabaseAdmin.from).toHaveBeenCalledWith("users")
   })
 
   it("asks the legacy owner to reconnect when Sheets hides the linked file", async () => {

@@ -11,6 +11,7 @@ import CategoryManager from "@/components/CategoryManager"
 import DocsSection from "@/components/DocsSection"
 import UserNameSetup from "@/components/UserNameSetup"
 import BalanceCheckpointCard from "@/components/BalanceCheckpointCard"
+import SheetsHubCard from "@/components/SheetsHubCard"
 import { isProRegistrationOpen } from "@/lib/featureAccess"
 
 const THEME_OPTIONS = ["Terang", "Gelap", "Sistem"]
@@ -64,7 +65,7 @@ function SectionCard({ title, children }) {
   )
 }
 
-export default function ProfileTab({ userName, session, data, entitlement, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh }) {
+export default function ProfileTab({ userName, session, data, entitlement, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh, lastSyncAt, isOnline, refreshing }) {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
@@ -308,9 +309,13 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         />
       )}
 
-      <SectionCard title="Total saldo saat ini">
-        <BalanceCheckpointCard data={data} onRefresh={onRefresh} onToast={onToast} header={false} />
-      </SectionCard>
+      {/* Wave 2: ownership hub — connection identity lives with the balance editor. */}
+      <div className="space-y-4">
+        <SheetsHubCard lastSyncAt={lastSyncAt} isOnline={isOnline} onRefresh={onRefresh} refreshing={refreshing} />
+        <SectionCard title="Total saldo saat ini">
+          <BalanceCheckpointCard data={data} onRefresh={onRefresh} onToast={onToast} header={false} />
+        </SectionCard>
+      </div>
 
       <SectionCard title="Panduan">
         <DocsSection />

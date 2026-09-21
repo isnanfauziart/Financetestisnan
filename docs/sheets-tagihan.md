@@ -2,7 +2,7 @@
 
 **Tab name:** `Tagihan` (case-sensitive)
 
-## Columns A–M
+## Columns A–N
 
 | Col | Header | Type | Required | Notes |
 |-----|--------|------|----------|-------|
@@ -19,6 +19,15 @@
 | K | `TerakhirDibayar` | string | optional | ISO date `YYYY-MM-DD` of last payment |
 | L | `Catatan` | string | optional | Free-text note |
 | M | `CreatedAt` | string | auto | ISO date, auto-generated on POST |
+| N | `Sumber` | string | optional | `recurring:v1|v2:<key>` fingerprint of the recurring-expense stream this bill was converted from; empty for manually created bills |
+
+## Sumber (column N)
+
+Written once at conversion time by the recurring-expense radar. It links the
+bill to its originating expense stream so the cash-flow forecast counts that
+spending exactly once (as a scheduled bill, not also as historical variable
+spending). The value is preserved on bill updates and payments. Deleting or
+deactivating the bill restores the stream's history into the forecast baseline.
 
 ## Bill Categories (KategoriBill)
 

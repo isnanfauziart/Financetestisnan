@@ -8,6 +8,7 @@ import { computeForecast } from "@/lib/forecast"
 import Sheet from "@/app/dashboard/_components/Sheet"
 
 const FORMULA_COPY = "Proyeksi ini dihitung berdasarkan hingga enam bulan lengkap terakhir, dengan mempertimbangkan pola pemasukan, pengeluaran, tagihan, dan pembayaran terjadwal."
+const RECONCILIATION_NOTE = "Pengeluaran rutin yang sudah dijadwalkan sebagai tagihan hanya dihitung satu kali: riwayatnya keluar dari baseline rutin dan masuk sebagai tagihan terjadwal."
 const SPECIAL_HISTORY_NOTE = "Riwayat Spesial tidak masuk baseline rutin."
 
 function CustomTooltip({ active, payload, label }) {
@@ -218,6 +219,7 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
 
       <Sheet open={isInfoOpen} onClose={() => setIsInfoOpen(false)} title="Rumus Proyeksi Arus Kas">
         <p className="text-sm leading-relaxed text-md3-on-surface-variant">{FORMULA_COPY}</p>
+        <p className="mt-3 text-xs leading-relaxed text-md3-on-surface-variant">{RECONCILIATION_NOTE}</p>
         {forecast.specialHistoryExcluded && (
           <p className="mt-3 text-xs leading-relaxed text-md3-on-surface-variant">{SPECIAL_HISTORY_NOTE}</p>
         )}

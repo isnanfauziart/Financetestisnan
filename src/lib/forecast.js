@@ -1,4 +1,6 @@
 import { getBillOccurrencesInMonth } from "./bills"
+import { buildExpenseFingerprint } from "./recurringExpenses"
+import { isSpecialExpense } from "./expenseClass"
 
 const TIME_ZONE = "Asia/Jakarta"
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
@@ -268,8 +270,40 @@ export function computeForecast(monthlyData, { transactions = [], bills = [], no
     }
   }
 
+  // Routine expenses converted into bills keep their history in actual totals
+  // but must not feed the variable baseline twice: each historical occurrence
+  // of an active bill's stored fingerprint is subtracted the same way as
+  // billpay transactions, so the scheduled bill is counted exactly once.
+  const convertedByMonth = new Map()
+  const scheduledFingerprints = new Set(
+    (Array.isArray(bills) ? bills : [])
+      .filter(bill => isActiveBill(bill))
+      .map(bill => String(bill?.sourceFingerprint || "").trim())
+      .filter(Boolean)
+  )
+  if (scheduledFingerprints.size && Array.isArray(transactions) && transactions.length) {
+    for (const transaction of transactions) {
+      if (!transaction) continue
+      const type = String(transaction?.type ?? transaction?.tipe ?? "").trim().toLowerCase()
+      if (type !== "expense") continue
+      if (isSpecialExpense(transaction)) continue
+      if (transaction.eventId || transaction.eventSubKategori) continue
+      const fingerprint = buildExpenseFingerprint({
+        description: transaction?.desc,
+        category: transaction?.category,
+        account: transaction?.account,
+      })
+      if (!fingerprint || !scheduledFingerprints.has(fingerprint)) continue
+      const key = readTransactionMonth(transaction)
+      if (key === null) continue
+      convertedByMonth.set(key, (convertedByMonth.get(key) || 0) + readAmount(transaction?.amount ?? transaction?.jumlah))
+    }
+  }
+
   const incomes = recent.map((entry) => Math.max(0, entry.pemasukan - (billPayByMonth.get(entry.key)?.income || 0)))
-  const variableExpenses = recent.map((entry) => Math.max(0, entry.pengeluaran - (billPayByMonth.get(entry.key)?.expense || 0)))
+  const variableExpenses = recent.map((entry) => Math.max(0, entry.pengeluaran
+    - (billPayByMonth.get(entry.key)?.expense || 0)
+    - (convertedByMonth.get(entry.key) || 0)))
   const incomeAverage = average(incomes)
   const incomeCv = incomeAverage > 0 ? standardDeviation(incomes) / incomeAverage : Infinity
   const stableIncome = recent.length === 6 && incomeCv <= 0.25

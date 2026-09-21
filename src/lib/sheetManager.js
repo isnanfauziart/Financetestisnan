@@ -29,8 +29,8 @@ export const ALL_TABS = [
   { name: "Momental", headers: [["ID", "Nama", "Tipe", "TanggalMulai", "TanggalSelesai", "TotalBudget", "Mode", "Status", "DanaTHR", "Catatan", "CreatedAt"]], cols: 11 },
   // Event sub-budgets (A-F, 6 columns)
   { name: "EventBudgets", headers: [["EventID", "SubKategori", "Limit", "Icon", "Color", "Catatan"]], cols: 6 },
-  // Bills (A-M, 13 columns)
-  { name: "Tagihan", headers: [["ID", "Nama", "Jumlah", "Tipe", "KategoriBill", "KategoriTransaksi", "Frekuensi", "TanggalJatuhTempo", "AkunBank", "Aktif", "TerakhirDibayar", "Catatan", "CreatedAt"]], cols: 13 },
+  // Bills (A-N, 14 columns — N "Sumber" links a converted recurring expense)
+  { name: "Tagihan", headers: [["ID", "Nama", "Jumlah", "Tipe", "KategoriBill", "KategoriTransaksi", "Frekuensi", "TanggalJatuhTempo", "AkunBank", "Aktif", "TerakhirDibayar", "Catatan", "CreatedAt", "Sumber"]], cols: 14 },
   // Settings (A-B, 2 columns)
   { name: "Settings", headers: [["Key", "Value"]], cols: 2 },
 ]
@@ -63,6 +63,9 @@ export async function createUserSheet(accessToken, userName) {
 
   const spreadsheet = await createRes.json()
   const spreadsheetId = spreadsheet.spreadsheetId
+  const spreadsheetUrl = spreadsheet.spreadsheetUrl
+    || (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(spreadsheetId)}/edit` : null)
+  const spreadsheetName = spreadsheet.properties?.title || title
 
   // 2. Write headers to the initial 3 tabs
   for (let i = 0; i < 3; i++) {
@@ -151,7 +154,31 @@ export async function createUserSheet(accessToken, userName) {
     }
   }
 
-  return spreadsheetId
+  return { spreadsheetId, name: spreadsheetName, url: spreadsheetUrl }
+}
+
+/**
+ * Wave 2: reads the Google-provided file name and webViewLink for a connected
+ * spreadsheet so the ownership card can show the exact file. Callers treat a
+ * failure as non-fatal and fall back to lazy backfill.
+ */
+export async function fetchSpreadsheetFileInfo(accessToken, spreadsheetId) {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(spreadsheetId)}?fields=name,webViewLink`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  )
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Gagal membaca info spreadsheet: ${err}`)
+  }
+  const file = await res.json()
+  return {
+    name: file.name || null,
+    url: file.webViewLink
+      || (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(spreadsheetId)}/edit` : null),
+  }
 }
 
 export async function ensureArtamiSheetSchema(accessToken, spreadsheetId) {

@@ -104,7 +104,27 @@ export async function getAuthContext(request) {
 
     try {
       spreadsheetId = await withRetry(
-        () => createUserSheet(token.accessToken, name),
+        async () => {
+          const created = await createUserSheet(token.accessToken, name)
+          // Connection metadata is ownership info, not ledger data: persist it
+          // when Google gives it to us, never block provisioning on failure.
+          if (created?.name || created?.url) {
+            try {
+              await supabaseAdmin
+                .from("users")
+                .update({
+                  spreadsheet_name: created.name || null,
+                  spreadsheet_url: created.url || null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", user.id)
+                .is("spreadsheet_id", null)
+            } catch (err) {
+              console.warn("[AuthContext] Gagal menyimpan metadata spreadsheet:", err.message)
+            }
+          }
+          return created.spreadsheetId
+        },
         1, 2000, "Sheets:createUserSheet"
       )
 

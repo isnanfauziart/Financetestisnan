@@ -5,6 +5,7 @@ vi.mock("@/lib/featureGuard", () => ({ featureUnavailableResponse: vi.fn(() => n
 vi.mock("@/lib/sheets", () => ({
   appendSheetValues: vi.fn(),
   batchUpdateSheetValues: vi.fn(),
+  ensureBillSourceHeader: vi.fn(),
   ensureExpenseClassHeader: vi.fn(),
   findNextEmptyRow: vi.fn(),
   getSheetData: vi.fn(),
@@ -45,7 +46,7 @@ function post(body) {
 function mockSheets({ existingPayment = false, transactionRows = [["Tanggal"]] } = {}) {
   return async (token, range) => {
     const target = String(range)
-    if (target.startsWith("Tagihan!")) return [["headers"], BILL_ROW]
+    if (target.startsWith("Tagihan")) return [["headers"], BILL_ROW]
     if (target.startsWith("Settings!")) return []
     if (target.endsWith("!B:B")) {
       return existingPayment ? [["ID"], ["billpay:bill-1:2026-08-12"]] : []
@@ -146,7 +147,7 @@ describe("bill payment", () => {
 
   it("returns 404 for an unknown bill without writing", async () => {
     const { batchUpdateSheetValues, getSheetData } = await import("@/lib/sheets")
-    getSheetData.mockImplementation(async (token, range) => (String(range).startsWith("Tagihan!") ? [["headers"]] : []))
+    getSheetData.mockImplementation(async (token, range) => (String(range).startsWith("Tagihan") ? [["headers"]] : []))
     const { POST } = await import("@/app/api/bills/pay/route")
 
     const response = await POST(post({ billId: "missing", operationId: OPERATION_ID }))

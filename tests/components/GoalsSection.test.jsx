@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { render, screen, cleanup } from "@testing-library/react"
+import { render, screen, cleanup, fireEvent } from "@testing-library/react"
 import GoalsSection from "@/components/GoalsSection"
 
 const hookState = vi.hoisted(() => ({
@@ -20,6 +20,9 @@ vi.mock("@/components/GoalCard", () => ({
 vi.mock("@/components/GoalSetupModal", () => ({ default: () => null }))
 vi.mock("@/components/GoalContributeModal", () => ({ default: () => null }))
 vi.mock("@/components/GoalSettleModal", () => ({ default: () => null }))
+vi.mock("@/components/SavingsReviewModal", () => ({
+  default: ({ open, onSaved }) => (open ? <button type="button" onClick={onSaved} data-testid="savings-review-mock">review</button> : null),
+}))
 
 afterEach(() => cleanup())
 
@@ -96,6 +99,46 @@ describe("GoalsSection savings summary", () => {
     // Both goals share the same category, but only the allocated one progresses.
     expect(screen.getByText("Dana Darurat:1000000")).toBeInTheDocument()
     expect(screen.getByText("Liburan:0")).toBeInTheDocument()
+  })
+
+  it("offers the savings review entrypoint when unassigned or unclassified savings exist", () => {
+    render(
+      <GoalsSection
+        data={{
+          netWorth: 10000000,
+          balances: {
+            available: { value: 7000000 },
+            allocations: { byGoal: {}, liquidAssigned: 0, liquidUnassigned: 1500000, needsReviewTotal: 300000 },
+          },
+        }}
+        transactions={[]}
+      />,
+    )
+
+    const trigger = screen.getByRole("button", { name: /belum dibagi — atur/i })
+    expect(trigger).toHaveTextContent("1.800.000")
+    fireEvent.click(trigger)
+    expect(screen.getByTestId("savings-review-mock")).toBeInTheDocument()
+  })
+
+  it("refreshes balances after a completed review", () => {
+    const refetch = vi.fn()
+    const onBalancesChanged = vi.fn()
+    hookState.refetch = refetch
+    render(
+      <GoalsSection
+        data={{ netWorth: 0, balances: { available: { value: 0 }, allocations: { liquidUnassigned: 1000000 } } }}
+        transactions={[]}
+        onBalancesChanged={onBalancesChanged}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: /belum dibagi — atur/i }))
+    fireEvent.click(screen.getByTestId("savings-review-mock"))
+
+    expect(refetch).toHaveBeenCalled()
+    expect(onBalancesChanged).toHaveBeenCalled()
+    hookState.refetch = vi.fn()
   })
 
   it("explains how to start a target before showing the create CTA", () => {

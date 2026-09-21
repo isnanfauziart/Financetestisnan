@@ -102,7 +102,7 @@ describe("next row selection", () => {
     findNextEmptyRow.mockImplementation(async (token, sheetName) => (sheetName === "_ArtamiOperations" ? 2 : 10000))
     getSheetData.mockImplementation(async (token, range) => {
       const target = String(range)
-      if (target.startsWith("Tagihan!")) {
+      if (target.startsWith("Tagihan")) {
         return [
           ["ID", "Nama", "Jumlah", "Tipe", "KategoriBill", "KategoriTransaksi", "Frekuensi", "TanggalJatuhTempo", "AkunBank", "Aktif", "TerakhirDibayar", "Catatan", "CreatedAt"],
           ["bill-1", "Gaji Bulanan", "150000", "income", "Payroll", "Gaji", "monthly", "1", "BCA", "TRUE", "", "", "2026-07-07"],

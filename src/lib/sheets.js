@@ -74,6 +74,63 @@ export async function ensureExpenseClassHeader(accessToken, spreadsheetId) {
   await updateSheetValues(accessToken, "Pengeluaran!P1", [["Sifat"]], spreadsheetId, "RAW")
 }
 
+async function ensureBillSourceColumn(accessToken, spreadsheetId) {
+  const metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: "no-store",
+  })
+
+  if (!metadataRes.ok) throw new Error(`Sheets API error: ${await metadataRes.text()}`)
+
+  const metadata = await metadataRes.json()
+  const billSheet = (metadata.sheets || []).find(
+    sheet => sheet.properties?.title === "Tagihan"
+  )
+  const properties = billSheet?.properties
+  if (properties?.sheetId === undefined || properties?.sheetId === null) {
+    throw new Error("Tagihan tab tidak ditemukan")
+  }
+
+  const columnCount = Number(properties.gridProperties?.columnCount || 0)
+  if (columnCount >= 14) return
+
+  const updateRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      requests: [{
+        updateSheetProperties: {
+          properties: {
+            sheetId: properties.sheetId,
+            gridProperties: { columnCount: 14 },
+          },
+          fields: "gridProperties.columnCount",
+        },
+      }],
+    }),
+  })
+
+  if (!updateRes.ok) throw new Error(`Sheets API error: ${await updateRes.text()}`)
+}
+
+/**
+ * Ensure the optional additive Tagihan column N ("Sumber") exists before a
+ * source fingerprint is written. Fails closed when N1 already holds content.
+ */
+export async function ensureBillSourceHeader(accessToken, spreadsheetId) {
+  await ensureBillSourceColumn(accessToken, spreadsheetId)
+  const rows = await getSheetData(accessToken, "Tagihan!N1", spreadsheetId)
+  const header = String(rows?.[0]?.[0] || "").trim()
+  if (header === "Sumber") return
+  if (header) throw new Error("Kolom Sumber tidak dapat dimigrasikan")
+  await updateSheetValues(accessToken, "Tagihan!N1", [["Sumber"]], spreadsheetId, "RAW")
+}
+
 export async function batchGetSheetData(accessToken, ranges, spreadsheetId) {
   if (!spreadsheetId) throw new Error("spreadsheetId is required")
   const query = ranges.map(range => `ranges=${encodeURIComponent(range)}`).join("&")

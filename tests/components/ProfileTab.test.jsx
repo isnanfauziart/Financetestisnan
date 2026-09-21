@@ -82,9 +82,13 @@ describe("ProfileTab ownership cleanup", () => {
     fireEvent.change(input, { target: { value: "  Nama Profil  " } })
     fireEvent.click(screen.getByRole("button", { name: "Simpan" }))
 
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalled())
 
-    expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toEqual({
+    // Profile also mounts the Wave 2 Sheets hub, which fetches connection
+    // metadata; target the settings call specifically.
+    const settingsCall = fetchSpy.mock.calls.find(([url]) => String(url).includes("/api/settings"))
+    expect(settingsCall).toBeTruthy()
+    expect(JSON.parse(settingsCall[1].body)).toEqual({
       updates: [
         ["userName", "Nama Profil"],
         ["userNamePromptDismissed", true],

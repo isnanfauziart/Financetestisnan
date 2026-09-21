@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { readCache, writeCache, invalidateCache, getLastSyncAgo } from "@/app/dashboard/_components/useDashboardCache"
+import { readCache, writeCache, invalidateCache, clearCache, getLastSyncAgo, shouldAutoRefreshOnVisible, AUTO_REFRESH_VISIBLE_THRESHOLD_MS } from "@/app/dashboard/_components/useDashboardCache"
 
 const KEY = "isnan.dashboard.cache.v3"
 const USER_A = "ayu@example.com"
@@ -92,6 +92,54 @@ describe("useDashboardCache", () => {
 
     it("returns null for invalid date string", () => {
       expect(getLastSyncAgo("not a date")).toBeNull()
+    })
+  })
+
+  describe("clearCache", () => {
+    it("removes only the owner-scoped cache entry", () => {
+      writeCache({ totalIncome: 100 }, USER_A)
+      writeCache({ totalIncome: 200 }, USER_B)
+      clearCache(USER_A)
+      expect(readCache(USER_A)).toBeNull()
+      expect(readCache(USER_B)?.data).toEqual({ totalIncome: 200 })
+    })
+
+    it("does not touch unrelated keys or preference storage", () => {
+      localStorage.setItem("artami.prefs.theme", "dark")
+      writeCache({}, USER_A)
+      clearCache(USER_A)
+      expect(localStorage.getItem("artami.prefs.theme")).toBe("dark")
+    })
+
+    it("is a no-op without an owner or storage", () => {
+      expect(() => clearCache()).not.toThrow()
+    })
+  })
+
+  describe("shouldAutoRefreshOnVisible", () => {
+    it("refreshes when the last sync is older than the approved threshold", () => {
+      const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000).toISOString()
+      expect(shouldAutoRefreshOnVisible({ lastSyncAt: sixMinutesAgo, refreshing: false, isOnline: true })).toBe(true)
+    })
+
+    it("holds at the boundary: just under 5 minutes does not refresh", () => {
+      const justUnder = new Date(Date.now() - (AUTO_REFRESH_VISIBLE_THRESHOLD_MS - 1000)).toISOString()
+      expect(shouldAutoRefreshOnVisible({ lastSyncAt: justUnder, refreshing: false, isOnline: true })).toBe(false)
+    })
+
+    it("does not refresh while a refresh is already running", () => {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+      expect(shouldAutoRefreshOnVisible({ lastSyncAt: tenMinutesAgo, refreshing: true, isOnline: true })).toBe(false)
+    })
+
+    it("does not refresh while offline", () => {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+      expect(shouldAutoRefreshOnVisible({ lastSyncAt: tenMinutesAgo, refreshing: false, isOnline: false })).toBe(false)
+    })
+
+    it("treats a missing or unreadable last sync as stale and refreshes", () => {
+      expect(shouldAutoRefreshOnVisible({ lastSyncAt: null, refreshing: false, isOnline: true })).toBe(true)
+      expect(shouldAutoRefreshOnVisible({ lastSyncAt: "not a date", refreshing: false, isOnline: true })).toBe(true)
     })
   })
 })

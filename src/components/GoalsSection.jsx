@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useMemo } from "react"
-import { Plus, Target, ChevronDown, ChevronRight } from "lucide-react"
+import { Plus, Target, ChevronDown, ChevronRight, Wallet } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { computeAllGoalProgress } from "@/app/dashboard/_components/goalUtils"
 import { formatRpFull } from "@/app/dashboard/_components/helpers"
@@ -10,12 +10,14 @@ import GoalCard from "./GoalCard"
 import GoalSetupModal from "./GoalSetupModal"
 import GoalContributeModal from "./GoalContributeModal"
 import GoalSettleModal from "./GoalSettleModal"
+import SavingsReviewModal from "./SavingsReviewModal"
 
-export default function GoalsSection({ data, transactions, onToast, refreshTrigger, onUsageChange, transactionUsage, now, proRegistrationOpen = true }) {
+export default function GoalsSection({ data, transactions, onToast, refreshTrigger, onUsageChange, transactionUsage, now, proRegistrationOpen = true, onBalancesChanged }) {
   const { goals, loading, error, refetch } = useGoals()
   const [setupState, setSetupState] = useState(null)
   const [contributeGoal, setContributeGoal] = useState(null)
   const [settleGoal, setSettleGoal] = useState(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [completedExpanded, setCompletedExpanded] = useState(false)
 
@@ -30,6 +32,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
   }, [error, onToast])
 
   const allocations = data?.balances?.allocations
+  const unassignedSavings = Math.max(0, (Number(allocations?.liquidUnassigned) || 0) + (Number(allocations?.needsReviewTotal) || 0))
   const progressByGoal = useMemo(() => {
     return computeAllGoalProgress(goals, allocations)
   }, [goals, allocations])
@@ -158,6 +161,16 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
             <span className="text-xs font-semibold text-white/80">Tersedia untuk dibagi</span>
             <strong className="text-sm font-bold text-white">{formatRpFull(availableSavings)}</strong>
           </div>
+          {unassignedSavings > 0 && (
+            <button
+              type="button"
+              onClick={() => setReviewOpen(true)}
+              className="mt-2 inline-flex min-h-9 items-center gap-2 rounded-full bg-white/15 px-3 text-[11px] font-bold text-white transition-colors hover:bg-white/25"
+            >
+              <Wallet size={12} aria-hidden="true" />
+              {formatRpFull(unassignedSavings)} belum dibagi — atur
+            </button>
+          )}
         </div>
         <p className="mt-3 text-[11px] leading-relaxed text-white/75">
           Total tabunganmu mengikuti Kekayaan Bersih, dan tiap target hanya menerima tabungan yang kamu alokasikan ke target itu.
@@ -302,6 +315,17 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
           onSettled={handleSettled}
         />
       )}
+
+      <SavingsReviewModal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        onSaved={() => {
+          refetch()
+          onUsageChange?.()
+          onBalancesChanged?.()
+        }}
+        onToast={onToast}
+      />
     </div>
   )
 }

@@ -51,11 +51,30 @@ function createFingerprint(key) {
   return legacy.length <= MAX_FINGERPRINT_LENGTH ? legacy : `recurring:v2:${hashFingerprint(key)}`
 }
 
-function matchesBill(candidate, bill) {
+function billNameMatches(candidate, bill) {
   const name = normalizeText(bill?.nama)
-  if (!name || name !== normalizeText(candidate.description) && !name.includes(normalizeText(candidate.description)) && !normalizeText(candidate.description).includes(name)) return false
+  if (!name) return false
+  const description = normalizeText(candidate.description)
+  return name === description || name.includes(description) || description.includes(name)
+}
+
+function matchesBill(candidate, bill) {
+  if (!billNameMatches(candidate, bill)) return false
   return normalizeText(bill?.kategoriTransaksi) === candidate.categoryKey
     && normalizeText(bill?.akunBank) === candidate.accountKey
+}
+
+/**
+ * Stable fingerprint for a single ledger transaction, matching the candidate
+ * fingerprints produced by findRecurringExpenses. Null when the transaction
+ * lacks a normalizable description or category.
+ */
+export function buildExpenseFingerprint({ description, category, account } = {}) {
+  const descriptionKey = normalizeText(description)
+  const categoryKey = normalizeText(category)
+  const accountKey = normalizeText(account)
+  if (!descriptionKey || !categoryKey) return null
+  return createFingerprint(`${descriptionKey}|${categoryKey}|${accountKey}`)
 }
 
 export function findRecurringExpenses({ transactions = [], bills = [], dismissedFingerprints = [], now = new Date() }) {
@@ -116,8 +135,16 @@ export function findRecurringExpenses({ transactions = [], bills = [], dismissed
       latestDate: values.sort((a, b) => b.order - a.order)[0].date,
     }
     if (dismissed.has(candidate.fingerprint) || dismissed.has(`recurring:v1:${key}`)) continue
-    if (bills.some(bill => matchesBill(candidate, bill))) continue
-    candidates.push(candidate)
+    // Only active bills suppress a candidate: deleting or disabling the bill
+    // restores the stream so it can be scheduled again.
+    const aktifBills = (bills || []).filter(bill => bill && bill.aktif !== false)
+    const fingerprintKeys = [candidate.fingerprint, `recurring:v1:${key}`]
+    if (aktifBills.some(bill => fingerprintKeys.includes(String(bill.sourceFingerprint || "").trim()))) continue
+    if (aktifBills.some(bill => matchesBill(candidate, bill))) continue
+    // A name match with different category or account is ambiguous: surface it
+    // for review instead of silently dropping the candidate.
+    const needsReview = aktifBills.some(bill => billNameMatches(candidate, bill))
+    candidates.push(needsReview ? { ...candidate, needsReview: true } : candidate)
   }
 
   return candidates

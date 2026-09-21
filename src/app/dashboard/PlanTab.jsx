@@ -85,6 +85,7 @@ export default function PlanTab({
   expenseCategories,
   onToast,
   onWhatIfOpen,
+  onDataChanged,
   activeSection,
   onSectionChange,
   onUsageChange,
@@ -231,6 +232,7 @@ export default function PlanTab({
               onUsageChange={onUsageChange}
               transactionUsage={transactionUsage}
               proRegistrationOpen={proRegistrationOpen}
+              onBalancesChanged={onDataChanged}
             />
           )}
 
