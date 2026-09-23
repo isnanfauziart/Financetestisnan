@@ -37,7 +37,7 @@ function getMonthKey(month, year) {
   return `${month} ${year}`
 }
 
-export default function RecapSection({ transactions = [], history, onEdit, onDelete }) {
+export default function RecapSection({ transactions = [], history, onEdit, onDelete, onRepeat }) {
   const { settings } = useSettings()
   const [filter, setFilter] = useState({
     month: "all",
@@ -263,6 +263,7 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
               onPageChange={p => setPages(prev => ({ ...prev, [g.key]: p }))}
               onEdit={onEdit}
               onDelete={onDelete}
+              onRepeat={onRepeat}
             />
           )
         })

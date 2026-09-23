@@ -23,6 +23,9 @@ export default function SavingsReviewModal({ open, onClose, onSaved, onToast }) 
   const [goals, setGoals] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  // Wave 4: a grouped assign/release always shows a confirmation with the
+  // selection count and total before anything is written.
+  const [confirming, setConfirming] = useState(null)
 
   const loadAllocations = async ({ silent = false } = {}) => {
     if (!silent) setLoading(true)
@@ -33,6 +36,7 @@ export default function SavingsReviewModal({ open, onClose, onSaved, onToast }) 
       if (!res.ok || !data?.success) throw new Error(data?.error || "Gagal memuat daftar tabungan")
       setAllocations(data)
       setSelected({})
+      setConfirming(null)
     } catch (err) {
       setLoadError(err.message)
     } finally {
@@ -63,6 +67,7 @@ export default function SavingsReviewModal({ open, onClose, onSaved, onToast }) 
 
   const toggleRow = rowIndex => {
     setSelected(previous => ({ ...previous, [rowIndex]: !previous[rowIndex] }))
+    setConfirming(null)
   }
 
   const handleSelectAll = () => {
@@ -70,6 +75,7 @@ export default function SavingsReviewModal({ open, onClose, onSaved, onToast }) 
     const next = {}
     if (!allSelected) for (const row of rows) next[row.rowIndex] = true
     setSelected(next)
+    setConfirming(null)
   }
 
   const handleRecheck = async () => {
@@ -86,12 +92,27 @@ export default function SavingsReviewModal({ open, onClose, onSaved, onToast }) 
     onToast?.(WRITE_MESSAGES.unresolved, "error", null, { duration: null })
   }
 
-  const handleSubmit = async action => {
+  // First click on Alokasikan/Bebaskan: validate, then ask for confirmation.
+  // The actual write happens only after the user confirms the grouped action.
+  const requestConfirmation = action => {
     if (selectedRows.length === 0) return
     if (action === "assign" && !goalId) {
       setError("Target tabungan wajib dipilih")
       return
     }
+    setError(null)
+    setConfirming(action)
+  }
+
+  const handleSubmit = async () => {
+    const action = confirming
+    if (!action || selectedRows.length === 0) return
+    if (action === "assign" && !goalId) {
+      setConfirming(null)
+      setError("Target tabungan wajib dipilih")
+      return
+    }
+    setConfirming(null)
     setSubmitting(true)
     setError(null)
     const result = await submitFinancialWrite({
@@ -228,10 +249,42 @@ export default function SavingsReviewModal({ open, onClose, onSaved, onToast }) 
                       ))}
                     </select>
                   </div>
+                  {confirming && (
+                    <div
+                      role="alertdialog"
+                      aria-label={confirming === "assign" ? "Konfirmasi alokasi tabungan" : "Konfirmasi pembebasan tabungan"}
+                      className="mb-2 rounded-2xl border border-violet-200 bg-violet-50 p-3"
+                    >
+                      <p className="text-[11px] font-semibold leading-relaxed text-md3-on-surface">
+                        {confirming === "assign"
+                          ? `Alokasikan ${selectedRows.length} baris (total ${formatRpFull(selectedTotal)}) ke satu target?`
+                          : `Bebaskan ${selectedRows.length} baris (total ${formatRpFull(selectedTotal)})? Uangnya langsung dihitung sebagai “Bisa dipakai sekarang”.`}
+                      </p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setConfirming(null)}
+                          disabled={submitting}
+                          className="min-h-9 rounded-xl bg-md3-surface px-3 text-[11px] font-bold text-md3-on-surface active:scale-95 transition-transform disabled:opacity-50"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSubmit}
+                          disabled={submitting}
+                          className="min-h-9 rounded-xl px-3 text-[11px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50"
+                          style={{ background: THEME.primary }}
+                        >
+                          {submitting ? "Menyimpan…" : confirming === "assign" ? "Ya, alokasikan" : "Ya, bebaskan"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => handleSubmit("release")}
+                      onClick={() => requestConfirmation("release")}
                       disabled={submitting || selectedRows.length === 0 || guard.blocked}
                       className="min-h-11 rounded-2xl bg-md3-surface px-4 py-2.5 text-sm font-bold text-md3-on-surface active:scale-95 transition-transform disabled:opacity-50"
                     >
@@ -239,7 +292,7 @@ export default function SavingsReviewModal({ open, onClose, onSaved, onToast }) 
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleSubmit("assign")}
+                      onClick={() => requestConfirmation("assign")}
                       disabled={submitting || selectedRows.length === 0 || guard.blocked}
                       className="min-h-11 rounded-2xl text-sm font-bold text-white active:scale-95 transition-transform disabled:opacity-50"
                       style={{ background: submitting || guard.blocked ? "#ccc" : THEME.primary }}

@@ -13,21 +13,24 @@ import { buildMonthlyCashFlowData, getStatsPeriodDefaults, getComparePeriodOptio
 import EmptyState from "./_components/EmptyState"
 import HomeTab from "./HomeTab"
 import StatsTab from "./StatsTab"
-import PlanTab from "./PlanTab"
+import PlanTab, { getPlanSectionLabel } from "./PlanTab"
 import ProfileTab from "./ProfileTab"
 import EditTransactionModal from "./_components/EditTransactionModal"
 import ConfirmSheet from "./_components/ConfirmSheet"
-import Sheet from "./_components/Sheet"
+import Sheet, { closeTopSheetOnBack } from "./_components/Sheet"
 import RowActionsMenu from "./_components/RowActionsMenu"
 import Toast from "./_components/Toast"
 import Skeleton from "./_components/Skeleton"
 import QuickAddSheet from "./_components/QuickAddSheet"
+import OnboardingOverlay from "./_components/OnboardingOverlay"
+import { deriveOnboardingState, ONBOARDING_STEPS } from "./_components/useOnboardingState"
+import { buildRepeatPrefill, isRepeatableTransaction } from "@/lib/transactionRepeat"
+import { diffDashboardUrlState, parseDashboardUrl, serializeDashboardUrl, splitComparePeriod } from "./_components/dashboardUrlState"
 import SyncStatus from "./_components/SyncStatus"
 import { readCache, writeCache, clearCache, getLastSyncAgo, shouldAutoRefreshOnVisible } from "./_components/useDashboardCache"
 import GoalCelebration from "@/components/GoalCelebration"
 import GoalPickerModal from "@/components/GoalPickerModal"
 import WhatIfModal from "@/components/WhatIfModal"
-import SetupSaldoAwal from "@/components/SetupSaldoAwal"
 import BillPayModal from "@/components/BillPayModal"
 import BillSetupModal from "@/components/BillSetupModal"
 import EventCelebration from "@/components/EventCelebration"
@@ -172,8 +175,15 @@ export default function Dashboard() {
     return navigator.onLine
   })
   const [syncNow, setSyncNow] = useState(() => Date.now())
-  const [activeNav, setActiveNav] = useState("home")
-  const [activePlanSection, setActivePlanSection] = useState("overview")
+  // Wave 5 — URL-backed view state. Parsed once on the first client render so
+  // deep links and refresh restore the same view; the server renders defaults
+  // and the client re-renders from the URL after hydration.
+  const [urlViewState] = useState(() => (typeof window === "undefined" ? null : parseDashboardUrl(window.location.search)))
+  const [activeNav, setActiveNav] = useState(() => urlViewState?.tab ?? "home")
+  const [activePlanSection, setActivePlanSection] = useState(() => urlViewState?.planSection ?? "overview")
+  // Wave 7 — polite announcement for deliberate Rencana section navigation.
+  const [planSectionAnnouncement, setPlanSectionAnnouncement] = useState("")
+  const [planAnnouncementCount, setPlanAnnouncementCount] = useState(0)
   const [soundEnabled, setSoundEnabled] = useSoundPref()
   const [hapticsEnabled, setHapticsEnabled] = useHapticsPref()
   const haptics = useHaptics()
@@ -188,25 +198,33 @@ export default function Dashboard() {
   const [deleteConfirmTx, setDeleteConfirmTx] = useState(null)
   const [deletingTx, setDeletingTx] = useState(false)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
+  // Wave 5 — Ulangi transaksi: the row being repeated, cleared on every
+  // non-repeat open and when the sheet closes.
+  const [repeatTx, setRepeatTx] = useState(null)
 
-  // Stats state
-  const [selectedMonth, setSelectedMonth] = useState(statsDefaults.selectedMonth)
-  const [selectedYear, setSelectedYear] = useState(statsDefaults.selectedYear)
-  const [selectedAccount, setSelectedAccount] = useState("Semua Akun")
-  const [categoryFilter, setCategoryFilter] = useState(null)
-  const [dateFrom, setDateFrom] = useState("")
-  const [dateTo, setDateTo] = useState("")
+  // Stats state — Wave 5: URL-backed. Lazy initializers read deep-linked values
+  // once; missing or invalid parameters fall back to the same defaults.
+  const [statsActiveSection, setStatsActiveSection] = useState(() => urlViewState?.statsSection ?? "ringkasan")
+  const [analysisMode, setAnalysisMode] = useState(() => urlViewState?.analysisMode ?? "routine")
+  const [selectedMonth, setSelectedMonth] = useState(() => urlViewState?.month ?? statsDefaults.selectedMonth)
+  const [selectedYear, setSelectedYear] = useState(() => urlViewState?.year ?? statsDefaults.selectedYear)
+  const [selectedAccount, setSelectedAccount] = useState(() => urlViewState?.account ?? "Semua Akun")
+  const [categoryFilter, setCategoryFilter] = useState(() => urlViewState?.category ?? null)
+  const [dateFrom, setDateFrom] = useState(() => urlViewState?.dateFrom ?? "")
+  const [dateTo, setDateTo] = useState(() => urlViewState?.dateTo ?? "")
 
-  // Comparison state
-  const [compareMode, setCompareMode] = useState(true)
-  const [compareMonthA, setCompareMonthA] = useState(statsDefaults.compareMonthA)
-  const [compareYearA, setCompareYearA] = useState(statsDefaults.compareYearA)
-  const [compareMonthB, setCompareMonthB] = useState(statsDefaults.compareMonthB)
-  const [compareYearB, setCompareYearB] = useState(statsDefaults.compareYearB)
+  // Comparison state — Wave 5: URL-backed as one "Mei 2026" period per side.
+  const urlCompareA = urlViewState?.compareA || `${statsDefaults.compareMonthA} ${statsDefaults.compareYearA}`
+  const urlCompareB = urlViewState?.compareB || `${statsDefaults.compareMonthB} ${statsDefaults.compareYearB}`
+  const [compareMode, setCompareMode] = useState(() => urlViewState?.compare ?? true)
+  const [compareMonthA, setCompareMonthA] = useState(() => splitComparePeriod(urlCompareA).month)
+  const [compareYearA, setCompareYearA] = useState(() => splitComparePeriod(urlCompareA).year)
+  const [compareMonthB, setCompareMonthB] = useState(() => splitComparePeriod(urlCompareB).month)
+  const [compareYearB, setCompareYearB] = useState(() => splitComparePeriod(urlCompareB).year)
 
-  // Calendar state for daily expense heatmap
-  const [calMonth, setCalMonth] = useState(AVAILABLE_MONTHS[new Date().getMonth()])
-  const [calYear, setCalYear] = useState(new Date().getFullYear())
+  // Calendar state for daily expense heatmap — Wave 5: URL-backed.
+  const [calMonth, setCalMonth] = useState(() => urlViewState?.calMonth ?? AVAILABLE_MONTHS[new Date().getMonth()])
+  const [calYear, setCalYear] = useState(() => urlViewState ? Number(urlViewState.calYear) || new Date().getFullYear() : new Date().getFullYear())
   const [selectedDayTx, setSelectedDayTx] = useState(null)
 
   // Drill-down modal
@@ -227,6 +245,17 @@ export default function Dashboard() {
   const [eventCelebration, setEventCelebration] = useState(null)
   const prevEventPctRef = useRef({})
   const [userNamePromptClosed, setUserNamePromptClosed] = useState(false)
+  const [onboardingOptionalDone, setOnboardingOptionalDone] = useState(false)
+  // Once the first transaction commits inside the overlay, hold the shell at
+  // the optional next-step screen; the Sheet-derived rule alone would drop the
+  // gate the moment the transaction lands. A refresh intentionally skips the
+  // optional offer — it is an offer, not a required outcome.
+  const [onboardingFirstTxDone, setOnboardingFirstTxDone] = useState(false)
+  // The balance write is durable once the server accepts it (it stamps
+  // startingBalanceConfirmed); local commit state keeps the gate engaged while
+  // the settings/dashboard feeds refetch, so a slow or failed refetch can
+  // never drop the gate back to an unconfirmed dashboard.
+  const [onboardingBalanceDone, setOnboardingBalanceDone] = useState(false)
 
   // Settings
   const { bills, loading: billsLoading, error: billsError, refetch: refetchBills } = useBills(status === "authenticated", sessionKey)
@@ -347,6 +376,74 @@ export default function Dashboard() {
   }, [session, sessionKey, data, fetchEntitlement])
 
   useEffect(() => { if (session) fetchData() }, [session?.user?.email])
+
+  // Wave 4 — required guided first use. Sheet-derived new-account rule:
+  // onboarding only when the account has zero transactions and the opening
+  // balance was never confirmed; everyone else enters normally.
+  const onboarding = deriveOnboardingState({
+    transactions: data?.transactions || [],
+    settings,
+    settingsLoading,
+    settingsError,
+  })
+  const onboardingActive = onboarding.active && !onboardingOptionalDone
+  const onboardingEngaged = !onboardingOptionalDone && (onboarding.active || onboardingBalanceDone || onboardingFirstTxDone)
+  // null renders the neutral loading screen (fail-closed while settings are
+  // unknown and no outcome has committed locally yet).
+  const onboardingStep = onboardingFirstTxDone
+    ? ONBOARDING_STEPS.optional
+    : !onboarding.ready
+      ? null
+      : onboardingBalanceDone || onboarding.step === ONBOARDING_STEPS.transaction
+        ? ONBOARDING_STEPS.transaction
+        : ONBOARDING_STEPS.balance
+
+  // Browser Back must not bypass a required step. Push one sentinel entry so
+  // the first Back press pops the sentinel (and does nothing) instead of
+  // leaving the dashboard; refresh and reopen resume from Sheet-backed state.
+  const onboardingBackGuardRef = useRef(false)
+  useEffect(() => {
+    if (!onboardingActive || onboardingBackGuardRef.current) return
+    onboardingBackGuardRef.current = true
+    const sentinel = { __artamiOnboarding: true }
+    window.history.pushState(sentinel, "")
+    const onPopState = () => { window.history.pushState(sentinel, "") }
+    window.addEventListener("popstate", onPopState)
+    return () => {
+      onboardingBackGuardRef.current = false
+      window.removeEventListener("popstate", onPopState)
+    }
+  }, [onboardingActive])
+
+  const handleOnboardingBalanceSaved = useCallback(async ({ amount, date }) => {
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates: [
+            ["startingBalance", amount],
+            ["startingBalanceDate", date],
+          ],
+        }),
+      })
+      const result = await res.json().catch(() => null)
+      if (!res.ok) return { ok: false, error: result?.error || "Gagal menyimpan. Coba lagi." }
+      setOnboardingBalanceDone(true)
+      // The server stamps startingBalanceConfirmed on this write. Refresh both
+      // cached feeds so the transaction step is derived from confirmed state.
+      await Promise.all([refetchSettings(), fetchData()])
+      return { ok: true }
+    } catch {
+      return { ok: false, error: "Gagal menyimpan. Coba lagi." }
+    }
+  }, [refetchSettings, fetchData])
+
+  const handleOnboardingFinish = useCallback(() => {
+    setOnboardingOptionalDone(true)
+    setActiveNav("home")
+    setActivePlanSection("overview")
+  }, [])
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true)
@@ -534,6 +631,140 @@ export default function Dashboard() {
     pullLocked.current = false
   }, [fetchData])
 
+  // Wave 5 — URL sync. One effect owns the address bar: destination changes
+  // (tab, plan/stats section) push a history entry users can Back through;
+  // filter changes replace the current entry so tweaking filters does not
+  // create history noise. Back/Forward re-applies the URL's view state, after
+  // any open sheet has had its chance to consume the pop (modal history).
+  const previousViewStateRef = useRef(null)
+  const applyingPopRef = useRef(null)
+
+  const buildViewState = useCallback(() => ({
+    tab: activeNav,
+    planSection: activePlanSection,
+    statsSection: statsActiveSection,
+    analysisMode,
+    month: selectedMonth,
+    year: selectedYear,
+    account: selectedAccount,
+    category: categoryFilter,
+    dateFrom,
+    dateTo,
+    compare: compareMode,
+    compareA: `${compareMonthA} ${compareYearA}`,
+    compareB: `${compareMonthB} ${compareYearB}`,
+    calMonth,
+    calYear: String(calYear),
+  }), [activeNav, activePlanSection, statsActiveSection, analysisMode, selectedMonth, selectedYear,
+    selectedAccount, categoryFilter, dateFrom, dateTo, compareMode, compareMonthA, compareYearA,
+    compareMonthB, compareYearB, calMonth, calYear])
+
+  const applyViewState = useCallback((view) => {
+    setActiveNav(view.tab)
+    setActivePlanSection(view.planSection)
+    setStatsActiveSection(view.statsSection)
+    setAnalysisMode(view.analysisMode)
+    setSelectedMonth(view.month)
+    setSelectedYear(view.year)
+    setSelectedAccount(view.account)
+    setCategoryFilter(view.category)
+    setDateFrom(view.dateFrom)
+    setDateTo(view.dateTo)
+    setCompareMode(view.compare)
+    const a = splitComparePeriod(view.compareA)
+    setCompareMonthA(a.month); setCompareYearA(a.year)
+    const b = splitComparePeriod(view.compareB)
+    setCompareMonthB(b.month); setCompareYearB(b.year)
+    setCalMonth(view.calMonth)
+    setCalYear(Number(view.calYear) || new Date().getFullYear())
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const view = buildViewState()
+    const nextQuery = serializeDashboardUrl(view)
+    const currentQuery = window.location.search.replace(/^\?/, "")
+
+    if (previousViewStateRef.current === null) {
+      // First run: normalize the address bar (drop unknown params) without
+      // creating a history entry, since the view already came from the URL.
+      previousViewStateRef.current = view
+      if (nextQuery !== currentQuery) {
+        window.history.replaceState(window.history.state, "", nextQuery ? `?${nextQuery}` : window.location.pathname)
+      }
+      return
+    }
+
+    if (applyingPopRef.current) {
+      // The change came from Back/Forward; the popped URL is already correct.
+      applyingPopRef.current = null
+      previousViewStateRef.current = view
+      return
+    }
+
+    const kind = diffDashboardUrlState(previousViewStateRef.current, view)
+    previousViewStateRef.current = view
+    if (kind === "none") {
+      // View unchanged; repair the address bar if it drifted (e.g. after an
+      // open sheet consumed a Back pop).
+      if (nextQuery !== currentQuery) {
+        window.history.replaceState(window.history.state, "", nextQuery ? `?${nextQuery}` : window.location.pathname)
+      }
+      return
+    }
+    const url = nextQuery ? `?${nextQuery}` : window.location.pathname
+    if (kind === "push") {
+      window.history.pushState(window.history.state, "", url)
+    } else {
+      window.history.replaceState(window.history.state, "", url)
+    }
+  }, [buildViewState])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined
+    const onPopState = () => {
+      // An open sheet owns the press first (close or discard-confirm); only a
+      // non-sheet pop re-applies the URL's view state.
+      if (closeTopSheetOnBack()) return
+      applyingPopRef.current = true
+      applyViewState(parseDashboardUrl(window.location.search))
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
+  }, [applyViewState])
+
+  // Wave 5 — after a controlled destination change (tab or section), move focus
+  // to the destination heading so keyboard and screen-reader users land there.
+  // Filter-only changes never focus (no destination change → no effect).
+  const prevDestinationRef = useRef({
+    tab: typeof window === "undefined" ? "home" : parseDashboardUrl(window.location.search).tab,
+    plan: activePlanSection,
+    stats: statsActiveSection,
+  })
+  useEffect(() => {
+    const prev = prevDestinationRef.current
+    const tabChanged = prev.tab !== activeNav
+    const planChanged = activeNav === "plan" && prev.plan !== activePlanSection
+    const statsChanged = activeNav === "stats" && prev.stats !== statsActiveSection
+    prevDestinationRef.current = { tab: activeNav, plan: activePlanSection, stats: statsActiveSection }
+    if (!tabChanged && !planChanged && !statsChanged) return undefined
+    // Wave 7 — announce the opened Rencana section and move focus to the
+    // section's own nav control (fallback: the Rencana heading).
+    if (planChanged) {
+      setPlanSectionAnnouncement(`Bagian ${getPlanSectionLabel(activePlanSection)} dibuka`)
+      setPlanAnnouncementCount(count => count + 1)
+    }
+    const frame = requestAnimationFrame(() => {
+      const target = planChanged
+        ? (document.querySelector('[aria-controls="plan-section-panel"][aria-current="page"]') || document.getElementById("plan-page-title"))
+        : statsChanged
+          ? document.querySelector('[data-testid="stats-section-tab"][aria-selected="true"]')
+          : document.getElementById("dashboard-heading")
+      target?.focus({ preventScroll: false })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [activeNav, activePlanSection, statsActiveSection])
+
   const resetComparePeriods = useCallback(() => {
     const defaults = getStatsPeriodDefaults()
     setCompareMonthA(defaults.compareMonthA)
@@ -545,6 +776,14 @@ export default function Dashboard() {
   const openPlanSection = useCallback((sectionKey) => {
     setActivePlanSection(sectionKey)
     setActiveNav("plan")
+  }, [])
+
+  // Wave 6 — Beranda checklist evidence links land on the exact stats section
+  // and category that prove the item.
+  const openStatsDestination = useCallback((destination = {}) => {
+    setActiveNav("stats")
+    if (destination.section) setStatsActiveSection(destination.section)
+    if (destination.category) setCategoryFilter(destination.category)
   }, [])
 
   // --- Hooks that must run on every render (before any early return) ---
@@ -1049,6 +1288,36 @@ export default function Dashboard() {
     )
   }
 
+  // Wave 4: required guided first use replaces the whole shell while active —
+  // tabs, FAB, and every other surface stay out of reach until both required
+  // outcomes commit. There is no dismiss control, so Escape/backdrop cannot
+  // bypass it; browser Back is guarded above; refresh/reopen resume from the
+  // Sheet-backed state.
+  if (onboardingEngaged) {
+    return (
+      <SharedDataScopeContext.Provider value={sessionKey || ""}>
+        {onboardingStep === null ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-cream-50" role="status" aria-label="Memuat panduan pertama kali">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-md3-outline-variant border-t-transparent" aria-hidden="true" />
+          </div>
+        ) : (
+          <OnboardingOverlay
+            step={onboardingStep}
+            specialSuggestion={specialSuggestion}
+            transactionUsage={entitlement?.usage?.transactions}
+            proRegistrationOpen={proRegistrationOpen}
+            transactions={data?.transactions || []}
+            onBalanceSaved={handleOnboardingBalanceSaved}
+            onFirstTransactionSaved={() => { setOnboardingFirstTxDone(true); fetchData(); refetchSettings() }}
+            onOpenPlan={openPlanSection}
+            onFinish={handleOnboardingFinish}
+            submitTransaction={submitTransaction}
+          />
+        )}
+      </SharedDataScopeContext.Provider>
+    )
+  }
+
   // --- Non-hook derivations (depend on hooks defined above) ---
   const clientMonthlyData = buildMonthlyDataFromTransactions(filteredTransactions, isAllMonths)
   const routineClientMonthlyData = buildMonthlyDataFromTransactions(routineFilteredTransactions, isAllMonths)
@@ -1141,9 +1410,30 @@ export default function Dashboard() {
       showToast("Fitur transaksi sedang tidak tersedia.", "info")
       return
     }
+    setRepeatTx(null)
     setTxType(type)
     setQuickAddOpen(true)
   }
+
+  // Wave 5 — opens the same Quick Add sheet prefilled from an eligible row;
+  // validation, quota, stale-state gating, and duplicate protection are the
+  // ordinary Quick Add path because submission never changes.
+  const handleRepeatTransaction = (tx) => {
+    if (!hasFeature(entitlement, "transactions")) {
+      showToast("Fitur transaksi sedang tidak tersedia.", "info")
+      return
+    }
+    if (!isRepeatableTransaction(tx)) return
+    if (hapticsEnabled) haptics.tap()
+    setRepeatTx(tx)
+    setTxType(tx.type)
+    setQuickAddOpen(true)
+  }
+
+  const repeatPrefill = useMemo(
+    () => (repeatTx ? buildRepeatPrefill(repeatTx) : null),
+    [repeatTx],
+  )
 
   const handleAnomalyCategoryClick = (category) => {
     setCategoryFilter(category)
@@ -1245,13 +1535,16 @@ export default function Dashboard() {
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant">
               {activeNav === "home" ? "Beranda" : activeNav === "stats" ? "Statistik" : activeNav === "plan" ? "Rencana" : "Profil"}
             </p>
-            <h1 className="text-2xl font-display font-bold text-md3-on-surface tracking-tight leading-tight mt-0.5">
+            <h1 id="dashboard-heading" tabIndex={-1} className="text-2xl font-display font-bold text-md3-on-surface tracking-tight leading-tight mt-0.5 focus:outline-none">
               {activeNav === "home" && (data?.transactions?.[0] ? "Halo 👋" : "Artami")}
               {activeNav === "home" && effectiveUserName ? `, ${effectiveUserName}` : ""}
               {activeNav === "stats" && "Statistik"}
               {activeNav === "plan" && "Rencana"}
               {activeNav === "profile" && "Profil"}
             </h1>
+            {activeNav === "plan" && planSectionAnnouncement && (
+              <p key={planAnnouncementCount} role="status" aria-live="polite" className="sr-only">{planSectionAnnouncement}</p>
+            )}
             {activeNav === "home" && (
               <SyncStatus
                 lastSyncAt={lastSyncAt}
@@ -1266,12 +1559,25 @@ export default function Dashboard() {
               />
             )}
           </div>
-          {activeNav === "home" && (
-            <button onClick={() => setActiveNav("profile")} aria-label="Buka profil" className="relative active:scale-95 transition-transform flex-shrink-0 ml-3">
-              <img src={session?.user?.image} alt="" className="w-11 h-11 rounded-2xl border-2 border-white shadow-warm" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-moss-500 border-2 border-cream-50 rounded-full" />
-            </button>
-          )}
+          <div className="flex flex-shrink-0 items-center gap-2 ml-3">
+            {/* Wave 5: persistent desktop entry — same Quick Add state as the FAB */}
+            {hasFeature(entitlement, "transactions") && (
+              <button
+                onClick={() => { if (hapticsEnabled) haptics.tap(); openQuickAdd("expense") }}
+                aria-label="Tambah transaksi baru"
+                aria-haspopup="dialog"
+                className="hidden md:inline-flex items-center gap-1.5 min-h-11 px-4 py-2.5 rounded-2xl text-sm font-bold text-white mesh-violet shadow-pop active:scale-95 transition-transform"
+              >
+                <Plus size={16} strokeWidth={2.5} aria-hidden="true" /> Tambah transaksi
+              </button>
+            )}
+            {activeNav === "home" && (
+              <button onClick={() => setActiveNav("profile")} aria-label="Buka profil" className="relative active:scale-95 transition-transform flex-shrink-0">
+                <img src={session?.user?.image} alt="" className="w-11 h-11 rounded-2xl border-2 border-white shadow-warm" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-moss-500 border-2 border-cream-50 rounded-full" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -1313,6 +1619,8 @@ export default function Dashboard() {
             topCategory={topCategory} topCategoryPct={topCategoryPct}
             recent5={recent5}
             setActiveNav={setActiveNav} openPlanSection={openPlanSection} openQuickAdd={openQuickAdd} setDrillDown={setDrillDown}
+            openStatsDestination={openStatsDestination}
+            onRepeat={handleRepeatTransaction}
             allTransactions={data?.transactions || []}
             filteredTransactions={filteredTransactions}
             selectedMonth={selectedMonth} selectedYear={selectedYear}
@@ -1354,6 +1662,7 @@ export default function Dashboard() {
             onToast={showToast}
             onEditTx={handleEditTx}
              onDeleteTx={handleDelete}
+             onRepeatTx={handleRepeatTransaction}
              haptics={haptics}
               hapticsEnabled={hapticsEnabled}
               monthlyData={data?.monthlyData || []}
@@ -1367,6 +1676,10 @@ export default function Dashboard() {
               onCategoryClick={handleAnomalyCategoryClick}
              userName={effectiveUserName}
              entitlement={entitlement}
+             controlledSection={statsActiveSection}
+             onSectionChange={setStatsActiveSection}
+             controlledAnalysisMode={analysisMode}
+             onAnalysisModeChange={setAnalysisMode}
           />
         )}
         {activeNav === "plan" && (
@@ -1451,6 +1764,7 @@ export default function Dashboard() {
           onClose={() => setDrillDown(null)}
           onEdit={handleEditTx}
           onDelete={handleDelete}
+          onRepeat={handleRepeatTransaction}
         />
       )}
 
@@ -1479,7 +1793,7 @@ export default function Dashboard() {
       {/* Quick-add sheet (mobile-native fast path) */}
       <QuickAddSheet
         open={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
+        onClose={() => { setRepeatTx(null); setQuickAddOpen(false) }}
         initialType={txType}
         onSubmit={submitTransaction}
         onGoalContribute={openGoalPicker}
@@ -1487,6 +1801,8 @@ export default function Dashboard() {
         proRegistrationOpen={proRegistrationOpen}
         specialSuggestion={specialSuggestion}
         transactions={data?.transactions || []}
+        suppress={onboardingActive}
+        initialValues={repeatPrefill}
       />
 
       {/* Goal celebration */}
@@ -1554,12 +1870,6 @@ export default function Dashboard() {
           proRegistrationOpen={proRegistrationOpen}
         />
       )}
-
-      {/* Setup Saldo Awal (first-time flow) */}
-      <SetupSaldoAwal
-        settings={settings}
-        onSaved={() => { refetchSettings(); fetchData() }}
-      />
 
       {/* Floating Action Button */}
       {hasFeature(entitlement, "transactions") && <button
@@ -1679,6 +1989,7 @@ function DrillDownModal({ drillDown, data, onClose, onEdit, onDelete }) {
                     <RowActionsMenu
                       onEdit={() => onEdit(t)}
                       onDelete={() => onDelete(t)}
+                      onRepeat={isRepeatableTransaction(t) ? () => onRepeat(t) : undefined}
                       menuLabel={`Aksi transaksi ${t.category}`}
                       editLabel={`Edit ${t.category}`}
                       deleteLabel={`Delete ${t.category}`}

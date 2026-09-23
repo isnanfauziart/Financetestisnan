@@ -1804,3 +1804,85 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 **Verification:** focused suites green per batch (6 failures during development were test-side: URL-encoded `!` in matchers, missing mock exports, and two contradictory fixtures — all repaired); independent diff review clean; final gate: full suite **963 passed / 2 skipped** (147 files), production build passed (11 env placeholders), `git diff --check` clean. Pre-existing unrelated worktree changes untouched. Nothing committed.
 
 **Blockers:** none. Next per audit order: remaining Wave 4+ items from the roadmap.
+
+## 2026-09-21 — Wave 4: Required guided first use
+
+**Task:** Fourth post-foundation wave from `docs/2026-09-09-product-improvement-roadmap.md`: new accounts must complete two committed outcomes — confirm the combined opening balance (Rp0 valid) and save their first transaction — through a non-dismissable, resumable guided flow; existing users are never gated; grouped legacy savings actions gain a confirmation step.
+
+**Decision (user-approved):** the new-account rule is Sheet-derived — onboarding only when the account has zero transactions AND `startingBalanceConfirmed` is false; no Supabase signal, no migration. Derivation fails closed while settings are unknown (neutral loading screen) except when transactions exist, which proves completion, so an existing user is never blocked by a settings hiccup.
+
+**Batches:**
+- A — state + gate: new `useOnboardingState.js` (pure derivation: balance → transaction → optional); `page.js` gate returns the overlay inside its own `SharedDataScopeContext` before the shell (tabs/FAB/bottom nav unreachable), with a `history.pushState` sentinel so browser Back pops the sentinel instead of leaving; `QuickAddSheet` accepts `suppress` so a leftover normal mount stays hidden.
+- B — balance step: `OnboardingOverlay` balance form (Rp0 accepted and submitted as 0; values preserved across validation/network errors; role=alert errors; labeled inputs); `handleOnboardingBalanceSaved` writes `startingBalance` + `startingBalanceDate` in one `PUT /api/settings` (server auto-stamps `startingBalanceConfirmed=true`, now covered by 3 new route tests incl. Rp0, explicit false override, invalid date fail-closed); local commit state holds the gate while the settings/dashboard feeds refetch so a slow/failed refetch never drops the gate; the dismissible `SetupSaldoAwal` prompt is removed (file deleted).
+- C — first transaction: the overlay reuses the **unchanged** `QuickAddSheet` (same `submitFinancialWrite` pipeline, quota, replay safety); closing the sheet mid-step shows a "Saldo awal tersimpan ✓ / Catat transaksi pertama" interstitial instead of allowing bypass; after both outcomes commit, the optional screen offers budget/goal (via `openPlanSection("budget"|"goal")`) or "Mulai pakai Artami"; refresh during the optional offer skips it by design (offer, not required outcome).
+- D — review confirmation: `SavingsReviewModal` now shows a confirm panel (count + selected total) before Alokasikan/Bebaskan (`role="alertdialog"`, Batal / Ya-confirm); selection changes or reloads drop the pending confirmation; the all-or-nothing `ALLOCATION_STALE` abort-reload behavior is unchanged.
+
+**Tests:** new `tests/lib/onboardingState.test.js` (8), `tests/components/OnboardingOverlay.test.jsx` (10: no-dismiss, Rp0, formatting, error value preservation, Quick Add reuse, failure non-commit, interstitial re-open, optional step), `tests/components/OnboardingGate.test.jsx` (6 source-contract wiring tests in the DashboardMotion pattern — page.js is not renderable in this env), 3 settings-route tests (Rp0 stamps confirmed, explicit false survives, invalid date fails closed); `SavingsReviewModal.test.jsx` extended to the confirmation contract (4 updated + 4 new = 11).
+
+**Verification:** focused suites green per batch; adjacent regression checks (QuickAddSheet, WriteGate, SyncStatus, logoutCache, balanceCheckpoint, dashboardBalances) all green; final gate: full suite **995 passed / 2 skipped** (151 files), production build passed, `git diff --check` clean. Nothing committed; pre-existing unrelated worktree changes untouched.
+
+**Blockers:** none. Next per audit order: Wave 5 (URL-backed navigation, modal history, and transaction entry).
+
+## 2026-09-22 — Wave 5: URL-backed navigation, modal history, and transaction entry
+
+### Tasks Completed
+- URL-backed view state: one dashboard-owned adapter (`dashboardUrlState.js`) parses/serializes tab, Rencana section, Statistik section, month, year, account, category, date range, analysis mode, comparison periods, and calendar month/year. Invalid parameters fail closed to defaults; default values are omitted from the query string.
+- Push-style history for destination changes (tab/section), replace-style for filter tweaks; Back/Forward re-applies the URL's view state through one popstate listener. Address-bar drift (e.g. after a sheet consumes Back) is repaired without new entries.
+- Modal history in `Sheet.jsx`: one module-level LIFO stack + a single history sentinel while any sheet is open, so every existing sheet becomes the first Back destination with no per-callsite wiring. Back closes the top sheet first (stacked sheets LIFO); dirty forms (Quick Add, edit transaction) show a "Buang perubahan?" alertdialog before discarding; declining re-pushes the guard so the next Back still targets the sheet.
+- StatsTab section + analysis mode lifted to controlled props (page-owned, URL-backed) with internal fallbacks; destination changes focus the destination heading (header h1, `plan-page-title`, active stats tab) while filter updates never steal focus.
+- Desktop **Tambah transaksi** header action (hidden md+) shares the same `openQuickAdd` instance as the mobile FAB and empty states.
+- **Ulangi transaksi**: `src/lib/transactionRepeat.js` (income/expense only; `billpay:`/`debtpay:` rows excluded) builds a prefill that copies description, category, amount, account, and routine/special class, defaults date to today, and never copies the event tag. Quick Add shows a review note and submits through the unchanged quota/replay-safe pipeline. Repeat affordances added to the drill-down menu, Home recent rows, and monthly recap rows — only when eligible.
+- `calYear` normalized to a number at both URL entry points so `isTodayCell` strict comparison keeps working.
+
+### Files Changed
+- New: `src/app/dashboard/_components/dashboardUrlState.js`, `src/lib/transactionRepeat.js`, tests `dashboardUrlState.test.js`, `transactionRepeat.test.js`, `SheetHistory.test.jsx`, `QuickAddRepeat.test.jsx`, `StatsTabControlled.test.jsx`, `RowActionsMenuRepeat.test.jsx`, `DashboardUrlContract.test.jsx`
+- Modified: `src/app/dashboard/page.js` (URL init/sync/popstate/focus, repeat state, desktop button, controlled StatsTab props), `_components/Sheet.jsx` (modal history + discard confirm + dirty prop), `_components/QuickAddSheet.jsx` (prefill + dirty), `_components/EditTransactionModal.jsx` (dirty), `_components/RowActionsMenu.jsx` (Ulangi), `_components/RecapSection.jsx`/`RecapMonthGroup.jsx` (repeat threading), `StatsTab.jsx` (controlled section/mode + onRepeat), `HomeTab.jsx` (repeat action), `PlanTab.jsx` (focusable heading), `tests/components/DashboardMotion.test.jsx` (plan-section initializer assertion updated to the URL-backed contract)
+
+### Decisions
+- Raw `window.history` push/replace (AdminShell + Wave 4 sentinel precedent) instead of Next router — no RSC round-trips; the dashboard is fully client-state driven.
+- One URL parameter per filter, `section` for Rencana and `stats` for Statistik, to avoid ambiguity; serialize omits defaults so `/dashboard` stays clean.
+- Modal history lives entirely inside `Sheet.jsx` (LIFO + single sentinel) so all 20+ sheet call sites gain Back-close behavior with zero wiring; page.js consults `closeTopSheetOnBack()` before re-applying view state.
+- The discard confirmation applies to Back/Escape/close-button/backdrop for dirty forms only; clean sheets close immediately (read-only surfaces like drill-down).
+- Repeat eligibility reuses the ledger id prefixes the debt/bill workflows own (`billpay:`, `debtpay:`); savings rows are never repeatable.
+
+### Verification
+- Focused suites: dashboardUrlState 14, transactionRepeat 7, SheetHistory 7, QuickAddRepeat 4, StatsTabControlled + RowActionsMenuRepeat 5, DashboardUrlContract 7 — all green.
+- Adjacent regressions: Sheet, SheetFocus, EditTransactionModal, HomeTab, PlanTab, RecapSection, StatsTab, QuickAddSheet, Dashboard smoke/motion — 113 passed.
+- Final gate: full suite 1039 passed / 2 skipped (158 files); production build compiled successfully; `git diff --check` clean.
+
+### Blockers
+- None. Final diff review was self-performed (single-agent session), same caveat as Wave 4.
+
+## 2026-09-22 — Wave 6: Beranda hierarchy and weekly action surface
+
+**Tasks completed:**
+- Hero now shows the three approved layers above the fold at 360x640: Kekayaan Bersih + delta, Bisa dipakai sekarang + basis + held-savings pill, and a new compact "Arus kas bulan ini" row sourced from the actual (inclusive) monthly series — never the routine analytics basis or stats filters.
+- `Rincian saldo` moved behind a clear "Rincian saldo" hero action into the reusable `BalanceDetailSheet`. Rows now distinguish `Saldo Tercatat`, `Dialokasikan ke target`, `Tabungan tanpa target`, and held investment; unpaid bills stay informational with their non-deduction note; a shortfall warning row still appends when allocations exceed recorded money.
+- Focus note relocated below the check surface so it no longer competes with the financial headline or the check actions.
+- `Yang perlu kamu cek` rewritten around a single deterministic builder (`src/lib/homeChecklist.js`): overdue bill first, budget at the established 80% warning threshold (>=100% escalated), goal behind pace, then entitlement-gated anomaly evidence; at most two items; single compact `Tambah transaksi` fallback when nothing qualifies or sources are loading.
+- Fixed a real deep-link bug: the bill action now opens the valid `bill` plan section instead of the legacy `tagihan` key that silently fell back to Ringkasan. Anomaly items land on Statistik's Ringkasan with the exact category filter proving the item (new `openStatsDestination` callback in page.js).
+- Anomaly detection extracted from `AnomalyAlerts` into `src/lib/anomalies.js` with parity tests so the alert component and the checklist share one ruleset (special expenses excluded, ratio >=1.3, worst-first).
+
+**Files changed:** `src/lib/homeChecklist.js` (new), `src/lib/anomalies.js` (new), `src/components/BalanceDetailSheet.jsx` (new), `src/app/dashboard/HomeTab.jsx`, `src/app/dashboard/page.js`, `src/app/dashboard/_components/balanceCopy.js`, `src/components/AnomalyAlerts.jsx`, `tests/lib/homeChecklist.test.js` (new), `tests/lib/anomalies.test.js` (new), `tests/components/BalanceDetailSheet.test.jsx` (new), `tests/lib/balancesRincian.test.js`, `tests/components/HomeTab.test.jsx`.
+
+**Decisions:** bill slot is overdue-only (due_today/due_soon no longer occupy the checklist); budget threshold aligned from 85% to the established 80%; hero cash row uses `data.monthlyData` (actual series) rather than `monthlyData` (routine basis); loading or failed sources yield no candidates rather than invented items.
+
+**Verification:** focused suites green per batch (12 checklist + 5 anomaly parity + rincian + 20 Batch B + 21 HomeTab); adjacent regressions green (108 across StatsTab/PlanTab/DashboardUrl/DashboardMotion/feature surfaces); final gate — 1065 passed / 2 skipped (161 files), production build passed, `git diff --check` clean. Final diff review performed by the implementation owner (single-agent session), same caveat as Waves 4-5. No commit made.
+
+## 2026-09-23 — Wave 7: Statistik and Rencana progressive disclosure
+
+**Task:** Seventh post-foundation wave from `docs/2026-09-09-product-improvement-roadmap.md` (plan persisted at `docs/superpowers/plans/2026-09-23-wave7-stats-plan-progressive-disclosure.md`): Statistik figures are always attributable to their filters and analytical basis, every chart conclusion is keyboard-reachable, and Rencana navigation was decided by rendering both roadmap prototypes. No API, schema, quota, or entitlement changes.
+
+**Batches:**
+- A — Statistik disclosure: persistent "Ringkasan filter" summary (Periode, Akun, Dasar analisis, Kategori, Rentang tanggal, Perbandingan) beside the removable chips; inclusive-actual vs routine-only basis labels ("Termasuk semua transaksi" on the Kondisi Keuangan hero, "Dasar: Pengeluaran rutin saja/Semua transaksi" on chart surfaces); `aria-expanded`/`aria-controls` on the date-range disclosure; `aria-pressed` on the compare toggle.
+- B — Chart alternatives: new `StatsDataTable` (focusable disclosure tables for cash flow, category ranking, monthly trend, category trend, comparison) and `useOverflowHint` (per-render measure + one ResizeObserver) gating "Geser untuk melihat semua bulan/kategori" hints; WAI-ARIA tabs wiring on the stats tablist (roving tabindex, Arrow/Home/End, tabpanel ids); calendar prev/next hit areas extended to 44px via pseudo-element (visual icon unchanged).
+- C — Rencana: both narrow-screen patterns built behind a temporary localStorage toggle; section nav controls wired to the panel (`aria-controls="plan-section-panel"`); page.js now focuses the active section control (fallback `plan-page-title`) and announces "Bagian {label} dibuka" through a polite status region; locked/unavailable/loading/empty/failed section states verified (existing dataSectionsErrors coverage; legacy `features:false` locking semantics left untouched).
+- D — Decision: both prototypes rendered at 360x640 through a temporary dev-only harness (deleted before ship). Scroll rail passed all five roadmap checks; Lainnya was weaker on discoverability (secondary sections hidden, 2 interactions). **Shipped the scrollable labelled rail** (one row, edge fade, overflow-gated hint, active-pill auto-scroll with reduced-motion instant jump); removed the toggle, the grouping, and its storage helpers.
+
+**Tests:** `tests/components/StatsTab.test.jsx` (+10: filter summary states, basis labels, toggle ARIA), `tests/components/StatsChartTables.test.jsx` (new, 9: disclosure tables, overflow hints, tabs wiring, 44px), `tests/lib/useOverflowHint.test.jsx` (new, 6: measure/resize/observe/disconnect/no-RO fallback), `tests/components/PlanNavigationPrototypes.test.jsx` (new, 7: shipped rail, gating, deep links, toggle absence, stale-storage independence), `DashboardUrlContract.test.jsx` (+2 source contracts: focus/announcement wiring, decision kept out of the URL state); two pre-existing assertions updated for intended changes (comparison helper copy now carries the basis label; Ringkasan content lives inside the labelled tabpanel).
+
+**Decisions:** hero is always actual-basis and labelled as such even in Rutin mode; Kategori income table omitted (values already in the readable detail list); plan-rail hint overflow-gated like the stats hints; nav-button lookup uses `[aria-controls="plan-section-panel"][aria-current="page"]` (the panel itself contains section content, not the nav).
+
+**Verification:** focused suites green per batch (44, 51, 27, 14, 6); one self-review pass fixed a broken selector, a formatting slip, an un-gated rail hint, and a stale comment before the gate; independent final diff review performed by the implementation owner (single-agent session), same caveat as Waves 4-6; final gate — full suite **1100 passed / 2 skipped** (163 files), production build passed (4 env placeholders), `git diff --check` clean. Pre-existing unrelated worktree changes untouched; nothing committed.
+
+**Blockers:** none. Next per audit order: Wave 8 (smart-feature explanations and Pro previews).

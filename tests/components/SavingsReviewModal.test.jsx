@@ -92,6 +92,7 @@ describe("SavingsReviewModal", () => {
     fireEvent.click(screen.getByRole("button", { name: /tabungan lama bca/i }))
     fireEvent.change(screen.getByLabelText(/alokasikan ke target/i), { target: { value: "goal-1" } })
     fireEvent.click(screen.getByRole("button", { name: "Alokasikan" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Ya, alokasikan" }))
 
     await waitFor(() => expect(submitFinancialWrite).toHaveBeenCalledTimes(1))
     expect(submitFinancialWrite).toHaveBeenCalledWith({
@@ -127,6 +128,7 @@ describe("SavingsReviewModal", () => {
     await waitFor(() => expect(screen.getByText("Tabungan lama DANA")).toBeInTheDocument())
     fireEvent.click(screen.getByRole("button", { name: /tabungan lama dana/i }))
     fireEvent.click(screen.getByRole("button", { name: "Bebaskan" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Ya, bebaskan" }))
 
     await waitFor(() => expect(submitFinancialWrite).toHaveBeenCalledTimes(1))
     expect(submitFinancialWrite.mock.calls[0][0].body.action).toBe("release")
@@ -142,6 +144,7 @@ describe("SavingsReviewModal", () => {
     fireEvent.click(screen.getByRole("button", { name: /tabungan lama bca/i }))
     fireEvent.change(screen.getByLabelText(/alokasikan ke target/i), { target: { value: "goal-1" } })
     fireEvent.click(screen.getByRole("button", { name: "Alokasikan" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Ya, alokasikan" }))
 
     await waitFor(() => expect(screen.getByText("Daftar tabungan berubah. Muat ulang lalu pilih kembali.")).toBeInTheDocument())
     expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("/api/savings/allocations")).length).toBeGreaterThanOrEqual(2)
@@ -156,9 +159,66 @@ describe("SavingsReviewModal", () => {
     fireEvent.click(screen.getByRole("button", { name: /tabungan lama bca/i }))
     fireEvent.change(screen.getByLabelText(/alokasikan ke target/i), { target: { value: "goal-1" } })
     fireEvent.click(screen.getByRole("button", { name: "Alokasikan" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Ya, alokasikan" }))
 
     expect(await screen.findByText("Gagal menyimpan")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /tabungan lama bca/i })).toHaveAttribute("aria-pressed", "true")
+  })
+
+  it("shows a confirmation with count and total before any grouped write", async () => {
+    mockFetch({ allocations: ALLOCATIONS_PAYLOAD, goals: GOALS_PAYLOAD })
+    render(<SavingsReviewModal open onClose={vi.fn()} onSaved={vi.fn()} onToast={vi.fn()} />)
+
+    await waitFor(() => expect(screen.getByText("Tabungan lama BCA")).toBeInTheDocument())
+    fireEvent.click(screen.getByRole("button", { name: /tabungan lama bca/i }))
+    fireEvent.change(screen.getByLabelText(/alokasikan ke target/i), { target: { value: "goal-1" } })
+    fireEvent.click(screen.getByRole("button", { name: "Alokasikan" }))
+
+    const dialog = await screen.findByRole("alertdialog", { name: "Konfirmasi alokasi tabungan" })
+    expect(dialog).toHaveTextContent("1 baris")
+    expect(dialog).toHaveTextContent("Rp 1.000.000")
+    expect(submitFinancialWrite).not.toHaveBeenCalled()
+  })
+
+  it("applies nothing when the confirmation is cancelled", async () => {
+    mockFetch({ allocations: ALLOCATIONS_PAYLOAD, goals: GOALS_PAYLOAD })
+    render(<SavingsReviewModal open onClose={vi.fn()} onSaved={vi.fn()} onToast={vi.fn()} />)
+
+    await waitFor(() => expect(screen.getByText("Tabungan lama BCA")).toBeInTheDocument())
+    fireEvent.click(screen.getByRole("button", { name: /tabungan lama bca/i }))
+    fireEvent.click(screen.getByRole("button", { name: "Bebaskan" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Batal" }))
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
+    expect(submitFinancialWrite).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: /tabungan lama bca/i })).toHaveAttribute("aria-pressed", "true")
+  })
+
+  it("drops the pending confirmation when the selection changes", async () => {
+    mockFetch({ allocations: ALLOCATIONS_PAYLOAD, goals: GOALS_PAYLOAD })
+    render(<SavingsReviewModal open onClose={vi.fn()} onSaved={vi.fn()} onToast={vi.fn()} />)
+
+    await waitFor(() => expect(screen.getByText("Tabungan lama BCA")).toBeInTheDocument())
+    fireEvent.click(screen.getByRole("button", { name: /tabungan lama bca/i }))
+    fireEvent.click(screen.getByRole("button", { name: "Bebaskan" }))
+    await screen.findByRole("alertdialog", { name: "Konfirmasi pembebasan tabungan" })
+
+    fireEvent.click(screen.getByRole("button", { name: /tabungan lama dana/i }))
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
+    expect(submitFinancialWrite).not.toHaveBeenCalled()
+  })
+
+  it("does not open the assign confirmation while the goal is missing", async () => {
+    mockFetch({ allocations: ALLOCATIONS_PAYLOAD, goals: GOALS_PAYLOAD })
+    render(<SavingsReviewModal open onClose={vi.fn()} onSaved={vi.fn()} onToast={vi.fn()} />)
+
+    await waitFor(() => expect(screen.getByText("Tabungan lama BCA")).toBeInTheDocument())
+    fireEvent.click(screen.getByRole("button", { name: /tabungan lama bca/i }))
+    fireEvent.click(screen.getByRole("button", { name: "Alokasikan" }))
+
+    expect(await screen.findByText("Target tabungan wajib dipilih")).toBeInTheDocument()
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
   })
 
   it("shows the empty state when nothing needs review", async () => {

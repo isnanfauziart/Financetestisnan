@@ -1,13 +1,13 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { MoreVertical, Pencil, Repeat, Trash2 } from "lucide-react"
 
 // ponytail: fixed 176px menu width / ~100px height estimate for viewport clamping,
 // same approach as SelectField; measure-and-reflow only if menus ever grow.
 const MENU_WIDTH = 176
 
-export default function RowActionsMenu({ onEdit, onDelete, editLabel = "Edit", deleteLabel = "Hapus", menuLabel = "Menu aksi" }) {
+export default function RowActionsMenu({ onEdit, onDelete, onRepeat, repeatLabel = "Ulangi", editLabel = "Edit", deleteLabel = "Hapus", menuLabel = "Menu aksi" }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const btnRef = useRef(null)
@@ -67,6 +67,17 @@ export default function RowActionsMenu({ onEdit, onDelete, editLabel = "Edit", d
           >
             <Pencil size={14} aria-hidden="true" /> Edit
           </button>
+          {onRepeat && (
+            <button
+              type="button"
+              role="menuitem"
+              aria-label={repeatLabel}
+              onClick={() => { setOpen(false); onRepeat() }}
+              className="min-h-11 w-full flex items-center gap-2.5 px-4 text-sm font-semibold text-md3-on-surface hover:bg-md3-surface-container-high transition-colors text-left"
+            >
+              <Repeat size={14} aria-hidden="true" /> Ulangi
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"

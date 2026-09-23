@@ -1,8 +1,9 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import { Calculator, ArrowRight, Target, Wallet, Receipt, LayoutDashboard, HandCoins, CalendarDays } from "lucide-react"
 import { THEME } from "./_components/constants"
+import useOverflowHint from "./_components/useOverflowHint"
 import GoalsSection from "@/components/GoalsSection"
 import DebtsSection from "@/components/DebtsSection"
 import BudgetsSection from "@/components/BudgetsSection"
@@ -69,6 +70,16 @@ const PLAN_PILLAR_TONES = {
   },
 }
 
+// Wave 7 decision record: both narrow-screen patterns (scrollable labelled
+// rail vs "Lainnya" grouping) were rendered at 360x640 and evaluated against
+// the roadmap's mobile, keyboard, focus, discoverability, and overflow checks.
+// The scrollable labelled rail passed all five and keeps every planning
+// section permanently discoverable, so it ships. See the decision record in
+// docs/superpowers/plans and progress.md.
+export function getPlanSectionLabel(key) {
+  return PLAN_SECTIONS.find(section => section.key === key)?.label || key
+}
+
 export default function PlanTab({
   data,
   transactions,
@@ -111,6 +122,45 @@ export default function PlanTab({
     : visibleSections[0]?.key
   const simulationAvailable = isFeatureEnabled(entitlement, "financialIndependence") || isFeatureEnabled(entitlement, "whatIf")
   const proRegistrationOpen = isProRegistrationOpen(entitlement)
+  const scrollRailRef = useRef(null)
+  const [railRef, railOverflows] = useOverflowHint()
+  // Wave 7 — keep the active section visible in the rail after navigation
+  // (deep links, far sections); reduced-motion users get an instant jump.
+  useEffect(() => {
+    const rail = scrollRailRef.current
+    const active = rail?.querySelector('[aria-current="page"]')
+    if (!rail || !active || rail.scrollWidth <= rail.clientWidth) return
+    const target = Math.max(0, active.offsetLeft - rail.offsetLeft - 8)
+    const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    rail.scrollTo({ left: target, behavior: prefersReducedMotion ? "auto" : "smooth" })
+  }, [currentSection])
+
+  const renderSectionButton = section => {
+    const isActive = currentSection === section.key
+    const Icon = section.icon
+    return (
+      <button
+        key={section.key}
+        id={`plan-nav-${section.key}`}
+        aria-controls="plan-section-panel"
+        type="button"
+        aria-current={isActive ? "page" : undefined}
+        onClick={() => handleSectionChange(section.key)}
+        className={`min-h-11 shrink-0 whitespace-nowrap rounded-2xl px-3 py-2.5 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${
+          isActive
+            ? "bg-earth-900 text-white shadow-warm"
+            : "bg-md3-surface-container-lowest text-md3-on-surface-variant hover:bg-md3-surface-container-low hover:text-md3-on-surface"
+        }`}
+      >
+        <span className="inline-flex items-center justify-center gap-1.5">
+          <span data-plan-icon-tile className={`flex h-7 w-7 items-center justify-center rounded-xl ${PLAN_SECTION_TONES[section.key]}`}>
+            <Icon size={14} strokeWidth={2.2} aria-hidden="true" />
+          </span>
+          <span>{section.label}</span>
+        </span>
+      </button>
+    )
+  }
 
   const handleSectionChange = (sectionKey) => {
     if (onSectionChange) {
@@ -126,7 +176,7 @@ export default function PlanTab({
         <header className="plan-hero" aria-labelledby="plan-page-title">
           <div className="plan-hero__copy">
             <p className="plan-hero__eyebrow">Rencana keuangan</p>
-            <h1 id="plan-page-title">Rencanakan keuanganmu.</h1>
+            <h1 id="plan-page-title" tabIndex={-1} className="focus:outline-none">Rencanakan keuanganmu.</h1>
             <p className="plan-hero__description">Atur anggaran, tagihan, dan target bulan ini.</p>
           </div>
           <div className="plan-hero__meta">
@@ -136,35 +186,18 @@ export default function PlanTab({
         </header>
 
         <nav className="plan-chapter-nav" aria-label="Navigasi Rencana">
-          <div className="plan-chapter-nav__rail">
-            {visibleSections.map((section) => {
-              const isActive = currentSection === section.key
-              const Icon = section.icon
-              return (
-                <button
-                  key={section.key}
-                  type="button"
-                  aria-current={isActive ? "page" : undefined}
-                  onClick={() => handleSectionChange(section.key)}
-                  className={`min-h-11 rounded-2xl px-3 py-2.5 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${
-                    isActive
-                      ? "bg-earth-900 text-white shadow-warm"
-                      : "bg-md3-surface-container-lowest text-md3-on-surface-variant hover:bg-md3-surface-container-low hover:text-md3-on-surface"
-                  }`}
-                >
-                  <span className="inline-flex items-center justify-center gap-1.5">
-                    <span data-plan-icon-tile className={`flex h-7 w-7 items-center justify-center rounded-xl ${PLAN_SECTION_TONES[section.key]}`}>
-                      <Icon size={14} strokeWidth={2.2} aria-hidden="true" />
-                    </span>
-                    <span>{section.label}</span>
-                  </span>
-                </button>
-              )
-            })}
+          <div className="plan-chapter-nav__scroll" data-plan-nav-prototype="scroll">
+            <div ref={element => { scrollRailRef.current = element; railRef.current = element }} className="plan-chapter-nav__rail plan-chapter-nav__rail--scroll">
+              {visibleSections.map(renderSectionButton)}
+            </div>
+            <span className="plan-chapter-nav__fade" aria-hidden="true" />
           </div>
+          {railOverflows && (
+            <p className="plan-chapter-nav__hint">Geser untuk melihat semua bagian</p>
+          )}
         </nav>
 
-        <div key={currentSection} className="plan-section-transition">
+        <div key={currentSection} id="plan-section-panel" className="plan-section-transition">
           {currentSection === "overview" && (
             <section className="plan-overview" aria-labelledby="plan-overview-title">
               <div className="plan-overview__header plan-monthly-brief">

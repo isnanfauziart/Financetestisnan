@@ -1,6 +1,6 @@
 "use client"
-import { useMemo } from "react"
-import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, ArrowRight, Clock3, AlertTriangle, PlusCircle } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Wallet, ArrowDownRight, ArrowUpRight, PiggyBank, Sparkles, ArrowRight, Clock3, AlertTriangle, PlusCircle, Repeat, Target, Activity } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRp, formatRpFull, useCountUpOvershoot, relativeDate } from "./_components/helpers"
 import EmptyState from "./_components/EmptyState"
@@ -8,12 +8,15 @@ import { getCategoryVisual } from "@/lib/categoryIcons"
 import BudgetStatusCard from "@/components/BudgetStatusCard"
 import HealthScoreCard from "@/components/HealthScoreCard"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
-import { useBudgets, useBills, useSettings } from "@/lib/useSharedData"
+import { useBudgets, useBills, useSettings, useGoals } from "@/lib/useSharedData"
 import { getFocusNote } from "./_components/focusNote"
 import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featureAccess"
 import { isSpecialExpense } from "@/lib/expenseClass"
+import { isRepeatableTransaction } from "@/lib/transactionRepeat"
+import BalanceDetailSheet from "@/components/BalanceDetailSheet"
 import { getWibDateParts } from "@/lib/wibCalendar"
-import { matchesBudgetPeriod } from "@/lib/budgetPace"
+import { buildChecklistActions } from "@/lib/homeChecklist"
+import { detectAnomalies } from "@/lib/anomalies"
 import { BALANCE_COPY, buildRincianRows, formatBalanceBasis } from "./_components/balanceCopy"
 import { useFinancialWriteGuard } from "@/lib/financialWriteState"
 
@@ -48,7 +51,7 @@ export default function HomeTab({
   statIncome, statExpense, statSavings,
   topCategory, topCategoryPct,
   recent5,
-  setActiveNav, openPlanSection, openQuickAdd, setDrillDown,
+  setActiveNav, openPlanSection, openQuickAdd, openStatsDestination, setDrillDown, onRepeat,
   selectedMonth, selectedYear, monthlyData,
   allTransactions, filteredTransactions,
   insights,
@@ -57,6 +60,7 @@ export default function HomeTab({
 }) {
   const proRegistrationOpen = isProRegistrationOpen(entitlement)
   const guard = useFinancialWriteGuard()
+  const [rincianOpen, setRincianOpen] = useState(false)
   const balances = data?.balances
   const rincianRows = buildRincianRows(balances)
   const rincian = balances?.rincian || {}
@@ -77,6 +81,14 @@ export default function HomeTab({
     : "Periode yang dipilih"
   const deltaLabel = monthlyDelta >= 0 ? "Bertumbuh" : "Turun"
   const currentDate = getWibDateParts()
+  // Wave 6 hero layer 3: the current WIB month from the actual (inclusive)
+  // monthly series — never the routine analytics basis or the stats filters.
+  const heroMonthRow = (data?.monthlyData || []).find(
+    (row) => row.month === AVAILABLE_MONTHS[currentDate.monthIndex] && String(row.year) === String(currentDate.year),
+  )
+  const heroCashIn = Number(heroMonthRow?.pemasukan) || 0
+  const heroCashOut = Number(heroMonthRow?.pengeluaran) || 0
+  const heroCashNet = heroCashIn - heroCashOut
   const budgetMonth = selectedMonth && selectedMonth !== "Semua Bulan"
     ? selectedMonth
     : AVAILABLE_MONTHS[currentDate.monthIndex]
@@ -86,79 +98,65 @@ export default function HomeTab({
   const { budgets } = useBudgets(budgetMonth, budgetYear)
   const { bills } = useBills(true, sessionKey)
   const { settings } = useSettings(sessionKey)
+  const { goals } = useGoals(sessionKey)
   const visibleInsights = hasFeature(entitlement, "insights") ? insights : []
   const configuredSavings = settings?.categories?.savings
   const liquidSavingsCategories = Array.isArray(configuredSavings)
     ? configuredSavings.filter(item => (item.savingsKind || item.kind) === "liquid" && item.active !== false).map(item => typeof item === "string" ? item : item.name)
     : undefined
 
+  // Wave 6 — one deterministic builder owns the check surface (see
+  // src/lib/homeChecklist.js for the approved priority order and cap). This
+  // layer only supplies sources, icons/tints, and the navigation dispatch.
+  const anomalies = useMemo(
+    () => detectAnomalies({ transactions: allTransactions || [], month: budgetMonth, year: budgetYear }),
+    [allTransactions, budgetMonth, budgetYear],
+  )
+  const anomalyEnabled = hasFeature(entitlement, "anomalyAlerts") && isFeatureEnabled(entitlement, "anomalyAlerts")
+
   const priorityActions = useMemo(() => {
-    const actions = []
+    const items = buildChecklistActions({
+      bills,
+      budgets,
+      allTransactions,
+      month: budgetMonth,
+      year: budgetYear,
+      goals,
+      allocations: data?.balances?.allocations,
+      anomalies,
+      anomalyEnabled,
+    })
 
-    const sortedBills = [...(bills || [])].sort((a, b) => (a.daysUntilDue || 0) - (b.daysUntilDue || 0))
-    const urgentBill = sortedBills.find((bill) => bill.status === "overdue" || bill.status === "due_today" || bill.status === "due_soon")
-
-    if (urgentBill) {
-      actions.push({
-        key: `bill-${urgentBill.id || urgentBill.nama}`,
-        eyebrow: urgentBill.status === "overdue" ? "Tagihan terlambat" : urgentBill.status === "due_today" ? "Jatuh tempo hari ini" : "Jatuh tempo dekat",
-        title: `Bayar tagihan ${urgentBill.nama}`,
-        description: urgentBill.jumlah
-          ? `${formatRp(urgentBill.jumlah)} • Buka Rencana untuk lanjut bayar.`
-          : "Buka Rencana untuk cek dan selesaikan tagihan ini.",
-        icon: Clock3,
-        tint: "bg-rose-50 text-rose-600 border-rose-100",
-        onClick: () => {
-          setActiveNav("plan")
-          openPlanSection?.("tagihan")
-        },
-        aria: `Bayar tagihan ${urgentBill.nama}`,
-      })
+    const styleFor = (item) => {
+      switch (item.kind) {
+        case "bill":
+          return { icon: Clock3, tint: "bg-rose-50 text-rose-600 border-rose-100" }
+        case "budget":
+          return item.eyebrow === "Budget jebol"
+            ? { icon: AlertTriangle, tint: "bg-amber-50 text-amber-700 border-amber-100" }
+            : { icon: AlertTriangle, tint: "bg-orange-50 text-orange-700 border-orange-100" }
+        case "goal":
+          return { icon: Target, tint: "bg-teal-50 text-teal-700 border-teal-100" }
+        case "anomaly":
+          return { icon: Activity, tint: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100" }
+        default:
+          return { icon: PlusCircle, tint: "bg-violet-50 text-violet-700 border-violet-100" }
+      }
     }
 
-    const urgentBudget = (budgets || [])
-      .map((budget) => {
-        const spent = (allTransactions || []).reduce((sum, tx) => {
-          if (tx.type !== "expense" || tx.category !== budget.kategori || (budget.akun && tx.account !== budget.akun) || !matchesBudgetPeriod(tx, budget)) return sum
-          return sum + (Number(tx.amount) || 0)
-        }, 0)
-        const pct = budget.limit > 0 ? (spent / budget.limit) * 100 : 0
-        return { ...budget, spent, pct }
-      })
-      .filter((budget) => budget.limit > 0 && budget.pct >= 85)
-      .sort((a, b) => b.pct - a.pct)[0]
-
-    if (urgentBudget && actions.length < 2) {
-      actions.push({
-        key: `budget-${urgentBudget.kategori}-${urgentBudget.bulan}-${urgentBudget.tahun}-${urgentBudget.akun || ""}`,
-        eyebrow: urgentBudget.pct >= 100 ? "Budget jebol" : "Budget menipis",
-        title: `Cek budget ${urgentBudget.kategori}`,
-        description: `${urgentBudget.pct.toFixed(0)}% terpakai • Buka Rencana untuk cek dan atur budget.`,
-        icon: AlertTriangle,
-        tint: urgentBudget.pct >= 100 ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-orange-50 text-orange-700 border-orange-100",
-        onClick: () => {
-          setActiveNav("plan")
-          openPlanSection?.("budget")
-        },
-        aria: `Cek budget ${urgentBudget.kategori}`,
-      })
-    }
-
-    if (actions.length === 0) {
-      actions.push({
-        key: "quick-add-expense",
-        eyebrow: "Quick actions",
-        title: "Tambah transaksi hari ini",
-        description: "Catat pengeluaran atau pemasukan tanpa buka form penuh.",
-        icon: PlusCircle,
-        tint: "bg-violet-50 text-violet-700 border-violet-100",
-        onClick: () => openQuickAdd("expense"),
-        aria: "Tambah transaksi hari ini",
-      })
-    }
-
-    return actions.slice(0, 2)
-  }, [bills, budgets, allTransactions, budgetMonth, budgetYear, setActiveNav, openQuickAdd])
+    return items.map((item) => ({
+      ...item,
+      ...styleFor(item),
+      onClick: () => {
+        const destination = item.destination || {}
+        if (destination.action === "quickAdd") return openQuickAdd(destination.txType || "expense")
+        if (destination.tab === "stats") return openStatsDestination?.(destination)
+        if (destination.tab === "plan") return openPlanSection?.(destination.section)
+        return undefined
+      },
+    }))
+  }, [bills, budgets, allTransactions, budgetMonth, budgetYear, goals, data, anomalies,
+    anomalyEnabled, openPlanSection, openQuickAdd, openStatsDestination])
 
   const focusNote = useMemo(() => {
     return getFocusNote({
@@ -216,7 +214,7 @@ export default function HomeTab({
             </p>
           </div>
         )}
-        <div className="bento-tile-dark mesh-hero text-white p-5 sm:p-6 relative overflow-hidden animate-bento-in stagger-1 min-h-[220px]" style={{ backgroundColor: THEME.heroBg }}>
+        <div className="bento-tile-dark mesh-hero text-white p-5 sm:p-6 relative overflow-hidden animate-bento-in stagger-1 min-h-[220px]" data-testid="home-hero" style={{ backgroundColor: THEME.heroBg }}>
           <div className="relative z-10 h-full flex flex-col justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-1.5">
@@ -248,12 +246,80 @@ export default function HomeTab({
                 )}
               </div>
             </div>
-            <div className="rounded-2xl px-4 py-3 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">{focusNote.label}</p>
-              <p className="text-sm font-semibold text-white/90 leading-relaxed">
-                {focusNote.message}
+            {/* Layer 3: compact current-month cash row — always in the hero. */}
+            <div className="rounded-2xl px-4 py-3 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }} data-testid="hero-cash-row">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                Arus kas bulan ini · {AVAILABLE_MONTHS[currentDate.monthIndex]} {currentDate.year}
               </p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold text-white/70">Uang masuk</p>
+                  <p className="text-[11px] sm:text-sm font-bold tabular-nums">{formatRp(heroCashIn)}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold text-white/70">Uang keluar</p>
+                  <p className="text-[11px] sm:text-sm font-bold tabular-nums">{formatRp(heroCashOut)}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold text-white/70">Arus kas bersih</p>
+                  <p className="text-[11px] sm:text-sm font-bold tabular-nums">
+                    {heroCashNet > 0 ? "+" : heroCashNet < 0 ? "−" : ""}{formatRp(Math.abs(heroCashNet))}
+                  </p>
+                </div>
+              </div>
             </div>
+            {rincianRows.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setRincianOpen(true)}
+                aria-label="Buka rincian saldo"
+                className="inline-flex min-h-11 items-center gap-1.5 self-start rounded-full bg-white/15 px-3 py-2 text-[11px] font-bold text-white/90 transition-colors hover:bg-white/25"
+              >
+                Rincian saldo <ArrowRight size={12} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Wave 6: Yang perlu kamu cek sits directly below the hero. */}
+        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3 sm:p-4 animate-bento-in stagger-2" data-testid="home-checklist">
+          <div className="flex items-center justify-between gap-3 mb-3 px-1">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant">Beranda</p>
+              <h3 className="text-sm sm:text-base font-bold font-display text-md3-on-surface">Yang perlu kamu cek</h3>
+            </div>
+            <button
+              onClick={() => setActiveNav("plan")}
+              className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all"
+              aria-label="Buka Rencana untuk lihat semua prioritas"
+            >
+              Buka Rencana <ArrowRight size={12} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className={`grid gap-2 ${priorityActions.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+            {priorityActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <button
+                  key={action.key}
+                  onClick={action.onClick}
+                  aria-label={action.aria}
+                  className="rounded-2xl border border-md3-outline-variant p-3 text-left hover:-translate-y-0.5 transition-transform bg-md3-surface-container-low"
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center flex-shrink-0 ${action.tint}`}>
+                      <Icon size={16} strokeWidth={2.2} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-md3-on-surface-variant">{action.eyebrow}</p>
+                      <p className="text-sm font-bold text-md3-on-surface leading-snug mt-1">{action.title}</p>
+                      <p className="text-[11px] text-md3-on-surface-variant leading-snug mt-1">{action.description}</p>
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -343,87 +409,11 @@ export default function HomeTab({
           </button>
         </section>
 
-        {rincianRows.length > 0 && (
-          <section
-            className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-4 animate-bento-in stagger-3"
-            aria-labelledby="home-rincian-saldo-title"
-          >
-            <div className="mb-2 flex items-start justify-between gap-3 px-1">
-              <div>
-                <h3 id="home-rincian-saldo-title" className="text-sm font-bold font-display text-md3-on-surface">Rincian saldo</h3>
-                <p className="text-[11px] text-md3-on-surface-variant">Dari mana angka utama di Beranda berasal.</p>
-              </div>
-            </div>
-            <dl className="space-y-1">
-              {rincianRows.map((row) => (
-                <div
-                  key={row.key}
-                  className={`flex items-start justify-between gap-3 rounded-2xl px-3 py-2 ${row.emphasis ? "bg-md3-surface-container-high" : ""}`}
-                >
-                  <dt className="min-w-0">
-                    <span className="block text-xs font-semibold text-md3-on-surface">{row.label}</span>
-                    {row.note && <span className="mt-0.5 block text-[10px] leading-snug text-md3-on-surface-variant">{row.note}</span>}
-                    {row.count > 0 && <span className="mt-0.5 block text-[10px] text-md3-on-surface-variant">{row.count} catatan</span>}
-                  </dt>
-                  <dd
-                    className="flex-shrink-0 text-sm font-bold tabular-nums"
-                    style={{ color: row.negative ? THEME.danger : undefined }}
-                  >
-                    {row.negative ? "−" : ""}{formatRpFull(row.value)}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            {balances?.rincian?.estimate && (
-              <p className="mt-2 px-1 text-[11px] leading-relaxed text-md3-on-surface-variant">{BALANCE_COPY.estimateNote}</p>
-            )}
-            {guard.blocked && (
-              <p role="alert" className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
-                {guard.message}
-              </p>
-            )}
-          </section>
-        )}
-
-        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3 sm:p-4 animate-bento-in stagger-3">
-          <div className="flex items-center justify-between gap-3 mb-3 px-1">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant">Beranda</p>
-              <h3 className="text-sm sm:text-base font-bold font-display text-md3-on-surface">Yang perlu kamu cek</h3>
-            </div>
-            <button
-              onClick={() => setActiveNav("plan")}
-              className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all"
-              aria-label="Buka Rencana untuk lihat semua prioritas"
-            >
-              Buka Rencana <ArrowRight size={12} aria-hidden="true" />
-            </button>
-          </div>
-
-          <div className={`grid gap-2 ${priorityActions.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
-            {priorityActions.map((action) => {
-              const Icon = action.icon
-              return (
-                <button
-                  key={action.key}
-                  onClick={action.onClick}
-                  aria-label={action.aria}
-                  className="rounded-2xl border border-md3-outline-variant p-3 text-left hover:-translate-y-0.5 transition-transform bg-md3-surface-container-low"
-                >
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center flex-shrink-0 ${action.tint}`}>
-                      <Icon size={16} strokeWidth={2.2} aria-hidden="true" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-md3-on-surface-variant">{action.eyebrow}</p>
-                      <p className="text-sm font-bold text-md3-on-surface leading-snug mt-1">{action.title}</p>
-                      <p className="text-[11px] text-md3-on-surface-variant leading-snug mt-1">{action.description}</p>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+        {/* Wave 6: the generic focus note moved out of the hero — it must not
+            compete with the financial headline or the check actions. */}
+        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3 sm:p-4 animate-bento-in stagger-3" data-testid="home-focus-note">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-1">{focusNote.label}</p>
+          <p className="text-sm font-semibold leading-relaxed text-md3-on-surface">{focusNote.message}</p>
         </div>
 
       </div>
@@ -508,6 +498,16 @@ export default function HomeTab({
                     <p className="font-bold text-sm flex-shrink-0 ml-2 tabular-nums" style={{ color: amountColor }}>
                       {t.type === "income" ? "+" : t.type === "savings" ? "" : "-"}{formatRp(t.amount)}
                     </p>
+                    {onRepeat && isRepeatableTransaction(t) && (
+                      <button
+                        type="button"
+                        onClick={() => onRepeat(t)}
+                        aria-label={`Ulangi transaksi ${t.category}`}
+                        className="w-9 h-9 rounded-xl bg-md3-surface hover:bg-md3-surface-container-high flex items-center justify-center flex-shrink-0 text-md3-on-surface-variant hover:text-violet-600 transition-colors"
+                      >
+                        <Repeat size={14} aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
                 </div>
               )
@@ -515,6 +515,15 @@ export default function HomeTab({
           </div>
         )}
       </div>
+
+      <BalanceDetailSheet
+        open={rincianOpen}
+        onClose={() => setRincianOpen(false)}
+        rows={rincianRows}
+        estimate={Boolean(balances?.rincian?.estimate)}
+        guardBlocked={guard.blocked}
+        guardMessage={guard.message}
+      />
     </div>
   )
 }

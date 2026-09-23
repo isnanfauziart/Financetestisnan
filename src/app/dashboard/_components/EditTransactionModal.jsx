@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, SAVINGS_CATEGORIES, BANK_ACCOUNTS, MONTHS_MAP, getCategoryOptions } from "./constants"
 import { formatInputRupiah } from "./helpers"
 import SelectField from "./SelectField"
@@ -29,6 +29,16 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
   const [sifat, setSifat] = useState(initialExpenseClass(transaction.expenseClass))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  // Wave 5: Back confirms before discarding unsaved edits.
+  const initialEditSnapshot = useRef({ tanggal, kategori, rawAmount, akunBank, keterangan, eventId, sifat }).current
+  const isDirty =
+    tanggal !== initialEditSnapshot.tanggal ||
+    kategori !== initialEditSnapshot.kategori ||
+    rawAmount !== initialEditSnapshot.rawAmount ||
+    akunBank !== initialEditSnapshot.akunBank ||
+    keterangan !== initialEditSnapshot.keterangan ||
+    eventId !== initialEditSnapshot.eventId ||
+    sifat !== initialEditSnapshot.sifat
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -77,6 +87,7 @@ export default function EditTransactionModal({ transaction, onClose, onSaved }) 
       size="md"
       maxHeight="85vh"
       closeOnBackdrop={!submitting}
+      dirty={isDirty}
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-2 gap-3">

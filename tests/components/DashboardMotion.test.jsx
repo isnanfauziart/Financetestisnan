@@ -32,7 +32,7 @@ describe("dashboard motion safeguards", () => {
   it("opens the bottom Rencana navigation on the overview", async () => {
     const page = await source("src/app/dashboard/page.js")
 
-    expect(page).toContain('useState("overview")')
+    expect(page).toContain('urlViewState?.planSection ?? "overview"')
     expect(page).toContain('if (nav.id === "plan") setActivePlanSection("overview")')
   })
 

@@ -419,6 +419,76 @@ describe("settings route", () => {
     expect(JSON.parse(requestBody.values[0][1]).expense[0].name).toBe("Kopi")
   })
 
+  it.each([
+    ["Rp0", 0],
+    ["a positive amount", 250000],
+  ])("stamps startingBalanceConfirmed=true when saving %s as the opening balance", async (_label, amount) => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData.mockResolvedValue([])
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}), text: async () => "" })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { PUT } = await import("@/app/api/settings/route")
+    const response = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        updates: [
+          ["startingBalance", amount],
+          ["startingBalanceDate", "2026-09-21"],
+        ],
+      }),
+    }))
+
+    expect(response.status).toBe(200)
+    const written = fetchSpy.mock.calls.map(([, init]) => JSON.parse(init.body).values[0])
+    expect(written).toContainEqual(["startingBalanceConfirmed", "true"])
+    expect(written).toContainEqual(["startingBalance", String(amount)])
+  })
+
+  it("allows an explicit startingBalanceConfirmed=false to survive a starting balance write", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    const { getSheetData } = await import("@/lib/sheets")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    getSheetData.mockResolvedValue([])
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}), text: async () => "" })
+    vi.stubGlobal("fetch", fetchSpy)
+
+    const { PUT } = await import("@/app/api/settings/route")
+    const response = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        updates: [
+          ["startingBalance", 0],
+          ["startingBalanceConfirmed", false],
+        ],
+      }),
+    }))
+
+    expect(response.status).toBe(200)
+    const written = fetchSpy.mock.calls.map(([, init]) => JSON.parse(init.body).values[0])
+    expect(written).toContainEqual(["startingBalanceConfirmed", "false"])
+  })
+
+  it("fails closed when the opening balance is sent with an invalid date", async () => {
+    const { getAuthContext } = await import("@/lib/apiAuth")
+    getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })
+    const { PUT } = await import("@/app/api/settings/route")
+
+    const response = await PUT(new Request("http://localhost/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        updates: [
+          ["startingBalance", 0],
+          ["startingBalanceDate", "not-a-date"],
+        ],
+      }),
+    }))
+
+    expect(response.status).toBe(400)
+  })
+
   it("rejects unknown or malformed reserved-key updates", async () => {
     const { getAuthContext } = await import("@/lib/apiAuth")
     getAuthContext.mockResolvedValue({ accessToken: "token", spreadsheetId: "sheet-123" })

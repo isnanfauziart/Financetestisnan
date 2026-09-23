@@ -14,6 +14,9 @@ export const BALANCE_COPY = {
   netWorth: "Kekayaan Bersih",
   availableNow: "Bisa dipakai sekarang",
   currentCash: "Uang kamu",
+  recordedBalance: "Saldo Tercatat",
+  goalAllocated: "Dialokasikan ke target",
+  investmentHeld: SAVINGS_KIND_LABELS.investment,
   heldInSavings: "Disisihkan di tabungan",
   basisSaved: "Berdasarkan Total saldo saat ini",
   basisProvisional: "Berdasarkan data terakhir",
@@ -46,10 +49,12 @@ export function buildRincianRows(balances) {
   const rincian = balances.rincian || {}
   const outstanding = balances.outstanding || {}
   const unpaid = rincian.unpaidBills || {}
-  const savingsTotal = (rincian.goalReservations || 0) + (rincian.unassignedSavings || 0) + (rincian.investmentReserved || 0)
   const rows = [
     { key: "current", label: BALANCE_COPY.currentCash, value: balances.currentCash?.value ?? rincian.recordedBalance ?? balances.recordedBalance ?? 0, note: formatBalanceBasis(balances.currentCash?.provisional) },
-    { key: "savingsHeld", label: BALANCE_COPY.heldInSavings, value: savingsTotal, count: (rincian.unassignedSavingsCount || 0) + (rincian.needsReviewCount || 0) || undefined },
+    { key: "recorded", label: BALANCE_COPY.recordedBalance, value: balances.recordedBalance ?? rincian.recordedBalance ?? 0 },
+    { key: "goalAllocated", label: BALANCE_COPY.goalAllocated, value: rincian.goalReservations || 0 },
+    { key: "unassignedSavings", label: BALANCE_COPY.unassignedSavings, value: rincian.unassignedSavings || 0, count: rincian.unassignedSavingsCount || 0 },
+    { key: "investmentReserved", label: BALANCE_COPY.investmentHeld, value: rincian.investmentReserved || 0 },
     { key: "utang", label: "Utang belum lunas", value: outstanding.utang || 0, count: outstanding.utangCount || 0, negative: true },
     { key: "piutang", label: "Piutang belum diterima", value: outstanding.piutang || 0, count: outstanding.piutangCount || 0 },
     { key: "unpaidBills", label: BALANCE_COPY.unpaidBills, value: unpaid.total || 0, count: unpaid.count || 0, note: BALANCE_COPY.unpaidBillsNote },

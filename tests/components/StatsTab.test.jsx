@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
 import StatsTab from "@/app/dashboard/StatsTab"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { chartTheme } from "@/lib/chartTheme"
@@ -110,13 +110,117 @@ function createProps(overrides = {}) {
   }
 }
 
+describe("StatsTab Filter aktif summary", () => {
+  it("summarizes period, account, basis, category, range, and comparison without extra buttons", () => {
+    render(<StatsTab {...createProps()} />)
+
+    const summary = screen.getByRole("group", { name: "Ringkasan filter" })
+    expect(summary).toHaveTextContent("Periode: Jul 2026")
+    expect(summary).toHaveTextContent("Akun: Semua Akun")
+    expect(summary).toHaveTextContent("Dasar analisis: Rutin")
+    expect(summary).toHaveTextContent("Kategori: Semua")
+    expect(summary).toHaveTextContent("Rentang tanggal: Semua")
+    expect(summary).toHaveTextContent("Perbandingan: Jul 2026 vs Jun 2026")
+    expect(within(summary).queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it("summarizes every material filter when non-default values are active", () => {
+    render(<StatsTab {...createProps({
+      selectedMonth: "Agu",
+      selectedYear: "2026",
+      selectedAccount: "BCA",
+      categoryFilter: "Makan",
+      dateFrom: "2026-08-01",
+      dateTo: "2026-08-31",
+    })} />)
+
+    const summary = screen.getByRole("group", { name: "Ringkasan filter" })
+    expect(summary).toHaveTextContent("Periode: Agu 2026")
+    expect(summary).toHaveTextContent("Akun: BCA")
+    expect(summary).toHaveTextContent("Kategori: Makan")
+    expect(summary).toHaveTextContent("Rentang tanggal: 2026-08-01 → 2026-08-31")
+  })
+
+  it("summarizes the all-months period without an empty year", () => {
+    render(<StatsTab {...createProps({
+      selectedMonth: "Semua Bulan",
+      selectedYear: "Semua Tahun",
+      isAllMonths: true,
+    })} />)
+
+    expect(screen.getByRole("group", { name: "Ringkasan filter" })).toHaveTextContent("Periode: Semua bulan")
+  })
+
+  it("reflects the Semua analysis basis and labels the actual-basis hero", () => {
+    render(<StatsTab {...createProps({ controlledAnalysisMode: "actual" })} />)
+
+    expect(screen.getByRole("group", { name: "Ringkasan filter" })).toHaveTextContent("Dasar analisis: Semua transaksi")
+    expect(screen.getByRole("region", { name: "Kondisi keuangan" })).toHaveTextContent("Termasuk semua transaksi")
+  })
+
+  it("keeps the hero actual-basis label even when the routine mode is active", () => {
+    render(<StatsTab {...createProps({ controlledAnalysisMode: "routine" })} />)
+
+    expect(screen.getByRole("group", { name: "Ringkasan filter" })).toHaveTextContent("Dasar analisis: Rutin")
+    expect(screen.getByRole("region", { name: "Kondisi keuangan" })).toHaveTextContent("Termasuk semua transaksi")
+  })
+
+  it("labels the routine chart basis in the Tren section", () => {
+    render(<StatsTab {...createProps({ isAllMonths: true })} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+
+    expect(screen.getAllByText("Dasar: Pengeluaran rutin saja").length).toBeGreaterThanOrEqual(1)
+  })
+
+  it("labels the actual chart basis in the Tren section", () => {
+    render(<StatsTab {...createProps({ isAllMonths: true, controlledAnalysisMode: "actual" })} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+
+    expect(screen.getAllByText("Dasar: Semua transaksi").length).toBeGreaterThanOrEqual(1)
+  })
+
+  it("labels the chart basis in the Kategori section", () => {
+    render(<StatsTab {...createProps({})} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
+
+    expect(screen.getAllByText("Dasar: Pengeluaran rutin saja").length).toBeGreaterThanOrEqual(1)
+  })
+
+  it("marks the date-range toggle with aria-expanded and aria-controls", () => {
+    render(<StatsTab {...createProps()} />)
+
+    const toggle = screen.getByRole("button", { name: /rentang tanggal/i })
+    expect(toggle).toHaveAttribute("aria-expanded", "false")
+    expect(toggle).toHaveAttribute("aria-controls", "stats-date-range-fields")
+
+    fireEvent.click(toggle)
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true")
+  })
+
+  it("marks the compare toggle with aria-pressed", () => {
+    const setCompareMode = vi.fn()
+    render(<StatsTab {...createProps({ setCompareMode, compareMode: false })} />)
+
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+
+    const compareToggle = screen.getByRole("button", { name: "Bandingkan" })
+    expect(compareToggle).toHaveAttribute("aria-pressed", "false")
+    fireEvent.click(compareToggle)
+    expect(setCompareMode).toHaveBeenCalledWith(true)
+  })
+})
+
 describe("StatsTab comparison controls", () => {
   it("shows the default comparison helper copy and reset action", () => {
     render(<StatsTab {...createProps()} />)
 
     fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
 
-    expect(screen.getByText("Default: bulan ini vs bulan lalu")).toBeInTheDocument()
+    expect(screen.getByText(/Default: bulan ini vs bulan lalu/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Reset ke bulan ini" })).toBeInTheDocument()
   })
 
@@ -271,7 +375,8 @@ describe("StatsTab financial summary", () => {
     const anomaly = screen.getByText("Anomaly mock")
 
     expect(filters.nextElementSibling).toBe(tablist)
-    expect(tablist.nextElementSibling).toBe(summary)
+    // Wave 7: section content lives inside a labelled tabpanel directly after the tablist.
+    expect(tablist.nextElementSibling).toBe(summary.closest('[role="tabpanel"]'))
     expect(summary.compareDocumentPosition(insightsHeading) & 4).toBe(4)
     expect(summary.compareDocumentPosition(anomaly) & 4).toBe(4)
   })

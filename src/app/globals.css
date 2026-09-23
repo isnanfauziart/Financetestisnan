@@ -752,6 +752,39 @@ body {
   border-color: var(--plan-line);
 }
 
+/* Wave 7 — narrow-screen Rencana navigation (scrollable labelled rail). */
+.plan-chapter-nav__scroll {
+  position: relative;
+  min-width: 0;
+}
+
+/* Double class beats the narrow-screen .plan-chapter-nav__rail media rules. */
+.plan-chapter-nav .plan-chapter-nav__rail--scroll {
+  display: flex;
+  grid-template-columns: none;
+  overflow-x: auto;
+  scroll-padding: 4px;
+  padding-bottom: 2px;
+}
+
+.plan-chapter-nav__fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  pointer-events: none;
+  background: linear-gradient(to left, color-mix(in srgb, var(--plan-surface) 92%, transparent), transparent);
+}
+
+.plan-chapter-nav__hint {
+  margin-top: 6px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--plan-muted);
+}
+
 .plan-section-transition {
   animation: planSectionIn 240ms var(--ease-out) both;
 }

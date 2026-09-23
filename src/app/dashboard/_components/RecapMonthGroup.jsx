@@ -1,8 +1,9 @@
 "use client"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Repeat } from "lucide-react"
 import { THEME } from "./constants"
 import { formatRp, formatShortDate } from "./helpers"
 import { isSpecialExpense } from "@/lib/expenseClass"
+import { isRepeatableTransaction } from "@/lib/transactionRepeat"
 
 const PAGE_SIZE = 10
 
@@ -87,6 +88,7 @@ export default function RecapMonthGroup({
   onPageChange,
   onEdit,
   onDelete,
+  onRepeat,
 }) {
   const totalPages = Math.max(1, Math.ceil(transactions.length / PAGE_SIZE))
   const safePage = Math.min(Math.max(1, page), totalPages)
@@ -176,6 +178,15 @@ export default function RecapMonthGroup({
                       {t.type === "income" ? "+" : t.type === "savings" ? "" : "-"}{formatRp(t.amount)}
                     </p>
                     <div className="flex gap-1 ml-2 flex-shrink-0">
+                      {onRepeat && isRepeatableTransaction(t) && (
+                        <button
+                          onClick={() => onRepeat(t)}
+                          aria-label={`Ulangi transaksi ${t.category}`}
+                          className="w-8 h-8 rounded-lg bg-md3-surface-container-lowest hover:bg-violet-100 flex items-center justify-center text-md3-on-surface-variant hover:text-violet-600 transition-colors text-sm font-bold"
+                        >
+                          <Repeat size={12} aria-hidden="true" />
+                        </button>
+                      )}
                       <button
                         onClick={() => onEdit(t)}
                         aria-label={`Edit ${t.category}`}

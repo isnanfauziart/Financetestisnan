@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import HomeTab from "@/app/dashboard/HomeTab"
+import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
+import { getWibDateParts } from "@/lib/wibCalendar"
 
 vi.mock("@/components/HealthScoreCard", () => ({
   default: () => <div data-testid="health-score-card">Health score mock</div>,
@@ -14,9 +16,10 @@ vi.mock("@/lib/useSharedData", () => ({
   useBudgets: vi.fn(),
   useBills: vi.fn(),
   useSettings: vi.fn(() => ({ settings: {} })),
+  useGoals: vi.fn(() => ({ goals: [] })),
 }))
 
-const { useBudgets, useBills } = await import("@/lib/useSharedData")
+const { useBudgets, useBills, useGoals } = await import("@/lib/useSharedData")
 
 function createProps(overrides = {}) {
   return {
@@ -40,6 +43,7 @@ function createProps(overrides = {}) {
     setActiveNav: vi.fn(),
     openPlanSection: vi.fn(),
     openQuickAdd: vi.fn(),
+    openStatsDestination: vi.fn(),
     setDrillDown: vi.fn(),
     onToast: vi.fn(),
     selectedMonth: "Jul",
@@ -69,8 +73,8 @@ describe("HomeTab priority actions", () => {
         {
           id: "bill-1",
           nama: "Internet WiFi",
-          status: "due_today",
-          daysUntilDue: 0,
+          status: "overdue",
+          daysUntilDue: -1,
           tanggalJatuhTempo: "7 Jul 2026",
           jumlah: 350000,
         },
@@ -78,10 +82,14 @@ describe("HomeTab priority actions", () => {
     })
   })
 
-  it("keeps Fokus Hari Ini in the hero and places the selected-period flow before urgent actions", () => {
+  it("keeps the hero clean, places the check surface directly below it, and moves Fokus Hari Ini out of the hero", () => {
     render(<HomeTab {...createProps()} />)
 
+    const hero = screen.getByTestId("home-hero")
+    const focusNote = screen.getByTestId("home-focus-note")
     expect(screen.getByText("Fokus Hari Ini")).toBeInTheDocument()
+    expect(hero.contains(screen.getByText("Fokus Hari Ini"))).toBe(false)
+    expect(focusNote).toBeInTheDocument()
 
     const cashFlowHeading = screen.getByText("Uang masuk & Uang keluar Jul 2026")
     const priorityHeading = screen.getByText("Yang perlu kamu cek")
@@ -89,12 +97,12 @@ describe("HomeTab priority actions", () => {
     const budgetAction = screen.getByRole("button", { name: /cek budget makanan/i })
     const incomeSummary = screen.getByLabelText("Lihat 10 transaksi pemasukan terbesar")
 
-    expect(cashFlowHeading).toBeInTheDocument()
-    expect(priorityHeading).toBeInTheDocument()
     expect(billAction).toBeInTheDocument()
     expect(budgetAction).toBeInTheDocument()
     expect(incomeSummary).toBeInTheDocument()
-    expect(cashFlowHeading.compareDocumentPosition(priorityHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // Approved order: hero → check surface → fuller cash-flow section.
+    expect(hero.compareDocumentPosition(priorityHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(priorityHeading.compareDocumentPosition(cashFlowHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it("shows direct selected-period cash-flow values and the surplus or deficit", () => {
@@ -139,7 +147,24 @@ describe("HomeTab priority actions", () => {
     expect(screen.getAllByText("Berdasarkan data terakhir").length).toBeGreaterThan(0)
   })
 
-  it("lists the rincian saldo breakdown including unpaid bills as informational", () => {
+  it("shows the compact current-month cash row inside the hero from the actual series", () => {
+    const wib = getWibDateParts()
+    const month = AVAILABLE_MONTHS[wib.monthIndex]
+    const base = createProps()
+
+    render(<HomeTab {...base} data={{
+      ...base.data,
+      monthlyData: [{ month, year: String(wib.year), pemasukan: 5000000, pengeluaran: 2000000 }],
+    }} />)
+
+    const row = screen.getByTestId("hero-cash-row")
+    expect(row).toHaveTextContent(`Arus kas bulan ini · ${month} ${wib.year}`)
+    expect(row).toHaveTextContent("Rp 5.0 jt")
+    expect(row).toHaveTextContent("Rp 2.0 jt")
+    expect(row).toHaveTextContent("+Rp 3.0 jt")
+  })
+
+  it("opens the rincian saldo breakdown from the hero with split savings and informational unpaid bills", () => {
     render(<HomeTab {...createProps({
       data: {
         netWorth: 8000000,
@@ -167,11 +192,16 @@ describe("HomeTab priority actions", () => {
       },
     })} />)
 
-    const rincian = screen.getByRole("region", { name: /rincian saldo/i })
+    // Rincian sits behind a clear action from the hero (decision 19).
+    expect(screen.queryByRole("region", { name: /rincian saldo/i })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: /buka rincian saldo/i }))
+
+    const rincian = screen.getByRole("dialog", { name: /rincian saldo/i })
     expect(rincian).toHaveTextContent("Uang kamu")
+    expect(rincian).toHaveTextContent("Saldo Tercatat")
+    expect(rincian).toHaveTextContent("Dialokasikan ke target")
+    expect(rincian).toHaveTextContent("Tabungan tanpa target")
     expect(rincian).toHaveTextContent("Utang belum lunas")
-    expect(rincian).toHaveTextContent("Disisihkan di tabungan")
-    expect(rincian).not.toHaveTextContent("Saldo Tercatat")
     expect(rincian).not.toHaveTextContent("Kekayaan Bersih")
     expect(rincian).not.toHaveTextContent("Dana yang bisa dipakai saat ini")
     expect(rincian).toHaveTextContent("Tagihan belum dibayar")
@@ -275,7 +305,7 @@ describe("HomeTab priority actions", () => {
     })
   })
 
-  it("orders the home narrative from condition through flow, priorities, planning, insights, health, and recent activity", () => {
+  it("orders the home narrative from hero through check, flow, planning, insights, health, and recent activity", () => {
     render(<HomeTab {...createProps({
       insights: [
         { type: "info", icon: () => <span aria-hidden="true" />, color: "#2F6B57", text: "Insight untuk urutan" },
@@ -284,9 +314,9 @@ describe("HomeTab priority actions", () => {
     })} />)
 
     const sections = [
-      screen.getByText("Kekayaan Bersih"),
-      screen.getByText("Uang masuk & Uang keluar Jul 2026"),
+      screen.getByTestId("home-hero"),
       screen.getByText("Yang perlu kamu cek"),
+      screen.getByText("Uang masuk & Uang keluar Jul 2026"),
       screen.getByTestId("budget-status-card"),
       screen.getByRole("heading", { name: "Insights utama" }),
       screen.getByTestId("health-score-card"),
@@ -299,17 +329,95 @@ describe("HomeTab priority actions", () => {
   })
 
   it("routes urgent budget and bill actions into the correct plan sections", () => {
-    const setActiveNav = vi.fn()
     const openPlanSection = vi.fn()
-    render(<HomeTab {...createProps({ setActiveNav, openPlanSection })} />)
+    const openQuickAdd = vi.fn()
+    render(<HomeTab {...createProps({ openPlanSection, openQuickAdd })} />)
 
     fireEvent.click(screen.getByRole("button", { name: /bayar tagihan internet wifi/i }))
     fireEvent.click(screen.getByRole("button", { name: /cek budget makanan/i }))
 
-    expect(setActiveNav).toHaveBeenNthCalledWith(1, "plan")
-    expect(openPlanSection).toHaveBeenNthCalledWith(1, "tagihan")
-    expect(setActiveNav).toHaveBeenNthCalledWith(2, "plan")
+    // The deep-link keys are the valid Rencana sections ("bill", not the
+    // legacy "tagihan" key that silently fell back to Ringkasan). Tab
+    // switching is openPlanSection's own job in page.js.
+    expect(openPlanSection).toHaveBeenNthCalledWith(1, "bill")
     expect(openPlanSection).toHaveBeenNthCalledWith(2, "budget")
+    expect(openQuickAdd).not.toHaveBeenCalled()
+  })
+
+  it("surfaces a goal falling behind its pace and routes it to the goal section", () => {
+    useBills.mockReturnValue({ bills: [] })
+    useBudgets.mockReturnValue({ budgets: [] })
+    useGoals.mockReturnValue({
+      goals: [{ id: "g1", nama: "Laptop", target: 12000000, deadline: "2026-12", createdAt: "2020-01" }],
+    })
+    const openPlanSection = vi.fn()
+    const balances = {
+      netWorth: 8000000,
+      recordedBalance: 9000000,
+      available: { value: 4000000, shortfall: 0 },
+      currentCash: { value: 4000000, provisional: false },
+      outstanding: { utang: 0, piutang: 0, utangCount: 0, piutangCount: 0 },
+      allocations: { byGoal: { g1: { remaining: 100000 } } },
+      rincian: {
+        recordedBalance: 9000000,
+        goalReservations: 0,
+        unassignedSavings: 0,
+        unassignedSavingsCount: 0,
+        investmentReserved: 0,
+        needsReviewCount: 0,
+        needsReviewTotal: 0,
+        estimate: false,
+        available: 4000000,
+        shortfall: 0,
+        unpaidBills: { count: 0, total: 0 },
+      },
+    }
+
+    render(<HomeTab {...createProps({ openPlanSection, data: { ...createProps().data, balances } })} />)
+
+    fireEvent.click(screen.getByRole("button", { name: /kejar target laptop/i }))
+    expect(openPlanSection).toHaveBeenCalledWith("goal")
+  })
+
+  it("lists unusual spending as stats evidence when the anomaly feature is entitled", () => {
+    useBills.mockReturnValue({ bills: [] })
+    useBudgets.mockReturnValue({ budgets: [] })
+    const openStatsDestination = vi.fn()
+    const allTransactions = [
+      { type: "expense", category: "Transport", amount: 100000, month: "Apr", year: "2026" },
+      { type: "expense", category: "Transport", amount: 100000, month: "Mei", year: "2026" },
+      { type: "expense", category: "Transport", amount: 100000, month: "Jun", year: "2026" },
+      { type: "expense", category: "Transport", amount: 300000, month: "Jul", year: "2026" },
+    ]
+
+    render(<HomeTab {...createProps({ openStatsDestination, allTransactions })} />)
+
+    fireEvent.click(screen.getByRole("button", { name: /cek kategori transport di statistik/i }))
+    expect(openStatsDestination).toHaveBeenCalledWith(
+      expect.objectContaining({ tab: "stats", section: "ringkasan", category: "Transport" }),
+    )
+  })
+
+  it("hides anomaly items when the feature is disabled and falls back to the compact add prompt", () => {
+    useBills.mockReturnValue({ bills: [] })
+    useBudgets.mockReturnValue({ budgets: [] })
+    const openQuickAdd = vi.fn()
+    const allTransactions = [
+      { type: "expense", category: "Transport", amount: 100000, month: "Apr", year: "2026" },
+      { type: "expense", category: "Transport", amount: 100000, month: "Mei", year: "2026" },
+      { type: "expense", category: "Transport", amount: 100000, month: "Jun", year: "2026" },
+      { type: "expense", category: "Transport", amount: 300000, month: "Jul", year: "2026" },
+    ]
+
+    render(<HomeTab {...createProps({
+      openQuickAdd,
+      allTransactions,
+      entitlement: { features: { anomalyAlerts: false } },
+    })} />)
+
+    expect(screen.queryByRole("button", { name: /cek kategori transport/i })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: /tambah transaksi hari ini/i }))
+    expect(openQuickAdd).toHaveBeenCalledWith("expense")
   })
 
   it("routes the Tabungan summary into the goal section", () => {

@@ -1,5 +1,5 @@
 "use client"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Plus, Target } from "lucide-react"
 import { THEME, EXPENSE_CATEGORIES, INCOME_CATEGORIES, BANK_ACCOUNTS, getCategoryOptions } from "./constants"
 import { formatInputRupiah, parseTxDate } from "./helpers"
@@ -24,7 +24,7 @@ const DEFAULT_FORM_DATA = () => ({
   sifat: "Rutin",
 })
 
-export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute, transactionUsage, specialSuggestion, transactions = [], proRegistrationOpen = true }) {
+export default function QuickAddSheet({ open, onClose, initialType = "expense", onSubmit, onGoalContribute, transactionUsage, specialSuggestion, transactions = [], proRegistrationOpen = true, suppress = false, initialValues = null }) {
   const { settings } = useSettings()
   const writeGuard = useFinancialWriteGuard()
   const [txType, setTxType] = useState(initialType)
@@ -34,6 +34,25 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
   const [quotaError, setQuotaError] = useState(null)
   const [suggestionDismissed, setSuggestionDismissed] = useState(false)
   const categoryOptions = getCategoryOptions(settings?.categories, txType, txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES, formData.kategori)
+
+  // Wave 5 — Ulangi transaksi: prefill the review form from a repeated row.
+  // Nothing writes automatically; the user reviews and submits through the
+  // normal pipeline. The values land once per open so user edits survive.
+  const appliedPrefillRef = useRef(null)
+  useEffect(() => {
+    if (!open || suppress) return
+    if (!initialValues) {
+      appliedPrefillRef.current = null
+      return
+    }
+    if (appliedPrefillRef.current === initialValues.id) return
+    appliedPrefillRef.current = initialValues.id
+    setTxType(initialValues.txType || "expense")
+    setFormData({ ...DEFAULT_FORM_DATA(), ...initialValues.formData })
+    setRawAmount(formatInputRupiah(String(initialValues.rawAmount || "")))
+    setSuggestionDismissed(false)
+    setQuotaError(null)
+  }, [open, suppress, initialValues])
   const showSpecialSuggestion = shouldShowSpecialSuggestion({
     specialSuggestion,
     rawAmount,
@@ -113,6 +132,22 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
     }
   }
 
+  // Wave 5: Back (and other dismissals) confirm before discarding unsaved input.
+  const defaultFormData = DEFAULT_FORM_DATA()
+  const isDirty =
+    Boolean(rawAmount) ||
+    formData.keterangan !== defaultFormData.keterangan ||
+    formData.kategori !== defaultFormData.kategori ||
+    formData.jumlah !== defaultFormData.jumlah ||
+    formData.akunBank !== defaultFormData.akunBank ||
+    formData.catatan !== defaultFormData.catatan ||
+    formData.eventId !== defaultFormData.eventId ||
+    formData.tanggal !== defaultFormData.tanggal
+
+  // Wave 4: while the required first-transaction overlay owns Quick Add, any
+  // leftover normal mount stays fully hidden — never a second editable copy.
+  if (suppress) return null
+
   return (
     <Sheet
       open={open}
@@ -123,8 +158,14 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
       maxHeight="85vh"
       closeOnBackdrop={!submitting}
       closeOnEsc={!submitting}
+      dirty={isDirty}
     >
       <div className="space-y-4">
+        {initialValues && (
+          <p className="rounded-2xl bg-md3-surface-container px-3 py-2 text-[11px] font-bold text-md3-on-surface-variant" data-testid="repeat-review-note">
+            Mengulang transaksi — periksa detail di bawah sebelum menyimpan.
+          </p>
+        )}
         <div className="flex gap-2 p-1.5 rounded-2xl" style={{ background: THEME.surfaceWarm }}>
           <button onClick={() => handleTypeChange("expense")} aria-label="Pilih pengeluaran" aria-pressed={txType === "expense"}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-[background-color,color,box-shadow] ${txType === "expense" ? "bg-md3-surface-container-lowest text-md3-on-surface shadow-warm" : "text-md3-on-surface-variant"}`}>
