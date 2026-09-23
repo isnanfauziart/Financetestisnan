@@ -1886,3 +1886,17 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 **Verification:** focused suites green per batch (44, 51, 27, 14, 6); one self-review pass fixed a broken selector, a formatting slip, an un-gated rail hint, and a stale comment before the gate; independent final diff review performed by the implementation owner (single-agent session), same caveat as Waves 4-6; final gate — full suite **1100 passed / 2 skipped** (163 files), production build passed (4 env placeholders), `git diff --check` clean. Pre-existing unrelated worktree changes untouched; nothing committed.
 
 **Blockers:** none. Next per audit order: Wave 8 (smart-feature explanations and Pro previews).
+
+## 2026-09-23 — Hotfix: dashboard production crash (React error #310)
+
+**Task:** Analyze the production crash at artami.web.id/dashboard after merging the four wave commits (38c9287..d4d1ebb). Browser console showed Minified React error #310 ("Rendered more hooks than during the previous render") on every visit.
+
+**Root cause:** Wave 5 added `const repeatPrefill = useMemo(...)` in `src/app/dashboard/page.js` below the shell's six conditional early returns (loading/unauthenticated/skeleton/sheet-connector/error/onboarding). The first render takes the `status === "loading"` branch; when auth resolves, the useMemo begins executing and the hook count changes between renders, crashing the whole dashboard for every signed-in user. Pre-merge page.js had no hooks after the early returns (verified against HEAD~4); tests never caught it because they mount directly in the authenticated state, and the production build cannot detect runtime hook-order violations.
+
+**Fix:** Relocated the `repeatPrefill` useMemo (12-line pure move) to sit directly after its `repeatTx` state, above every early return. No behavior change: same deps `[repeatTx]`, same value, same consumer (`QuickAddSheet initialValues`).
+
+**Regression guard:** `tests/components/DashboardHookOrder.test.jsx` (new) pins the source contract that no hook call may appear after `Dashboard`'s first early return, plus repeatPrefill placement (established source-contract pattern since page.js is not renderable in the test environment).
+
+**Verification:** focused suites green (71 tests across DashboardHookOrder/UrlContract/Motion/HomeTab/QuickAddRepeat/SheetHistory/OnboardingGate/OnboardingOverlay/transactionRepeat); final gate — full suite **1102 passed / 2 skipped** (165 files), production build passed (11 env placeholders; build chunk names match the production stack's chunks), `git diff --check` clean. Pre-existing unrelated worktree changes untouched; nothing committed.
+
+**Blockers:** push + Vercel deploy by the user to ship the fix.

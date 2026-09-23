@@ -201,6 +201,13 @@ export default function Dashboard() {
   // Wave 5 — Ulangi transaksi: the row being repeated, cleared on every
   // non-repeat open and when the sheet closes.
   const [repeatTx, setRepeatTx] = useState(null)
+  // Derived prefill must live above every early return: a hook that first runs
+  // after the loading/unauthenticated/error branches would change the hook
+  // count on the loading→authenticated transition (React error #310).
+  const repeatPrefill = useMemo(
+    () => (repeatTx ? buildRepeatPrefill(repeatTx) : null),
+    [repeatTx],
+  )
 
   // Stats state — Wave 5: URL-backed. Lazy initializers read deep-linked values
   // once; missing or invalid parameters fall back to the same defaults.
@@ -1429,11 +1436,6 @@ export default function Dashboard() {
     setTxType(tx.type)
     setQuickAddOpen(true)
   }
-
-  const repeatPrefill = useMemo(
-    () => (repeatTx ? buildRepeatPrefill(repeatTx) : null),
-    [repeatTx],
-  )
 
   const handleAnomalyCategoryClick = (category) => {
     setCategoryFilter(category)
