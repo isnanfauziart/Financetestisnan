@@ -6,7 +6,7 @@ import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp, formatRpFull } from "@/app/dashboard/_components/helpers"
 import Sheet from "@/app/dashboard/_components/Sheet"
-import { calculateFinancialFreedom } from "@/lib/financialFreedom"
+import { calculateFinancialFreedom, getCompletedExpenseMonths } from "@/lib/financialFreedom"
 import { useSettings } from "@/lib/useSharedData"
 
 const MAX_MONTHLY_EXPENSE_OVERRIDE = 999999999999
@@ -116,6 +116,15 @@ export default function FITrackerCard({
     monthlyExpenseOverride: activeOverride,
     now: now === undefined ? new Date() : now,
   }), [activeOverride, monthlyData, netWorth, netWorthHistory, now])
+
+  // Wave 8 — name the completed months feeding the actual-expense average.
+  const completedMonths = useMemo(
+    () => getCompletedExpenseMonths(monthlyData, now === undefined ? new Date() : now),
+    [monthlyData, now],
+  )
+  const completedMonthsLabel = completedMonths
+    .map((row) => `${row.month} ${row.year}`)
+    .join(", ")
 
   const hasProjection = calculation.monthsToFreedom !== null
     && calculation.projectionData.some((point) => point.projected !== null)
@@ -237,6 +246,16 @@ export default function FITrackerCard({
       <p className="text-sm leading-relaxed text-md3-on-surface-variant">
         Rata-rata pengeluaran aktual bulanan diambil dari maksimal 12 bulan selesai yang memiliki pengeluaran tercatat. Bulan berjalan yang masih parsial tidak ikut dihitung.
       </p>
+      {/* Wave 8 — live coverage facts for THIS result. */}
+      <div className="mt-3 space-y-2 rounded-2xl bg-md3-surface p-3">
+        <p className="text-[11px] font-bold text-md3-on-surface">Data terpakai</p>
+        <p className="text-[11px] leading-relaxed text-md3-on-surface-variant">
+          Data terpakai: {calculation.monthCount} bulan selesai{completedMonthsLabel ? ` — ${completedMonthsLabel}` : ""}.
+        </p>
+        <p className="text-[11px] leading-relaxed text-md3-on-surface-variant">
+          Bulan berjalan dan bulan tanpa pengeluaran tercatat tidak ikut dihitung.
+        </p>
+      </div>
       <div className="mt-4 space-y-3">
         <div className="rounded-2xl bg-md3-surface p-3">
           <p className="text-xs font-bold text-md3-on-surface">1. Dana yang kamu butuhkan</p>

@@ -4,27 +4,11 @@ import { TrendingUp, TrendingDown, PiggyBank, Info } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from "recharts"
 import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp, useCountUp } from "@/app/dashboard/_components/helpers"
+import ChartTooltip from "@/components/charts/ChartTooltip"
+import StatTile from "@/components/charts/StatTile"
 
 function getRoutineExpense(month) {
   return month?.pengeluaranRutin ?? month?.pengeluaran ?? 0
-}
-
-function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload || payload.length === 0) return null
-  const d = payload[0]?.payload
-  if (!d) return null
-  const color = d.rate >= 20 ? THEME.income : d.rate >= 10 ? THEME.warning : THEME.danger
-  return (
-    <div className="rounded-xl p-3 shadow-warm border border-md3-outline-variant" style={{ background: THEME.surface }}>
-      <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1">{label}</p>
-      <p className="text-xs font-bold" style={{ color }}>
-        Savings Rate: {d.rate.toFixed(1)}%
-      </p>
-      <p className="text-[10px] text-md3-on-surface-variant mt-0.5">
-        Income: {formatRp(d.income)} · Expense: {formatRp(d.expense)}
-      </p>
-    </div>
-  )
 }
 
 export default function SavingsRateTrend({ monthlyData }) {
@@ -119,6 +103,7 @@ export default function SavingsRateTrend({ monthlyData }) {
 
       {/* Chart */}
       <div className="rounded-2xl p-3 mb-3" style={{ background: THEME.surfaceMuted }}>
+        {/* area chart body (recharts below) */}
         <ResponsiveContainer width="100%" height={160}>
           <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
             <defs>
@@ -135,7 +120,17 @@ export default function SavingsRateTrend({ monthlyData }) {
               tickLine={false}
             />
             <YAxis hide domain={["dataMin - 5", "dataMax + 5"]} />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip
+              content={
+                <ChartTooltip
+                  entries={[
+                    { key: "rate", label: "Savings Rate", color: row => (row.rate >= 20 ? THEME.income : row.rate >= 10 ? THEME.warning : THEME.danger), format: value => `${value.toFixed(1)}%` },
+                    { key: "income", label: "Pemasukan", color: THEME.income, format: formatRp },
+                    { key: "expense", label: "Pengeluaran", color: THEME.expense, format: formatRp },
+                  ]}
+                />
+              }
+            />
             <ReferenceLine y={20} stroke={THEME.income} strokeDasharray="4 4" strokeOpacity={0.5} />
             <Area
               type="monotone"
@@ -173,20 +168,11 @@ export default function SavingsRateTrend({ monthlyData }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Stats row */}
+      {/* Stats row (shared StatTile) */}
       <div className="grid grid-cols-3 gap-2.5">
-        <div className="rounded-xl p-2.5 text-center" style={{ background: THEME.surfaceWarm }}>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Rata-rata</p>
-          <p className="text-sm font-bold text-md3-on-surface-variant">{stats.avg.toFixed(1)}%</p>
-        </div>
-        <div className="rounded-xl p-2.5 text-center" style={{ background: THEME.incomeBg }}>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Terbaik</p>
-          <p className="text-sm font-bold" style={{ color: THEME.income }}>{stats.best.toFixed(1)}%</p>
-        </div>
-        <div className="rounded-xl p-2.5 text-center" style={{ background: THEME.surfaceWarm }}>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Terendah</p>
-          <p className="text-sm font-bold" style={{ color: THEME.danger }}>{stats.worst.toFixed(1)}%</p>
-        </div>
+        <StatTile label="Rata-rata" value={`${stats.avg.toFixed(1)}%`} tone="neutral" />
+        <StatTile label="Terbaik" value={`${stats.best.toFixed(1)}%`} tone="income" />
+        <StatTile label="Terendah" value={`${stats.worst.toFixed(1)}%`} tone="danger" />
       </div>
 
       {/* Legend */}

@@ -57,8 +57,8 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
           onEdit={onEdit}
           onDelete={onDelete}
           menuLabel={`Aksi target ${goal.nama}`}
-          editLabel={`Edit ${goal.nama} goal`}
-          deleteLabel={`Delete ${goal.nama} goal`}
+          editLabel={`Edit target ${goal.nama}`}
+          deleteLabel={`Hapus target ${goal.nama}`}
         />
       </div>
 
@@ -115,7 +115,7 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
         <button onClick={onContribute}
           className="w-full min-h-11 mt-3 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-[0.98]"
           style={{ background: color + "18", color }}
-          aria-label={`Contribute to ${goal.nama}`}>
+          aria-label={`Kontribusi ke ${goal.nama}`}>
           <Plus size={12} strokeWidth={3} aria-hidden="true" /> Kontribusi
         </button>
       )}

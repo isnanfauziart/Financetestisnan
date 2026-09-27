@@ -2,13 +2,13 @@
 import { useBudgets, useGoals } from "@/lib/useSharedData"
 import { matchesBudgetPeriod } from "@/lib/budgetPace"
 import { computeAllGoalProgress } from "@/app/dashboard/_components/goalUtils"
-import { formatRp } from "@/app/dashboard/_components/helpers"
+import { formatRp, maskRupiah } from "@/app/dashboard/_components/helpers"
 
 function Signal({ value, detail, prefix }) {
   return <><strong id={prefix ? `${prefix}-value` : undefined} className="plan-brief-value">{value}</strong><span id={prefix ? `${prefix}-detail` : undefined} className="plan-brief-detail">{detail}</span></>
 }
 
-export function BudgetBrief({ selectedMonth, selectedYear, selectedAccount, transactions = [], prefix }) {
+export function BudgetBrief({ selectedMonth, selectedYear, selectedAccount, transactions = [], moneyHidden = false, prefix }) {
   const { budgets, loading, error } = useBudgets(selectedMonth === "Semua Bulan" ? "" : selectedMonth || "", selectedYear === "Semua Tahun" ? "" : selectedYear || "")
   if (loading) return <Signal prefix={prefix} value="Memuat…" detail="Menyiapkan ringkasan anggaran." />
   if (error) return <Signal prefix={prefix} value="Belum tersedia" detail="Buka Anggaran untuk mencoba lagi." />
@@ -17,7 +17,10 @@ export function BudgetBrief({ selectedMonth, selectedYear, selectedAccount, tran
   const spent = visible.reduce((sum, b) => sum + transactions.reduce((total, t) =>
     t.type === "expense" && t.category === b.kategori && (!b.akun || b.akun === t.account) && matchesBudgetPeriod(t, b)
       ? total + (Number(t.amount) || 0) : total, 0), 0)
-  return <Signal prefix={prefix} value={limit > 0 ? `${Math.round(spent / limit * 100)}% digunakan` : "Belum ada anggaran"} detail={limit > 0 ? `${spent > limit ? "Melebihi anggaran" : "Sisa anggaran"} ${formatRp(Math.abs(limit - spent))}` : "Tentukan batas belanja untuk periode ini."} />
+  // Privacy-eye mode: the sisa/melebihi figure is masked; the percentage
+  // headline stays readable on purpose — it is not an amount.
+  const masked = (formatted) => (moneyHidden ? maskRupiah(formatted) : formatted)
+  return <Signal prefix={prefix} value={limit > 0 ? `${Math.round(spent / limit * 100)}% digunakan` : "Belum ada anggaran"} detail={limit > 0 ? `${spent > limit ? "Melebihi anggaran" : "Sisa anggaran"} ${masked(formatRp(Math.abs(limit - spent)))}` : "Tentukan batas belanja untuk periode ini."} />
 }
 
 export function GoalBrief({ allocations, prefix }) {
@@ -31,11 +34,14 @@ export function GoalBrief({ allocations, prefix }) {
   return <Signal prefix={prefix} value={leading ? `${Math.round(leading.percent)}% tercapai` : "Belum ada target aktif"} detail={leading ? leading.nama : "Mulai dari satu tujuan yang ingin kamu capai."} />
 }
 
-export function BillBrief({ bills = [], billsLoading, billsError, prefix }) {
+export function BillBrief({ bills = [], billsLoading, billsError, moneyHidden = false, prefix }) {
   if (billsLoading) return <Signal prefix={prefix} value="Memuat…" detail="Menyiapkan agenda tagihan." />
   if (billsError) return <Signal prefix={prefix} value="Belum tersedia" detail="Buka Tagihan untuk mencoba lagi." />
   const next = bills.filter(b => b.aktif !== false).slice().sort((a, b) => (a.daysUntilDue ?? Infinity) - (b.daysUntilDue ?? Infinity))[0]
   const days = next?.daysUntilDue
   const value = !next ? "Belum ada tagihan" : days == null ? "Terjadwal" : days < 0 ? `${Math.abs(days)} hari terlambat` : days === 0 ? "Hari ini" : days === 1 ? "Besok" : `${days} hari lagi`
-  return <Signal prefix={prefix} value={value} detail={next ? `${next.nama} · ${formatRp(next.jumlah)}` : "Semua jadwal pembayaran ada di sini."} />
+  // Privacy-eye mode: the next bill's amount is masked; the due-day headline
+  // stays readable on purpose — it is not an amount.
+  const masked = (formatted) => (moneyHidden ? maskRupiah(formatted) : formatted)
+  return <Signal prefix={prefix} value={value} detail={next ? `${next.nama} · ${masked(formatRp(next.jumlah))}` : "Semua jadwal pembayaran ada di sini."} />
 }

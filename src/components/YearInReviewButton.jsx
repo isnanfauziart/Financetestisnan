@@ -135,6 +135,11 @@ export default function YearInReviewButton({ transactions, monthlyData, routineM
               ? `Unduh Year-in-Review ${currentYear}`
               : `Butuh minimal 10 transaksi di ${currentYear} (${yearTxCount}/10)`}
         </p>
+        {canReport && !generating && (
+          <p className="text-[10px] text-md3-on-surface-variant mt-0.5">
+            Kilasan Jan–Des {currentYear}. Pengeluaran Rutin dan Spesial masuk hitungan.
+          </p>
+        )}
       </div>
       {canReport && !generating && (
         <Download

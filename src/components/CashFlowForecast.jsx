@@ -4,6 +4,8 @@ import { TrendingUp, Info } from "lucide-react"
 import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp, useCountUp } from "@/app/dashboard/_components/helpers"
+import ChartTooltip from "@/components/charts/ChartTooltip"
+import StatTile from "@/components/charts/StatTile"
 import { computeForecast } from "@/lib/forecast"
 import Sheet from "@/app/dashboard/_components/Sheet"
 
@@ -11,27 +13,40 @@ const FORMULA_COPY = "Proyeksi ini dihitung berdasarkan hingga enam bulan lengka
 const RECONCILIATION_NOTE = "Pengeluaran rutin yang sudah dijadwalkan sebagai tagihan hanya dihitung satu kali: riwayatnya keluar dari baseline rutin dan masuk sebagai tagihan terjadwal."
 const SPECIAL_HISTORY_NOTE = "Riwayat Spesial tidak masuk baseline rutin."
 
-function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload || payload.length === 0) return null
-  const d = payload[0]?.payload
-  if (!d) return null
+const INCOME_PROFILE_NOTES = {
+  stable: "Pola pemasukanmu relatif stabil selama periode data, jadi proyeksi memakai rata-rata tertimbang.",
+  irregular: "Pemasukanmu bervariasi antarbulan, jadi proyeksi memakai nilai tengah (median), bukan rata-rata.",
+  limited: "Periode data masih pendek, jadi proyeksi memakai nilai tengah (median).",
+}
+
+function formatCoverageMonths(count) {
+  return `${count} bulan lengkap`
+}
+
+/** Wave 8 — live coverage facts from computeForecast, in plain Indonesian. */
+function CoverageSummary({ forecast, scheduledExpense, scheduledIncome }) {
+  const scheduledLines = []
+  if (scheduledExpense > 0) scheduledLines.push(`pengeluaran terjadwal ${formatRp(scheduledExpense)}/bulan`)
+  if (scheduledIncome > 0) scheduledLines.push(`pemasukan terjadwal ${formatRp(scheduledIncome)}/bulan`)
+
   return (
-    <div className="rounded-xl p-3 shadow-warm border border-md3-outline-variant" style={{ background: THEME.surface }}>
-      <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1">{label}{d.isProjected ? " (proyeksi)" : ""}</p>
-      <p className="text-xs font-bold" style={{ color: THEME.income }}>
-        Pemasukan: {formatRp(d.pemasukan)}
+    <div className="mt-4 space-y-2 rounded-2xl bg-md3-surface p-3">
+      <p className="text-[11px] font-bold text-md3-on-surface">Data terpakai</p>
+      <p className="text-[11px] leading-relaxed text-md3-on-surface-variant">
+        Data terpakai: {formatCoverageMonths(forecast.monthsUsed)}
+        {forecast.dataGapCount > 0 && `, ${forecast.dataGapCount} bulan tanpa catatan lengkap dilewati`}.
       </p>
-      <p className="text-xs font-bold" style={{ color: THEME.expense }}>
-        Pengeluaran: {formatRp(d.pengeluaran)}
-      </p>
-      <p className="text-xs font-bold" style={{ color: d.surplus >= 0 ? THEME.savings : THEME.danger }}>
-        Surplus: {formatRp(d.surplus)}
-      </p>
+      {scheduledLines.length > 0 && (
+        <p className="text-[11px] leading-relaxed text-md3-on-surface-variant">
+          Tagihan terjadwal masuk hitungan: {scheduledLines.join(", ")}.
+        </p>
+      )}
+      <p className="text-[11px] leading-relaxed text-md3-on-surface-variant">{INCOME_PROFILE_NOTES[forecast.incomeProfile] || INCOME_PROFILE_NOTES.limited}</p>
     </div>
   )
 }
 
-export default function CashFlowForecast({ monthlyData, routineMonthlyData, transactions, bills, billsLoading, billsError, now }) {
+export default function CashFlowForecast({ monthlyData, routineMonthlyData, transactions, bills, billsLoading, billsError, now, onOpenBills }) {
   const [isInfoOpen, setIsInfoOpen] = useState(false)
   const forecastMonthlyData = routineMonthlyData || monthlyData || []
   const forecast = useMemo(
@@ -110,28 +125,15 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
         </div>
       </div>
 
-      {/* KPI cards */}
+      {/* KPI cards (shared StatTile) */}
       <div className="grid grid-cols-3 gap-2.5 mb-4">
-        <div className="rounded-2xl p-3 border" style={{ background: THEME.incomeBg, borderColor: THEME.income + "20" }}>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Pemasukan</p>
-          <p className="text-sm font-bold" style={{ color: THEME.income }}>{formatRp(animatedIncome)}</p>
-        </div>
-        <div className="rounded-2xl p-3 border" style={{ background: THEME.expenseBg, borderColor: THEME.expense + "20" }}>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Pengeluaran</p>
-          <p className="text-sm font-bold" style={{ color: THEME.expense }}>{formatRp(animatedExpense)}</p>
-        </div>
-        <div
-          className="rounded-2xl p-3 border"
-          style={{
-            background: surplusPositive ? THEME.savingsBg : THEME.dangerBg,
-            borderColor: (surplusPositive ? THEME.savings : THEME.danger) + "20",
-          }}
-        >
-          <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-0.5">Surplus</p>
-          <p className="text-sm font-bold" style={{ color: surplusPositive ? THEME.savings : THEME.danger }}>
-            {formatRp(animatedSurplus)}
-          </p>
-        </div>
+        <StatTile label="Pemasukan" value={formatRp(animatedIncome)} tone="income" />
+        <StatTile label="Pengeluaran" value={formatRp(animatedExpense)} tone="expense" />
+        <StatTile
+          label="Surplus"
+          value={formatRp(animatedSurplus)}
+          tone={surplusPositive ? "savings" : "danger"}
+        />
       </div>
 
       {/* Chart */}
@@ -160,7 +162,18 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
               tickLine={false}
             />
             <YAxis hide />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip
+              content={
+                <ChartTooltip
+                  entries={[
+                    { key: "pemasukan", label: "Pemasukan", color: THEME.income, format: formatRp },
+                    { key: "pengeluaran", label: "Pengeluaran", color: THEME.expense, format: formatRp },
+                    { key: "surplus", label: "Surplus", color: row => (row.surplus >= 0 ? THEME.savings : THEME.danger), format: formatRp },
+                  ]}
+                  footer="Proyeksi: garis putus-putus"
+                />
+              }
+            />
             <ReferenceLine y={0} stroke={THEME.surfaceWarm} strokeDasharray="4 4" />
             {/* Actual surplus area + line */}
             <Area
@@ -219,9 +232,19 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
 
       <Sheet open={isInfoOpen} onClose={() => setIsInfoOpen(false)} title="Rumus Proyeksi Arus Kas">
         <p className="text-sm leading-relaxed text-md3-on-surface-variant">{FORMULA_COPY}</p>
+        <CoverageSummary forecast={forecast} scheduledExpense={forecast.scheduledExpense} scheduledIncome={forecast.scheduledIncome} />
         <p className="mt-3 text-xs leading-relaxed text-md3-on-surface-variant">{RECONCILIATION_NOTE}</p>
         {forecast.specialHistoryExcluded && (
           <p className="mt-3 text-xs leading-relaxed text-md3-on-surface-variant">{SPECIAL_HISTORY_NOTE}</p>
+        )}
+        {typeof onOpenBills === "function" && (
+          <button
+            type="button"
+            onClick={() => { setIsInfoOpen(false); onOpenBills() }}
+            className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-md3-outline-variant bg-md3-surface px-3 py-2 text-xs font-bold text-md3-on-surface-variant transition-colors hover:bg-md3-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+          >
+            Lihat tagihan terjadwal
+          </button>
         )}
       </Sheet>
     </div>

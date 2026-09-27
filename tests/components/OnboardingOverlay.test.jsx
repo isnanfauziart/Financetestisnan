@@ -133,7 +133,7 @@ describe("OnboardingOverlay — transaction step", () => {
   it("re-opens Quick Add from the interstitial after the sheet is closed, so the step stays required", () => {
     renderOverlay({ step: "transaction", submitTransaction: vi.fn().mockResolvedValue({ ok: true }) })
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }))
+    fireEvent.click(screen.getByRole("button", { name: "Tutup" }))
 
     expect(screen.getByText("Saldo awal tersimpan ✓")).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Catat transaksi pertama" }))

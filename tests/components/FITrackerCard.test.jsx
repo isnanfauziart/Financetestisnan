@@ -146,4 +146,15 @@ describe("FITrackerCard", () => {
     expect(screen.getByText(/target rp 2\.100\.000\.000.*kekayaan bersih tercatat saat ini rp 500\.000\.000.*perkiraan pencapaian/i)).toBeInTheDocument()
     expect(screen.getByText(/garis putus-putus adalah estimasi sederhana berbasis surplus bulanan/i)).toBeInTheDocument()
   })
+
+  it("names the completed months behind the actual-expense average in the calculation sheet", () => {
+    renderCard()
+
+    fireEvent.click(screen.getByRole("button", { name: /cara menghitung/i }))
+
+    const sheet = screen.getByRole("dialog", { name: /cara menghitung/i })
+    expect(screen.getByText(/Data terpakai: 4 bulan selesai/)).toBeInTheDocument()
+    expect(screen.getByText(/Jan 2026, Mar 2026, Apr 2026, Mei 2026/)).toBeInTheDocument()
+    expect(screen.getByText(/Bulan berjalan dan bulan tanpa pengeluaran tercatat tidak ikut dihitung/)).toBeInTheDocument()
+  })
 })

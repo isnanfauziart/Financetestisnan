@@ -244,57 +244,36 @@ describe("StatsTab comparison controls", () => {
     expect(resetComparePeriods).toHaveBeenCalledTimes(1)
   })
 
-  it("renders every comparison category as adjacent month bars with nominal labels", async () => {
+  it("renders every comparison category as a dumbbell row with both period values and delta", async () => {
     const compareChartData = [
       { category: "Makan", "Jul 2026": 800_000, "Jun 2026": 600_000 },
       { category: "Transportasi", "Jul 2026": 300_000, "Jun 2026": 500_000 },
       { category: "Sewa", "Jul 2026": 100_000, "Jun 2026": 0 },
     ]
-    const { container } = render(<StatsTab {...createProps({ compareChartData })} />)
+    render(<StatsTab {...createProps({ compareChartData })} />)
 
     fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
 
     const comparison = screen.getByText("Perbandingan per Kategori").closest(".bento-tile")
     expect(comparison.querySelector(".overflow-x-auto")).toBeTruthy()
-    expect(comparison.querySelectorAll(".recharts-bar-rectangle").length).toBeGreaterThan(0)
-    expect(comparison.querySelectorAll(".recharts-line-curve")).toHaveLength(0)
+    expect(comparison.querySelectorAll("svg circle").length).toBeGreaterThanOrEqual(6)
+    expect(comparison.querySelectorAll("svg line").length).toBeGreaterThanOrEqual(2)
     expect(comparison).toHaveTextContent("Makan")
     expect(comparison).toHaveTextContent("Transportasi")
     expect(comparison).toHaveTextContent("Sewa")
-
-    await waitFor(() => {
-      const labels = [...container.querySelectorAll(".recharts-label-list text")].map(label => label.textContent)
-      const labelLists = [...comparison.querySelectorAll(".recharts-label-list")]
-      const barRects = [...comparison.querySelectorAll(".recharts-bar-rectangle")]
-      const xAxisLabels = [...comparison.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick text")].map(label => label.textContent)
-      const yAxisLabels = [...comparison.querySelectorAll(".recharts-yAxis .recharts-cartesian-axis-tick text")]
-
-      expect(labelLists).toHaveLength(2)
-      expect(labelLists.map(labelList => labelList.querySelectorAll("text").length)).toEqual([3, 3])
-      expect(barRects.length).toBeGreaterThanOrEqual(5)
-      expect(xAxisLabels).toEqual(["Makan", "Transportasi", "Sewa"])
-      expect(yAxisLabels.length).toBeGreaterThan(0)
-      expect(yAxisLabels.every(label => label.textContent.includes("Rp"))).toBe(true)
-      expect([...comparison.querySelectorAll(".recharts-label-list text")].map(label => label.getAttribute("fill"))).toEqual(Array(6).fill(THEME.textPrimary))
-      expect([...comparison.querySelectorAll(".recharts-label-list text")].map(label => label.getAttribute("font-size"))).toEqual(Array(6).fill("9"))
-      expect(comparison.querySelector(".recharts-legend-wrapper")).toBeNull()
-      expect(comparison).toHaveTextContent("Keduanya menunjukkan pengeluaran")
-      expect(comparison).toHaveTextContent("Jul 2026 vs Jun 2026")
-      expect(labels).toEqual(expect.arrayContaining([
-        "Rp 800 rb",
-        "Rp 600 rb",
-        "Rp 300 rb",
-        "Rp 500 rb",
-        "Rp 100 rb",
-        "Rp 0",
-      ]))
-    })
+    expect(comparison).toHaveTextContent("Rp 800 rb")
+    expect(comparison).toHaveTextContent("vs Rp 600 rb")
+    expect(comparison).toHaveTextContent("vs Rp 500 rb")
+    expect(comparison).toHaveTextContent("↑ 33%")
+    expect(comparison).toHaveTextContent("↓ 40%")
+    expect(comparison).toHaveTextContent("Keduanya menunjukkan pengeluaran")
+    expect(comparison).toHaveTextContent("Jul 2026 vs Jun 2026")
+    expect(comparison.querySelector(".recharts-legend-wrapper")).toBeNull()
 
     const colorKey = screen.getByRole("group", { name: "Keterangan warna perbandingan" })
     expect(colorKey).toHaveTextContent("Jul 2026")
     expect(colorKey).toHaveTextContent("Jun 2026")
     expect(colorKey).toHaveTextContent("Keduanya menunjukkan pengeluaran")
-    expect(colorKey.closest(".overflow-x-auto")).toBeTruthy()
     const colorMarkers = [...colorKey.querySelectorAll("span[aria-hidden=\"true\"]")]
     const toCssColor = color => {
       const probe = document.createElement("span")
@@ -302,7 +281,10 @@ describe("StatsTab comparison controls", () => {
       return probe.style.background
     }
     expect(colorMarkers).toHaveLength(2)
-    expect(colorMarkers.map(marker => marker.style.background)).toEqual([toCssColor(THEME.income), toCssColor(THEME.expense)])
+    expect(colorMarkers.map(marker => marker.style.background)).toEqual([
+      toCssColor(THEME.primary),
+      toCssColor("#C8BEB1"),
+    ])
   })
 })
 
@@ -356,6 +338,42 @@ describe("StatsTab segmented statistik navigation", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
     expect(screen.getByRole("heading", { name: "Pemasukan terbesar" }).closest(".grid")).toHaveClass("grid-cols-1", "sm:grid-cols-2")
+  })
+})
+
+describe("StatsTab privacy eye", () => {
+  it("masks the Kondisi Keuangan amounts, including screen-reader labels, while privacy mode is on", () => {
+    render(<StatsTab {...createProps({
+      statIncome: 12_000_000,
+      statExpense: 8_000_000,
+      statSurplus: 4_000_000,
+      moneyHidden: true,
+      onToggleMoneyVisibility: vi.fn(),
+    })} />)
+
+    const summary = screen.getByRole("region", { name: "Kondisi keuangan" })
+    expect(summary).toHaveTextContent("Rp •.•••.•••")
+    expect(summary).toHaveTextContent("Rp ••.• jt")
+    expect(summary).not.toHaveTextContent("Rp 4.000.000")
+    expect(summary).not.toHaveTextContent("Rp 12.0 jt")
+    expect(screen.getByRole("group", { name: "Pemasukan Rp ••.• jt" })).toBeInTheDocument()
+    expect(screen.getByRole("group", { name: "Pengeluaran Rp •.• jt" })).toBeInTheDocument()
+    expect(screen.getByTestId("privacy-eye-toggle")).toHaveAttribute("aria-pressed", "true")
+  })
+
+  it("shows real amounts when privacy mode is off and routes the eye tap to the shared toggle", () => {
+    const onToggleMoneyVisibility = vi.fn()
+    render(<StatsTab {...createProps({
+      statIncome: 12_000_000,
+      statExpense: 8_000_000,
+      statSurplus: 4_000_000,
+      moneyHidden: false,
+      onToggleMoneyVisibility,
+    })} />)
+
+    expect(screen.getByRole("region", { name: "Kondisi keuangan" })).toHaveTextContent("Rp 4.000.000")
+    fireEvent.click(screen.getByTestId("privacy-eye-toggle"))
+    expect(onToggleMoneyVisibility).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -541,7 +559,7 @@ describe("StatsTab Ringkasan cash flow chart", () => {
     expect([...container.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick text")].map(node => node.textContent)).toEqual(["Jan", "Feb", "Mar"])
   })
 
-  it("keeps the Y-axis outside the horizontally scrollable monthly plot", () => {
+  it("integrates the Y-axis inside the single horizontally scrollable monthly chart", () => {
     render(<StatsTab {...createProps({
       selectedMonth: "Semua Bulan",
       isAllMonths: true,
@@ -551,16 +569,15 @@ describe("StatsTab Ringkasan cash flow chart", () => {
       ],
     })} />)
 
-    const axis = screen.getByTestId("stats-cash-flow-axis")
     const scrollViewport = screen.getByTestId("stats-cash-flow-scroll")
     const plot = screen.getByTestId("stats-cash-flow-plot")
 
-    expect(axis.closest('[data-testid="stats-cash-flow-scroll"]')).toBeNull()
+    // Revamp: one integrated chart — the axis lives inside the same plot, no
+    // separate fixed-axis column, and the viewport is the scroll container.
+    expect(screen.queryByTestId("stats-cash-flow-axis")).toBeNull()
     expect(scrollViewport).toHaveClass("overflow-x-auto")
     expect(scrollViewport).toContainElement(plot)
-    expect(plot).not.toContainElement(axis)
-    expect(axis.querySelector(".recharts-yAxis")).not.toBeNull()
-    expect(plot.querySelector(".recharts-yAxis")).toBeNull()
+    expect(plot.querySelector(".recharts-yAxis")).not.toBeNull()
   })
 
   it("shows a cash-flow empty state when all-month filters have no income or expense", () => {

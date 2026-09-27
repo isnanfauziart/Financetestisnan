@@ -47,7 +47,7 @@ function Pager({ page, totalPages, onPageChange }) {
       <button
         onClick={() => onPageChange(page - 1)}
         disabled={page === 1}
-        aria-label="Previous page"
+        aria-label="Halaman sebelumnya"
         className="w-8 h-8 rounded-xl bg-md3-surface hover:bg-md3-surface-container-high disabled:opacity-30 disabled:hover:bg-md3-surface transition-colors flex items-center justify-center text-md3-on-surface-variant text-sm font-bold"
       >
         ‹
@@ -56,7 +56,7 @@ function Pager({ page, totalPages, onPageChange }) {
         <button
           key={p}
           onClick={() => onPageChange(p)}
-          aria-label={`Page ${p}`}
+          aria-label={`Halaman ${p}`}
           aria-current={p === page ? "page" : undefined}
           className={`min-w-[32px] h-8 px-2 rounded-xl text-xs font-bold transition-all ${
             p === page ? "bg-earth-800 text-white shadow-warm" : "bg-md3-surface text-md3-on-surface-variant hover:bg-md3-surface-container-high"
@@ -68,7 +68,7 @@ function Pager({ page, totalPages, onPageChange }) {
       <button
         onClick={() => onPageChange(page + 1)}
         disabled={page === totalPages}
-        aria-label="Next page"
+        aria-label="Halaman berikutnya"
         className="w-8 h-8 rounded-xl bg-md3-surface hover:bg-md3-surface-container-high disabled:opacity-30 disabled:hover:bg-md3-surface transition-colors flex items-center justify-center text-md3-on-surface-variant text-sm font-bold"
       >
         ›
@@ -102,7 +102,7 @@ export default function RecapMonthGroup({
     <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm overflow-hidden">
       <button
         onClick={onToggle}
-        aria-label={`${expanded ? "Collapse" : "Expand"} ${headerKey}`}
+        aria-label={`${expanded ? "Tutup" : "Buka"} ringkasan ${headerKey}`}
         aria-expanded={expanded}
         className="w-full px-4 py-3 flex items-center justify-between text-left active:scale-[0.99] transition-transform"
       >
@@ -196,7 +196,7 @@ export default function RecapMonthGroup({
                       </button>
                       <button
                         onClick={() => onDelete(t)}
-                        aria-label={`Delete ${t.category}`}
+                        aria-label={`Hapus ${t.category}`}
                         className="w-8 h-8 rounded-lg bg-md3-surface-container-lowest hover:bg-rose-100 flex items-center justify-center text-md3-on-surface-variant hover:text-rose-500 transition-colors text-sm font-bold"
                       >
                         ×

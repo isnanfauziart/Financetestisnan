@@ -12,6 +12,7 @@ import DocsSection from "@/components/DocsSection"
 import UserNameSetup from "@/components/UserNameSetup"
 import BalanceCheckpointCard from "@/components/BalanceCheckpointCard"
 import SheetsHubCard from "@/components/SheetsHubCard"
+import UserAvatar from "@/components/UserAvatar"
 import { isProRegistrationOpen } from "@/lib/featureAccess"
 
 const THEME_OPTIONS = ["Terang", "Gelap", "Sistem"]
@@ -150,7 +151,7 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
   return (
     <div className="px-5 pt-4 flex flex-col items-center animate-bento-in gap-4" key="profile-tab">
       <div className="relative mb-1">
-        <img src={session?.user?.image} alt="" className="w-24 h-24 rounded-3xl border-4 border-white shadow-pop-lg" />
+        <UserAvatar src={session?.user?.image} name={displayName} email={session?.user?.email} className="w-24 h-24 rounded-3xl border-4 border-white shadow-pop-lg" />
         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-moss-500 border-2 border-white rounded-2xl" />
       </div>
       <h2 className="text-2xl font-display font-bold mb-1 text-md3-on-surface">{displayName}</h2>

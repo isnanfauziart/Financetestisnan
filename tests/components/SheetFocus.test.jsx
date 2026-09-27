@@ -45,7 +45,7 @@ describe("Sheet focus management", () => {
     trigger.focus()
     fireEvent.click(trigger)
 
-    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus()
+    expect(screen.getByRole("button", { name: "Tutup" })).toHaveFocus()
 
     fireEvent.keyDown(document.activeElement, { key: "Escape" })
     expect(trigger).toHaveFocus()
@@ -56,7 +56,7 @@ describe("Sheet focus management", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open modal" }))
 
-    const closeButton = screen.getByRole("button", { name: "Close" })
+    const closeButton = screen.getByRole("button", { name: "Tutup" })
     const firstAction = screen.getByRole("button", { name: "First action" })
     const secondAction = screen.getByRole("button", { name: "Second action" })
 
@@ -76,7 +76,7 @@ describe("Sheet focus management", () => {
     fireEvent.click(trigger)
 
     expect(screen.getByRole("dialog", { name: "Custom Header" })).toBeInTheDocument()
-    const closeButton = screen.getByRole("button", { name: "Close" })
+    const closeButton = screen.getByRole("button", { name: "Tutup" })
     expect(closeButton).toHaveFocus()
 
     fireEvent.keyDown(window, { key: "Escape" })

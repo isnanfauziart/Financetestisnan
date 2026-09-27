@@ -42,15 +42,15 @@ describe("BudgetCard", () => {
     render(<BudgetCard budget={baseBudget} spent={500000} onClick={() => {}} onEdit={() => {}} onDelete={() => {}} />)
     expect(screen.getByLabelText("Aksi budget Makanan")).toHaveAttribute("aria-haspopup", "menu")
     fireEvent.click(screen.getByLabelText("Aksi budget Makanan"))
-    expect(screen.getByLabelText("Edit Makanan budget")).toHaveClass("min-h-11")
-    expect(screen.getByLabelText("Delete Makanan budget")).toHaveClass("min-h-11")
+    expect(screen.getByLabelText("Edit budget Makanan")).toHaveClass("min-h-11")
+    expect(screen.getByLabelText("Hapus budget Makanan")).toHaveClass("min-h-11")
   })
 
   it("calls onEdit when edit menu item clicked", () => {
     const onEdit = vi.fn()
     render(<BudgetCard budget={baseBudget} spent={500000} onClick={() => {}} onEdit={onEdit} onDelete={() => {}} />)
     fireEvent.click(screen.getByLabelText("Aksi budget Makanan"))
-    fireEvent.click(screen.getByLabelText("Edit Makanan budget"))
+    fireEvent.click(screen.getByLabelText("Edit budget Makanan"))
     expect(onEdit).toHaveBeenCalledTimes(1)
   })
 
@@ -58,7 +58,7 @@ describe("BudgetCard", () => {
     const onDelete = vi.fn()
     render(<BudgetCard budget={baseBudget} spent={500000} onClick={() => {}} onEdit={() => {}} onDelete={onDelete} />)
     fireEvent.click(screen.getByLabelText("Aksi budget Makanan"))
-    fireEvent.click(screen.getByLabelText("Delete Makanan budget"))
+    fireEvent.click(screen.getByLabelText("Hapus budget Makanan"))
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
 
@@ -77,7 +77,7 @@ describe("BudgetCard", () => {
   it("calls onClick when progress bar area clicked", () => {
     const onClick = vi.fn()
     render(<BudgetCard budget={baseBudget} spent={500000} onClick={onClick} onEdit={() => {}} onDelete={() => {}} />)
-    fireEvent.click(screen.getByLabelText("Open Makanan drill-down"))
+    fireEvent.click(screen.getByLabelText("Buka rincian budget Makanan"))
     expect(onClick).toHaveBeenCalledTimes(1)
   })
 })

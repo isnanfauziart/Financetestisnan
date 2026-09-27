@@ -57,7 +57,7 @@ describe("Sheet", () => {
   it("calls onClose when close button is clicked", () => {
     const onClose = vi.fn()
     render(<TestHarness onClose={onClose} />)
-    fireEvent.click(screen.getByLabelText("Close"))
+    fireEvent.click(screen.getByLabelText("Tutup"))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 

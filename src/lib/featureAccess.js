@@ -10,6 +10,23 @@ export function isFeatureEnabled(entitlement, key) {
   return true
 }
 
+/**
+ * Wave 8 — resolved gate state for rendering decisions.
+ *
+ * Distinct from hasFeature/isFeatureEnabled booleans: callers need to know WHY
+ * something is hidden so they can render the right placeholder. `null`
+ * entitlement means /api/me has not answered yet → "unresolved" (render a
+ * neutral placeholder, never "tidak tersedia"). An explicit server answer that
+ * denies availability stays "unavailable" (fail-closed), a tier answer stays
+ * "locked" (show the Pro preview).
+ */
+export function getFeatureGate(entitlement, key) {
+  if (entitlement === null || entitlement?.entitlementVerified === false) return "unresolved"
+  if (!isFeatureEnabled(entitlement, key)) return "unavailable"
+  if (!hasFeature(entitlement, key)) return "locked"
+  return "enabled"
+}
+
 export function hasFeature(entitlement, key) {
   if (!isFeatureEnabled(entitlement, key)) return false
 

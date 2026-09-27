@@ -11,6 +11,20 @@ export function formatRpFull(amount) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount)
 }
 
+/**
+ * Privacy mask for formatted rupiah strings (privacy-eye mode).
+ *
+ * Replaces every digit and the +/- signs with a bullet while keeping `Rp`,
+ * separators, and spacing so the masked value occupies roughly the same width
+ * as the real one. The result contains no digits, so what a screen reader
+ * announces matches what sighted users see. Non-numeric strings (loading
+ * states, labels like "Hari ini") pass through unchanged.
+ */
+export function maskRupiah(formatted) {
+  if (typeof formatted !== "string") return formatted
+  return formatted.replace(/[0-9+\u2212-]/g, "\u2022")
+}
+
 export function formatInputRupiah(val) {
   const num = val.replace(/[^0-9]/g, "")
   return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".")

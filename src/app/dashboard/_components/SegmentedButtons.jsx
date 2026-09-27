@@ -3,7 +3,9 @@
 // MD3 segmented buttons: connected full-rounded group, mutually exclusive
 // selection. Selected = secondary-container bg + on-secondary-container text;
 // unselected = transparent + on-surface-variant; outline-variant divider
-// between segments (hidden next to the selected one). Min target height 40px.
+// between segments (hidden next to the selected one). The clipped pill needs
+// overflow-hidden, so the 44px touch minimum is met with a real 44px min
+// height instead of the pseudo-element extension.
 export default function SegmentedButtons({ options, value, onChange, ariaLabel, className = "" }) {
   return (
     <div
@@ -21,7 +23,7 @@ export default function SegmentedButtons({ options, value, onChange, ariaLabel, 
             role="radio"
             aria-checked={selected}
             onClick={() => onChange(option)}
-            className={`min-h-[40px] flex-1 px-3 text-xs font-bold transition-colors ${
+            className={`min-h-[44px] flex-1 px-3 text-xs font-bold transition-colors ${
               selected
                 ? "bg-md3-secondary-container text-md3-on-secondary-container"
                 : "text-md3-on-surface-variant hover:bg-md3-surface-container-high"

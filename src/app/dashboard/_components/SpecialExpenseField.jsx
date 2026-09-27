@@ -47,7 +47,8 @@ export default function SpecialExpenseField({ checked, onChange, helperId, sugge
             <button
               type="button"
               onClick={onAcceptSuggestion}
-              className="rounded-full bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-700 hover:bg-violet-100"
+              className="touch-target-44 rounded-full bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-700 hover:bg-violet-100"
+              style={{ "--tt-grow": "8px" }}
             >
               Tandai Spesial
             </button>
@@ -55,7 +56,8 @@ export default function SpecialExpenseField({ checked, onChange, helperId, sugge
               type="button"
               onClick={onDismissSuggestion}
               aria-label="Tutup saran Pengeluaran Spesial"
-              className="flex h-7 w-7 items-center justify-center rounded-full text-earth-400 hover:bg-md3-surface-container-high hover:text-md3-on-surface-variant"
+              className="touch-target-44 flex h-7 w-7 items-center justify-center rounded-full text-earth-400 hover:bg-md3-surface-container-high hover:text-md3-on-surface-variant"
+              style={{ "--tt-grow": "8px" }}
             >
               <X size={12} strokeWidth={3} aria-hidden="true" />
             </button>

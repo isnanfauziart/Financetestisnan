@@ -10,7 +10,8 @@ export default function PillButton({ active, onClick, children, color = "primary
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all duration-200 ${active ? c.active : c.idle} ${active ? "shadow-sm" : ""}`}
+      className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all duration-200 touch-target-44 ${active ? c.active : c.idle} ${active ? "shadow-sm" : ""}`}
+      style={{ "--tt-grow": "8px" }}
     >
       {children}
     </button>

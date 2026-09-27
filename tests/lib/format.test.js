@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { formatRp, formatRpFull, formatInputRupiah, parseTxDate } from "@/app/dashboard/_components/helpers"
+import { formatRp, formatRpFull, formatInputRupiah, parseTxDate, maskRupiah } from "@/app/dashboard/_components/helpers"
 import { parseRupiah } from "@/lib/sheets"
 import { AVAILABLE_MONTHS, MONTHS_MAP } from "@/app/dashboard/_components/constants"
 import { parseDateLoose } from "@/app/dashboard/_components/goalUtils"
@@ -36,6 +36,39 @@ describe("formatInputRupiah", () => {
   })
   it("handles empty string", () => {
     expect(formatInputRupiah("")).toBe("")
+  })
+})
+
+describe("maskRupiah", () => {
+  it("masks full IDR amounts while keeping Rp and separators", () => {
+    expect(maskRupiah("Rp 12.500.000")).toBe("Rp ••.•••.•••")
+    expect(maskRupiah(formatRpFull(12500000))).toMatch(/^Rp\s••\.•••\.•••$/)
+  })
+
+  it("keeps the same character count so layout width stays stable", () => {
+    expect(maskRupiah("Rp 12.500.000").length).toBe("Rp 12.500.000".length)
+  })
+
+  it("masks compact formatRp values and their thousands dot", () => {
+    expect(maskRupiah(formatRp(5000000))).toBe("Rp •.• jt")
+    expect(maskRupiah("Rp 50 rb")).toBe("Rp •• rb")
+  })
+
+  it("masks signed cash-flow values including the sign", () => {
+    expect(maskRupiah("+Rp 3.0 jt")).toBe("•Rp •.• jt")
+    expect(maskRupiah("−Rp 1,2 jt")).toBe("•Rp •,• jt")
+    expect(maskRupiah("-Rp 1,2 jt")).toBe("•Rp •,• jt")
+  })
+
+  it("passes through non-numeric labels unchanged", () => {
+    expect(maskRupiah("Hari ini")).toBe("Hari ini")
+    expect(maskRupiah("Memuat…")).toBe("Memuat…")
+  })
+
+  it("handles empty and non-string input", () => {
+    expect(maskRupiah("")).toBe("")
+    expect(maskRupiah(null)).toBe(null)
+    expect(maskRupiah(undefined)).toBe(undefined)
   })
 })
 

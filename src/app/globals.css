@@ -1273,3 +1273,28 @@ body {
     --md-sys-color-outline-variant: #8A8178;
   }
 }
+
+/* ===== Wave 10 — 44px touch targets =====
+   Extends a compact control's touch target to the 44px accessibility minimum
+   without enlarging the visible control: the pseudo-element grows the box by
+   --tt-grow on every side (4px default; small controls raise it via an inline
+   custom property). position: relative keeps the extension anchored to the
+   control itself. */
+.touch-target-44 {
+  --tt-grow: 4px;
+  position: relative;
+}
+
+.touch-target-44::after {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--tt-grow));
+  right: calc(-1 * var(--tt-grow));
+  bottom: calc(-1 * var(--tt-grow));
+  left: calc(-1 * var(--tt-grow));
+}
+
+/* Wave 10 regression pin: the avatar fallback must stay readable in dark mode. */
+[data-theme="dark"] .avatar-fallback-tile {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}

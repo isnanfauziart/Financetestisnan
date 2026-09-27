@@ -89,4 +89,85 @@ describe("Sheet modal history (Wave 5)", () => {
     act(() => unmount())
     expect(closeTopSheetOnBack()).toBe(false)
   })
+
+  // Regression: dirty flips and parent re-renders mid-open used to re-run the
+  // history effect, whose cleanup called history.back() and fired a phantom
+  // popstate — spontaneously opening "Buang perubahan?" (or auto-closing a
+  // clean sheet) with no Back press. The sentinel must register once per open.
+  it("does not fire a phantom Back when dirty flips false → true mid-open", () => {
+    const onClose = vi.fn()
+    function Harness() {
+      const [dirty, setDirty] = useState(false)
+      return (
+        <>
+          <button onClick={() => setDirty(true)}>Jadikan kotor</button>
+          <Sheet open onClose={onClose} title="Form" dirty={dirty} />
+        </>
+      )
+    }
+    render(<Harness />)
+    const historyLength = window.history.length
+
+    fireEvent.click(screen.getByRole("button", { name: "Jadikan kotor" }))
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(window.history.length).toBe(historyLength)
+  })
+
+  it("still guards Back with the discard confirm after dirty flips mid-open", () => {
+    const onClose = vi.fn()
+    function Harness() {
+      const [dirty, setDirty] = useState(false)
+      return (
+        <>
+          <button onClick={() => setDirty(true)}>Jadikan kotor</button>
+          <Sheet open onClose={onClose} title="Form" dirty={dirty} />
+        </>
+      )
+    }
+    render(<Harness />)
+    fireEvent.click(screen.getByRole("button", { name: "Jadikan kotor" }))
+
+    back()
+
+    expect(screen.getByRole("alertdialog")).toHaveTextContent("Buang perubahan?")
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it("does not fire a phantom Back when the parent passes a new onClose identity mid-open", () => {
+    const onClose = vi.fn()
+    function Harness({ onClose: close }) {
+      return <Sheet open onClose={close} title="Form" />
+    }
+    const { rerender } = render(<Harness onClose={onClose} />)
+    const historyLength = window.history.length
+
+    rerender(<Harness onClose={() => onClose()} />)
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(window.history.length).toBe(historyLength)
+  })
+
+  it("stays open when dirty flips true → false mid-open", () => {
+    const onClose = vi.fn()
+    function Harness() {
+      const [dirty, setDirty] = useState(true)
+      return (
+        <>
+          <button onClick={() => setDirty(false)}>Bersihkan</button>
+          <Sheet open onClose={onClose} title="Form" dirty={dirty} />
+        </>
+      )
+    }
+    render(<Harness />)
+    const historyLength = window.history.length
+
+    fireEvent.click(screen.getByRole("button", { name: "Bersihkan" }))
+
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByRole("dialog", { name: "Form" })).toBeInTheDocument()
+    expect(window.history.length).toBe(historyLength)
+  })
 })

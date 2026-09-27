@@ -434,7 +434,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
               onDismiss={handleRecurringDismiss}
             />
           ) : (
-            <LockedFeaturePreview title="Recurring Expense Radar" description="Deteksi pengeluaran rutin tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />
+            <LockedFeaturePreview title="Recurring Expense Radar" description="Deteksi pengeluaran rutin tersedia di Pro." example="Contoh: tagihan internet terdeteksi rutin tiap awal bulan." proRegistrationOpen={proRegistrationOpen} />
           )
         ) : (
           <LockedFeaturePreview title="Recurring Expense Radar" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} />

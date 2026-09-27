@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import CashFlowForecast from "@/components/CashFlowForecast"
 import { formatRp } from "@/app/dashboard/_components/helpers"
 import { computeForecast } from "@/lib/forecast"
@@ -148,17 +148,75 @@ describe("CashFlowForecast", () => {
     expect(screen.getByText("Proyeksi ini dihitung berdasarkan hingga enam bulan lengkap terakhir, dengan mempertimbangkan pola pemasukan, pengeluaran, tagihan, dan pembayaran terjadwal.")).toBeInTheDocument()
     expect(screen.getByText("Riwayat Spesial tidak masuk baseline rutin.")).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }))
+    fireEvent.click(screen.getByRole("button", { name: "Tutup" }))
     fireEvent.click(chart)
     expect(screen.getByRole("dialog")).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }))
+    fireEvent.click(screen.getByRole("button", { name: "Tutup" }))
     fireEvent.keyDown(chart, { key: "Enter" })
     expect(screen.getByRole("dialog")).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }))
+    fireEvent.click(screen.getByRole("button", { name: "Tutup" }))
     fireEvent.keyDown(chart, { key: " " })
     expect(screen.getByRole("dialog")).toBeInTheDocument()
+  })
+
+  it("discloses live coverage facts in the formula sheet", () => {
+    const monthlyData = createMonthlyData()
+    const { bills, transactions } = createBillInputs(monthlyData)
+    renderForecast({ monthlyData, bills, transactions })
+
+    fireEvent.click(screen.getByRole("button", { name: "Info proyeksi arus kas" }))
+
+    const sheet = screen.getByRole("dialog")
+    expect(within(sheet).getByText(/Data terpakai: 6 bulan lengkap/)).toBeInTheDocument()
+    expect(within(sheet).getByText(/Tagihan terjadwal masuk hitungan/)).toBeInTheDocument()
+    expect(within(sheet).getByText(/pengeluaran terjadwal Rp 1\.0 jt\/bulan/)).toBeInTheDocument()
+  })
+
+  it("discloses data gaps when observed months are not consecutive", () => {
+    // 6 entries with a missing month between the 3rd and 4th → 1 gap.
+    const data = createMonthlyData(6).map((entry) => ({ ...entry, pengeluaranRutin: entry.pengeluaran, surplusRutin: entry.surplus }))
+    data.splice(3, 1)
+
+    renderForecast({ monthlyData: data })
+
+    fireEvent.click(screen.getByRole("button", { name: "Info proyeksi arus kas" }))
+    expect(within(screen.getByRole("dialog")).getByText(/1 bulan tanpa catatan lengkap dilewati/)).toBeInTheDocument()
+  })
+
+  it("describes income profile in plain coverage language, not probability", () => {
+    const data = createMonthlyData(6).map((entry, index) => ({
+      ...entry,
+      pemasukan: index % 2 === 0 ? 6_000_000 : 2_000_000,
+      pengeluaranRutin: entry.pengeluaran,
+      surplusRutin: entry.surplus,
+    }))
+
+    renderForecast({ monthlyData: data })
+
+    fireEvent.click(screen.getByRole("button", { name: "Info proyeksi arus kas" }))
+    const sheet = within(screen.getByRole("dialog"))
+    expect(sheet.getByText(/Pemasukanmu bervariasi/)).toBeInTheDocument()
+    expect(sheet.queryByText(/%|probabilitas|keyakinan/i)).not.toBeInTheDocument()
+  })
+
+  it("offers evidence navigation to scheduled bills via onOpenBills", () => {
+    const onOpenBills = vi.fn()
+    const monthlyData = createMonthlyData()
+    const { bills, transactions } = createBillInputs(monthlyData)
+    renderForecast({ monthlyData, bills, transactions, onOpenBills })
+
+    fireEvent.click(screen.getByRole("button", { name: "Info proyeksi arus kas" }))
+    fireEvent.click(screen.getByRole("button", { name: "Lihat tagihan terjadwal" }))
+
+    expect(onOpenBills).toHaveBeenCalledTimes(1)
+  })
+
+  it("hides the bills evidence link when no handler is provided", () => {
+    renderForecast({})
+
+    expect(screen.queryByRole("button", { name: "Lihat tagihan terjadwal" })).not.toBeInTheDocument()
   })
 
   it.each([

@@ -219,7 +219,7 @@ describe("paid feature visibility", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Simulasi" }))
     expect(screen.queryByText("Live Financial Freedom")).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Open What-If Scenario simulator" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Buka simulator What-If" })).not.toBeInTheDocument()
     expect(screen.getByText("Financial Freedom")).toBeInTheDocument()
     expect(screen.getByText("What-If")).toBeInTheDocument()
   })
@@ -237,6 +237,6 @@ describe("paid feature visibility", () => {
     render(<PlanTab {...planProps(proEntitlement)} />)
     fireEvent.click(screen.getByRole("button", { name: "Simulasi" }))
     expect(await screen.findByText("Live Financial Freedom")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Open What-If Scenario simulator" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka simulator What-If" })).toBeInTheDocument()
   })
 })

@@ -58,12 +58,12 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
             onEdit={onEdit}
             onDelete={onDelete}
             menuLabel={`Aksi budget ${budget.kategori}`}
-            editLabel={`Edit ${budget.kategori} budget`}
-            deleteLabel={`Delete ${budget.kategori} budget`}
+            editLabel={`Edit budget ${budget.kategori}`}
+            deleteLabel={`Hapus budget ${budget.kategori}`}
           />
         </div>
       </div>
-      <button onClick={onClick} className="w-full min-h-11 text-left" aria-label={`Open ${budget.kategori} drill-down`}>
+      <button onClick={onClick} className="w-full min-h-11 text-left" aria-label={`Buka rincian budget ${budget.kategori}`}>
         <BudgetProgressBar spent={spent} limit={budget.limit} expectedSpent={pace?.expectedSpent} paceStatus={pace?.paceStatus} />
         <div className="mt-1.5 flex items-center justify-between gap-3">
           <p className="text-[10px] text-md3-on-surface-variant font-semibold">{Math.round(pct)}% used</p>

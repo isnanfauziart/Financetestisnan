@@ -30,4 +30,17 @@ describe("monthly brief", () => {
     rerender(<BillBrief billsError="Unavailable" />)
     expect(screen.getByText("Belum tersedia")).toBeInTheDocument()
   })
+
+  it("masks budget and bill amounts in privacy mode while percentage headlines stay readable", () => {
+    state.budgets = [{ kategori: "Makan", bulan: "Sep", tahun: "2026", limit: 100000, akun: "BCA" }]
+    const { rerender } = render(<BudgetBrief selectedMonth="Sep" selectedYear="2026" selectedAccount="Semua Akun" moneyHidden transactions={[
+      { type: "expense", category: "Makan", account: "BCA", amount: 50000, date: "2026-09-02" },
+    ]} />)
+    expect(screen.getByText("50% digunakan")).toBeInTheDocument()
+    expect(screen.getByText("Sisa anggaran Rp •• rb")).toBeInTheDocument()
+
+    rerender(<BillBrief moneyHidden bills={[{ nama: "Internet", jumlah: 389000, daysUntilDue: 1, aktif: true }]} />)
+    expect(screen.getByText("Internet · Rp ••• rb")).toBeInTheDocument()
+    expect(screen.queryByText(/Rp 389 rb/)).not.toBeInTheDocument()
+  })
 })

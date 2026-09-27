@@ -148,6 +148,16 @@ export default function WhatIfModal({ open, onClose, transactions, allocations }
 
   const hasInput = targetCategorySpend > 0 || incomeIncrease > 0
 
+  // Wave 8 — basis disclosure: the category average uses ALL recorded expenses
+  // (including Spesial), unlike routine-only analytics elsewhere.
+  const recordedMonthsCount = useMemo(() => {
+    const keys = new Set()
+    for (const t of transactions || []) {
+      if (t?.month && (t.year !== undefined && t.year !== null)) keys.add(`${t.month} ${t.year}`)
+    }
+    return keys.size
+  }, [transactions])
+
   return (
     <Sheet
       open={open}
@@ -181,6 +191,12 @@ export default function WhatIfModal({ open, onClose, transactions, allocations }
             <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">Rata-rata bulanan</span>
             <span className="text-sm font-bold text-md3-on-surface-variant">{formatRpFull(categoryAvg)}</span>
           </div>
+        )}
+
+        {selectedCategory && categoryAvg > 0 && (
+          <p className="text-[10px] leading-relaxed text-md3-on-surface-variant px-1">
+            Rata-rata kategori memakai semua transaksi tercatat, termasuk pengeluaran Spesial, dari {recordedMonthsCount} bulan tercatat.
+          </p>
         )}
 
         <div>

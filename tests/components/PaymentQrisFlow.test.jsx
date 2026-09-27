@@ -104,3 +104,140 @@ describe("PaymentQrisFlow helpers", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
+
+describe("PaymentQrisFlow pending refresh (Wave 9)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
+
+  function mockPendingThen(payload, status = 200) {
+    return vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        payments: [{ id: "p1", status: "pending", created_at: "2026-07-25T01:00:00.000Z" }],
+        total: 1,
+        tier: "free",
+        proRegistrationOpen: true,
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(payload), { status }))
+  }
+
+  it("offers a bounded Periksa status control while proof is pending and announces refresh outcome", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    mockPendingThen({
+      payments: [{ id: "p1", status: "pending", created_at: "2026-07-25T01:00:00.000Z" }],
+      total: 1,
+      tier: "free",
+      proRegistrationOpen: true,
+    })
+    const { default: PaymentQrisFlow } = await import("@/components/PaymentQrisFlow")
+
+    render(<PaymentQrisFlow />)
+    const refresh = await screen.findByRole("button", { name: "Periksa status" })
+
+    fireEvent.click(refresh)
+
+    await vi.waitFor(() => expect(screen.getByRole("status", { name: /status pembayaran/i })).toHaveTextContent("Status belum berubah"))
+  })
+
+  it("updates the view after a refresh that finds approval", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    mockPendingThen({
+      payments: [{ id: "p1", status: "approved", created_at: "2026-07-25T01:00:00.000Z" }],
+      total: 1,
+      tier: "free",
+      proRegistrationOpen: true,
+    })
+    const { default: PaymentQrisFlow } = await import("@/components/PaymentQrisFlow")
+
+    render(<PaymentQrisFlow />)
+    fireEvent.click(await screen.findByRole("button", { name: "Periksa status" }))
+
+    expect(await screen.findByText("Akun Anda sudah Pro. Riwayat pembayaran tetap tersedia di bawah.")).toBeInTheDocument()
+    expect(screen.getByRole("status", { name: /status pembayaran/i })).toHaveTextContent("Pembayaran disetujui")
+  })
+
+  it("keeps the refresh usable after a server failure and shows a retryable message", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    mockPendingThen({ error: "server_error", message: "Gagal memuat status." }, 500)
+    const { default: PaymentQrisFlow } = await import("@/components/PaymentQrisFlow")
+
+    render(<PaymentQrisFlow />)
+    const refresh = await screen.findByRole("button", { name: "Periksa status" })
+    fireEvent.click(refresh)
+
+    await vi.waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/Gagal memuat status|tidak dapat diperbarui/i))
+    expect(screen.getByRole("button", { name: "Periksa status" })).toBeEnabled()
+  })
+
+  it("refetches once when the tab returns to foreground while a payment is pending", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        payments: [{ id: "p1", status: "pending", created_at: "2026-07-25T01:00:00.000Z" }],
+        total: 1,
+        tier: "free",
+        proRegistrationOpen: true,
+      }), { status: 200 }))
+      .mockResolvedValue(new Response(JSON.stringify({
+        payments: [{ id: "p1", status: "pending", created_at: "2026-07-25T01:00:00.000Z" }],
+        total: 1,
+        tier: "free",
+        proRegistrationOpen: true,
+      }), { status: 200 }))
+    const { default: PaymentQrisFlow } = await import("@/components/PaymentQrisFlow")
+
+    render(<PaymentQrisFlow />)
+    await screen.findByRole("button", { name: "Periksa status" })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true })
+    document.dispatchEvent(new Event("visibilitychange"))
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+
+    // A rapid second visibility return within the cooldown must not refetch again.
+    document.dispatchEvent(new Event("visibilitychange"))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+
+    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true })
+  })
+
+  it("never exposes proof URLs or storage paths in markup while pending", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      payments: [{
+        id: "p1",
+        status: "pending",
+        created_at: new Date(Date.now() - 3_600_000).toISOString(),
+        proof_url: "payment-proofs/user-1/p1.jpeg",
+        payer_name: "Ayu",
+      }],
+      total: 1,
+      tier: "free",
+      proRegistrationOpen: true,
+    }), { status: 200 }))
+    const { default: PaymentQrisFlow } = await import("@/components/PaymentQrisFlow")
+
+    render(<PaymentQrisFlow />)
+
+    await screen.findByRole("button", { name: "Periksa status" })
+    expect(document.body.innerHTML).not.toContain("payment-proofs")
+    expect(document.body.innerHTML).not.toContain("p1.jpeg")
+    expect(document.body.innerHTML).not.toContain("supabase")
+  })
+
+  it("does not offer Periksa status outside the pending state", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      payments: [{ id: "a1", status: "awaiting_payment", created_at: new Date(Date.now() - 3_600_000).toISOString() }],
+      total: 1,
+      tier: "free",
+      proRegistrationOpen: true,
+    }), { status: 200 }))
+    const { default: PaymentQrisFlow } = await import("@/components/PaymentQrisFlow")
+
+    render(<PaymentQrisFlow />)
+
+    await screen.findByText("Unggah bukti")
+    expect(screen.queryByRole("button", { name: "Periksa status" })).not.toBeInTheDocument()
+  })
+})

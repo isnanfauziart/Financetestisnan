@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, within } from "@testing-library/react"
 import HomeTab from "@/app/dashboard/HomeTab"
 import { AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { getWibDateParts } from "@/lib/wibCalendar"
@@ -7,6 +7,13 @@ import { getWibDateParts } from "@/lib/wibCalendar"
 vi.mock("@/components/HealthScoreCard", () => ({
   default: () => <div data-testid="health-score-card">Health score mock</div>,
 }))
+
+// The hero's count-up animation starts at 0 in jsdom; pin the settled value so
+// privacy-eye assertions read the final figure instead of the animation start.
+vi.mock("@/app/dashboard/_components/helpers", async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, useCountUpOvershoot: () => 12500000 }
+})
 
 vi.mock("@/components/BudgetStatusCard", () => ({
   default: () => <div data-testid="budget-status-card">Budget status mock</div>,
@@ -20,6 +27,10 @@ vi.mock("@/lib/useSharedData", () => ({
 }))
 
 const { useBudgets, useBills, useGoals } = await import("@/lib/useSharedData")
+
+// Order-independent defaults so describe blocks without beforeEach still render.
+useBudgets.mockReturnValue({ budgets: [] })
+useBills.mockReturnValue({ bills: [] })
 
 function createProps(overrides = {}) {
   return {
@@ -61,6 +72,63 @@ function createProps(overrides = {}) {
   }
 }
 
+describe("HomeTab privacy eye", () => {
+  it("masks hero and Top 3 amounts while the shared privacy mode is on", () => {
+    render(<HomeTab {...createProps({ moneyHidden: true, onToggleMoneyVisibility: vi.fn() })} />)
+
+    const hero = screen.getByTestId("home-hero")
+    expect(hero).toHaveTextContent("Rp ••.•••.•••")
+    expect(hero).not.toHaveTextContent("Rp 12.500.000")
+    expect(hero).not.toHaveTextContent("Rp 350 rb")
+
+    const topExpenses = screen.getByTestId("home-top-expenses")
+    expect(topExpenses).toHaveTextContent("Rp ••• rb")
+    expect(topExpenses).not.toHaveTextContent("Rp 450 rb")
+
+    const eyes = screen.getAllByTestId("privacy-eye-toggle")
+    expect(eyes).toHaveLength(2)
+    for (const eye of eyes) expect(eye).toHaveAttribute("aria-pressed", "true")
+  })
+
+  it("keeps real amounts when the privacy mode is off and routes eye taps to the shared toggle", () => {
+    const onToggleMoneyVisibility = vi.fn()
+    render(<HomeTab {...createProps({ moneyHidden: false, onToggleMoneyVisibility })} />)
+
+    expect(screen.getByTestId("home-hero")).toHaveTextContent("Rp 12.500.000")
+    expect(screen.getByTestId("home-top-expenses")).toHaveTextContent("Rp 450 rb")
+
+    fireEvent.click(screen.getAllByTestId("privacy-eye-toggle")[0])
+    expect(onToggleMoneyVisibility).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("HomeTab entitlement gate", () => {
+  it("shows a neutral Health Score placeholder, not an unavailable message, while entitlement resolves", () => {
+    render(<HomeTab {...createProps({ entitlement: null })} />)
+
+    expect(screen.getByRole("status", { name: "Health Score" })).toBeInTheDocument()
+    expect(screen.queryByText(/tidak tersedia/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /buka pro/i })).not.toBeInTheDocument()
+  })
+
+  it("still shows the locked preview with one upgrade action once entitlement resolves", () => {
+    render(
+      <HomeTab
+        {...createProps({
+          entitlement: {
+            tier: "free",
+            features: { healthScore: false, insights: false },
+            upgrade: "/upgrade",
+          },
+        })}
+      />,
+    )
+
+    expect(screen.getByText("Ringkasan kesehatan keuangan tersedia di Pro.")).toBeInTheDocument()
+    expect(screen.getAllByRole("link", { name: /buka pro/i })).toHaveLength(1)
+  })
+})
+
 describe("HomeTab priority actions", () => {
   beforeEach(() => {
     useBudgets.mockReturnValue({
@@ -91,39 +159,73 @@ describe("HomeTab priority actions", () => {
     expect(hero.contains(screen.getByText("Fokus Hari Ini"))).toBe(false)
     expect(focusNote).toBeInTheDocument()
 
-    const cashFlowHeading = screen.getByText("Uang masuk & Uang keluar Jul 2026")
+    const topExpensesHeading = screen.getByText("Top 3 pengeluaran")
     const priorityHeading = screen.getByText("Yang perlu kamu cek")
     const billAction = screen.getByRole("button", { name: /bayar tagihan internet wifi/i })
     const budgetAction = screen.getByRole("button", { name: /cek budget makanan/i })
-    const incomeSummary = screen.getByLabelText("Lihat 10 transaksi pemasukan terbesar")
+    const topExpenseRow = screen.getAllByRole("button", { name: /lihat pengeluaran terbesar nomor/i })
 
     expect(billAction).toBeInTheDocument()
     expect(budgetAction).toBeInTheDocument()
-    expect(incomeSummary).toBeInTheDocument()
-    // Approved order: hero → check surface → fuller cash-flow section.
+    expect(topExpenseRow.length).toBeGreaterThan(0)
+    // Approved order: hero → check surface → top expenses.
     expect(hero.compareDocumentPosition(priorityHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(priorityHeading.compareDocumentPosition(cashFlowHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(priorityHeading.compareDocumentPosition(topExpensesHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it("shows direct selected-period cash-flow values and the surplus or deficit", () => {
+  it("shows the three biggest expenses of the selected period, sorted descending, with the Spesial badge", () => {
     render(<HomeTab {...createProps({
       data: { netWorth: 0, totalIncome: 0, totalExpense: 0, totalSavings: 0, transactions: [] },
-      statIncome: 9000000,
-      statExpense: 4200000,
-      statSavings: 1700000,
+      filteredTransactions: [
+        { type: "expense", category: "Makanan", amount: 450000, date: "3 Jul 2026", month: "Jul", year: "2026" },
+        { type: "expense", category: "Kondangan", amount: 900000, date: "5 Jul 2026", month: "Jul", year: "2026", expenseClass: "Spesial" },
+        { type: "expense", category: "Jajan", amount: 200000, date: "7 Jul 2026", month: "Jul", year: "2026" },
+        { type: "expense", category: "Transport", amount: 150000, date: "8 Jul 2026", month: "Jul", year: "2026" },
+        { type: "income", category: "Gaji", amount: 9000000, date: "1 Jul 2026", month: "Jul", year: "2026" },
+      ],
     })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Uang masuk & Uang keluar Jul 2026" })
+    const section = screen.getByTestId("home-top-expenses")
+    expect(section).toHaveTextContent("Top 3 pengeluaran")
+    expect(section).toHaveTextContent("Jul 2026")
+    expect(within(section).getByText("Kondangan")).toBeInTheDocument()
+    expect(within(section).getByText("Makanan")).toBeInTheDocument()
+    expect(within(section).getByText("Jajan")).toBeInTheDocument()
+    expect(within(section).queryByText("Transport")).not.toBeInTheDocument()
+    expect(within(section).queryByText("Gaji")).not.toBeInTheDocument()
+    expect(within(section).getByText("Spesial")).toBeInTheDocument()
 
-    expect(cashFlow).toHaveTextContent("Uang masuk")
-    expect(cashFlow).toHaveTextContent("Rp 9.0 jt")
-    expect(cashFlow).toHaveTextContent("Uang keluar")
-    expect(cashFlow).toHaveTextContent("Rp 4.2 jt")
-    expect(cashFlow).toHaveTextContent("Tabungan")
-    expect(cashFlow).toHaveTextContent("Rp 1.7 jt")
-    expect(cashFlow).toHaveTextContent("Arus kas bersih")
-    expect(cashFlow).toHaveTextContent("Surplus")
-    expect(cashFlow).toHaveTextContent("Rp 4.8 jt")
+    const rows = within(section).getAllByRole("button", { name: /lihat pengeluaran terbesar nomor/i })
+    expect(rows).toHaveLength(3)
+    expect(rows[0]).toHaveTextContent("Rp 900 rb")
+    expect(rows[1]).toHaveTextContent("Rp 450 rb")
+    expect(rows[2]).toHaveTextContent("Rp 200 rb")
+  })
+
+  it("shows the empty top-expense state when the period has no expenses", () => {
+    render(<HomeTab {...createProps({
+      data: { netWorth: 0, totalIncome: 0, totalExpense: 0, totalSavings: 0, transactions: [] },
+      filteredTransactions: [],
+    })} />)
+
+    expect(screen.getByText("Belum ada pengeluaran untuk periode ini.")).toBeInTheDocument()
+  })
+
+  it("opens the top-10 expense drill-down scoped to the filtered transactions", () => {
+    const setDrillDown = vi.fn()
+    const filteredTransactions = [
+      { type: "expense", category: "Makanan", amount: 450000, month: "Jul", year: "2026" },
+    ]
+
+    render(<HomeTab {...createProps({ filteredTransactions, setDrillDown })} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Lihat pengeluaran terbesar nomor 1: Makanan" }))
+
+    expect(setDrillDown).toHaveBeenCalledWith({
+      type: "expense",
+      title: "Pengeluaran",
+      transactions: filteredTransactions,
+    })
   })
 
   it("shows the canonical hero values and the provisional balance basis", () => {
@@ -209,38 +311,22 @@ describe("HomeTab priority actions", () => {
     expect(rincian).toHaveTextContent("Bisa dipakai sekarang")
   })
 
-  it("uses a neutral scope label for all-period cash flow filters", () => {
+  it("uses a neutral scope label for all-period filters", () => {
     render(<HomeTab {...createProps({ selectedMonth: "Semua Bulan", selectedYear: "Semua Tahun" })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Uang masuk & Uang keluar Periode yang dipilih" })
+    const topExpenses = screen.getByTestId("home-top-expenses")
 
-    expect(cashFlow).toHaveTextContent("Periode yang dipilih")
-    expect(cashFlow).not.toHaveTextContent("Bulan berjalan")
-    expect(cashFlow).not.toHaveTextContent("Uang masuk & Uang keluar Bulan Ini")
+    expect(topExpenses).toHaveTextContent("Periode yang dipilih")
+    expect(topExpenses).not.toHaveTextContent("Bulan berjalan")
   })
 
   it("does not invent a selected-period label when one period filter is missing", () => {
     render(<HomeTab {...createProps({ selectedMonth: "Jul", selectedYear: undefined })} />)
 
-    const cashFlow = screen.getByRole("region", { name: "Uang masuk & Uang keluar Periode yang dipilih" })
+    const topExpenses = screen.getByTestId("home-top-expenses")
 
-    expect(cashFlow).toHaveTextContent("Periode yang dipilih")
-    expect(cashFlow).not.toHaveTextContent("Uang masuk & Uang keluar Jul")
-  })
-
-  it("does not add a plus sign to a balanced cash flow", () => {
-    render(<HomeTab {...createProps({
-      data: { netWorth: 0, totalIncome: 0, totalExpense: 0, totalSavings: 0, transactions: [] },
-      statIncome: 4200000,
-      statExpense: 4200000,
-      statSavings: 0,
-    })} />)
-
-    const cashFlow = screen.getByRole("region", { name: "Uang masuk & Uang keluar Jul 2026" })
-    const balance = cashFlow.querySelector("p.text-base")
-
-    expect(balance).toHaveTextContent("Rp 0")
-    expect(balance).not.toHaveTextContent("+Rp 0")
+    expect(topExpenses).toHaveTextContent("Periode yang dipilih")
+    expect(topExpenses).not.toHaveTextContent("Top 3 pengeluaran Jul")
   })
 
   it("shows no more than two prioritized insights and routes to Statistik", () => {
@@ -288,23 +374,6 @@ describe("HomeTab priority actions", () => {
     expect(screen.queryByText("Insight yang bocor")).not.toBeInTheDocument()
   })
 
-  it("passes the filtered transaction scope to cash-flow drilldown", () => {
-    const setDrillDown = vi.fn()
-    const filteredTransactions = [
-      { type: "income", category: "Gaji", amount: 9000000, month: "Jul", year: "2026" },
-    ]
-
-    render(<HomeTab {...createProps({ filteredTransactions, setDrillDown })} />)
-
-    fireEvent.click(screen.getByRole("button", { name: "Lihat 10 transaksi pemasukan terbesar" }))
-
-    expect(setDrillDown).toHaveBeenCalledWith({
-      type: "income",
-      title: "Pemasukan",
-      transactions: filteredTransactions,
-    })
-  })
-
   it("orders the home narrative from hero through check, flow, planning, insights, health, and recent activity", () => {
     render(<HomeTab {...createProps({
       insights: [
@@ -316,7 +385,7 @@ describe("HomeTab priority actions", () => {
     const sections = [
       screen.getByTestId("home-hero"),
       screen.getByText("Yang perlu kamu cek"),
-      screen.getByText("Uang masuk & Uang keluar Jul 2026"),
+      screen.getByText("Top 3 pengeluaran"),
       screen.getByTestId("budget-status-card"),
       screen.getByRole("heading", { name: "Insights utama" }),
       screen.getByTestId("health-score-card"),
@@ -418,26 +487,6 @@ describe("HomeTab priority actions", () => {
     expect(screen.queryByRole("button", { name: /cek kategori transport/i })).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: /tambah transaksi hari ini/i }))
     expect(openQuickAdd).toHaveBeenCalledWith("expense")
-  })
-
-  it("routes the Tabungan summary into the goal section", () => {
-    const setActiveNav = vi.fn()
-    const openPlanSection = vi.fn()
-    render(<HomeTab {...createProps({ setActiveNav, openPlanSection })} />)
-
-    fireEvent.click(screen.getByRole("button", { name: "Lihat ringkasan tabungan dan goal" }))
-
-    expect(setActiveNav).toHaveBeenCalledWith("plan")
-    expect(openPlanSection).toHaveBeenCalledWith("goal")
-  })
-
-  it("routes the top category summary to Statistik", () => {
-    const setActiveNav = vi.fn()
-    render(<HomeTab {...createProps({ setActiveNav })} />)
-
-    fireEvent.click(screen.getByRole("button", { name: "Lihat kategori pengeluaran terbesar di Statistik" }))
-
-    expect(setActiveNav).toHaveBeenCalledWith("stats")
   })
 
   it("warns when the financial summary is limited to the visible history window", () => {

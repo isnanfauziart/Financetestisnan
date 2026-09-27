@@ -21,8 +21,11 @@ export const metadata = {
   },
 }
 
+// Wave 10: viewportFit lets env(safe-area-inset-*) resolve on notched devices —
+// without it the .safe-top/.safe-bottom helpers are dead code.
 export const viewport = {
   themeColor: "#2F6B57",
+  viewportFit: "cover",
 }
 
 export default function RootLayout({ children }) {

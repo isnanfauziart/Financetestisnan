@@ -21,6 +21,27 @@ describe("effective feature access", () => {
     expect(hasFeature({ entitlementVerified: false, features: { healthScore: true } }, "healthScore")).toBe(false)
   })
 
+  describe("getFeatureGate (Wave 8)", () => {
+    it("classifies unresolved, unavailable, locked, and enabled states", async () => {
+      const { getFeatureGate } = await import("@/lib/featureAccess")
+
+      expect(getFeatureGate(null, "healthScore")).toBe("unresolved")
+      expect(getFeatureGate(undefined, "healthScore")).toBe("enabled")
+      expect(getFeatureGate({ entitlementVerified: false, features: { healthScore: true } }, "healthScore")).toBe("unresolved")
+      expect(getFeatureGate({ featureAvailability: { healthScore: false } }, "healthScore")).toBe("unavailable")
+      expect(getFeatureGate({ features: { healthScore: false } }, "healthScore")).toBe("locked")
+      expect(getFeatureGate({ features: { healthScore: true } }, "healthScore")).toBe("enabled")
+      expect(getFeatureGate({}, "budgets")).toBe("enabled")
+    })
+
+    it("keeps admin permanent Pro and fail-closed admin OFF overrides", async () => {
+      const { getFeatureGate } = await import("@/lib/featureAccess")
+
+      expect(getFeatureGate({ isAdmin: true, features: { healthScore: false } }, "healthScore")).toBe("enabled")
+      expect(getFeatureGate({ isAdmin: true, featureAccess: { healthScore: false }, features: { healthScore: true } }, "healthScore")).toBe("unavailable")
+    })
+  })
+
   it("exposes global Pro registration availability without treating missing metadata as closed", async () => {
     const { isProRegistrationOpen } = await import("@/lib/featureAccess")
 

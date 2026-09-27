@@ -116,7 +116,7 @@ function CloseButton({ onClose, closeButtonRef, className = "" }) {
       type="button"
       ref={closeButtonRef}
       onClick={onClose}
-      aria-label="Close"
+      aria-label="Tutup"
       className={`w-8 h-8 rounded-full bg-md3-surface hover:bg-md3-surface-container-high transition-colors flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${className}`}
     >
       <X size={14} color="#6b5b4f" aria-hidden="true" />
@@ -168,6 +168,17 @@ export default function Sheet({
   const dialogName = ariaLabel || title || customHeaderText || "Dialog"
   const sharedCloseNeeded = Boolean(header ? !customHeaderHasClose : !title)
 
+  // Latest-value mirrors of dirty/onClose. The modal-history effect below
+  // registers once per open, so Back handling must read the current values
+  // even when dirty flips mid-typing or the parent passes a new onClose
+  // identity on re-render while the sheet stays open.
+  const dirtyRef = useRef(dirty)
+  const onCloseRef = useRef(onClose)
+  useLayoutEffect(() => {
+    dirtyRef.current = dirty
+    onCloseRef.current = onClose
+  })
+
   const dismiss = dirty
     ? () => setConfirmingDiscard(true)
     : onClose
@@ -186,6 +197,12 @@ export default function Sheet({
   // sheet answers a Back press by opening the discard confirmation (the pop is
   // re-pushed so the guard holds); a clean sheet closes and reports whether
   // another sheet still needs the guard.
+  //
+  // Registered once per open: dirty/onClose are read through refs, so dirty
+  // flips and parent re-renders mid-open never re-run this effect. Re-running
+  // would unwind the sentinel via history.back() and fire a phantom popstate,
+  // which the dashboard then handles as a Back press — spontaneously opening
+  // "Buang perubahan?" (or closing the sheet) with no user Back at all.
   useEffect(() => {
     if (!open || typeof window === "undefined") return undefined
     if (!sheetSentinelActive) {
@@ -193,11 +210,11 @@ export default function Sheet({
       sheetSentinelActive = true
     }
     const handleBack = () => {
-      if (dirty) {
+      if (dirtyRef.current) {
         setConfirmingDiscard(true)
         return true
       }
-      onClose()
+      onCloseRef.current()
       // The pop belonged to this sheet's sentinel either way; the sentinel
       // re-push/unwind bookkeeping below keeps the guard consistent.
       return true
@@ -211,7 +228,7 @@ export default function Sheet({
         sheetSentinelActive = false
       }
     }
-  }, [open, dirty, onClose])
+  }, [open])
 
   useEffect(() => {
     if (!open) return

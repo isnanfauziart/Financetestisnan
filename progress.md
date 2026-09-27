@@ -1900,3 +1900,124 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 **Verification:** focused suites green (71 tests across DashboardHookOrder/UrlContract/Motion/HomeTab/QuickAddRepeat/SheetHistory/OnboardingGate/OnboardingOverlay/transactionRepeat); final gate — full suite **1102 passed / 2 skipped** (165 files), production build passed (11 env placeholders; build chunk names match the production stack's chunks), `git diff --check` clean. Pre-existing unrelated worktree changes untouched; nothing committed.
 
 **Blockers:** push + Vercel deploy by the user to ship the fix.
+
+## 2026-09-24 — Wave 8: Smart-feature explanations and Pro previews
+
+**Task:** Roadmap Wave 8 (`docs/2026-09-09-product-improvement-roadmap.md` line 1005). Plan: `docs/superpowers/plans/2026-09-24-wave8-smart-feature-explanations.md`.
+
+**Changes:**
+- `src/lib/featureAccess.js` — additive `getFeatureGate(entitlement, key)` → `enabled | locked | unavailable | unresolved` (null/unverified = unresolved; admin flag off = unavailable fail-closed; tier denial = locked). Existing booleans untouched.
+- `src/components/LockedFeaturePreview.jsx` — `unresolved` neutral placeholder (`role="status"`, no CTA, no unavailable/Pro copy) + optional static non-personal `example` line; exactly-one-CTA enforced by tests.
+- All 7 locked call sites migrated to the three-state gate (HomeTab Health Score; StatsTab anomaly/forecast/YIR; PlanTab FI/What-If; BillsSection radar) — fixes the false "Fitur sedang tidak tersedia" flash for Pro users while `/api/me` resolves. Every preview gained a static example line.
+- Live coverage explanations: Forecast sheet (months used, data gaps, scheduled income/expense amounts, plain-language income profile, no probability language) + "Lihat tagihan terjadwal" evidence link wired page.js → StatsTab → Rencana bills; Health Score sheet (months covered, liquid-savings basis, excluded components with reasons) + "Lihat anggaran" evidence link via HomeTab `openPlanSection("budget")`; Anomaly footnote names the actual 3 baseline months + Spesial exclusion; FI sheet names the completed months behind the average (via exported `getCompletedExpenseMonths`, lib unchanged); What-If gains its first basis note (all recorded expenses incl. Spesial, N months); Year-in-Review gains a Rutin+Spesial inclusion note (min-10 gating untouched).
+- Planned page.js fail-closed sentinel proved unnecessary (gating lives in the tabs) — documented in the plan record.
+
+**Regression guard:** `tests/lib/featureAccess.test.js`, `tests/components/LockedFeaturePreview.test.jsx`, `tests/components/HealthScoreCard.test.jsx` (new), `tests/components/SmartFeatureBasisNotes.test.jsx` (new), `tests/components/previewPropsContract.test.jsx` (new — locked previews receive only static copy; no user name/email/amounts in preview markup), extended `CashFlowForecast`/`AnomalyAlerts`/`FITrackerCard`/`HomeTab` suites.
+
+**Verification:** focused suites green per batch (TDD); final gate — full suite **1128 passed / 2 skipped** (168 files), production build passed (with the full set of placeholder env vars), `git diff --check` clean. Pre-existing unrelated worktree changes untouched; nothing committed.
+
+**Blockers:** none.
+
+## 2026-09-24 — Wave 9: Payment confidence and pending-state refresh
+
+**Task:** Roadmap Wave 9 (line 1028). Plan + implementation record: `docs/superpowers/plans/2026-09-24-wave9-payment-confidence-pending-refresh.md`. SLA decision (user, 2026-09-24): keep "biasanya diproses dalam 1–30 menit".
+
+**Changes:**
+- `src/components/PaymentTimeline.jsx` (new) — compact 4-step timeline (Menunggu pembayaran → Bukti diterima → Sedang ditinjau → Disetujui/Ditolak) mapped only from stored status; `aria-current="step"`, sr-only step announcement; unknown/terminal statuses fail-closed.
+- `src/components/PaymentQrisFlow.jsx` — timeline in pending + awaiting views; **Periksa status** bounded refresh (in-flight disable + 10 s cooldown) in the pending view; one refetch on `visibilitychange` foreground return while a payment is active (no polling; the 30 s tick stays local-clock only); polite live region announces unchanged/changed/approved/rejected/failed refresh outcomes and survives the pending→approved transition; status tracked by payment id since approved/rejected payments leave the active set.
+- No changes to `/api/payments*` routes, proof upload/storage, admin review flow, or migrations — all High-risk payment boundaries untouched; rejection reason, resubmission, QR expiry/grace, reference, amount, and proof preview behavior unchanged.
+
+**Regression guard:** `tests/components/PaymentTimeline.test.jsx` (new, 10 tests) and `tests/components/PaymentQrisFlow.test.jsx` (extended to 12: bounded control + announcements, approval via refresh, server-failure retry, foreground refetch-once + cooldown, no control outside pending, proof-URL/storage-path privacy pin).
+
+**Verification:** focused suites green per batch (TDD); self-review of the full diff produced 4 corrections (unused state removed, visibility-effect contract documented, rejected announcement added, id-based status tracking); final gate — full suite **1144 passed / 2 skipped** (169 files), production build passed, `git diff --check` clean. Pre-existing unrelated worktree changes untouched; nothing committed.
+
+**Blockers:** none.
+## 2026-09-24 — Wave 10: Final responsive and accessibility gate
+
+**Task:** Roadmap Wave 10 (line 1050). Plan + implementation record + verification matrix: `docs/superpowers/plans/2026-09-24-wave10-responsive-accessibility-gate.md`.
+
+**Changes:**
+- Safe areas: `src/app/layout.js` viewport export gained `viewportFit: "cover"` (the existing `.safe-top`/`.safe-bottom` helpers were dead code without it — verified live: rendered meta is `width=device-width, initial-scale=1, viewport-fit=cover`). FAB moved from `bottom-24 sm:bottom-20` to `calc(6rem + env(safe-area-inset-bottom, 0px))` with `z-[45]` (above nav, below Toast/discard layers); shell-level `pb-52 sm:pb-44` content clearance audited and kept.
+- Keyboard/SR: dashboard skip link `Langsung ke konten utama` → `#dashboard-heading` as the shell's first focusable control. Indonesianized accessible labels: Sheet `Tutup`, Recap pager `Halaman sebelumnya/berikutnya` + `Halaman ${p}` + `Tutup/Buka ringkasan ${key}` + row `Hapus ${category}`, DrillDown `Hapus ${category}`, BudgetCard `Edit/Hapus budget ${kategori}` + `Buka rincian budget ${kategori}`, GoalCard `Edit/Hapus target ${nama}` + `Kontribusi ke ${nama}`, PlanTab `Buka simulator What-If`. DebtCard/EventCard already Indonesian — untouched.
+- Avatar fallback: new `src/components/UserAvatar.jsx` (deterministic initials: name → email initial → "A"; hash-picked tile color; `onError` swap) used by both former bare `<img src={session?.user?.image}>` call sites (header w-11, Profile w-24); `avatar-fallback-tile` dark-mode contrast pin in globals.css.
+- 44px targets: new `.touch-target-44` helper (`position: relative` + configurable `--tt-grow` pseudo-element extension) on PillButton and both SpecialExpenseField suggestion buttons (8px grow for the small chips); SegmentedButtons uses a real `min-h-[44px]` (its clipped pill needs `overflow-hidden`).
+
+**Regression guard:** `tests/components/DashboardA11yGate.test.jsx` (new, 8 source contracts: viewportFit, FAB calc + z-order, shell clearance, skip link placement, label localization, avatar call sites, touch-target CSS), `tests/components/UserAvatar.test.jsx` (new, 7: image render, missing-src fallback, error fallback, email/neutral initials, determinism, aria-hidden), label-pin updates in 9 existing suites.
+
+**Verification matrix (preview browser, unauthenticated surfaces):** live `viewport-fit=cover` meta, compiled CSS ships all Wave 10 helpers, no horizontal overflow at 360×640 / 375×667 / 412×892 / 768×1024 / 1440×900 / 640×360 landscape, landing skip link is first Tab focus. Authenticated dashboard states (nav/FAB overlap on real data, keyboard-only pass, 200% zoom, reduced motion, full state matrix) not verifiable from this environment — Google OAuth redirects to the deployment's Vercel SSO login; recorded as a manual follow-up in the plan doc.
+
+**Self-review corrections:** dropped a content-wrapper padding change that would have doubled the shell's existing clearance; reverted an `overflow-visible` SegmentedButtons variant that would have broken the clipped pill's corners; fixed `.touch-target-44` anchoring (added `position: relative`) and made the grow configurable (4px default was insufficient for 28px chips).
+
+**Verification:** focused suites green per batch (TDD); final gate — full suite **1159 passed / 2 skipped** (171 files), production build passed (11 placeholder env vars), `git diff --check` clean. Pre-existing unrelated worktree changes untouched; nothing committed.
+
+**Blockers:** manual authenticated-dashboard viewport/a11y pass (needs a signed-in browser); closes the audit implementation program — only the separate pairing project remains from the roadmap.
+
+## 2026-09-25 — Home: replace Uang masuk & Uang keluar with Top 3 pengeluaran
+
+**Task:** With the hero card already showing the current-month cash row (Arus kas bulan ini), the separate "Uang masuk & Uang keluar" section duplicated it. User-approved contract: remove the entire section (both rows, Tabungan row, Arus kas bersih footer, Kategori terbesar card) and replace it with a Top 3 pengeluaran section that follows the stats filters and opens the expense drill-down on row tap.
+
+**Changes:**
+- `src/app/dashboard/HomeTab.jsx`: deleted the cash-flow section (Uang masuk/Uang keluar drill-down buttons, Tabungan → Rencana row, Arus kas bersih surplus/defisit footer, Kategori terbesar → Statistik card); removed now-unused locals (`cashFlowIncome/Expense/Savings/Balance/BalanceLabel`, period label renamed to `scopedPeriodLabel`) and unused lucide icons (`ArrowDownRight`, `ArrowUpRight`, `PiggyBank`); added `topExpenses` memo (expenses from the filtered `scopedTransactions`, amount-desc, top 3, Spesial included — actual-ledger view); new section below "Yang perlu kamu cek" with rank number, category avatar, relative date/desc, Spesial badge, right-aligned red amount, empty state "Belum ada pengeluaran untuk periode ini.", row tap → existing Top-10 expense drill-down (`setDrillDown` unchanged). Hero, Fokus Hari Ini inputs (statIncome/Expense/Savings, topCategory/Pct), insights, Health Score, and recent list untouched.
+- `tests/components/HomeTab.test.jsx`: removed tests bound to the deleted section (cash-flow values/surplus, neutral/missing period labels for the old region, balanced plus-sign, income drill-down scope, Tabungan routing, top-category routing); added coverage for top-3 sorting/cap, Spesial badge, empty state, filtered-scope drill-down payload, period labels (Jul 2026 / "Periode yang dipilih"), and updated the narrative-order and hero-cleanliness tests.
+
+**Verification:** focused suites green (`HomeTab.test.jsx` 21/21 after two iteration fixes: `within` import, `Rp 900 rb` formatRp expectation; `featureVisibility` + `previewPropsContract` 9/9); one final diff review — no blocking findings (removed symbols verified unused; `relativeDate("")`-safe; hero untouched); full suite **1157 passed / 2 skipped** (171 files, same 2 pre-existing skips); production build passed (4 missing env vars supplied as placeholders — Phase 4 fail-fast is presence-only, unchanged from the prior session's 11-placeholder run); `git diff --check` clean. Nothing committed.
+
+**Blockers:** none.
+
+## 2026-09-25 — Fix: phantom "Buang perubahan?" dialog while adding a transaction
+
+**Task:** User report — the discard-confirm dialog appeared spontaneously in the Quick Add transaction sheet (first tap on Jumlah, while typing a note, sometimes after Simpan), suspected network-related. Root cause: the Sheet modal-history effect depended on [open, dirty, onClose]; any dirty flip or parent re-render (inline onClose identity) re-ran it, and its cleanup called history.back() while the sheet was open — a phantom popstate that the dashboard popstate handler treats as a Back press, opening the discard confirm (dirty) or auto-closing (clean). Network activity only widens the re-render window; not a network bug.
+
+**Changes:**
+- src/app/dashboard/_components/Sheet.jsx: dirty/onClose mirrored into refs (useLayoutEffect); modal-history effect deps reduced to [open] so the sentinel registers once per open and handleBack reads current values from refs; cleanup history.back() now only runs on a genuine close/unmount. Esc/backdrop/X dirty-confirm behavior unchanged; EditTransactionModal inherits the fix.
+- tests/components/SheetHistory.test.jsx: 4 regression tests — no phantom pop on dirty false→true, Back still guards with the confirm after a dirty flip, no phantom pop on a new onClose identity mid-open, sheet stays open when dirty flips true→false.
+
+**Verification:** focused suites green (SheetHistory 11/11, DashboardUrlContract 9/9, QuickAddRepeat 4/4); one final diff review — no blocking findings; full suite 1161 passed / 2 skipped (171 files, same 2 pre-existing skips); production build passed (4 missing env vars supplied as placeholders — Phase 4 fail-fast is presence-only, matching the prior session); git diff --check clean. Pre-existing unrelated worktree changes untouched; nothing committed.
+
+**Blockers:** none.
+
+## 2026-09-26 — Sembunyikan angka: privacy-eye mode for headline money
+
+**Task:** User-requested privacy toggle ("eye blurry button") for sections showing totals. Approved contract: bullet masking (not CSS blur) on headline amounts only — Home hero, Top 3 pengeluaran, Statistik Ringkasan "Kondisi Keuangan", and Rencana "Ringkasan bulan" brief rows; one eye per covered surface, all sharing one state; last choice remembered across sessions (localStorage); lists/charts/sheets stay visible by design (Top 3 added on user feedback during planning).
+
+**Changes:**
+- `src/app/dashboard/_components/helpers.js`: new pure `maskRupiah(formatted)` — swaps digits and `+`/`−`/`-` signs for bullets (`•`), keeps `Rp`, separators, and spacing so masked width matches; non-numeric strings pass through.
+- `src/app/dashboard/_components/EyeToggle.jsx` (new): shared icon button (lucide Eye/EyeOff), `aria-pressed`, Indonesian labels "Sembunyikan angka"/"Tampilkan angka", light/dark tones, 32px visual with invisible pseudo-element extending the hit area to 44px.
+- `src/app/dashboard/page.js`: owns `moneyHidden` state, lazy-initialized from `localStorage["artami-money-hidden"]` (no unmasked flash on reload, SSR-safe, try/catch), persists on every toggle; threads `moneyHidden` + `onToggleMoneyVisibility` into HomeTab, StatsTab, PlanTab.
+- `src/app/dashboard/HomeTab.jsx`: eye in the hero label row (dark tone) + Top 3 header; masks net worth headline, delta line, "Bisa dipakai sekarang", held-in-savings chip, hero cash row (sign masked via one masked template), Top 3 row amounts.
+- `src/app/dashboard/StatsTab.jsx`: eye in the Kondisi Keuangan header; masks surplus headline + Pemasukan/Pengeluaran tile values including their `aria-label`s (previously leaked real amounts to screen readers — masked DOM is truthful).
+- `src/app/dashboard/PlanTab.jsx` + `src/components/PlanBriefSignal.jsx`: eye in the Ringkasan overview header; BudgetBrief sisa/melebihi and BillBrief next-bill amounts masked; percentage headlines stay readable by design (not amounts). GoalBrief has no amounts.
+- Tests: `maskRupiah` unit suite (7); HomeTab (2: masked/unmasked + toggle routing, count-up pinned via helpers mock), StatsTab (2: masked incl. aria-labels + toggle routing), PlanTab (1: eye + masked bill brief), PlanBriefSignal (1: budget/bill masking, percentage readable).
+
+**Decisions:** default visible until first toggle (follows from "remember last choice"; existing real-amount assertions unchanged); pref survives logout like theme/sound/haptics (owner-scoped cache clearing untouched); masked percentages/due-days deliberately readable — they are not amounts; eye rendered only when `onToggleMoneyVisibility` is provided so standalone usage and existing tests keep working.
+
+**Verification:** focused suites green per batch (format 29/29; HomeTab/StatsTab/PlanTab/PlanBriefSignal 89/89 after assertion-count fixes and a garbled-write repair in page.js — stray `匿` character caught by search and reverted); final diff review — two bounded self-caught corrections (collapsed newline in HomeTab, 44px hit target) with affected checks rerun; full suite **1173 passed / 2 skipped** (171 files, same 2 pre-existing skips); production build passed twice (4 missing env vars supplied as placeholders — Phase 4 fail-fast is presence-only; bare `npm run build` in this checkout fails on missing `LEGACY_SHEET_OWNER_EMAIL` etc., an environment blocker, not a code issue); `git diff --check` clean. Nothing committed.
+
+**Blockers:** none.
+
+## 2026-09-27 — Stats trend/chart/metrics UI revamp (chart kit + chart fixes + metric presentation)
+
+**Task:** Approved plan (A+B+C): unified chart foundation kit, chart-type fixes (ranked sparklines, dumbbell comparison, hero surplus sparkline, relative heatmap), and unified metric presentation; evolve the existing earthy MD3 look; keep disclosure data tables; presentation-only (no data/quota/gating logic).
+
+**New files:**
+- `src/components/charts/ChartTile.jsx` — shared chart section wrapper (title + basis note + badge, legend row kinds swatch/line/dash, skeleton, EmptyState, `aria-label`, StatsDataTable slot).
+- `src/components/charts/ChartTooltip.jsx` — single shared tooltip; default payload mode + row-object `entries` mode (per-entry color functions/formatters, null-row omission); dark-mode aware via resolved theme.
+- `src/components/charts/StatTile.jsx` — unified KPI tile (semantic tones).
+- `src/components/charts/Sparkline.jsx` — inline SVG `Sparkline` (line/area/endDot, null-gap segments) + `DumbbellChart` (period A/B dots, shared domain, value labels).
+- `src/components/charts/useChartScheme.js` — MutationObserver hook tracking `html[data-theme]`.
+- `src/components/InsightCard.jsx` — shared insight card, `variant="tinted"` (Stats) / `"neutral"` (Home), semantic tone map replacing `ins.color + "12"` hex concat.
+- `src/lib/heatmapThresholds.js` — pure quartile helpers (`computeHeatmapThresholds`, `getDisplayThresholds` with legacy fallback).
+
+**Changed:**
+- `src/lib/chartTheme.js`: added `resolveChartTheme(isDark)` (dark palette from designTokens dark theme; light returns the legacy snapshot object for test identity) + `getChartSchemeIsDark`; legacy export intact.
+- `src/app/dashboard/StatsTab.jsx`: cash-flow chart is one integrated scrollable ComposedChart (removed 62px split-axis hack; plot carries its own YAxis + grid); monthly trend gained a visible YAxis + grid; "Bandingkan Bulan" grouped green/clay bars → neutral dumbbell rows (violet vs outline-gray dots, Δ% text with arrows, "baru" fallback, ≥3:1 on surface); 5-series LineChart → ranked sparkline rows (dot · name · 6–12-month sparkline · Δ% with sign+arrow · amount); hero gained 6-month surplus Sparkline + MoM delta chip; heatmap thresholds relative quartiles of the month's nonzero daily totals with a scale footnote (legacy thresholds on flat data); new "Rentang grafik tren" segmented control (6 bln / 12 bln / Semua, internal state mirroring analysis-mode pattern, URL wiring deferred); label type scale calmed (10px bold uppercase → 11px semibold where not asserted); insight cards → shared InsightCard; surplus line color → savings teal.
+- `src/components/CashFlowForecast.jsx`: local tooltip replaced by shared ChartTooltip (entries mode, projected footer); KPI cards → StatTile.
+- `src/components/SavingsRateTrend.jsx`: local tooltip replaced by shared ChartTooltip; stats row → StatTile; restored `getRoutineExpense` after a bad edit; gains %locale formatting via tooltip.
+- `src/components/AnomalyAlerts.jsx`: added current-vs-average mini bar (decorative, delta chip keeps direction meaning).
+- `src/app/dashboard/HomeTab.jsx`: HomeInsightCard → shared InsightCard (neutral); unused Sparkles import removed.
+
+**Tests:** `tests/lib/heatmapThresholds.test.js` (7) + `tests/components/charts/chartKit.test.jsx` (14: ChartTile, StatTile, ChartTooltip both modes, Sparkline, DumbbellChart, theme resolver) added; StatsTab.test.jsx updated for the two intentionally replaced contracts (dumbbell comparison rows incl. neutral color key; integrated Y-axis inside the scroll viewport; split-axis test removed).
+
+**Verification:** focused suites green per batch; final diff review — two corrections (removed erroneous `role="img"` from the new ranked/dumbbell text rows so SR reads real text; unused import cleanup); full suite **1194 passed / 2 skipped** (172 files, +21 tests); production build passed (4 missing env vars supplied as placeholders — Phase 4 fail-fast is presence-only; bare `npm run build` fails in this checkout for lack of `LEGACY_SHEET_OWNER_EMAIL` etc., environment blocker not code); `git diff --check` clean. Dark mode via ProfileTab now re-themes charts through `resolveChartTheme`; heatmap-empty ring-offset stays light-only (pre-existing, deferred). Nothing committed.
+
+**Blockers:** none.

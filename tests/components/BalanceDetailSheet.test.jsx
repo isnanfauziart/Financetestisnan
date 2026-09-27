@@ -53,7 +53,7 @@ describe("BalanceDetailSheet (Wave 6)", () => {
     const alert = screen.getByRole("alert")
     expect(alert).toHaveTextContent("Alokasi tabungan dan target melebihi saldo yang direkam.")
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }))
+    fireEvent.click(screen.getByRole("button", { name: "Tutup" }))
   })
 
   it("shows the conservative estimate note when the recorded balance is an estimate", () => {

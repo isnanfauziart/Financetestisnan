@@ -1,23 +1,30 @@
 "use client"
-import { useRef, useState } from "react"
-import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, Check, AlertCircle, Info, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react"
-import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, LineChart, LabelList, Legend } from "recharts"
+import { useMemo, useRef, useState } from "react"
+import { Wallet, ChevronLeft, ChevronRight, Lightbulb, X, Check, ArrowDownLeft, ArrowUpRight } from "lucide-react"
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, CartesianGrid } from "recharts"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
-import { formatRp, formatRpFull } from "./_components/helpers"
+import { formatRp, formatRpFull, maskRupiah } from "./_components/helpers"
+import EyeToggle from "./_components/EyeToggle"
 import SelectField from "./_components/SelectField"
 import CustomTooltip from "./_components/CustomTooltip"
 import EmptyState from "./_components/EmptyState"
 import RecapSection from "./_components/RecapSection"
 import StatsDataTable from "./_components/StatsDataTable"
 import useOverflowHint from "./_components/useOverflowHint"
+import SegmentedButtons from "./_components/SegmentedButtons"
+import ChartTile from "@/components/charts/ChartTile"
+import { Sparkline, DumbbellChart } from "@/components/charts/Sparkline"
+import { useChartScheme } from "@/components/charts/useChartScheme"
+import { chartTheme, resolveChartTheme } from "@/lib/chartTheme"
 import MonthlyReportButton from "@/components/MonthlyReportButton"
 import YearInReviewButton from "@/components/YearInReviewButton"
 import CashFlowForecast from "@/components/CashFlowForecast"
 import SavingsRateTrend from "@/components/SavingsRateTrend"
 import AnomalyAlerts from "@/components/AnomalyAlerts"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
-import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featureAccess"
-import { chartTheme } from "@/lib/chartTheme"
+import InsightCard from "@/components/InsightCard"
+import { hasFeature, isFeatureEnabled, getFeatureGate, isProRegistrationOpen } from "@/lib/featureAccess"
+import { getDisplayThresholds } from "@/lib/heatmapThresholds"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 const STATS_SECTIONS = [
@@ -30,6 +37,9 @@ const ANALYSIS_MODES = [
   { key: "routine", label: "Rutin" },
   { key: "actual", label: "Semua" },
 ]
+const TREND_SPAN_OPTIONS = ["6 bln", "12 bln", "Semua"]
+const TREND_SPANS = { "6 bln": 6, "12 bln": 12, "Semua": null }
+const SURPLUS_SPARK_MONTHS = 6
 
 function ChartSkeleton({ height = 180 }) {
   return (
@@ -59,6 +69,15 @@ function getCategoryTrendSummary(monthlyData, categories) {
   const latest = [...monthlyData].reverse().find(row => categories.some(category => Number(row[category]) > 0)) || monthlyData[monthlyData.length - 1]
   const ranked = categories.slice(0, 5).map(category => `${category} ${formatRp(latest[category] || 0)}`).join(", ")
   return `Tren kategori pengeluaran: ${latest.month || "periode terakhir"}. ${ranked}.`
+}
+
+/**
+ * Revamp B — slice a monthly series to the selected trend span while keeping
+ * month order. `Semua` keeps every period; numeric spans take the last N.
+ */
+function sliceTrendSpan(series, span) {
+  if (!span) return series
+  return series.slice(-span)
 }
 
 export default function StatsTab({
@@ -103,13 +122,25 @@ export default function StatsTab({
   entitlement,
   controlledSection,
   onSectionChange,
+  onOpenPlanBills = undefined,
   controlledAnalysisMode,
   onAnalysisModeChange,
+  controlledTrendSpan = undefined,
+  onTrendSpanChange = undefined,
   onRepeatTx,
+  moneyHidden = false,
+  onToggleMoneyVisibility,
 }) {
+  const isDark = useChartScheme()
+  // Dark-mode-aware chart tokens; identical object to the legacy snapshot in light mode.
+  const activeChartTheme = resolveChartTheme(isDark)
   const effectiveEntitlement = entitlement === undefined ? { features: { anomalyAlerts: true, cashFlowForecast: true, yearInReview: true } } : entitlement
   const proRegistrationOpen = isProRegistrationOpen(effectiveEntitlement)
+  // Privacy-eye mode: shared with the hero and Top 3 eyes — any eye toggles all.
+  const masked = (formatted) => (moneyHidden ? maskRupiah(formatted) : formatted)
+  const showEye = typeof onToggleMoneyVisibility === "function"
   const [showDateRange, setShowDateRange] = useState(false)
+  const [internalTrendSpan, setInternalTrendSpan] = useState("Semua")
   // Wave 5: section and analysis mode are URL-backed. The page passes a
   // controlled value + callback; the internal fallback keeps standalone usage
   // (and existing tests) working unchanged.
@@ -134,6 +165,9 @@ export default function StatsTab({
   const [internalAnalysisMode, setInternalAnalysisMode] = useState("routine")
   const resolvedAnalysisMode = controlledAnalysisMode ?? internalAnalysisMode
   const setAnalysisMode = (mode) => (onAnalysisModeChange ? onAnalysisModeChange(mode) : setInternalAnalysisMode(mode))
+  // Revamp C — controlled-with-fallback period granularity, mirroring the analysis mode pattern.
+  const trendSpan = controlledTrendSpan ?? internalTrendSpan
+  const setTrendSpan = (span) => (onTrendSpanChange ? onTrendSpanChange(span) : setInternalTrendSpan(span))
   const hasDateRange = dateFrom || dateTo
   const routineAnalyticsMonthlyData = routineMonthlyData || monthlyData
   const isRoutineMode = resolvedAnalysisMode === "routine"
@@ -171,6 +205,50 @@ export default function StatsTab({
   ]
   // Wave 7 — inclusive-actual vs routine-only basis disclosure wherever the two can appear together.
   const chartBasisLabel = isRoutineMode ? "Dasar: Pengeluaran rutin saja" : "Dasar: Semua transaksi"
+  // Revamp C — period granularity for the Tren charts (6 bln / 12 bln / Semua).
+  const spannedMonthlyData = useMemo(() => sliceTrendSpan(chartClientMonthlyData || [], TREND_SPANS[trendSpan]), [chartClientMonthlyData, trendSpan])
+  const spannedCategoryTrendData = useMemo(() => sliceTrendSpan(chartTrendData || [], TREND_SPANS[trendSpan]), [chartTrendData, trendSpan])
+  // Revamp B — hero 6-month surplus sparkline + month-over-month delta chip.
+  const heroSpark = useMemo(() => {
+    const series = (clientMonthlyData || []).slice(-SURPLUS_SPARK_MONTHS)
+    return {
+      points: series.map(row => Number(row.surplus) || 0),
+      labels: series.map(row => row.month || ""),
+      current: series.length ? Number(series[series.length - 1].surplus) || 0 : null,
+      previous: series.length > 1 ? Number(series[series.length - 2].surplus) || 0 : null,
+    }
+  }, [clientMonthlyData])
+  const heroDelta = heroSpark.current != null && heroSpark.previous != null
+    ? heroSpark.current - heroSpark.previous
+    : null
+  const heroDeltaUp = heroDelta != null && heroDelta > 0
+  // Revamp B — ranked sparkline rows for the top-5 category trend.
+  const categoryTrendRows = useMemo(() => chartTop5Categories.map((category, index) => {
+    const series = spannedCategoryTrendData.map(row => (row[category] == null ? null : Number(row[category])))
+    const latest = (() => {
+      for (let i = series.length - 1; i >= 0; i -= 1) {
+        if (series[i] != null && series[i] !== 0) return { value: series[i], index: i }
+      }
+      return series.length ? { value: series[series.length - 1] || 0, index: series.length - 1 } : { value: 0, index: -1 }
+    })()
+    const previous = latest.index > 0 ? series[latest.index - 1] : null
+    const delta = previous != null && previous !== 0 ? ((latest.value - previous) / previous) * 100 : null
+    return {
+      category,
+      series,
+      latest: latest.value,
+      previous,
+      delta,
+      color: activeChartTheme.seriesPalette[index % activeChartTheme.seriesPalette.length],
+    }
+  }), [chartTop5Categories, spannedCategoryTrendData, activeChartTheme])
+  // Revamp B — relative quartile heatmap thresholds for the displayed month.
+  // The legacy snapshot array is passed as fallback so identity can detect
+  // "relative thresholds active" for the footnote.
+  const heatmapThresholds = useMemo(
+    () => getDisplayThresholds(Object.values(calendarDayTotals || {}), chartTheme.heatmap.thresholds),
+    [calendarDayTotals],
+  )
   // Wave 7 — overflow-gated horizontal-scroll hints and keyboard-operable chart data tables.
   const [cashFlowScrollRef, cashFlowOverflows] = useOverflowHint()
   const [comparisonScrollRef, comparisonOverflows] = useOverflowHint()
@@ -178,13 +256,13 @@ export default function StatsTab({
     label: category.name,
     values: [formatRp(category.value), `${formatCategoryPercentage(category.value, chartExpenseTotal)}%`],
   }))
-  const trendTableRows = chartClientMonthlyData.map(row => ({
+  const trendTableRows = spannedMonthlyData.map(row => ({
     label: row.month,
     values: [formatRp(row.pemasukan || 0), formatRp(row.pengeluaran || 0), formatRp(row.surplus || 0)],
   }))
-  const trendCategoryTableRows = chartTop5Categories.map(category => ({
-    label: category,
-    values: [formatRp(chartTrendData.length ? (chartTrendData[chartTrendData.length - 1][category] || 0) : 0)],
+  const trendCategoryTableRows = categoryTrendRows.map(row => ({
+    label: row.category,
+    values: [formatRp(row.latest || 0)],
   }))
   const comparisonTableRows = activeCompareChartData.map(item => ({
     label: item.category,
@@ -212,6 +290,14 @@ export default function StatsTab({
     label: row.label,
     values: [formatRp(row.pemasukan), formatRp(row.pengeluaran), formatRp(row.rataRataPemasukan || 0), formatRp(row.rataRataPengeluaran || 0)],
   }))
+  // Revamp B — shared value scale for the comparison dumbbell rows.
+  const comparisonDomain = useMemo(() => {
+    let max = 0
+    activeCompareChartData.forEach(item => {
+      max = Math.max(max, Number(item[compareLabelA]) || 0, Number(item[compareLabelB]) || 0)
+    })
+    return [0, Math.max(1, max)]
+  }, [activeCompareChartData, compareLabelA, compareLabelB])
 
   return (
     <div className="px-5 pt-4 space-y-5 animate-bento-in" key="stats-tab">
@@ -319,27 +405,43 @@ export default function StatsTab({
               <div className="relative z-10">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider opacity-80">Kondisi Keuangan · {summaryPeriod} · Termasuk semua transaksi</p>
+                    <p className="text-[11px] font-semibold opacity-80">Kondisi Keuangan · {summaryPeriod} · Termasuk semua transaksi</p>
                     <div className="flex items-center gap-2 flex-wrap mt-1.5">
-                      <h2 className="text-2xl sm:text-3xl font-display font-bold tabular-nums">{formatRpFull(Math.abs(statSurplus))}</h2>
+                      <h2 className="text-2xl sm:text-3xl font-display font-bold tabular-nums">{masked(formatRpFull(Math.abs(statSurplus)))}</h2>
                       <span className="rounded-full px-2.5 py-1 text-[10px] font-bold" style={summaryStatusStyle}>{summaryStatus}</span>
+                      {heroDelta != null && heroDelta !== 0 && (
+                        <span
+                          className="rounded-full px-2 py-1 text-[10px] font-bold inline-flex items-center gap-1"
+                          style={{ background: heroDeltaUp ? "rgba(122,171,154,0.25)" : "rgba(217,154,125,0.25)", color: heroDeltaUp ? "#d9efe7" : "#ffd8c7" }}
+                          aria-label={`Surplus ${heroDeltaUp ? "naik" : "turun"} ${formatRp(Math.abs(heroDelta))} dibanding bulan sebelumnya`}
+                        >
+                          {heroDeltaUp ? "↑" : "↓"} {formatRp(Math.abs(heroDelta))} vs bulan lalu
+                        </span>
+                      )}
                     </div>
+                    {heroSpark.points.length >= 2 && (
+                      <div className="mt-2 flex items-center gap-2" aria-hidden="true">
+                        <Sparkline points={heroSpark.points} mode="area" color="#8EB5A5" width={120} height={34} endDot />
+                        <span className="text-[10px] font-semibold opacity-70">Surplus 6 bulan</span>
+                      </div>
+                    )}
                   </div>
+                  {showEye && <EyeToggle hidden={moneyHidden} onToggle={onToggleMoneyVisibility} tone="dark" />}
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-4 border-t border-white/15 pt-3">
-                  <div className="rounded-2xl border border-sage-300/20 bg-sage-500/20 p-3" role="group" aria-label={`Pemasukan ${formatRp(statIncome)}`}>
+                  <div className="rounded-2xl border border-sage-300/20 bg-sage-500/20 p-3" role="group" aria-label={`Pemasukan ${masked(formatRp(statIncome))}`}>
                     <div className="flex items-center gap-1.5 text-sage-200">
                       <ArrowDownLeft size={13} strokeWidth={2.5} aria-hidden="true" />
-                      <p className="text-[10px] font-bold uppercase tracking-wider">Pemasukan</p>
+                      <p className="text-[11px] font-semibold">Pemasukan</p>
                     </div>
-                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums text-white">{formatRp(statIncome)}</p>
+                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums text-white">{masked(formatRp(statIncome))}</p>
                   </div>
-                  <div className="rounded-2xl border border-clay-300/20 bg-clay-400/20 p-3" role="group" aria-label={`Pengeluaran ${formatRp(statExpense)}`}>
+                  <div className="rounded-2xl border border-clay-300/20 bg-clay-400/20 p-3" role="group" aria-label={`Pengeluaran ${masked(formatRp(statExpense))}`}>
                     <div className="flex items-center gap-1.5 text-clay-200">
                       <ArrowUpRight size={13} strokeWidth={2.5} aria-hidden="true" />
-                      <p className="text-[10px] font-bold uppercase tracking-wider">Pengeluaran</p>
+                      <p className="text-[11px] font-semibold">Pengeluaran</p>
                     </div>
-                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums text-white">{formatRp(statExpense)}</p>
+                    <p className="mt-1 text-sm sm:text-base font-bold tabular-nums text-white">{masked(formatRp(statExpense))}</p>
                   </div>
                 </div>
               </div>
@@ -348,86 +450,55 @@ export default function StatsTab({
 
           {isAllMonths && (
             refreshing ? <ChartSkeleton height={300} /> : (
-              <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" role="region" aria-label="Arus kas bulanan">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-bold font-display text-md3-on-surface">Pemasukan vs Pengeluaran</h3>
-                    <p className="text-[10px] text-md3-on-surface-variant mt-1">Perbandingan arus kas aktual per bulan. {chartBasisLabel}.</p>
+              <ChartTile
+                title="Pemasukan vs Pengeluaran"
+                ariaLabel="Arus kas bulanan"
+                basis={`Perbandingan arus kas aktual per bulan. ${chartBasisLabel}.`}
+                badge={cashFlowChartData.length > 0 ? `${cashFlowChartData.length} bulan` : undefined}
+                legend={[
+                  { label: "Pemasukan", kind: "swatch", color: THEME.income },
+                  { label: "Pengeluaran", kind: "swatch", color: THEME.expense },
+                  { label: `Rata-rata pemasukan (${cashFlowAverageWindow} bulan)`, kind: "line", color: THEME.income },
+                  { label: `Rata-rata pengeluaran (${cashFlowAverageWindow} bulan)`, kind: "line", color: THEME.expense },
+                ]}
+                isEmpty={cashFlowChartData.length === 0}
+                emptyIcon={<Wallet size={18} />}
+                emptyTitle="Belum ada data arus kas"
+                emptyHint="Pilih rentang dengan pemasukan atau pengeluaran untuk melihat grafik."
+                table={cashFlowChartData.length > 0 ? { id: "stats-cash-flow-table", caption: "Data arus kas bulanan", columns: cashFlowTableColumns, rows: cashFlowTableRows } : undefined}
+                skeletonHeight={300}
+              >
+                <p id="stats-cash-flow-summary" className="sr-only">{cashFlowChartSummary}</p>
+                <div className="mt-2" role="img" aria-describedby="stats-cash-flow-summary">
+                  <div data-testid="stats-cash-flow-scroll" className="overflow-x-auto" ref={cashFlowScrollRef}>
+                    <div data-testid="stats-cash-flow-plot" style={{ minWidth: Math.max(480, cashFlowChartData.length * 84) }}>
+                      <ResponsiveContainer width="100%" height={280}>
+                        <ComposedChart data={cashFlowChartData} margin={{ top: 12, right: 16, left: 0, bottom: 8 }} barCategoryGap="22%" barGap={4}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={activeChartTheme.gridStroke} />
+                          <XAxis dataKey="label" interval={0} tick={activeChartTheme.axisTick} tickMargin={8} axisLine={false} tickLine={false} />
+                          <YAxis
+                            width={58}
+                            domain={cashFlowYAxisDomain}
+                            tickFormatter={value => formatRp(value)}
+                            tick={activeChartTheme.axisTick}
+                            axisLine={false}
+                            tickLine={false}
+                            allowDecimals={false}
+                          />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={0} animationDuration={220} />
+                          <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={40} animationDuration={220} />
+                          <Line type="monotone" dataKey="rataRataPemasukan" name="Rata-rata pemasukan" stroke={THEME.income} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} connectNulls animationBegin={80} animationDuration={260} />
+                          <Line type="monotone" dataKey="rataRataPengeluaran" name="Rata-rata pengeluaran" stroke={THEME.expense} strokeWidth={2.5} dot={false} connectNulls animationBegin={120} animationDuration={260} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  {cashFlowChartData.length > 0 && (
-                    <span className="flex-shrink-0 rounded-full bg-md3-surface px-2.5 py-1 text-[10px] font-bold text-md3-on-surface-variant">
-                      {cashFlowChartData.length} bulan
-                    </span>
+                  {cashFlowOverflows && (
+                    <p data-testid="stats-cash-flow-hint" className="mt-2 text-[10px] font-semibold text-md3-on-surface-variant">Geser untuk melihat semua bulan</p>
                   )}
                 </div>
-
-                {cashFlowChartData.length === 0 ? (
-                  <EmptyState icon={<Wallet size={18} />} title="Belum ada data arus kas" hint="Pilih rentang dengan pemasukan atau pengeluaran untuk melihat grafik." />
-                ) : (
-                  <>
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[10px] font-semibold text-md3-on-surface-variant" aria-label="Legenda arus kas">
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-sm" style={{ background: THEME.income }} aria-hidden="true" />
-                        Pemasukan
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-sm" style={{ background: THEME.expense }} aria-hidden="true" />
-                        Pengeluaran
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="w-5 border-t-2" style={{ borderColor: THEME.income }} aria-hidden="true" />
-                        Rata-rata pemasukan (3 bulan)
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="w-5 border-t-2" style={{ borderColor: THEME.expense }} aria-hidden="true" />
-                        Rata-rata pengeluaran (3 bulan)
-                      </span>
-                    </div>
-                    <p id="stats-cash-flow-summary" className="sr-only">{cashFlowChartSummary}</p>
-                    <div className="mt-2 flex min-w-0" role="img" aria-describedby="stats-cash-flow-summary">
-                      <div data-testid="stats-cash-flow-axis" className="w-[62px] flex-shrink-0" aria-hidden="true">
-                        <ResponsiveContainer width="100%" height={280}>
-                          <ComposedChart data={cashFlowChartData} margin={{ top: 28, right: 0, left: 0, bottom: 8 }}>
-                            <YAxis
-                              width={62}
-                              domain={cashFlowYAxisDomain}
-                              tickFormatter={value => formatRp(value)}
-                              tick={chartTheme.axisTick}
-                              axisLine={false}
-                              tickLine={false}
-                              allowDecimals={false}
-                            />
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div data-testid="stats-cash-flow-scroll" className="min-w-0 flex-1 overflow-x-auto" ref={cashFlowScrollRef}>
-                        <div data-testid="stats-cash-flow-plot" style={{ minWidth: Math.max(520, cashFlowChartData.length * 84) }}>
-                          <ResponsiveContainer width="100%" height={280}>
-                            <ComposedChart data={cashFlowChartData} margin={{ top: 28, right: 16, left: 0, bottom: 8 }} barCategoryGap="22%" barGap={4}>
-                              <XAxis dataKey="label" interval={0} tick={chartTheme.axisTick} tickMargin={8} axisLine={false} tickLine={false} />
-                              <YAxis width={0} domain={cashFlowYAxisDomain} hide />
-                              <Tooltip content={<CustomTooltip />} />
-                              <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={0} animationDuration={220} />
-                              <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={28} animationBegin={40} animationDuration={220} />
-                              <Line type="monotone" dataKey="rataRataPemasukan" name="Rata-rata pemasukan" stroke={THEME.income} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} connectNulls animationBegin={80} animationDuration={260} />
-                              <Line type="monotone" dataKey="rataRataPengeluaran" name="Rata-rata pengeluaran" stroke={THEME.expense} strokeWidth={2.5} dot={false} connectNulls animationBegin={120} animationDuration={260} />
-                            </ComposedChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    </div>
-                    {cashFlowOverflows && (
-                      <p data-testid="stats-cash-flow-hint" className="mt-2 text-[10px] font-semibold text-md3-on-surface-variant">Geser untuk melihat semua bulan</p>
-                    )}
-                    <StatsDataTable
-                      id="stats-cash-flow-table"
-                      caption="Data arus kas bulanan"
-                      columns={cashFlowTableColumns}
-                      rows={cashFlowTableRows}
-                    />
-                  </>
-                )}
-              </section>
+              </ChartTile>
             )
           )}
 
@@ -439,29 +510,19 @@ export default function StatsTab({
                 <h3 className="text-xs font-bold font-display text-md3-on-surface-variant uppercase tracking-wider">Insights</h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {insightCards.slice(0, 5).map((ins, i) => {
-                  const Icon = ins.icon
-                  const TypeIcon = ins.type === "positive" ? TrendingUp : ins.type === "warning" ? AlertCircle : Info
-                  return (
-                    <div key={i} className="insight-card animate-fade-in-up" style={{ background: ins.color + "12", color: ins.color, animationDelay: `${0.05 * i}s` }}>
-                      <div className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0 relative" style={{ background: ins.color + "22", boxShadow: `0 4px 12px ${ins.color}30` }}>
-                        <Icon size={16} strokeWidth={2.5} aria-hidden="true" />
-                        <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center" style={{ background: ins.color, color: "white" }}>
-                          <TypeIcon size={8} strokeWidth={3} aria-hidden="true" />
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <p className="text-[11px] font-bold uppercase tracking-wider opacity-70">{ins.type === "positive" ? "Positif" : ins.type === "warning" ? "Perhatian" : "Info"}</p>
-                        <p className="text-xs font-semibold text-md3-on-surface leading-snug mt-0.5">{ins.text}</p>
-                      </div>
-                    </div>
-                  )
-                })}
+                {insightCards.slice(0, 5).map((ins, i) => (
+                  <InsightCard
+                    key={`${ins.text || "insight"}-${i}`}
+                    insight={ins}
+                    variant="tinted"
+                    style={{ animationDelay: `${0.05 * i}s` }}
+                  />
+                ))}
               </div>
             </div>
           )}
 
-          {!isFeatureEnabled(effectiveEntitlement, "anomalyAlerts") ? <LockedFeaturePreview title="Anomaly Alerts" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(effectiveEntitlement, "anomalyAlerts") ? <AnomalyAlerts transactions={allTransactions} selectedMonth={selectedMonth} selectedYear={selectedYear} onCategoryClick={onCategoryClick} /> : <LockedFeaturePreview title="Anomaly Alerts" description="Deteksi pola transaksi tidak biasa tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
+          {getFeatureGate(effectiveEntitlement, "anomalyAlerts") === "unavailable" ? <LockedFeaturePreview title="Anomaly Alerts" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(effectiveEntitlement, "anomalyAlerts") === "unresolved" ? <LockedFeaturePreview title="Anomaly Alerts" unresolved /> : hasFeature(effectiveEntitlement, "anomalyAlerts") ? <AnomalyAlerts transactions={allTransactions} selectedMonth={selectedMonth} selectedYear={selectedYear} onCategoryClick={onCategoryClick} /> : <LockedFeaturePreview title="Anomaly Alerts" description="Deteksi pola transaksi tidak biasa tersedia di Pro." example="Contoh: kategori Jajan bulan ini 45% di atas rata-rata tiga bulan sebelumnya." proRegistrationOpen={proRegistrationOpen} />}
         </div>
       )}
 
@@ -473,12 +534,12 @@ export default function StatsTab({
           ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              { key: "expense", title: "Pengeluaran terbesar", categories: chartExpenseCategories, summaryId: "stats-expense-category-summary" },
-              { key: "income", title: "Pemasukan terbesar", categories: incomeCategories, summaryId: "stats-income-category-summary" },
-            ].map(({ key, title, categories, summaryId }) => (
-              <section key={key} className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm" aria-labelledby={`${summaryId}-title`}>
-                <h3 id={`${summaryId}-title`} className="text-xs font-bold text-center mb-2 font-display text-md3-on-surface">{title}</h3>
-                <p className="text-center text-[10px] text-md3-on-surface-variant">{key === "expense" ? chartBasisLabel : "Dasar: Semua transaksi"}</p>
+              { key: "expense", title: "Pengeluaran terbesar", categories: chartExpenseCategories, summaryId: "stats-expense-category-summary", ariaLabel: "Pengeluaran terbesar" },
+              { key: "income", title: "Pemasukan terbesar", categories: incomeCategories, summaryId: "stats-income-category-summary", ariaLabel: "Pemasukan terbesar" },
+            ].map(({ key, title, categories, summaryId, ariaLabel }) => (
+              <section key={key} className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm" aria-label={ariaLabel}>
+                <h3 id={`${summaryId}-title`} className="text-sm font-bold mb-2 font-display text-md3-on-surface">{title}</h3>
+                <p className="text-[11px] text-md3-on-surface-variant">{key === "expense" ? chartBasisLabel : "Dasar: Semua transaksi"}</p>
                 <p id={summaryId} className="sr-only">{getCategorySummary(title, categories)}</p>
                 {categories.length === 0 ? (
                   <EmptyState icon={<Wallet size={18} />} title="Belum ada" />
@@ -487,12 +548,12 @@ export default function StatsTab({
                     <ResponsiveContainer width="100%" height={Math.max(180, Math.min(280, categories.slice(0, 8).length * 34 + 36))}>
                       <BarChart data={categories.slice(0, 8)} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 4 }} barCategoryGap="22%">
                         <XAxis type="number" hide />
-                        <YAxis type="category" dataKey="name" width={82} tick={chartTheme.axisTick} axisLine={false} tickLine={false} />
+                        <YAxis type="category" dataKey="name" width={82} tick={activeChartTheme.axisTick} axisLine={false} tickLine={false} />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar
                           dataKey="value"
                           name={title}
-                          fill={chartTheme.seriesPalette[0]}
+                          fill={activeChartTheme.seriesPalette[0]}
                           radius={[0, 6, 6, 0]}
                           maxBarSize={18}
                           animationDuration={240}
@@ -504,7 +565,7 @@ export default function StatsTab({
                           }}
                         >
                           {categories.slice(0, 8).map((category, index) => (
-                            <Cell key={category.name} fill={chartTheme.seriesPalette[index % chartTheme.seriesPalette.length]} />
+                            <Cell key={category.name} fill={activeChartTheme.seriesPalette[index % activeChartTheme.seriesPalette.length]} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -513,8 +574,8 @@ export default function StatsTab({
                 )}
                 <div className="mt-2 space-y-1.5" aria-label={`${title} detail`}>
                   {categories.slice(0, 6).map((category, index) => (
-                    <div key={category.name} className="flex items-center gap-2 text-[10px]">
-                      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: chartTheme.seriesPalette[index % chartTheme.seriesPalette.length] }} aria-hidden="true" />
+                    <div key={category.name} className="flex items-center gap-2 text-[11px]">
+                      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: activeChartTheme.seriesPalette[index % activeChartTheme.seriesPalette.length] }} aria-hidden="true" />
                       <span className="min-w-0 flex-1 truncate font-medium text-md3-on-surface-variant">{category.name}</span>
                       <span className="flex-shrink-0 font-bold text-md3-on-surface tabular-nums">
                         {formatRp(category.value)}{key === "expense" ? ` · ${formatCategoryPercentage(category.value, chartExpenseTotal)}%` : ""}
@@ -535,25 +596,41 @@ export default function StatsTab({
           </div>
           )}
 
-          {/* Top categories trend */}
+          {/* Top categories trend — ranked sparkline rows (revamp B) */}
           {chartTop5Categories.length > 0 && (
             refreshing ? <ChartSkeleton height={270} /> : (
-            <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm">
-              <h3 className="text-sm font-bold mb-3 font-display text-md3-on-surface">Tren Kategori Pengeluaran</h3>
-              <p className="text-[10px] text-md3-on-surface-variant -mt-2 mb-2">{chartBasisLabel}</p>
-              <p id="stats-category-trend-summary" className="sr-only">{getCategoryTrendSummary(chartTrendData, chartTop5Categories)}</p>
-              <div role="img" aria-describedby="stats-category-trend-summary">
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={chartTrendData}>
-                    <XAxis dataKey="month" tick={chartTheme.axisTick} axisLine={false} tickLine={false} />
-                    <YAxis hide />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: "11px" }} />
-                    {chartTop5Categories.map((cat, i) => (
-                      <Line key={cat} type="monotone" dataKey={cat} name={cat} stroke={chartTheme.seriesPalette[i % chartTheme.seriesPalette.length]} strokeWidth={2.5} dot={{ r: 3, fill: chartTheme.seriesPalette[i % chartTheme.seriesPalette.length] }} connectNulls animationBegin={Math.min(i * 40, 120)} animationDuration={240} />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
+            <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" aria-label="Tren Kategori Pengeluaran">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold font-display text-md3-on-surface">Tren Kategori Pengeluaran</h3>
+                  <p className="mt-1 text-[11px] text-md3-on-surface-variant">{chartBasisLabel}</p>
+                </div>
+                <span className="flex-shrink-0 rounded-full bg-md3-surface px-2.5 py-1 text-[10px] font-bold text-md3-on-surface-variant">
+                  {spannedCategoryTrendData.length} bulan
+                </span>
+              </div>
+              <p id="stats-category-trend-summary" className="sr-only">{getCategoryTrendSummary(spannedCategoryTrendData, chartTop5Categories)}</p>
+              <div className="mt-3 space-y-1" aria-describedby="stats-category-trend-summary">
+                {categoryTrendRows.map((row) => {
+                  const deltaUp = row.delta != null && row.delta > 0
+                  const deltaLabel = row.delta == null
+                    ? "baru"
+                    : `${deltaUp ? "+" : ""}${row.delta.toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}%`
+                  return (
+                    <div key={row.category} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-md3-surface-container-low transition-colors">
+                      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: row.color }} aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-md3-on-surface">{row.category}</span>
+                      <Sparkline points={row.series} width={88} height={28} color={row.color} strokeWidth={1.75} />
+                      <span
+                        className={`flex-shrink-0 text-[11px] font-bold tabular-nums ${deltaUp ? "text-md3-error" : "text-md3-primary"}`}
+                        style={row.delta == null ? { opacity: 0.5 } : undefined}
+                      >
+                        {deltaUp ? "↑" : row.delta != null && row.delta < 0 ? "↓" : "•"} {deltaLabel}
+                      </span>
+                      <span className="flex-shrink-0 w-20 text-right text-xs font-bold text-md3-on-surface tabular-nums">{formatRp(row.latest || 0)}</span>
+                    </div>
+                  )
+                })}
               </div>
               <StatsDataTable
                 id="stats-category-trend-table"
@@ -561,7 +638,7 @@ export default function StatsTab({
                 columns={["Kategori", "Periode terakhir"]}
                 rows={trendCategoryTableRows}
               />
-            </div>
+            </section>
             )
           )}
         </div>
@@ -569,22 +646,43 @@ export default function StatsTab({
 
       {activeSection === "tren" && (
         <div id="stats-panel-tren" role="tabpanel" aria-labelledby="stats-tab-tren" tabIndex={-1} className="space-y-5">
+          {/* Revamp C — period granularity for trend charts */}
+          <div className="glass rounded-2xl p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" role="group" aria-label="Rentang tren">
+            <p className="text-[11px] font-semibold text-md3-on-surface-variant">Rentang grafik tren</p>
+            <div className="sm:w-64" data-testid="stats-trend-span">
+              <SegmentedButtons
+                options={TREND_SPAN_OPTIONS}
+                value={trendSpan}
+                onChange={setTrendSpan}
+                ariaLabel="Rentang grafik tren"
+              />
+            </div>
+          </div>
+
           {/* Monthly trend */}
           {isAllMonths && (
             refreshing ? <ChartSkeleton height={240} /> : (
-            <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm">
-              <h3 className="text-sm font-bold mb-3 font-display text-md3-on-surface">Tren Bulanan</h3>
-              <p className="text-[10px] text-md3-on-surface-variant -mt-2 mb-2">{chartBasisLabel}</p>
-              <p id="stats-monthly-trend-summary" className="sr-only">{getMonthlyTrendSummary(chartClientMonthlyData)}</p>
-              <div role="img" aria-describedby="stats-monthly-trend-summary">
-                <ResponsiveContainer width="100%" height={220}>
-                  <ComposedChart data={chartClientMonthlyData}>
-                    <XAxis dataKey="month" tick={chartTheme.axisTick} axisLine={false} tickLine={false} />
-                    <YAxis hide />
+            <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" aria-label="Tren Bulanan">
+              <h3 className="text-sm font-bold font-display text-md3-on-surface">Tren Bulanan</h3>
+              <p className="mt-1 text-[11px] text-md3-on-surface-variant">{chartBasisLabel}</p>
+              <p id="stats-monthly-trend-summary" className="sr-only">{getMonthlyTrendSummary(spannedMonthlyData)}</p>
+              <div role="img" aria-describedby="stats-monthly-trend-summary" className="mt-3">
+                <ResponsiveContainer width="100%" height={240}>
+                  <ComposedChart data={spannedMonthlyData} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={activeChartTheme.gridStroke} />
+                    <XAxis dataKey="month" tick={activeChartTheme.axisTick} axisLine={false} tickLine={false} />
+                    <YAxis
+                      width={58}
+                      tickFormatter={value => formatRp(value)}
+                      tick={activeChartTheme.axisTick}
+                      axisLine={false}
+                      tickLine={false}
+                      allowDecimals={false}
+                    />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={0} animationDuration={220} />
                     <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={40} animationDuration={220} />
-                    <Line type="monotone" dataKey="surplus" name="Surplus" stroke={THEME.primary} strokeWidth={3} dot={{ r: 4, fill: THEME.primary, strokeWidth: 2, stroke: "#fff" }} animationBegin={80} animationDuration={260} />
+                    <Line type="monotone" dataKey="surplus" name="Surplus" stroke={THEME.savings} strokeWidth={3} dot={{ r: 4, fill: THEME.savings, strokeWidth: 2, stroke: "#fff" }} animationBegin={80} animationDuration={260} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -594,19 +692,19 @@ export default function StatsTab({
                 columns={["Bulan", "Pemasukan", "Pengeluaran", "Surplus"]}
                 rows={trendTableRows}
               />
-            </div>
+            </section>
             )
           )}
 
-          {!isFeatureEnabled(effectiveEntitlement, "cashFlowForecast") ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={routineAnalyticsMonthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
+          {getFeatureGate(effectiveEntitlement, "cashFlowForecast") === "unavailable" ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(effectiveEntitlement, "cashFlowForecast") === "unresolved" ? <LockedFeaturePreview title="Cash Flow Forecast" unresolved /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={routineAnalyticsMonthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} onOpenBills={onOpenPlanBills} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." example="Contoh: surplus bulan depan diproyeksikan dari enam bulan lengkap terakhir." proRegistrationOpen={proRegistrationOpen} />}
           <SavingsRateTrend monthlyData={routineAnalyticsMonthlyData} />
 
           {/* Month comparison */}
-          <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm">
+          <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" aria-label="Bandingkan Bulan">
             <div className="flex flex-col gap-2.5 mb-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-sm font-bold font-display text-md3-on-surface">Bandingkan Bulan</h3>
-                <p className="text-[10px] text-md3-on-surface-variant mt-1">Default: bulan ini vs bulan lalu. {chartBasisLabel}.</p>
+                <p className="mt-1 text-[11px] text-md3-on-surface-variant">Default: bulan ini vs bulan lalu. {chartBasisLabel}.</p>
               </div>
               <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2 sm:flex sm:items-center">
                 <button
@@ -626,14 +724,14 @@ export default function StatsTab({
               <div className="space-y-4 mt-3 animate-slide-down">
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                   <div>
-                    <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5">Periode utama</p>
+                    <p className="text-[11px] font-bold text-md3-on-surface-variant mb-1.5">Periode utama</p>
                     <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_120px] gap-2">
                       <div className="min-w-0"><SelectField value={compareMonthA} onChange={setCompareMonthA} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
                       <div className="min-w-0"><SelectField value={compareYearA} onChange={setCompareYearA} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
                     </div>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5">Bandingkan dengan</p>
+                    <p className="text-[11px] font-bold text-md3-on-surface-variant mb-1.5">Bandingkan dengan</p>
                     <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_120px] gap-2">
                       <div className="min-w-0"><SelectField value={compareMonthB} onChange={setCompareMonthB} options={AVAILABLE_MONTHS} placeholder="Bulan" /></div>
                       <div className="min-w-0"><SelectField value={compareYearB} onChange={setCompareYearB} options={compareYearOptions || availableYears} placeholder="Tahun" /></div>
@@ -650,9 +748,9 @@ export default function StatsTab({
                     const isUp = delta > 0
                     return (
                       <div key={item.label} className="rounded-2xl p-3 text-center" style={{ background: THEME.surfaceWarm }}>
-                        <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1">{item.label}</p>
+                        <p className="text-[11px] font-bold text-md3-on-surface-variant mb-1">{item.label}</p>
                         <p className="text-sm font-bold tabular-nums" style={{ color: item.color }}>{formatRp(item.a)}</p>
-                        <p className="text-[10px] text-md3-on-surface-variant my-0.5">vs {formatRp(item.b)}</p>
+                        <p className="text-[11px] text-md3-on-surface-variant my-0.5">vs {formatRp(item.b)}</p>
                         {delta !== 0 && (
                           <p className="text-[11px] font-bold" style={{ color: isUp && item.label !== "Pengeluaran" ? THEME.savings : isUp ? THEME.danger : THEME.savings }}>
                             {isUp ? "↑" : "↓"} {Math.abs(delta).toFixed(1)}%
@@ -664,40 +762,56 @@ export default function StatsTab({
                 </div>
                 {activeCompareChartData.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold text-md3-on-surface-variant mb-2">Perbandingan per Kategori</p>
-                    <p className="text-[10px] text-md3-on-surface-variant -mt-1 mb-2">{compareLabelA} vs {compareLabelB}</p>
+                    <p className="text-[11px] font-bold text-md3-on-surface-variant mb-2">Perbandingan per Kategori</p>
+                    <p className="text-[11px] text-md3-on-surface-variant -mt-1 mb-2">{compareLabelA} vs {compareLabelB}</p>
                     <p id="stats-comparison-summary" className="sr-only">
                       Perbandingan pengeluaran {compareLabelA} dan {compareLabelB}: {activeCompareChartData.map(item => `${item.category}, ${formatRp(item[compareLabelA] || 0)} dan ${formatRp(item[compareLabelB] || 0)}`).join("; ")}.
                     </p>
                     <div className="overflow-x-auto" ref={comparisonScrollRef}>
-                      <div style={{ minWidth: Math.max(640, activeCompareChartData.length * 110) }}>
-                        <div role="img" aria-describedby="stats-comparison-summary">
-                          <ResponsiveContainer width="100%" height={280}>
-                            <BarChart data={activeCompareChartData} margin={{ top: 24, right: 12, left: 0, bottom: 28 }} barCategoryGap="24%" barGap={4}>
-                              <XAxis dataKey="category" interval={0} tick={chartTheme.axisTick} tickMargin={8} axisLine={false} tickLine={false} />
-                              <YAxis width={58} tickFormatter={value => formatRp(value)} tick={chartTheme.axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
-                              <Tooltip content={<CustomTooltip />} />
-                              <Bar dataKey={compareLabelA} name={compareLabelA} fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={24} animationBegin={0} animationDuration={240}>
-                                <LabelList dataKey={compareLabelA} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} fontSize={9} />
-                              </Bar>
-                              <Bar dataKey={compareLabelB} name={compareLabelB} fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={24} animationBegin={40} animationDuration={240}>
-                                <LabelList dataKey={compareLabelB} position="top" formatter={value => formatRp(value || 0)} fill={THEME.textPrimary} fontSize={9} />
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                        <div role="group" aria-label="Keterangan warna perbandingan" className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] text-md3-on-surface-variant">
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full" style={{ background: THEME.income }} aria-hidden="true" />
-                            {compareLabelA}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full" style={{ background: THEME.expense }} aria-hidden="true" />
-                            {compareLabelB}
-                          </span>
-                          <p className="basis-full text-center text-[10px] text-md3-on-surface-variant">Keduanya menunjukkan pengeluaran</p>
-                        </div>
+                      <div aria-describedby="stats-comparison-summary" style={{ minWidth: Math.max(320, activeCompareChartData.length * 96) }}>
+                        {activeCompareChartData.slice(0, 8).map((item, index) => {
+                          const valueA = Number(item[compareLabelA]) || 0
+                          const valueB = Number(item[compareLabelB]) || 0
+                          const delta = valueB > 0 ? ((valueA - valueB) / valueB) * 100 : null
+                          const isUp = delta != null && delta > 0
+                          return (
+                            <div key={item.category} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-md3-surface-container-low transition-colors">
+                              <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: activeChartTheme.seriesPalette[index % activeChartTheme.seriesPalette.length] }} aria-hidden="true" />
+                              <span className="min-w-0 flex-1 truncate text-xs font-semibold text-md3-on-surface">{item.category}</span>
+                              <DumbbellChart
+                                rows={[{ a: valueA, b: valueB }]}
+                                domain={comparisonDomain}
+                                width={150}
+                                rowHeight={28}
+                                colorA={THEME.primary}
+                                colorB="#C8BEB1"
+                                formatValue={value => formatRp(value).replace("Rp ", "")}
+                              />
+                              <span className="flex-shrink-0 text-right">
+                                <span className="block text-[11px] font-bold text-md3-on-surface tabular-nums">{formatRp(valueA)}</span>
+                                <span className="block text-[10px] font-semibold text-md3-on-surface-variant tabular-nums">vs {formatRp(valueB)}</span>
+                              </span>
+                              <span
+                                className={`flex-shrink-0 w-14 text-right text-[11px] font-bold tabular-nums ${isUp ? "text-md3-error" : "text-md3-primary"}`}
+                                style={delta == null ? { opacity: 0.5 } : undefined}
+                              >
+                                {delta == null ? "baru" : `${isUp ? "↑" : "↓"} ${Math.abs(delta).toLocaleString("id-ID", { maximumFractionDigits: 0 })}%`}
+                              </span>
+                            </div>
+                          )
+                        })}
                       </div>
+                    </div>
+                    <div role="group" aria-label="Keterangan warna perbandingan" className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-md3-on-surface-variant">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full" style={{ background: THEME.primary }} aria-hidden="true" />
+                        {compareLabelA}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full" style={{ background: "#C8BEB1" }} aria-hidden="true" />
+                        {compareLabelB}
+                      </span>
+                      <p className="basis-full text-[10px] text-md3-on-surface-variant">Keduanya menunjukkan pengeluaran — titik lebih kanan berarti lebih besar.</p>
                     </div>
                     {comparisonOverflows && (
                       <p data-testid="stats-comparison-hint" className="mt-2 text-[10px] font-semibold text-md3-on-surface-variant">Geser untuk melihat semua kategori</p>
@@ -712,12 +826,12 @@ export default function StatsTab({
                 )}
               </div>
             )}
-          </div>
+          </section>
 
           {/* Daily expense calendar */}
           <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm overflow-hidden">
             <h3 className="text-sm font-bold mb-1 font-display text-md3-on-surface">Peta Pengeluaran Harian</h3>
-            <p className="text-[10px] text-md3-on-surface-variant mb-3">Rincian pengeluaran harian bulan {calMonth} {calYear}</p>
+            <p className="text-[11px] text-md3-on-surface-variant mb-3">Rincian pengeluaran harian bulan {calMonth} {calYear}</p>
             <div className="flex items-center justify-between mb-3">
               <button onClick={() => navigateCalendar(-1)} aria-label="Bulan sebelumnya" className="relative w-8 h-8 rounded-xl bg-md3-surface hover:bg-md3-surface-container-high transition-colors flex items-center justify-center before:absolute before:inset-[-6px] before:content-['']">
                 <ChevronLeft size={14} color={THEME.textSecondary} aria-hidden="true" />
@@ -737,8 +851,8 @@ export default function StatsTab({
                 <div key={wi} className="grid grid-cols-7 gap-1">
                   {week.map((cell, ci) => {
                     if (!cell) return <div key={ci} className="aspect-square rounded-xl" />
-                    const bg = cell.amount > 0 ? heatmapColor(cell.amount) : "#f6efe5"
-                    const txt = heatmapTextColor(cell.amount)
+                    const bg = cell.amount > 0 ? heatmapColor(cell.amount, heatmapThresholds, activeChartTheme.heatmap) : activeChartTheme.heatmap.empty
+                    const txt = heatmapTextColor(cell.amount, heatmapThresholds, activeChartTheme.heatmap)
                     const isToday = isTodayCell(cell.day, calMonth, calYear)
                     return (
                       <button
@@ -763,9 +877,12 @@ export default function StatsTab({
             <div className="mt-4 pt-3 border-t border-md3-outline-variant">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold text-md3-on-surface-variant">Sedikit</span>
-                <div className="flex-1 h-2.5 rounded-full" style={{ background: `linear-gradient(90deg, ${chartTheme.heatmap.empty} 0%, ${chartTheme.heatmap.ramp[0]} 25%, ${chartTheme.heatmap.ramp[1]} 50%, ${chartTheme.heatmap.ramp[2]} 75%, ${chartTheme.heatmap.ramp[3]} 100%)` }} />
+                <div className="flex-1 h-2.5 rounded-full" style={{ background: `linear-gradient(90deg, ${activeChartTheme.heatmap.empty} 0%, ${activeChartTheme.heatmap.ramp[0]} 25%, ${activeChartTheme.heatmap.ramp[1]} 50%, ${activeChartTheme.heatmap.ramp[2]} 75%, ${activeChartTheme.heatmap.ramp[3]} 100%)` }} />
                 <span className="text-[11px] font-bold text-md3-on-surface-variant">Banyak</span>
               </div>
+              {heatmapThresholds !== chartTheme.heatmap.thresholds && (
+                <p className="mt-1.5 text-[10px] text-md3-on-surface-variant text-center">Skala mengikuti pola pengeluaran bulan ini</p>
+              )}
             </div>
           </div>
         </div>
@@ -776,7 +893,7 @@ export default function StatsTab({
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3 px-1">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Laporan & Ringkasan</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Laporan & Ringkasan</p>
                 <p className="text-sm font-semibold text-md3-on-surface-variant">Unduh ringkasan dan telusuri transaksi per bulan.</p>
               </div>
             </div>
@@ -791,7 +908,7 @@ export default function StatsTab({
                 userName={userName}
                 entitlement={effectiveEntitlement}
               />
-              {!isFeatureEnabled(effectiveEntitlement, "yearInReview") ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} routineMonthlyData={routineMonthlyData} userName={userName} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." proRegistrationOpen={proRegistrationOpen} />}
+              {getFeatureGate(effectiveEntitlement, "yearInReview") === "unavailable" ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(effectiveEntitlement, "yearInReview") === "unresolved" ? <LockedFeaturePreview title="Year-in-Review" unresolved /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} routineMonthlyData={routineMonthlyData} userName={userName} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." example="Contoh: kilasan Jan–Des dalam PDF — total pemasukan, pengeluaran rutin dan spesial, serta tabungan." proRegistrationOpen={proRegistrationOpen} />}
             </div>
           </div>
           <RecapSection transactions={data?.transactions || []} history={data?.history} onEdit={onEditTx} onDelete={onDeleteTx} onRepeat={onRepeatTx} />
@@ -801,19 +918,17 @@ export default function StatsTab({
   )
 }
 
-function heatmapColor(amount) {
-  const { empty, thresholds, ramp } = chartTheme.heatmap
-  if (!amount || amount === 0) return empty
-  if (amount <= thresholds[0]) return ramp[0]
-  if (amount <= thresholds[1]) return ramp[1]
-  if (amount <= thresholds[2]) return ramp[2]
-  return ramp[3]
+function heatmapColor(amount, thresholds = chartTheme.heatmap.thresholds, heatmap = chartTheme.heatmap) {
+  if (!amount || amount === 0) return heatmap.empty
+  if (amount <= thresholds[0]) return heatmap.ramp[0]
+  if (amount <= thresholds[1]) return heatmap.ramp[1]
+  if (amount <= thresholds[2]) return heatmap.ramp[2]
+  return heatmap.ramp[3]
 }
 
-function heatmapTextColor(amount) {
-  const { thresholds, textDark, textLight } = chartTheme.heatmap
-  if (!amount || amount <= thresholds[2]) return textDark
-  return textLight
+function heatmapTextColor(amount, thresholds = chartTheme.heatmap.thresholds, heatmap = chartTheme.heatmap) {
+  if (!amount || amount <= thresholds[2]) return heatmap.textDark
+  return heatmap.textLight
 }
 
 function isTodayCell(day, calMonth, calYear) {

@@ -11,7 +11,9 @@ import BillsSection from "@/components/BillsSection"
 import EventBudgetsSection from "@/components/EventBudgetsSection"
 import { BudgetBrief, GoalBrief, BillBrief } from "@/components/PlanBriefSignal"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
-import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featureAccess"
+import { hasFeature, isFeatureEnabled, getFeatureGate, isProRegistrationOpen } from "@/lib/featureAccess"
+import { maskRupiah } from "./_components/helpers"
+import EyeToggle from "./_components/EyeToggle"
 
 const FITrackerCard = dynamic(() => import("@/components/FITrackerCard"), { ssr: false })
 
@@ -109,6 +111,8 @@ export default function PlanTab({
    settings,
    onSettingsChanged,
    sessionKey,
+   moneyHidden = false,
+   onToggleMoneyVisibility,
 }) {
   const [internalActiveSection, setInternalActiveSection] = useState("overview")
   const visibleSections = PLAN_SECTIONS.filter(section => {
@@ -122,6 +126,9 @@ export default function PlanTab({
     : visibleSections[0]?.key
   const simulationAvailable = isFeatureEnabled(entitlement, "financialIndependence") || isFeatureEnabled(entitlement, "whatIf")
   const proRegistrationOpen = isProRegistrationOpen(entitlement)
+  // Privacy-eye mode: shared with the Home/Statistik eyes — any eye toggles all.
+  const masked = (formatted) => (moneyHidden ? maskRupiah(formatted) : formatted)
+  const showEye = typeof onToggleMoneyVisibility === "function"
   const scrollRailRef = useRef(null)
   const [railRef, railOverflows] = useOverflowHint()
   // Wave 7 — keep the active section visible in the rail after navigation
@@ -204,7 +211,10 @@ export default function PlanTab({
                 <p className="plan-kicker">Ringkasan bulan</p>
                 <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
                   <h2 id="plan-overview-title">Rencana bulan ini</h2>
-                  <span className="text-xs font-semibold text-md3-on-surface-variant">{selectedMonth || "Bulan ini"} {selectedYear || ""}</span>
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold text-md3-on-surface-variant">
+                    {selectedMonth || "Bulan ini"} {selectedYear || ""}
+                    {showEye && <EyeToggle hidden={moneyHidden} onToggle={onToggleMoneyVisibility} />}
+                  </span>
                 </div>
               <div className="plan-brief-rows">
                 {[PLAN_PILLARS[1], PLAN_PILLARS[2], PLAN_PILLARS[0]].map(({ key, feature, label }) => {
@@ -221,7 +231,7 @@ export default function PlanTab({
                       className={`plan-brief-row ${tone.affordance} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2`}
                     >
                       <span className="plan-brief-label">{label}</span>
-                      {!available ? <span id={`${key}-brief-detail`} className="plan-brief-detail">Fitur ini belum bisa kamu pakai.</span> : key === "budget" ? <BudgetBrief {...{ selectedMonth, selectedYear, selectedAccount, transactions, prefix: `${key}-brief` }} /> : key === "goal" ? <GoalBrief allocations={data?.balances?.allocations} prefix={`${key}-brief`} /> : <BillBrief {...{ bills, billsLoading, billsError, prefix: `${key}-brief` }} />}
+                      {!available ? <span id={`${key}-brief-detail`} className="plan-brief-detail">Fitur ini belum bisa kamu pakai.</span> : key === "budget" ? <BudgetBrief moneyHidden={moneyHidden} {...{ selectedMonth, selectedYear, selectedAccount, transactions, prefix: `${key}-brief` }} /> : key === "goal" ? <GoalBrief allocations={data?.balances?.allocations} prefix={`${key}-brief`} /> : <BillBrief moneyHidden={moneyHidden} {...{ bills, billsLoading, billsError, prefix: `${key}-brief` }} />}
                     </button>
                   )
                 })}
@@ -310,9 +320,9 @@ export default function PlanTab({
 
           {currentSection === "simulasi" && (
             <div className="space-y-5">
-              {!isFeatureEnabled(entitlement, "financialIndependence") ? <LockedFeaturePreview title="Financial Freedom" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(entitlement, "financialIndependence") ? <FITrackerCard netWorth={data?.netWorth} monthlyData={monthlyData} netWorthHistory={netWorthHistory} now={now} /> : <LockedFeaturePreview title="Financial Freedom" description="Pelacak Financial Freedom tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
+              {getFeatureGate(entitlement, "financialIndependence") === "unavailable" ? <LockedFeaturePreview title="Financial Freedom" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(entitlement, "financialIndependence") === "unresolved" ? <LockedFeaturePreview title="Financial Freedom" unresolved /> : hasFeature(entitlement, "financialIndependence") ? <FITrackerCard netWorth={data?.netWorth} monthlyData={monthlyData} netWorthHistory={netWorthHistory} now={now} /> : <LockedFeaturePreview title="Financial Freedom" description="Pelacak Financial Freedom tersedia di Pro." example="Contoh: target dana 12× pengeluaran bulanan dengan perkiraan waktu dari surplus tercatat." proRegistrationOpen={proRegistrationOpen} />}
 
-              {!isFeatureEnabled(entitlement, "whatIf") ? <LockedFeaturePreview title="What-If" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : hasFeature(entitlement, "whatIf") ? <button onClick={onWhatIfOpen} className="plan-card w-full p-4 text-left active:scale-[0.99]" aria-label="Open What-If Scenario simulator"><div className="flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: THEME.primaryBg, color: THEME.primary }}><Calculator size={16} aria-hidden="true" /></div><div><p className="text-sm font-bold text-md3-on-surface">What-If Scenario</p><p className="mt-0.5 text-[10px] text-md3-on-surface-variant">Simulasi dampak pengurangan pengeluaran ke goal</p></div></div><ArrowRight size={14} className="text-earth-400" aria-hidden="true" /></div></button> : <LockedFeaturePreview title="What-If" description="Simulasi dampak pengurangan pengeluaran tersedia di Pro." proRegistrationOpen={proRegistrationOpen} />}
+              {getFeatureGate(entitlement, "whatIf") === "unavailable" ? <LockedFeaturePreview title="What-If" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(entitlement, "whatIf") === "unresolved" ? <LockedFeaturePreview title="What-If" unresolved /> : hasFeature(entitlement, "whatIf") ? <button onClick={onWhatIfOpen} className="plan-card w-full p-4 text-left active:scale-[0.99]" aria-label="Buka simulator What-If"><div className="flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: THEME.primaryBg, color: THEME.primary }}><Calculator size={16} aria-hidden="true" /></div><div><p className="text-sm font-bold text-md3-on-surface">What-If Scenario</p><p className="mt-0.5 text-[10px] text-md3-on-surface-variant">Simulasi dampak pengurangan pengeluaran ke goal</p></div></div><ArrowRight size={14} className="text-earth-400" aria-hidden="true" /></div></button> : <LockedFeaturePreview title="What-If" description="Simulasi dampak pengurangan pengeluaran tersedia di Pro." example="Contoh: kurangi jajan Rp 200.000/bulan, goal tercapai 1 bulan lebih cepat." proRegistrationOpen={proRegistrationOpen} />}
             </div>
           )}
         </div>

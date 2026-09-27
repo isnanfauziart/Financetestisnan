@@ -36,6 +36,7 @@ import BillSetupModal from "@/components/BillSetupModal"
 import EventCelebration from "@/components/EventCelebration"
 import LegacySheetConnector from "@/components/LegacySheetConnector"
 import UserNameSetup from "@/components/UserNameSetup"
+import UserAvatar from "@/components/UserAvatar"
 import PaymentStatusBanner from "./_components/PaymentStatusBanner"
 import { SharedDataScopeContext, useBills, useSettings } from "@/lib/useSharedData"
 import { registerServiceWorker, requestNotificationPermission } from "@/lib/notifications"
@@ -187,6 +188,26 @@ export default function Dashboard() {
   const [soundEnabled, setSoundEnabled] = useSoundPref()
   const [hapticsEnabled, setHapticsEnabled] = useHapticsPref()
   const haptics = useHaptics()
+  // Privacy-eye mode (Sembunyikan angka). Lazy-initialize from localStorage so
+  // a reload with hiding enabled never flashes real amounts, and remember the
+  // last choice across sessions, matching the theme/sound/haptics pref pattern.
+  const [moneyHidden, setMoneyHidden] = useState(() => {
+    if (typeof window === "undefined") return false
+    try {
+      return window.localStorage.getItem("artami-money-hidden") === "true"
+    } catch {
+      return false
+    }
+  })
+  const handleToggleMoneyVisibility = useCallback(() => {
+    setMoneyHidden((hidden) => {
+      const next = !hidden
+      try {
+        window.localStorage.setItem("artami-money-hidden", String(next))
+      } catch {}
+      return next
+    })
+  }, [])
 
   // Form state
   const [txType, setTxType] = useState("expense")
@@ -1485,6 +1506,13 @@ export default function Dashboard() {
   return (
     <SharedDataScopeContext.Provider value={sessionKey || ""}>
       <div className="min-h-screen pb-52 sm:pb-44 font-body relative text-md3-on-surface">
+      {/* Wave 10: first focusable element — jump past the header, tablist, and FAB. */}
+      <a
+        href="#dashboard-heading"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[80] focus:rounded-xl focus:bg-md3-primary focus:px-4 focus:py-2.5 focus:text-sm focus:font-bold focus:text-md3-on-primary focus:shadow-pop-lg"
+      >
+        Langsung ke konten utama
+      </a>
       {/* P8: Parallax background */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-organic" style={{ transform: `translateY(${scrollY * -0.15}px)` }} aria-hidden="true" />
 
@@ -1575,7 +1603,7 @@ export default function Dashboard() {
             )}
             {activeNav === "home" && (
               <button onClick={() => setActiveNav("profile")} aria-label="Buka profil" className="relative active:scale-95 transition-transform flex-shrink-0">
-                <img src={session?.user?.image} alt="" className="w-11 h-11 rounded-2xl border-2 border-white shadow-warm" />
+                <UserAvatar src={session?.user?.image} name={effectiveUserName} email={session?.user?.email} className="w-11 h-11 rounded-2xl border-2 border-white shadow-warm" />
                 <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-moss-500 border-2 border-cream-50 rounded-full" />
               </button>
             )}
@@ -1629,6 +1657,8 @@ export default function Dashboard() {
             monthlyData={routineAnalysisMonthlyData}
             insights={gatedInsights}
             entitlement={entitlement}
+            moneyHidden={moneyHidden}
+            onToggleMoneyVisibility={handleToggleMoneyVisibility}
             sessionKey={sessionKey}
           />
         )}
@@ -1674,12 +1704,15 @@ export default function Dashboard() {
               bills={bills}
               billsLoading={billsLoading}
               billsError={billsError}
+              moneyHidden={moneyHidden}
+              onToggleMoneyVisibility={handleToggleMoneyVisibility}
               refetchBills={refetchBills}
               onCategoryClick={handleAnomalyCategoryClick}
              userName={effectiveUserName}
              entitlement={entitlement}
              controlledSection={statsActiveSection}
              onSectionChange={setStatsActiveSection}
+             onOpenPlanBills={() => openPlanSection("bill")}
              controlledAnalysisMode={analysisMode}
              onAnalysisModeChange={setAnalysisMode}
           />
@@ -1712,6 +1745,8 @@ export default function Dashboard() {
               bills={bills}
               billsLoading={billsLoading}
               billsError={billsError}
+              moneyHidden={moneyHidden}
+              onToggleMoneyVisibility={handleToggleMoneyVisibility}
               settings={settings}
               onSettingsChanged={refetchSettings}
               sessionKey={sessionKey}
@@ -1881,7 +1916,8 @@ export default function Dashboard() {
            aria-hidden={!fabVisible}
            tabIndex={fabVisible ? 0 : -1}
            ref={fabRef}
-           className={`fixed bottom-24 sm:bottom-20 right-4 sm:right-5 z-40 max-w-md transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-opacity ${fabVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none motion-safe:translate-y-24 opacity-0"}`}
+           className={`fixed right-4 sm:right-5 z-[45] max-w-md transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-opacity ${fabVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none motion-safe:translate-y-24 opacity-0"}`}
+           style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}
          >
           <div className="w-14 h-14 rounded-2xl shadow-pop flex items-center justify-center motion-safe:active:scale-90 transition-transform duration-[140ms] motion-reduce:transition-none" style={{ backgroundColor: THEME.primaryBg, boxShadow: "0 12px 32px rgba(47,107,87,0.28)" }}>
            <Plus size={22} color={THEME.primaryDeep} strokeWidth={2.5} aria-hidden="true" />
@@ -1994,7 +2030,7 @@ function DrillDownModal({ drillDown, data, onClose, onEdit, onDelete }) {
                       onRepeat={isRepeatableTransaction(t) ? () => onRepeat(t) : undefined}
                       menuLabel={`Aksi transaksi ${t.category}`}
                       editLabel={`Edit ${t.category}`}
-                      deleteLabel={`Delete ${t.category}`}
+                      deleteLabel={`Hapus ${t.category}`}
                     />
                   </div>
                 </div>

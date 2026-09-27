@@ -9,6 +9,13 @@ import Sheet from "@/app/dashboard/_components/Sheet"
 
 const ICONS = { PiggyBank, Shield, Target, TrendingDown, TrendingUp }
 
+const EXCLUSION_REASONS = {
+  budget_adherence: "Tidak aktif: Budget Adherence — belum ada budget bulan ini",
+  expense_trend: "Tidak aktif: Expense Trend — butuh minimal 2 bulan data",
+  income_stability: "Tidak aktif: Income Stability — butuh minimal 2 bulan data",
+  savings_rate: "Tidak aktif: Savings Rate — belum ada pemasukan tercatat",
+}
+
 const FORMULA_ROWS = [
   { label: "Savings Rate", weight: "30%", desc: "Rata-rata (Pemasukan \u2013 Pengeluaran) / Pemasukan. Target: \u2265 20%" },
   { label: "Emergency Fund", weight: "25%", desc: "Tabungan kategori bisa digunakan pilihanmu / rata-rata pengeluaran bulanan. Target: \u2265 6 bulan" },
@@ -24,6 +31,7 @@ export default function HealthScoreCard({
   selectedMonth,
   selectedYear,
   liquidSavingsCategories,
+  onOpenPlanBudgets,
 }) {
   const [formulaOpen, setFormulaOpen] = useState(false)
   const { budgets } = useBudgets(
@@ -52,6 +60,11 @@ export default function HealthScoreCard({
 
   const { score, grade, gradeColor, gradeDesc, delta, components } = healthResult
   const visibleComponents = components.slice(0, 3)
+  const monthsCovered = Math.max(routineMonthlyData?.length || 0, monthlyData?.length || 0)
+  const liquidCategoriesLabel = (liquidSavingsCategories || []).length > 0
+    ? liquidSavingsCategories.join(", ")
+    : "Tabungan Cash, Emas"
+  const excludedComponents = components.filter((c) => c.score === null).map((c) => c.key)
 
   return (
     <>
@@ -186,6 +199,21 @@ export default function HealthScoreCard({
         <p className="text-xs text-md3-on-surface-variant mb-4">
           Skor dihitung dari 5 komponen. Komponen tanpa data tidak ikut dihitung (bobot didistribusikan ke komponen aktif):
         </p>
+        {/* Wave 8 — live coverage facts for THIS result (no locked-preview exposure). */}
+        <div className="mb-4 space-y-2 rounded-2xl bg-md3-surface p-3">
+          <p className="text-[11px] font-bold text-md3-on-surface">Data terpakai</p>
+          <p className="text-[11px] leading-relaxed text-md3-on-surface-variant">
+            Data terpakai: {monthsCovered} bulan lengkap.
+          </p>
+          <p className="text-[11px] leading-relaxed text-md3-on-surface-variant">
+            Dana darurat dihitung dari kategori tabungan: {liquidCategoriesLabel}.
+          </p>
+          {excludedComponents.length > 0 && (
+            <p className="text-[11px] leading-relaxed text-md3-on-surface-variant">
+              {excludedComponents.map((key) => EXCLUSION_REASONS[key] || `Tidak aktif: ${key}`).join(" · ")}
+            </p>
+          )}
+        </div>
         <div className="space-y-3">
           {FORMULA_ROWS.map((row, i) => (
             <div key={i} className="rounded-2xl p-3" style={{ background: THEME.surfaceWarm }}>
@@ -197,6 +225,15 @@ export default function HealthScoreCard({
             </div>
           ))}
         </div>
+        {typeof onOpenPlanBudgets === "function" && (
+          <button
+            type="button"
+            onClick={() => { setFormulaOpen(false); onOpenPlanBudgets("budget") }}
+            className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-md3-outline-variant bg-md3-surface px-3 py-2 text-xs font-bold text-md3-on-surface-variant transition-colors hover:bg-md3-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+          >
+            Lihat anggaran
+          </button>
+        )}
         <div className="mt-4 rounded-2xl p-3 border border-md3-outline-variant">
           <p className="text-[10px] font-bold text-md3-on-surface-variant mb-1">Grade:</p>
           <div className="flex flex-wrap gap-2">

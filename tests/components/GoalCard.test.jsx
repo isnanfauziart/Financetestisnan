@@ -27,27 +27,27 @@ describe("GoalCard", () => {
 
   it("hides 'Kontribusi' button when goal is completed", () => {
     render(<GoalCard goal={baseGoal} progress={1000000} onContribute={() => {}} onEdit={() => {}} onDelete={() => {}} />)
-    expect(screen.queryByLabelText("Contribute to Beli Laptop")).toBeNull()
+    expect(screen.queryByLabelText("Kontribusi ke Beli Laptop")).toBeNull()
   })
 
   it("renders Kontribusi button when goal is in progress", () => {
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={() => {}} onEdit={() => {}} onDelete={() => {}} />)
-    expect(screen.getByLabelText("Contribute to Beli Laptop")).toBeInTheDocument()
+    expect(screen.getByLabelText("Kontribusi ke Beli Laptop")).toBeInTheDocument()
   })
 
   it("exposes edit/delete via a ⋮ menu whose trigger is always in the DOM", () => {
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={() => {}} onEdit={() => {}} onDelete={() => {}} />)
     expect(screen.getByLabelText("Aksi target Beli Laptop")).toHaveAttribute("aria-haspopup", "menu")
     fireEvent.click(screen.getByLabelText("Aksi target Beli Laptop"))
-    expect(screen.getByLabelText("Edit Beli Laptop goal")).toHaveClass("min-h-11")
-    expect(screen.getByLabelText("Delete Beli Laptop goal")).toHaveClass("min-h-11")
+    expect(screen.getByLabelText("Edit target Beli Laptop")).toHaveClass("min-h-11")
+    expect(screen.getByLabelText("Hapus target Beli Laptop")).toHaveClass("min-h-11")
   })
 
   it("calls onEdit when edit menu item clicked", () => {
     const onEdit = vi.fn()
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={() => {}} onEdit={onEdit} onDelete={() => {}} />)
     fireEvent.click(screen.getByLabelText("Aksi target Beli Laptop"))
-    fireEvent.click(screen.getByLabelText("Edit Beli Laptop goal"))
+    fireEvent.click(screen.getByLabelText("Edit target Beli Laptop"))
     expect(onEdit).toHaveBeenCalledTimes(1)
   })
 
@@ -55,15 +55,15 @@ describe("GoalCard", () => {
     const onDelete = vi.fn()
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={() => {}} onEdit={() => {}} onDelete={onDelete} />)
     fireEvent.click(screen.getByLabelText("Aksi target Beli Laptop"))
-    fireEvent.click(screen.getByLabelText("Delete Beli Laptop goal"))
+    fireEvent.click(screen.getByLabelText("Hapus target Beli Laptop"))
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
 
   it("calls onContribute when contribute button clicked", () => {
     const onContribute = vi.fn()
     render(<GoalCard goal={baseGoal} progress={500000} onContribute={onContribute} onEdit={() => {}} onDelete={() => {}} />)
-    expect(screen.getByLabelText("Contribute to Beli Laptop")).toHaveClass("min-h-11")
-    fireEvent.click(screen.getByLabelText("Contribute to Beli Laptop"))
+    expect(screen.getByLabelText("Kontribusi ke Beli Laptop")).toHaveClass("min-h-11")
+    fireEvent.click(screen.getByLabelText("Kontribusi ke Beli Laptop"))
     expect(onContribute).toHaveBeenCalledTimes(1)
   })
 })

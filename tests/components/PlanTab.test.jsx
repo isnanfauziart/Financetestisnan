@@ -28,6 +28,8 @@ vi.mock("@/components/EventBudgetsSection", () => ({ default: () => <div>Event b
 function createProps(overrides = {}) {
   return {
     data: { netWorth: 0 },
+    moneyHidden: false,
+    onToggleMoneyVisibility: vi.fn(),
     transactions: [],
     monthlyData: [],
     netWorthHistory: [],
@@ -53,6 +55,19 @@ function createProps(overrides = {}) {
     ...overrides,
   }
 }
+
+describe("PlanTab privacy eye", () => {
+  it("renders the Ringkasan eye and masks brief amounts in privacy mode", () => {
+    render(<PlanTab {...createProps({
+      moneyHidden: true,
+      bills: [{ id: "b1", nama: "Internet", jumlah: 389000, daysUntilDue: 1, aktif: true }],
+    })} />)
+
+    const eye = screen.getAllByTestId("privacy-eye-toggle")[0]
+    expect(eye).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByText("Internet · Rp ••• rb")).toBeInTheDocument()
+  })
+})
 
 function getPlanNav() {
   return within(screen.getByRole("navigation", { name: "Navigasi Rencana" }))
@@ -98,7 +113,7 @@ describe("PlanTab planning ownership", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Buka target & What-If" }))
 
-    expect(screen.getByRole("button", { name: "Open What-If Scenario simulator" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka simulator What-If" })).toBeInTheDocument()
     expect(screen.getByText("FI tracker mock")).toBeInTheDocument()
   })
 
@@ -223,7 +238,7 @@ describe("PlanTab planning ownership", () => {
 
     fireEvent.click(getPlanNav().getByRole("button", { name: /simulasi/i }))
 
-    expect(screen.getByRole("button", { name: "Open What-If Scenario simulator" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka simulator What-If" })).toBeInTheDocument()
     expect(screen.getByText("FI tracker mock")).toBeInTheDocument()
     expect(screen.queryByText("Debts section mock")).not.toBeInTheDocument()
     expect(screen.queryByText("Event budgets section mock")).not.toBeInTheDocument()

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
   AlertTriangle,
@@ -18,10 +18,20 @@ import {
 } from "lucide-react"
 
 import { PAYMENT_AMOUNT, whatsappUrl } from "@/lib/payments"
+import PaymentTimeline from "@/components/PaymentTimeline"
 
 const QR_PATH = "/payment/qris-gopay.jpeg"
 const HISTORY_LIMIT = 20
 const ACTIVE_STATUSES = new Set(["awaiting_payment", "pending"])
+// Wave 9 — keeps manual/foreground refresh bounded; user-initiated only.
+const REFRESH_COOLDOWN_MS = 10_000
+const REFRESH_ANNOUNCEMENTS = {
+  ok_unchanged: "Status belum berubah. Bukti pembayaran masih ditinjau.",
+  ok_changed: "Status pembayaran diperbarui.",
+  ok_changed_approved: "Pembayaran disetujui. Akses Pro aktif.",
+  ok_changed_rejected: "Pembayaran ditolak. Lihat alasan di halaman ini.",
+  failed: "Status pembayaran tidak dapat diperbarui. Coba lagi.",
+}
 const PRO_REGISTRATION_CLOSED_DETAIL = "pendaftaran Pro sedang ditutup sementara. Silakan coba lagi nanti."
 const FINAL_STATUS_LABELS = {
   approved: "Disetujui",
@@ -129,11 +139,32 @@ export default function PaymentQrisFlow() {
   const [paymentAt, setPaymentAt] = useState(toDatetimeLocal())
   const [payerName, setPayerName] = useState("")
   const [now, setNow] = useState(() => new Date())
+  // Wave 9 — bounded pending-status refresh state.
+  const [refreshState, setRefreshState] = useState("idle") // idle | in_flight | ok_unchanged | ok_changed | ok_changed_approved | failed
+  const previousStatusRef = useRef(undefined)
+  const previousPaymentIdRef = useRef(undefined)
+  const refreshCooldownUntilRef = useRef(0)
 
   const activePayment = useMemo(() => getActivePayment(payments), [payments])
   const paymentState = useMemo(() => getPaymentState(activePayment, now), [activePayment, now])
   const history = payments.filter((payment) => payment.id !== activePayment?.id)
   const isPro = tier === "pro" || tier === "paid" || payments.some((payment) => payment.status === "approved")
+
+  // Wave 9 — bounded refresh control rendered inside the pending view; the
+  // announcement region stays at component level so it survives the transition
+  // to the approved view.
+  const refreshControl = activePayment?.status === "pending" ? (
+    <button
+      type="button"
+      onClick={() => checkStatus()}
+      disabled={refreshState === "in_flight"}
+      aria-describedby="payment-refresh-status"
+      className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest px-4 text-sm font-bold text-md3-on-surface-variant hover:bg-md3-surface disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {refreshState === "in_flight" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+      Periksa status
+    </button>
+  ) : null
 
   useEffect(() => {
     loadPayments(0)
@@ -150,6 +181,22 @@ export default function PaymentQrisFlow() {
     setPreview(url)
     return () => URL.revokeObjectURL(url)
   }, [file])
+
+  // Wave 9 — refresh when the app returns to the foreground while a payment
+  // is in flight. One bounded refetch per return, no interval polling. No
+  // dependency array on purpose: it re-attaches each render so the handler
+  // always sees fresh state without a stale closure.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "visible") return
+      const status = activePayment?.status
+      if (status !== "awaiting_payment" && status !== "pending") return
+      if (Date.now() < refreshCooldownUntilRef.current) return
+      checkStatus({ announce: false })
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange)
+  })
 
   async function loadPayments(nextOffset = 0) {
     setLoading(nextOffset === 0)
@@ -169,6 +216,47 @@ export default function PaymentQrisFlow() {
     } finally {
       setLoading(false)
       setBusy("")
+    }
+  }
+
+  // Wave 9 — bounded manual/foreground refresh of the pending status. Never
+  // implies approval: the announcement derives from what the server returned.
+  // Reads the live status from state (not a stale closure) via a ref mirror.
+  const activeStatusRef = useRef(undefined)
+  activeStatusRef.current = activePayment?.status
+  async function checkStatus({ announce = true } = {}) {
+    const nowMs = Date.now()
+    if (nowMs < refreshCooldownUntilRef.current) return
+    refreshCooldownUntilRef.current = nowMs + REFRESH_COOLDOWN_MS
+    setRefreshState("in_flight")
+    setError("")
+    try {
+      const data = await apiJson(`/api/payments?limit=${HISTORY_LIMIT}&offset=0`)
+      const before = previousStatusRef.current ?? activeStatusRef.current
+      previousPaymentIdRef.current = activePayment?.id
+      setPayments((current) => data.payments)
+      setTotal(data.total || 0)
+      setTier(data.tier || "free")
+      setRegistrationOpen(data.proRegistrationOpen !== false)
+      setOffset(HISTORY_LIMIT)
+      // The active payment may have LEFT the active set (approved/rejected),
+      // so track it by id rather than through getActivePayment.
+      const trackedId = previousPaymentIdRef.current
+      const tracked = data.payments.find((payment) => payment.id === trackedId)
+      const after = tracked?.status ?? getActivePayment(data.payments)?.status
+      previousStatusRef.current = after
+      if (!announce) {
+        setRefreshState("idle")
+        return
+      }
+      if (after === "approved" && before !== "approved") setRefreshState("ok_changed_approved")
+      else if (after === "rejected" && before !== "rejected") setRefreshState("ok_changed_rejected")
+      else if (after !== before) setRefreshState("ok_changed")
+      else setRefreshState("ok_unchanged")
+    } catch (err) {
+      if (announce) setRefreshState("failed")
+      else setRefreshState("idle")
+      setError(err.message || "Status pembayaran tidak dapat diperbarui. Coba lagi.")
     }
   }
 
@@ -317,7 +405,7 @@ export default function PaymentQrisFlow() {
               <LoadingPanel />
             ) : activePayment ? (
               activePayment.status === "pending" ? (
-                <PendingPanel payment={activePayment} supportUrl={supportUrl} />
+                <PendingPanel payment={activePayment} supportUrl={supportUrl} refresh={refreshControl} />
               ) : (
                 <AwaitingPanel
                   busy={busy}
@@ -352,6 +440,10 @@ export default function PaymentQrisFlow() {
             {error}
           </div>
         ) : null}
+
+        <p id="payment-refresh-status" role="status" aria-label="Status pembayaran" className="sr-only">
+          {REFRESH_ANNOUNCEMENTS[refreshState] || ""}
+        </p>
 
         <HistoryPanel
           busy={busy}
@@ -422,15 +514,18 @@ function StartPanel({ busy, isPro, onStart }) {
   )
 }
 
-function PendingPanel({ payment, supportUrl }) {
+function PendingPanel({ payment, supportUrl, refresh }) {
   return (
     <div className="flex min-h-[440px] flex-col justify-center gap-4">
       <div className="rounded-3xl bg-amber-50 p-5 text-amber-800">
         <div className="flex items-start gap-3">
           <Clock3 className="mt-1 h-5 w-5 shrink-0" aria-hidden="true" />
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-bold text-md3-on-surface">Bukti sedang ditinjau</h2>
-            <p className="mt-2 text-sm leading-6">
+            <div className="mt-3">
+              <PaymentTimeline status={payment.status} />
+            </div>
+            <p className="mt-3 text-sm leading-6">
               Pembayaran biasanya diproses dalam 1–30 menit. Jika belum terverifikasi setelah 30 menit,
               silakan hubungi CS melalui WhatsApp.
             </p>
@@ -438,15 +533,18 @@ function PendingPanel({ payment, supportUrl }) {
           </div>
         </div>
       </div>
-      <a
-        href={supportUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest px-4 text-sm font-bold text-md3-on-surface-variant hover:bg-md3-surface"
-      >
-        <MessageCircle className="h-4 w-4" aria-hidden="true" />
-        WhatsApp CS
-      </a>
+      <div className="flex flex-wrap items-center gap-2">
+        {refresh}
+        <a
+          href={supportUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-md3-outline-variant bg-md3-surface-container-lowest px-4 text-sm font-bold text-md3-on-surface-variant hover:bg-md3-surface"
+        >
+          <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          WhatsApp CS
+        </a>
+      </div>
     </div>
   )
 }
@@ -518,6 +616,9 @@ function AwaitingPanel({
             <Row label="Deadline" value={getPaymentDeadline(payment)} />
             <Row label="Sisa waktu" value={paymentState.expired ? "Deadline lewat" : formatDuration(paymentState.remainingMs)} />
           </dl>
+          <div className="mt-4 border-t border-md3-outline-variant pt-4">
+            <PaymentTimeline status={payment.status} />
+          </div>
         </div>
 
         {paymentState.inGrace ? (

@@ -3,7 +3,23 @@ import { useMemo } from "react"
 import { AlertTriangle, TrendingUp, ChevronRight } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp } from "@/app/dashboard/_components/helpers"
-import { detectAnomalies } from "@/lib/anomalies"
+import { detectAnomalies, getPrevMonths } from "@/lib/anomalies"
+
+/**
+ * Compact horizontal bar showing the current spend against the 3-month
+ * average (revamp C). The bar never implies the direction — the delta chip
+ * with its arrow carries the meaning, satisfying "color is not the only
+ * indicator".
+ */
+function CurrentVsAverageBar({ current, average, color }) {
+  const scale = Math.max(current, average, 1)
+  const width = Math.min(100, (current / scale) * 100)
+  return (
+    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full" style={{ background: THEME.surfaceWarm }} aria-hidden="true">
+      <div className="h-full rounded-full" style={{ width: `${width}%`, background: color }} />
+    </div>
+  )
+}
 
 export default function AnomalyAlerts({ transactions, selectedMonth, selectedYear, onCategoryClick }) {
   const anomalies = useMemo(
@@ -12,6 +28,10 @@ export default function AnomalyAlerts({ transactions, selectedMonth, selectedYea
   )
 
   if (anomalies.length === 0) return null
+
+  // Wave 8 — name the actual baseline months so the result is explainable.
+  const baselineMonths = getPrevMonths(selectedMonth, selectedYear, 3)
+  const baselineLabel = [...baselineMonths].reverse().map((m) => `${m.month} ${m.year}`).join(", ")
 
   const severityColors = {
     critical: { bg: THEME.dangerBg, border: THEME.danger + "30", text: THEME.danger, label: "Kritis" },
@@ -57,7 +77,9 @@ export default function AnomalyAlerts({ transactions, selectedMonth, selectedYea
                 <span className="text-[10px] text-md3-on-surface-variant">di atas rata-rata 3 bulan</span>
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-md3-on-surface-variant">
+              <CurrentVsAverageBar current={a.current} average={a.avg} color={sev.text} />
+
+              <div className="mt-1.5 flex items-center justify-between text-[10px] text-md3-on-surface-variant">
                 <span>Bulan ini: <strong className="text-md3-on-surface-variant">{formatRp(a.current)}</strong></span>
                 <span>Rata-rata: <strong className="text-md3-on-surface-variant">{formatRp(a.avg)}</strong></span>
               </div>
@@ -76,7 +98,9 @@ export default function AnomalyAlerts({ transactions, selectedMonth, selectedYea
       </div>
 
       <p className="text-[10px] text-earth-400 mt-3 px-0.5">
-        Berdasarkan rata-rata 3 bulan terakhir. Ketuk kategori untuk filter.
+        {baselineMonths.length > 0
+          ? `Berdasarkan rata-rata ${baselineLabel}. Pengeluaran Spesial tidak diikutkan. Ketuk kategori untuk filter.`
+          : "Ketuk kategori untuk filter."}
       </p>
     </div>
   )
