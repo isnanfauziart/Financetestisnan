@@ -40,24 +40,29 @@ describe("formatInputRupiah", () => {
 })
 
 describe("maskRupiah", () => {
-  it("masks full IDR amounts while keeping Rp and separators", () => {
-    expect(maskRupiah("Rp 12.500.000")).toBe("Rp ••.•••.•••")
-    expect(maskRupiah(formatRpFull(12500000))).toMatch(/^Rp\s••\.•••\.•••$/)
+  const MASKED = "Rp ••••••••"
+
+  it("masks full IDR amounts into one fixed digitless body", () => {
+    expect(maskRupiah("Rp 12.500.000")).toBe(MASKED)
+    expect(maskRupiah(formatRpFull(12500000))).toBe(MASKED)
   })
 
-  it("keeps the same character count so layout width stays stable", () => {
-    expect(maskRupiah("Rp 12.500.000").length).toBe("Rp 12.500.000".length)
+  it("hides magnitude: compact jt/rb values mask to the identical string", () => {
+    expect(maskRupiah(formatRp(5000000))).toBe(MASKED)
+    expect(maskRupiah("Rp 50 rb")).toBe(MASKED)
+    expect(maskRupiah("Rp 500")).toBe(MASKED)
   })
 
-  it("masks compact formatRp values and their thousands dot", () => {
-    expect(maskRupiah(formatRp(5000000))).toBe("Rp •.• jt")
-    expect(maskRupiah("Rp 50 rb")).toBe("Rp •• rb")
+  it("keeps a leading surplus/deficit sign but masks the amount", () => {
+    expect(maskRupiah("+Rp 3.0 jt")).toBe("+Rp ••••••••")
+    expect(maskRupiah("−Rp 1,2 jt")).toBe("−Rp ••••••••")
+    expect(maskRupiah("-Rp 1,2 jt")).toBe("-Rp ••••••••")
   })
 
-  it("masks signed cash-flow values including the sign", () => {
-    expect(maskRupiah("+Rp 3.0 jt")).toBe("•Rp •.• jt")
-    expect(maskRupiah("−Rp 1,2 jt")).toBe("•Rp •,• jt")
-    expect(maskRupiah("-Rp 1,2 jt")).toBe("•Rp •,• jt")
+  it("never leaks separators or digit count through bullet patterns", () => {
+    expect(maskRupiah("Rp 1.234")).not.toContain(".")
+    expect(maskRupiah("Rp 1.234")).not.toMatch(/[0-9]/)
+    expect(maskRupiah("Rp 12.500.000")).toBe(maskRupiah("Rp 500"))
   })
 
   it("passes through non-numeric labels unchanged", () => {

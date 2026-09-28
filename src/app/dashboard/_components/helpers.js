@@ -14,15 +14,19 @@ export function formatRpFull(amount) {
 /**
  * Privacy mask for formatted rupiah strings (privacy-eye mode).
  *
- * Replaces every digit and the +/- signs with a bullet while keeping `Rp`,
- * separators, and spacing so the masked value occupies roughly the same width
- * as the real one. The result contains no digits, so what a screen reader
- * announces matches what sighted users see. Non-numeric strings (loading
- * states, labels like "Hari ini") pass through unchanged.
+ * Every masked amount renders as the same fixed, digitless `Rp ••••••••`:
+ * no digits, no thousand separators, and no compact `jt`/`rb` suffix, because
+ * any of those — or a bullet count that varies with the value — would let an
+ * onlooker infer the digit count or magnitude class. A leading `+`/`−` sign is
+ * preserved so surplus/deficit direction stays readable. Strings without
+ * digits (labels like "Hari ini", "Memuat…") pass through unchanged.
  */
+const MASKED_AMOUNT_BODY = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+
 export function maskRupiah(formatted) {
-  if (typeof formatted !== "string") return formatted
-  return formatted.replace(/[0-9+\u2212-]/g, "\u2022")
+  if (typeof formatted !== "string" || !/[0-9]/.test(formatted)) return formatted
+  const sign = formatted.trimStart().match(/^[+\u2212-]/)?.[0] || ""
+  return `${sign}Rp ${MASKED_AMOUNT_BODY}`
 }
 
 export function formatInputRupiah(val) {

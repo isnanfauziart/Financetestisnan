@@ -352,12 +352,11 @@ describe("StatsTab privacy eye", () => {
     })} />)
 
     const summary = screen.getByRole("region", { name: "Kondisi keuangan" })
-    expect(summary).toHaveTextContent("Rp •.•••.•••")
-    expect(summary).toHaveTextContent("Rp ••.• jt")
+    expect(summary).toHaveTextContent("Rp ••••••••")
     expect(summary).not.toHaveTextContent("Rp 4.000.000")
     expect(summary).not.toHaveTextContent("Rp 12.0 jt")
-    expect(screen.getByRole("group", { name: "Pemasukan Rp ••.• jt" })).toBeInTheDocument()
-    expect(screen.getByRole("group", { name: "Pengeluaran Rp •.• jt" })).toBeInTheDocument()
+    expect(screen.getByRole("group", { name: "Pemasukan Rp ••••••••" })).toBeInTheDocument()
+    expect(screen.getByRole("group", { name: "Pengeluaran Rp ••••••••" })).toBeInTheDocument()
     expect(screen.getByTestId("privacy-eye-toggle")).toHaveAttribute("aria-pressed", "true")
   })
 

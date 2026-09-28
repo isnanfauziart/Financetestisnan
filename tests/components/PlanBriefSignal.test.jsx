@@ -37,10 +37,10 @@ describe("monthly brief", () => {
       { type: "expense", category: "Makan", account: "BCA", amount: 50000, date: "2026-09-02" },
     ]} />)
     expect(screen.getByText("50% digunakan")).toBeInTheDocument()
-    expect(screen.getByText("Sisa anggaran Rp •• rb")).toBeInTheDocument()
+    expect(screen.getByText("Sisa anggaran Rp ••••••••")).toBeInTheDocument()
 
     rerender(<BillBrief moneyHidden bills={[{ nama: "Internet", jumlah: 389000, daysUntilDue: 1, aktif: true }]} />)
-    expect(screen.getByText("Internet · Rp ••• rb")).toBeInTheDocument()
+    expect(screen.getByText("Internet · Rp ••••••••")).toBeInTheDocument()
     expect(screen.queryByText(/Rp 389 rb/)).not.toBeInTheDocument()
   })
 })

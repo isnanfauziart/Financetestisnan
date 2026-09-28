@@ -77,12 +77,12 @@ describe("HomeTab privacy eye", () => {
     render(<HomeTab {...createProps({ moneyHidden: true, onToggleMoneyVisibility: vi.fn() })} />)
 
     const hero = screen.getByTestId("home-hero")
-    expect(hero).toHaveTextContent("Rp ••.•••.•••")
+    expect(hero).toHaveTextContent("Rp ••••••••")
     expect(hero).not.toHaveTextContent("Rp 12.500.000")
     expect(hero).not.toHaveTextContent("Rp 350 rb")
 
     const topExpenses = screen.getByTestId("home-top-expenses")
-    expect(topExpenses).toHaveTextContent("Rp ••• rb")
+    expect(topExpenses).toHaveTextContent("Rp ••••••••")
     expect(topExpenses).not.toHaveTextContent("Rp 450 rb")
 
     const eyes = screen.getAllByTestId("privacy-eye-toggle")

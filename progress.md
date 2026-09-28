@@ -2021,3 +2021,15 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 **Verification:** focused suites green per batch; final diff review — two corrections (removed erroneous `role="img"` from the new ranked/dumbbell text rows so SR reads real text; unused import cleanup); full suite **1194 passed / 2 skipped** (172 files, +21 tests); production build passed (4 missing env vars supplied as placeholders — Phase 4 fail-fast is presence-only; bare `npm run build` fails in this checkout for lack of `LEGACY_SHEET_OWNER_EMAIL` etc., environment blocker not code); `git diff --check` clean. Dark mode via ProfileTab now re-themes charts through `resolveChartTheme`; heatmap-empty ring-offset stays light-only (pre-existing, deferred). Nothing committed.
 
 **Blockers:** none.
+
+## 2026-09-26 — Privacy-eye mask hardened: fully digitless fixed body
+
+**Task:** User feedback — the first mask kept thousand separators, so `Rp 10.000.000` became `**.***.***` and an onlooker could infer the digit count (and `jt`/`rb` suffixes plus variable bullet counts leaked the magnitude class). Approved correction: every masked amount renders as one fixed, digitless `Rp ••••••••`.
+
+**Changes:**
+- `src/app/dashboard/_components/helpers.js`: `maskRupiah` now returns the constant masked body for any digit-bearing string — no digits, separators, or compact suffixes survive; bullet count no longer varies with value; a leading `+`/`−` is preserved so surplus/deficit direction stays readable; digitless strings still pass through.
+- Tests updated to the new expectations in `tests/lib/format.test.js` (incl. "hides magnitude" and "never leaks separators or digit count" cases), `HomeTab`, `StatsTab`, `PlanTab`, `PlanBriefSignal`. No component code needed changes — all surfaces mask through the single helper.
+
+**Verification:** focused suites 118/118; final diff review — no findings (single masking point); full suite **1194 passed / 2 skipped**; production build passed (placeholder env vars); `git diff --check` clean. Uncommitted on top of `22408c2`.
+
+**Blockers:** none.

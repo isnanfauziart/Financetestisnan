@@ -65,7 +65,7 @@ describe("PlanTab privacy eye", () => {
 
     const eye = screen.getAllByTestId("privacy-eye-toggle")[0]
     expect(eye).toHaveAttribute("aria-pressed", "true")
-    expect(screen.getByText("Internet · Rp ••• rb")).toBeInTheDocument()
+    expect(screen.getByText("Internet · Rp ••••••••")).toBeInTheDocument()
   })
 })
 
