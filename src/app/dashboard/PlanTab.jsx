@@ -8,7 +8,8 @@ import DebtsSection from "@/components/DebtsSection"
 import BudgetsSection from "@/components/BudgetsSection"
 import BillsSection from "@/components/BillsSection"
 import EventBudgetsSection from "@/components/EventBudgetsSection"
-import { BudgetBrief, GoalBrief, BillBrief } from "@/components/PlanBriefSignal"
+import { useBudgetBriefData, useGoalBriefData, useBillBriefData, useUtangBriefData, useEventBriefData } from "@/components/PlanBriefSignal"
+import { useAttentionItems, AttentionBand } from "@/components/PlanAttention"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import { hasFeature, isFeatureEnabled, getFeatureGate, isProRegistrationOpen } from "@/lib/featureAccess"
 import EyeToggle from "./_components/EyeToggle"
@@ -116,24 +117,34 @@ export default function PlanTab({
   // Privacy-eye mode: shared with the Home/Statistik eyes — any eye toggles all.
   const showEye = typeof onToggleMoneyVisibility === "function"
 
-  const renderPillarStatus = (pillar, available) => {
-    if (!available) return pillar.key === "simulasi" ? "Segera hadir." : "Fitur ini belum bisa kamu pakai."
-    switch (pillar.key) {
-      case "budget":
-        return <BudgetBrief moneyHidden={moneyHidden} selectedMonth={selectedMonth} selectedYear={selectedYear} selectedAccount={selectedAccount} transactions={transactions} prefix="hub-budget-brief" />
-      case "goal":
-        return <GoalBrief allocations={data?.balances?.allocations} prefix="hub-goal-brief" />
-      case "tagihan":
-        return <BillBrief moneyHidden={moneyHidden} bills={bills} billsLoading={billsLoading} billsError={billsError} prefix="hub-bill-brief" />
-      case "utang":
-        return "Kelola utang & piutangmu."
-      case "event":
-        return "Rencanakan anggaran untuk momen spesial."
-      case "simulasi":
-        return "Target bebas finansial & What-If."
-      default:
-        return ""
+  // Concept A (approved 2026-10-09): pillar data for the "Semua fitur" rows —
+  // headline number (right, serif) + caption (under the label), from the shared
+  // brief data hooks so the hub never invents numbers.
+  const budgetData = useBudgetBriefData({ selectedMonth, selectedYear, selectedAccount, transactions, moneyHidden })
+  const goalData = useGoalBriefData({ allocations: data?.balances?.allocations })
+  const billData = useBillBriefData({ bills, billsLoading, billsError, moneyHidden })
+  const utangData = useUtangBriefData({ moneyHidden })
+  const eventData = useEventBriefData({ moneyHidden })
+
+  const attentionItems = useAttentionItems({ entitlement, bills, transactions, selectedMonth, selectedYear, selectedAccount, moneyHidden })
+
+  // Headline phrases that are not numbers — rendered as the caption instead
+  // of the big serif figure.
+  const NON_NUMERIC_VALUES = new Set([
+    "Belum ada tagihan", "Belum ada anggaran", "Belum ada target aktif",
+    "Lunas semua", "Belum ada event",
+  ])
+
+  const pillarData = (pillar, available) => {
+    if (!available) return pillar.key === "simulasi"
+      ? { number: null, caption: "Segera hadir." }
+      : { number: null, caption: "Fitur ini belum bisa kamu pakai." }
+    if (pillar.key === "simulasi") return { number: null, caption: "Target bebas finansial & What-If." }
+    const d = { budget: budgetData, goal: goalData, tagihan: billData, utang: utangData, event: eventData }[pillar.key]
+    if (!d || d.status !== "ok" || NON_NUMERIC_VALUES.has(d.value)) {
+      return { number: null, caption: d ? d.value : "" }
     }
+    return { number: d.value, caption: d.detail }
   }
 
   const handleSectionChange = (sectionKey) => {
@@ -184,12 +195,16 @@ export default function PlanTab({
 
         <div key={currentSection} id="plan-section-panel" className="plan-section-transition">
           {currentSection === "overview" && (
-            <section aria-label="Ringkasan Rencana">
+            <>
+              <AttentionBand items={attentionItems} onOpen={(section) => handleSectionChange(section)} />
+              <section aria-label="Ringkasan Rencana">
+              <p className="mt-6 text-xs font-bold uppercase tracking-[0.14em] text-[var(--kicker)]">Semua fitur</p>
               <div className="divide-y divide-[var(--border)]">
                 {HUB_PILLARS.filter((pillar) => pillar.key === "simulasi" ? visibleSections.some((section) => section.key === "simulasi") : true).map((pillar) => {
                   const available = pillar.key === "simulasi" ? simulationAvailable : hasFeature(entitlement, pillar.feature)
                   const Icon = pillar.icon
                   const proLocked = pillar.key === "simulasi" && available && !hasFeature(entitlement, "financialIndependence") && !hasFeature(entitlement, "whatIf")
+                  const { number, caption } = pillarData(pillar, available)
                   return (
                     <button
                       key={pillar.key}
@@ -199,13 +214,14 @@ export default function PlanTab({
                       aria-label={`${available ? "Buka" : "Fitur terkunci"} ${pillar.label}`}
                       className="plan-hub-row flex min-h-11 w-full items-center gap-3 py-4 text-left transition-colors hover:bg-[var(--surface)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
                     >
-                      <span data-plan-icon-tile className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl ${PLAN_SECTION_TONES[pillar.key]}`}>
-                        <Icon size={17} strokeWidth={2.1} aria-hidden="true" />
+                      <span data-plan-icon-tile className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl ${PLAN_SECTION_TONES[pillar.key]}`}>
+                        <Icon size={16} strokeWidth={2.1} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[15px] font-bold text-md3-on-surface">{pillar.label}</span>
-                        <span className="mt-0.5 block text-xs leading-relaxed text-md3-on-surface-variant">{renderPillarStatus(pillar, available)}</span>
+                        {caption ? <span className="mt-0.5 block text-xs leading-relaxed text-md3-on-surface-variant">{caption}</span> : null}
                       </span>
+                      {number ? <span className="whitespace-nowrap font-display text-[17px] font-bold text-md3-on-surface">{number}</span> : null}
                       {proLocked ? (
                         <span className="flex-shrink-0 rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-bold text-violet-700">Pro</span>
                       ) : (
@@ -216,6 +232,7 @@ export default function PlanTab({
                 })}
               </div>
             </section>
+            </>
           )}
 
           {currentSection === "goal" && hasFeature(entitlement, "goals") && (

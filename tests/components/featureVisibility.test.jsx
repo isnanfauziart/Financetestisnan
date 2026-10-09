@@ -37,6 +37,8 @@ vi.mock("@/lib/useSharedData", () => ({
   useBudgets: () => ({ budgets: [] }),
   useGoals: () => ({ goals: [] }),
   useBills: () => ({ bills: [] }),
+  useDebts: () => ({ debts: [] }),
+  useEvents: () => ({ events: [] }),
   useSettings: () => ({ settings: {} }),
 }))
 

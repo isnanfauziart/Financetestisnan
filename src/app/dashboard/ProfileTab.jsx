@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { LogOut, Wallet, Calendar } from "lucide-react"
+import { LogOut, Wallet, Calendar, Moon, Volume2, Vibrate, Tag } from "lucide-react"
 import { THEME, AVAILABLE_MONTHS } from "./_components/constants"
 import { formatRpFull, formatInputRupiah } from "./_components/helpers"
 import { useSettings } from "@/lib/useSharedData"
@@ -57,7 +57,16 @@ const QUOTA_LABELS = {
 
 function SectionTitle({ children }) {
   return (
-    <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant mb-1">{children}</h3>
+    <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--kicker)] mb-1">{children}</h3>
+  )
+}
+
+// Tinted 40px icon tile for Pengaturan rows — same device as the Rencana pillars.
+function SettingTile({ tone, children }) {
+  return (
+    <span aria-hidden="true" className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl ${tone}`}>
+      {children}
+    </span>
   )
 }
 
@@ -199,9 +208,10 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
         </div>
       </section>
 
+      <div className="-mx-5 bg-[var(--surface-warm)] px-5 py-6">
       <section aria-label="Paket dan pemakaian">
         <SectionTitle>Paket & pemakaian</SectionTitle>
-        <div className="divide-y divide-[var(--border)]">
+        <div className="divide-y divide-[var(--border-warm)]">
           <div className="flex items-center justify-between gap-3 py-3">
             <span className="text-sm font-medium text-md3-on-surface-variant">Paket</span>
             <span className="text-sm font-bold text-md3-on-surface">{tierLabel === "Pro" ? "Pro · seumur hidup" : "Free"}</span>
@@ -246,21 +256,30 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
           </Link>
         )}
       </section>
+      </div>
 
       <section aria-label="Pengaturan">
         <SectionTitle>Pengaturan</SectionTitle>
         <div className="divide-y divide-[var(--border)]">
           <div className="py-3">
-            <p className="text-sm font-medium text-md3-on-surface">Tema</p>
-            <p className="mt-0.5 mb-2 text-xs leading-relaxed text-md3-on-surface-variant">Tampilan terang, gelap, atau ikuti pengaturan sistem.</p>
+            <div className="flex items-center gap-3">
+              <SettingTile tone="bg-violet-100 text-violet-700"><Moon size={17} aria-hidden="true" /></SettingTile>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-md3-on-surface">Tema</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-md3-on-surface-variant">Tampilan terang, gelap, atau ikuti pengaturan sistem.</p>
+              </div>
+            </div>
+            <div className="mt-2 pl-[52px]">
             <SegmentedButtons
               options={THEME_OPTIONS}
               value={THEME_LABEL_BY_MODE[themeMode]}
               onChange={(label) => setThemeMode(THEME_MODE_BY_LABEL[label])}
               ariaLabel="Pilih tema tampilan"
             />
+            </div>
           </div>
           <div className="flex items-center gap-3 py-3">
+            <SettingTile tone="bg-clay-100 text-clay-600"><Tag size={17} aria-hidden="true" /></SettingTile>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-md3-on-surface">Kategori</p>
               <p className="mt-0.5 text-xs leading-relaxed text-md3-on-surface-variant">Sesuaikan kategori pengeluaran, pemasukan, dan tabunganmu.</p>
@@ -304,13 +323,13 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
                 </button>
               </div>
             ) : (
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-md3-on-surface-variant">Saldo awal</span>
+              <div className="flex items-center gap-3">
+                <SettingTile tone="bg-indigo-100 text-indigo-700"><Wallet size={17} aria-hidden="true" /></SettingTile>
+                <span className="text-sm font-medium text-md3-on-surface-variant flex-1">Saldo awal</span>
                 <button
                   onClick={handleStartEdit}
-                  className="min-h-11 text-sm font-bold text-md3-on-surface hover:text-sage-600 transition-colors flex items-center gap-1"
+                  className="min-h-11 text-sm font-bold text-md3-on-surface hover:text-sage-600 transition-colors"
                 >
-                  <Wallet size={12} />
                   {formatRpFull(settings.startingBalance)}
                 </button>
               </div>
@@ -325,8 +344,9 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
               </div>
             )}
           </div>
-          <div className="flex justify-between items-center py-3">
-            <span className="text-sm font-medium text-md3-on-surface-variant">Suara</span>
+          <div className="flex items-center gap-3 py-3">
+            <SettingTile tone="bg-sage-100 text-sage-700"><Volume2 size={17} aria-hidden="true" /></SettingTile>
+            <span className="text-sm font-medium text-md3-on-surface-variant flex-1">Suara</span>
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               aria-label={`Efek suara ${soundEnabled ? "aktif" : "nonaktif"}`}
@@ -344,8 +364,9 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
               </span>
             </button>
           </div>
-          <div className="flex justify-between items-center py-3">
-            <span className="text-sm font-medium text-md3-on-surface-variant">Getaran</span>
+          <div className="flex items-center gap-3 py-3">
+            <SettingTile tone="bg-amber-100 text-amber-700"><Vibrate size={17} aria-hidden="true" /></SettingTile>
+            <span className="text-sm font-medium text-md3-on-surface-variant flex-1">Getaran</span>
             <button
               onClick={() => setHapticsEnabled(!hapticsEnabled)}
               aria-label={`Umpan balik getar ${hapticsEnabled ? "aktif" : "nonaktif"}`}
@@ -378,8 +399,10 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
       )}
 
       {/* Wave 2: ownership hub — connection identity lives with the balance editor. */}
-      <div className="space-y-4">
-        <SheetsHubCard lastSyncAt={lastSyncAt} isOnline={isOnline} onRefresh={onRefresh} refreshing={refreshing} />
+      <SheetsHubCard lastSyncAt={lastSyncAt} isOnline={isOnline} onRefresh={onRefresh} refreshing={refreshing} />
+
+      {/* Balance checkpoint owns its zone: warm band framed by hairlines. */}
+      <div className="-mx-5 border-y border-[var(--border-warm)] bg-[var(--surface-warm)] px-5 py-6">
         <BalanceCheckpointCard data={data} onRefresh={onRefresh} onToast={onToast} header={false} />
       </div>
 

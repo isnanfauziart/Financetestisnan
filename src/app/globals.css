@@ -25,6 +25,11 @@
   --hero-bg: #1F2D28;
   --hero-mid: #255344;
   --hero-light: #8EB5A5;
+  --kicker: #1F2D28;
+  --border-warm: #D2C09C;
+  --attention-bg: #F6E2D8;
+  --attention-border: #E2C4B2;
+  --attention-text: #9C5238;
 
   --motion-press: 130ms;
   --motion-control: 180ms;
@@ -97,6 +102,11 @@
   --warning: #EDBE62;
   --danger: #F09A9A;
   --smart-bg: #37304F;
+  --kicker: #EDE6D8;
+  --border-warm: #5C5347;
+  --attention-bg: #3A2A24;
+  --attention-border: #5A4238;
+  --attention-text: #E09684;
 
   /* MD3 color roles */
   --md-sys-color-primary: #D6CDEE;

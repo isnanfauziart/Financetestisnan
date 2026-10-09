@@ -5,6 +5,8 @@ import PlanTab from "@/app/dashboard/PlanTab"
 vi.mock("@/lib/useSharedData", () => ({
   useBudgets: () => ({ budgets: [], loading: false, error: null }),
   useGoals: () => ({ goals: [], loading: false, error: null }),
+  useDebts: () => ({ debts: [], loading: false, error: null }),
+  useEvents: () => ({ events: [], loading: false, error: null }),
 }))
 
 vi.mock("next/dynamic", () => ({

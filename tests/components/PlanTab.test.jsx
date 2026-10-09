@@ -6,6 +6,8 @@ const dynamicCapture = vi.hoisted(() => ({ props: null }))
 vi.mock("@/lib/useSharedData", () => ({
   useBudgets: () => ({ budgets: [], loading: false, error: null }),
   useGoals: () => ({ goals: [], loading: false, error: null }),
+  useDebts: () => ({ debts: [], loading: false, error: null }),
+  useEvents: () => ({ events: [], loading: false, error: null }),
 }))
 
 vi.mock("next/dynamic", () => ({
@@ -70,7 +72,8 @@ describe("PlanTab privacy eye", () => {
 })
 
 function getHubPillar(label) {
-  return screen.getByRole("button", { name: new RegExp(`Buka ${label}`, "i") })
+  // Exact match: the attention band also renders "Buka Tagihan: …" buttons.
+  return screen.getByRole("button", { name: `Buka ${label}`, exact: true })
 }
 
 describe("PlanTab planning ownership", () => {
@@ -80,7 +83,7 @@ describe("PlanTab planning ownership", () => {
     expect(getHubPillar("Target")).toBeInTheDocument()
     expect(getHubPillar("Anggaran")).toBeInTheDocument()
     expect(getHubPillar("Tagihan")).toBeInTheDocument()
-    expect(getHubPillar("Utang")).toBeInTheDocument()
+    expect(getHubPillar("Utang & Piutang")).toBeInTheDocument()
     expect(getHubPillar("Event")).toBeInTheDocument()
     expect(getHubPillar("Simulasi")).toBeInTheDocument()
   })
@@ -88,7 +91,7 @@ describe("PlanTab planning ownership", () => {
   it("keeps hub pillars at a 44px minimum height", () => {
     render(<PlanTab {...createProps()} />)
 
-    ;["Target", "Anggaran", "Tagihan", "Utang", "Event", "Simulasi"].forEach((label) => {
+    ;["Target", "Anggaran", "Tagihan", "Utang & Piutang", "Event", "Simulasi"].forEach((label) => {
       expect(getHubPillar(label)).toHaveClass("min-h-11")
     })
   })
@@ -131,7 +134,7 @@ describe("PlanTab planning ownership", () => {
   it("shows a familiar icon beside every hub pillar label", () => {
     render(<PlanTab {...createProps()} />)
 
-    ;["Target", "Anggaran", "Tagihan", "Utang", "Event", "Simulasi"].forEach((label) => {
+    ;["Target", "Anggaran", "Tagihan", "Utang & Piutang", "Event", "Simulasi"].forEach((label) => {
       expect(getHubPillar(label).querySelector("svg")).toBeInTheDocument()
     })
   })
@@ -143,7 +146,7 @@ describe("PlanTab planning ownership", () => {
       ["Target", "bg-sage-100", "text-sage-700"],
       ["Anggaran", "bg-amber-100", "text-amber-700"],
       ["Tagihan", "bg-clay-100", "text-clay-600"],
-      ["Utang", "bg-rose-100", "text-rose-700"],
+      ["Utang & Piutang", "bg-rose-100", "text-rose-700"],
       ["Event", "bg-indigo-100", "text-indigo-700"],
       ["Simulasi", "bg-violet-100", "text-violet-700"],
     ]
@@ -216,7 +219,7 @@ describe("PlanTab planning ownership", () => {
   it("gives debts and events dedicated owner sections", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(getHubPillar("Utang"))
+    fireEvent.click(getHubPillar("Utang & Piutang"))
     expect(screen.getByText("Debts section mock")).toBeInTheDocument()
     expect(screen.queryByText("Event budgets section mock")).not.toBeInTheDocument()
 
@@ -242,5 +245,34 @@ describe("PlanTab planning ownership", () => {
 
     expect(screen.getByRole("button", { name: "Kembali ke Ringkasan Rencana" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Buka Target" })).not.toBeInTheDocument()
+  })
+})
+
+describe("PlanTab Concept A — attention band + Semua fitur", () => {
+  const urgentBill = { id: "b1", nama: "Internet", jumlah: 389000, daysUntilDue: 1, aktif: true }
+
+  it("labels the pillar list Semua fitur with a big serif number per pillar", () => {
+    render(<PlanTab {...createProps({ bills: [urgentBill] })} />)
+
+    expect(screen.getByText("Semua fitur")).toBeInTheDocument()
+    expect(screen.queryByText("Semua pilar")).not.toBeInTheDocument()
+    const tagihan = within(getHubPillar("Tagihan"))
+    expect(tagihan.getByText("Besok")).toHaveClass("font-display")
+    expect(tagihan.getByText(/Internet · Rp 389 rb/)).toBeInTheDocument()
+  })
+
+  it("shows the Perlu perhatian band for urgent items and opens the section on tap", () => {
+    render(<PlanTab {...createProps({ bills: [urgentBill] })} />)
+
+    expect(screen.getByRole("region", { name: "Perlu perhatian" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /Buka Tagihan: Internet/ }))
+    expect(screen.queryByText("Bills section mock")).toBeInTheDocument()
+  })
+
+  it("hides the Perlu perhatian band when nothing is urgent", () => {
+    render(<PlanTab {...createProps({ bills: [] })} />)
+
+    expect(screen.queryByRole("region", { name: "Perlu perhatian" })).not.toBeInTheDocument()
+    expect(screen.getByText("Semua fitur")).toBeInTheDocument()
   })
 })
