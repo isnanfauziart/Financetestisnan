@@ -87,12 +87,14 @@ describe("Wave 5 dashboard wiring contracts", () => {
     expect(plan).toContain("getPlanSectionLabel")
   })
 
-  it("keeps the Rencana navigation decision out of the URL state contract (Wave 7)", async () => {
+  it("keeps the Rencana navigation decision out of the URL state contract (hub supersedes Wave 7)", async () => {
     const urlState = await source("src/app/dashboard/_components/dashboardUrlState.js")
     expect(urlState).not.toContain("planNavPrototype")
     const plan = await source("src/app/dashboard/PlanTab.jsx")
-    // Decision recorded: the scrollable rail shipped; no per-device toggle remains.
+    // Decision recorded: the Wave 7 scrollable rail was replaced by the
+    // Ringkasan hub; no per-device toggle remains.
     expect(plan).not.toContain("localStorage")
-    expect(plan).toContain("plan-chapter-nav__rail--scroll")
+    expect(plan).not.toContain("plan-chapter-nav__rail--scroll")
+    expect(plan).toContain("plan-hub-row")
   })
 })

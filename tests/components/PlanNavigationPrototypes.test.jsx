@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, fireEvent, within } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import PlanTab from "@/app/dashboard/PlanTab"
 
 vi.mock("@/lib/useSharedData", () => ({
@@ -48,84 +48,86 @@ function createProps(overrides = {}) {
   }
 }
 
-function getPlanNav() {
-  return within(screen.getByRole("navigation", { name: "Navigasi Rencana" }))
-}
-
-describe("Rencana scrollable labelled rail (Wave 7 decision)", () => {
+// The Wave 7 scrollable rail was replaced by the Ringkasan hub: one flat
+// pillar list, no horizontal scrolling, back button inside sections.
+describe("Rencana hub (Ringkasan as dashboard)", () => {
   beforeEach(() => {
     window.localStorage.clear()
   })
 
-  it("renders every section in one scrollable labelled rail", () => {
+  it("renders every planning pillar in one flat hub with no scroll rail", () => {
     render(<PlanTab {...createProps()} />)
 
-    const rail = document.querySelector(".plan-chapter-nav__rail--scroll")
-    expect(rail).toBeTruthy()
-    expect(document.querySelector('[data-plan-nav-prototype="scroll"]')).toBeTruthy()
-    expect(getPlanNav().getByRole("button", { name: "Ringkasan" })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: "Tagihan" })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: "Utang" })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: "Event" })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: "Simulasi" })).toBeInTheDocument()
+    expect(document.querySelector(".plan-chapter-nav")).not.toBeInTheDocument()
+    expect(document.querySelector(".plan-chapter-nav__rail")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Target" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Anggaran" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Tagihan" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Utang & Piutang" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Event" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Simulasi" })).toBeInTheDocument()
+    expect(screen.queryByText(/Geser untuk melihat semua bagian/)).not.toBeInTheDocument()
   })
 
-  it("keeps panels connected to their navigation controls", () => {
+  it("opens the section when its pillar is tapped and offers a back button", () => {
     render(<PlanTab {...createProps()} />)
 
-    const anggaran = getPlanNav().getByRole("button", { name: "Anggaran" })
-    expect(anggaran).toHaveAttribute("aria-controls", "plan-section-panel")
-    expect(document.getElementById("plan-section-panel")).toBeTruthy()
-
-    fireEvent.click(anggaran)
+    fireEvent.click(screen.getByRole("button", { name: "Buka Anggaran" }))
 
     expect(screen.getByText("Budgets section mock")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Buka Target" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Kembali ke Ringkasan Rencana" })).toBeInTheDocument()
   })
 
-  it("keeps entitlement gating in the rail", () => {
+  it("returns to the hub through the back button", () => {
+    render(<PlanTab {...createProps()} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Buka Tagihan" }))
+    expect(screen.getByText("Bills section mock")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Kembali ke Ringkasan Rencana" }))
+
+    expect(screen.getByRole("button", { name: "Buka Tagihan" })).toBeInTheDocument()
+    expect(screen.queryByText("Bills section mock")).not.toBeInTheDocument()
+  })
+
+  it("keeps entitlement gating in the hub", () => {
     // featureAvailability=false is the administratively-unavailable path that
-    // removes Simulasi from the rail (legacy features=false only locks its content).
+    // removes Simulasi from the hub (legacy features=false only locks its content).
     render(<PlanTab {...createProps({
       entitlement: { featureAvailability: { financialIndependence: false, whatIf: false }, upgrade: "/upgrade" },
     })} />)
 
-    expect(getPlanNav().getByRole("button", { name: "Tagihan" })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: "Utang" })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: "Event" })).toBeInTheDocument()
-    expect(getPlanNav().queryByRole("button", { name: "Simulasi" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Target" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Tagihan" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Utang & Piutang" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Event" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Buka Simulasi" })).not.toBeInTheDocument()
   })
 
-  it("reports the active section through the unchanged section callback", () => {
+  it("reports the tapped pillar through the unchanged section callback", () => {
     const onSectionChange = vi.fn()
     render(<PlanTab {...createProps({ onSectionChange })} />)
 
-    fireEvent.click(getPlanNav().getByRole("button", { name: "Utang" }))
+    fireEvent.click(screen.getByRole("button", { name: "Buka Utang & Piutang" }))
 
     expect(onSectionChange).toHaveBeenCalledWith("utang")
   })
 
-  it("marks the active section with aria-current and supports deep links", () => {
+  it("supports deep links into a section with a back button", () => {
     render(<PlanTab {...createProps({ activeSection: "tagihan", onSectionChange: vi.fn() })} />)
 
-    expect(getPlanNav().getByRole("button", { name: "Tagihan" })).toHaveAttribute("aria-current", "page")
-    expect(getPlanNav().getByRole("button", { name: "Target" })).not.toHaveAttribute("aria-current")
     expect(screen.getByText("Bills section mock")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Kembali ke Ringkasan Rencana" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Buka Target" })).not.toBeInTheDocument()
   })
 
-  it("ships no prototype toggle or per-device choice", () => {
-    render(<PlanTab {...createProps()} />)
+  it("opens the month filter from the month chip", () => {
+    const onOpenMonthFilter = vi.fn()
+    render(<PlanTab {...createProps({ onOpenMonthFilter })} />)
 
-    expect(screen.queryByText(/Prototipe navigasi Rencana/)).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /Coba / })).not.toBeInTheDocument()
-  })
+    fireEvent.click(screen.getByRole("button", { name: "Ubah bulan di Statistik" }))
 
-  it("does not read or write the prototype choice from storage", () => {
-    window.localStorage.setItem("artami:planNavPrototype", "lainnya")
-
-    render(<PlanTab {...createProps()} />)
-
-    // The decision is final: the scroll rail renders regardless of stale storage.
-    expect(document.querySelector('[data-plan-nav-prototype="scroll"]')).toBeTruthy()
-    expect(screen.queryByText(/Lainnya/)).not.toBeInTheDocument()
+    expect(onOpenMonthFilter).toHaveBeenCalledTimes(1)
   })
 })

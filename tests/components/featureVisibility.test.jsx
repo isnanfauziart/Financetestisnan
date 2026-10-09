@@ -217,7 +217,7 @@ describe("paid feature visibility", () => {
   it("does not mount FI or expose the What-If action for Free", () => {
     render(<PlanTab {...planProps(freeEntitlement)} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Simulasi" }))
+    fireEvent.click(screen.getByRole("button", { name: "Buka Simulasi" }))
     expect(screen.queryByText("Live Financial Freedom")).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Buka simulator What-If" })).not.toBeInTheDocument()
     expect(screen.getByText("Financial Freedom")).toBeInTheDocument()
@@ -235,7 +235,7 @@ describe("paid feature visibility", () => {
     stats.unmount()
 
     render(<PlanTab {...planProps(proEntitlement)} />)
-    fireEvent.click(screen.getByRole("button", { name: "Simulasi" }))
+    fireEvent.click(screen.getByRole("button", { name: "Buka Simulasi" }))
     expect(await screen.findByText("Live Financial Freedom")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buka simulator What-If" })).toBeInTheDocument()
   })

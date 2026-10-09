@@ -40,7 +40,7 @@ describe("dashboard motion safeguards", () => {
     const page = await source("src/app/dashboard/page.js")
 
     expect(page).toContain("aria-hidden={!isActive}")
-    expect(page).toContain("flex-[1.6] gap-1.5 bg-md3-primary text-md3-on-primary")
+    expect(page).toContain("flex-[1.6] gap-1.5 bg-[var(--hero-bg)] text-white")
     expect(page).toContain("flex-1 gap-0 text-md3-on-surface-variant")
     expect(page).toContain("max-w-0 -translate-x-1 opacity-0")
   })

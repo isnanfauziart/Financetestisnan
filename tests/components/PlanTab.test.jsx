@@ -69,49 +69,46 @@ describe("PlanTab privacy eye", () => {
   })
 })
 
-function getPlanNav() {
-  return within(screen.getByRole("navigation", { name: "Navigasi Rencana" }))
+function getHubPillar(label) {
+  return screen.getByRole("button", { name: new RegExp(`Buka ${label}`, "i") })
 }
 
 describe("PlanTab planning ownership", () => {
-  it("shows segmented planning navigation labels", () => {
+  it("shows hub pillar labels for every planning section", () => {
     render(<PlanTab {...createProps()} />)
 
-    expect(getPlanNav().getByRole("button", { name: "Target" })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: "Anggaran" })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: /tagihan/i })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: /utang/i })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: /event/i })).toBeInTheDocument()
-    expect(getPlanNav().getByRole("button", { name: /simulasi/i })).toBeInTheDocument()
+    expect(getHubPillar("Target")).toBeInTheDocument()
+    expect(getHubPillar("Anggaran")).toBeInTheDocument()
+    expect(getHubPillar("Tagihan")).toBeInTheDocument()
+    expect(getHubPillar("Utang")).toBeInTheDocument()
+    expect(getHubPillar("Event")).toBeInTheDocument()
+    expect(getHubPillar("Simulasi")).toBeInTheDocument()
   })
 
-  it("keeps planning navigation controls at a 44px minimum height", () => {
+  it("keeps hub pillars at a 44px minimum height", () => {
     render(<PlanTab {...createProps()} />)
 
-    getPlanNav().getAllByRole("button").forEach((button) => {
-      expect(button).toHaveClass("min-h-11")
+    ;["Target", "Anggaran", "Tagihan", "Utang", "Event", "Simulasi"].forEach((label) => {
+      expect(getHubPillar(label)).toHaveClass("min-h-11")
     })
   })
 
-  it("opens on the Rencana Bulan Ini overview", () => {
+  it("opens on the Rencana Bulan Ini hub", () => {
     render(<PlanTab {...createProps()} />)
 
     expect(screen.getByRole("heading", { name: "Rencana bulan ini" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buka Target" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buka Anggaran" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Buka Tagihan" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Target bebas finansial dan What-If" })).toBeInTheDocument()
-    expect(screen.getByText(/dana yang kamu butuhkan.*what-if/i)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Buka target & What-If" })).toBeInTheDocument()
     expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
     expect(screen.queryByText("Budgets section mock")).not.toBeInTheDocument()
     expect(screen.queryByText("Bills section mock")).not.toBeInTheDocument()
   })
 
-  it("opens the existing Simulasi section from the overview CTA", () => {
+  it("opens the existing Simulasi section from the hub pillar", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Buka target & What-If" }))
+    fireEvent.click(getHubPillar("Simulasi"))
 
     expect(screen.getByRole("button", { name: "Buka simulator What-If" })).toBeInTheDocument()
     expect(screen.getByText("FI tracker mock")).toBeInTheDocument()
@@ -131,19 +128,18 @@ describe("PlanTab planning ownership", () => {
     expect(dynamicCapture.props.now).toBe(now)
   })
 
-  it("shows a familiar icon beside every planning section label", () => {
+  it("shows a familiar icon beside every hub pillar label", () => {
     render(<PlanTab {...createProps()} />)
 
-    getPlanNav().getAllByRole("button").forEach((button) => {
-      expect(button.querySelector("svg")).toBeInTheDocument()
+    ;["Target", "Anggaran", "Tagihan", "Utang", "Event", "Simulasi"].forEach((label) => {
+      expect(getHubPillar(label).querySelector("svg")).toBeInTheDocument()
     })
   })
 
-  it("uses semantic icon tiles for every planning section", () => {
+  it("uses semantic icon tiles for every hub pillar", () => {
     render(<PlanTab {...createProps()} />)
 
     const semanticTones = [
-      ["Ringkasan", "bg-md3-surface-container-high", "text-md3-on-surface-variant"],
       ["Target", "bg-sage-100", "text-sage-700"],
       ["Anggaran", "bg-amber-100", "text-amber-700"],
       ["Tagihan", "bg-clay-100", "text-clay-600"],
@@ -153,31 +149,27 @@ describe("PlanTab planning ownership", () => {
     ]
 
     semanticTones.forEach(([label, background, color]) => {
-      const iconTile = getPlanNav()
-        .getByRole("button", { name: new RegExp(`^${label}$`, "i") })
-        .querySelector("[data-plan-icon-tile]")
+      const iconTile = getHubPillar(label).querySelector("[data-plan-icon-tile]")
 
       expect(iconTile).toHaveClass(background, color)
     })
   })
 
-  it("keeps the active surface dark while showing semantic overview affordances", () => {
+  it("keeps hub pillars flat while showing semantic affordances", () => {
     render(<PlanTab {...createProps()} />)
 
-    expect(getPlanNav().getByRole("button", { name: "Ringkasan" })).toHaveClass("bg-earth-900", "text-white")
-
-    const overviewCards = [
-      ["Target", "border-t-sage-400", "bg-sage-100", "text-sage-700", "hover:bg-sage-50"],
-      ["Anggaran", "border-t-amber-400", "bg-amber-100", "text-amber-700", "hover:bg-amber-50"],
-      ["Tagihan", "border-t-clay-400", "bg-clay-100", "text-clay-600", "hover:bg-clay-50"],
+    const pillarTones = [
+      ["Target", "bg-sage-100", "text-sage-700"],
+      ["Anggaran", "bg-amber-100", "text-amber-700"],
+      ["Tagihan", "bg-clay-100", "text-clay-600"],
     ]
 
-    overviewCards.forEach(([label, border, background, color, hover]) => {
-      const card = screen.getByRole("button", { name: `Buka ${label}` })
-      expect(card).toHaveClass("plan-brief-row", color)
-      expect(card).toHaveClass("focus-visible:ring-2")
-      expect(card.closest(".plan-monthly-brief")).toBeInTheDocument()
-      expect(within(card).getByText(label)).toBeInTheDocument()
+    pillarTones.forEach(([label, background, color]) => {
+      const pillar = getHubPillar(label)
+      expect(pillar).toHaveClass("plan-hub-row")
+      expect(pillar).toHaveClass("focus-visible:ring-2")
+      expect(pillar.querySelector("[data-plan-icon-tile]")).toHaveClass(background, color)
+      expect(within(pillar).getByText(label)).toBeInTheDocument()
     })
   })
 
@@ -190,7 +182,7 @@ describe("PlanTab planning ownership", () => {
   it("moves budget ownership into the Budget section", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(getPlanNav().getByRole("button", { name: "Anggaran" }))
+    fireEvent.click(getHubPillar("Anggaran"))
 
     expect(screen.getByText("Budgets section mock")).toBeInTheDocument()
     expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
@@ -199,7 +191,7 @@ describe("PlanTab planning ownership", () => {
   it("moves bill management into the Tagihan section", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(getPlanNav().getByRole("button", { name: /tagihan/i }))
+    fireEvent.click(getHubPillar("Tagihan"))
 
     expect(screen.getByText("Bills section mock")).toBeInTheDocument()
     expect(screen.queryByText("Goals section mock")).not.toBeInTheDocument()
@@ -224,11 +216,12 @@ describe("PlanTab planning ownership", () => {
   it("gives debts and events dedicated owner sections", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(getPlanNav().getByRole("button", { name: /utang/i }))
+    fireEvent.click(getHubPillar("Utang"))
     expect(screen.getByText("Debts section mock")).toBeInTheDocument()
     expect(screen.queryByText("Event budgets section mock")).not.toBeInTheDocument()
 
-    fireEvent.click(getPlanNav().getByRole("button", { name: /event/i }))
+    fireEvent.click(screen.getByRole("button", { name: "Kembali ke Ringkasan Rencana" }))
+    fireEvent.click(getHubPillar("Event"))
     expect(screen.getByText("Event budgets section mock")).toBeInTheDocument()
     expect(screen.queryByText("Debts section mock")).not.toBeInTheDocument()
   })
@@ -236,7 +229,7 @@ describe("PlanTab planning ownership", () => {
   it("keeps only future-oriented tools under Simulasi", () => {
     render(<PlanTab {...createProps()} />)
 
-    fireEvent.click(getPlanNav().getByRole("button", { name: /simulasi/i }))
+    fireEvent.click(getHubPillar("Simulasi"))
 
     expect(screen.getByRole("button", { name: "Buka simulator What-If" })).toBeInTheDocument()
     expect(screen.getByText("FI tracker mock")).toBeInTheDocument()
@@ -244,10 +237,10 @@ describe("PlanTab planning ownership", () => {
     expect(screen.queryByText("Event budgets section mock")).not.toBeInTheDocument()
   })
 
-  it("marks the current section with aria-current", () => {
+  it("shows the back button instead of the hub inside a section", () => {
     render(<PlanTab {...createProps({ activeSection: "simulasi", onSectionChange: vi.fn() })} />)
 
-    expect(getPlanNav().getByRole("button", { name: /simulasi/i })).toHaveAttribute("aria-current", "page")
-    expect(getPlanNav().getByRole("button", { name: "Target" })).not.toHaveAttribute("aria-current")
+    expect(screen.getByRole("button", { name: "Kembali ke Ringkasan Rencana" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Buka Target" })).not.toBeInTheDocument()
   })
 })

@@ -55,20 +55,16 @@ const QUOTA_LABELS = {
   insights: "Insight minggu ini",
 }
 
-function SectionCard({ title, children }) {
+function SectionTitle({ children }) {
   return (
-    <section className="w-full bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm space-y-4" aria-label={title}>
-      <div className="flex items-center justify-between border-b border-md3-outline-variant pb-3">
-        <h3 className="text-sm font-bold tracking-wide text-md3-on-surface uppercase">{title}</h3>
-      </div>
-      {children}
-    </section>
+    <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant mb-1">{children}</h3>
   )
 }
 
 export default function ProfileTab({ userName, session, data, entitlement, signOut, soundEnabled, setSoundEnabled, hapticsEnabled, setHapticsEnabled, onToast, onRefresh, lastSyncAt, isOnline, refreshing }) {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showCategoryManager, setShowCategoryManager] = useState(false)
+  const [editingName, setEditingName] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [themeMode, setThemeMode] = useState("light")
   const themeHydratedRef = useRef(false)
@@ -149,155 +145,226 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
   }
 
   return (
-    <div className="px-5 pt-4 flex flex-col items-center animate-bento-in gap-4" key="profile-tab">
-      <div className="relative mb-1">
-        <UserAvatar src={session?.user?.image} name={displayName} email={session?.user?.email} className="w-24 h-24 rounded-3xl border-4 border-white shadow-pop-lg" />
-        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-moss-500 border-2 border-white rounded-2xl" />
+    <div className="px-5 pt-2 animate-bento-in space-y-8" key="profile-tab">
+      <div className="flex items-center gap-4">
+        <UserAvatar src={session?.user?.image} name={displayName} email={session?.user?.email} className="w-16 h-16 rounded-[22px]" />
+        <div className="min-w-0">
+          <h2 className="text-xl font-display font-bold text-md3-on-surface truncate">{displayName}</h2>
+          <p className="text-xs font-medium text-md3-on-surface-variant truncate">{session?.user?.email}</p>
+          <span className={`mt-1.5 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${tierLabel === "Pro" ? "bg-violet-100 text-violet-700" : "bg-[var(--surface-warm)] text-md3-on-surface-variant"}`}>{tierLabel}</span>
+        </div>
       </div>
-      <h2 className="text-2xl font-display font-bold mb-1 text-md3-on-surface">{displayName}</h2>
-      <p className="text-sm font-medium text-md3-on-surface-variant mb-2">{session?.user?.email}</p>
 
-      <SectionCard title="Tentang akunmu">
-        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
-          <span className="text-sm font-medium text-md3-on-surface-variant">Akun</span>
-          <span className="text-sm font-bold text-md3-on-surface">Personal</span>
+      <section aria-label="Akun">
+        <SectionTitle>Akun</SectionTitle>
+        <div className="divide-y divide-[var(--border)]">
+          <div className="py-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-md3-on-surface-variant">Nama pengguna</span>
+              <button
+                type="button"
+                onClick={() => setEditingName((v) => !v)}
+                className="rounded-full bg-violet-100 px-3 py-1 text-[11px] font-bold text-violet-700"
+              >
+                {editingName ? "Batal" : "Ubah"}
+              </button>
+            </div>
+            {editingName ? (
+              <UserNameSetup
+                initialValue={settings.userName || displayName}
+                open={editingName}
+                mode="settings"
+                onSaved={() => { setEditingName(false); refetchSettings() }}
+              />
+            ) : (
+              <p className="mt-1 text-sm font-bold text-md3-on-surface">{settings.userName || displayName || "—"}</p>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-3 py-3">
+            <span className="text-sm font-medium text-md3-on-surface-variant">Email</span>
+            <span className="text-sm font-bold text-md3-on-surface truncate max-w-[60%] text-right">{session?.user?.email || "—"}</span>
+          </div>
+          <div className="flex items-center justify-between gap-3 py-3">
+            <span className="text-sm font-medium text-md3-on-surface-variant">Total transaksi</span>
+            <span className="text-sm font-bold tabular-nums text-md3-on-surface">{data?.transactions?.length || 0}</span>
+          </div>
         </div>
-        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
-          <span className="text-sm font-medium text-md3-on-surface-variant">Email</span>
-          <span className="text-sm font-bold text-md3-on-surface truncate max-w-[60%] text-right">{session?.user?.email || "—"}</span>
-        </div>
-        <UserNameSetup
-          initialValue={settings.userName || displayName}
-          open={true}
-          mode="settings"
-          onSaved={() => refetchSettings()}
-        />
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-md3-on-surface-variant">Total Transaksi</span>
-          <span className="text-sm font-bold text-md3-on-surface">{data?.transactions?.length || 0}</span>
-        </div>
-      </SectionCard>
+      </section>
 
-      <SectionCard title="Data Milikmu">
-        <div className="space-y-3 text-sm leading-relaxed text-md3-on-surface-variant">
-          <p>Catatan keuanganmu tetap berada di Google Sheets milikmu.</p>
-          <p>Artami tidak menghubungkan rekening bank.</p>
-          <p>Tidak ada iklan.</p>
+      <section aria-label="Data milikmu">
+        <div className="rounded-[28px] p-5 text-white" style={{ backgroundColor: THEME.heroBg }}>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">Data milikmu</p>
+          <p className="mt-2 text-sm font-semibold leading-relaxed">Catatan keuanganmu tetap berada di Google Sheets milikmu.</p>
+          <p className="mt-1 text-xs leading-relaxed text-white/70">Artami tidak menghubungkan rekening bank. Tidak ada iklan.</p>
         </div>
-      </SectionCard>
+      </section>
 
-      <SectionCard title="Paket kamu">
-        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
-          <span className="text-sm font-medium text-md3-on-surface-variant">Paket</span>
-          <span className="text-sm font-bold text-md3-on-surface">{tierLabel}</span>
-        </div>
-        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
-          <span className="text-sm font-medium text-md3-on-surface-variant">Akses</span>
-          <span className="text-sm font-bold text-md3-on-surface">{tierLabel === "Pro" ? "Seumur hidup" : "Free tier"}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-md3-on-surface-variant">Data disimpan di</span>
-          <span className="text-sm font-bold text-md3-on-surface">Google Sheets</span>
+      <section aria-label="Paket dan pemakaian">
+        <SectionTitle>Paket & pemakaian</SectionTitle>
+        <div className="divide-y divide-[var(--border)]">
+          <div className="flex items-center justify-between gap-3 py-3">
+            <span className="text-sm font-medium text-md3-on-surface-variant">Paket</span>
+            <span className="text-sm font-bold text-md3-on-surface">{tierLabel === "Pro" ? "Pro · seumur hidup" : "Free"}</span>
+          </div>
+          {quotaEntries.length > 0 && quotaEntries.map(([feature, item]) => {
+            const pct = item.limit ? Math.min(100, Math.round(((Number(item.current) || 0) / item.limit) * 100)) : 0
+            const urgent = item.warning === "reached" || item.warning === "near"
+            return (
+              <div key={feature} className="py-3">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-medium text-md3-on-surface-variant">{QUOTA_LABELS[feature] || feature}</span>
+                  <span className={`font-bold tabular-nums ${urgent ? "text-[var(--danger)]" : "text-md3-on-surface"}`}>
+                    {item.limit === null ? "Tanpa batas" : item.current === null ? `— / ${item.limit}` : `${item.current} / ${item.limit}`}
+                  </span>
+                </div>
+                {item.limit !== null && item.current !== null && (
+                  <div className="mt-2 h-1.5 rounded-full bg-[var(--surface-warm)]" role="img" aria-label={`${QUOTA_LABELS[feature] || feature}: ${item.current} dari ${item.limit}`}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: urgent ? "var(--danger)" : "var(--income)" }} />
+                  </div>
+                )}
+                {item.warning === "near" && <p className="mt-1 text-[11px] font-semibold text-[var(--warning)]" role="status">Hampir mencapai batas</p>}
+                {item.warning === "reached" && <p className="mt-1 text-[11px] font-semibold text-[var(--danger)]" role="alert">Batas sudah terpakai</p>}
+              </div>
+            )
+          })}
         </div>
         {(data?.history?.limited || entitlement?.history?.months === 4) && (
-          <p className="border-t border-md3-outline-variant pt-3 text-xs leading-relaxed text-md3-on-surface-variant">
+          <p className="mt-1 text-xs leading-relaxed text-md3-on-surface-variant">
             Data lama tetap aman dan bisa kamu buka di Google Sheets.
           </p>
         )}
-        {quotaEntries.length > 0 && (
-          <div className="space-y-2 border-t border-md3-outline-variant pt-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Pemakaianmu</p>
-            {quotaEntries.map(([feature, item]) => (
-              <div key={feature} className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium text-md3-on-surface-variant">{QUOTA_LABELS[feature] || feature}</span>
-                <span className={`text-right font-bold ${item.warning === "reached" ? "text-rose-600" : item.warning === "near" ? "text-amber-600" : "text-md3-on-surface"}`}>
-                  {item.limit === null ? "Tanpa batas" : item.current === null ? `— / ${item.limit}` : `${item.current} / ${item.limit}`}
-                  {item.warning === "near" && <span className="block text-[10px]" role="status">Hampir mencapai batas</span>}
-                  {item.warning === "reached" && <span className="block text-[10px]" role="alert">Batas sudah terpakai</span>}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
         {tierLabel === "Pro" ? (
-          <div className="mt-4 rounded-2xl border border-moss-100 bg-moss-50 p-4 text-sm text-moss-800">
-            <p className="font-bold">Kamu sudah memakai Artami Pro.</p>
-            <p className="mt-1 leading-relaxed">
-              Silakan nikmati semua fitur yang tersedia. Semoga Artami membantu mengelola keuangan kamu. Terima kasih!
-            </p>
-            <ul className="mt-3 space-y-1 text-xs font-semibold text-moss-700">
-              <li>✓ Transaksi dan riwayat tanpa batas</li>
-              <li>✓ Anggaran, target, tagihan, dan fitur pintar</li>
-              <li>✓ Akses Pro seumur hidup</li>
-            </ul>
-          </div>
+          <p className="mt-3 text-xs leading-relaxed text-md3-on-surface-variant">
+            Kamu memakai Artami Pro seumur hidup — transaksi dan riwayat tanpa batas, semua fitur pintar terbuka. Terima kasih!
+          </p>
         ) : (
           <Link
             href="/upgrade"
-            className="mt-4 block w-full rounded-2xl bg-violet-600 px-4 py-3 text-center text-sm font-bold text-white hover:bg-violet-700"
+            className="mt-3 block w-full rounded-full bg-violet-600 px-4 py-3 text-center text-sm font-bold text-white hover:bg-violet-700"
           >
-            {proRegistrationOpen ? "Upgrade ke Pro" : "Pro sementara ditutup"}
+            {proRegistrationOpen ? "Upgrade ke Pro · Rp40.000 sekali bayar" : "Pro sementara ditutup"}
           </Link>
         )}
-      </SectionCard>
+      </section>
 
-      <SectionCard title="Pengaturan">
-        <div className="border-b border-md3-outline-variant pb-3">
-          <p className="text-sm font-medium text-md3-on-surface">Tema</p>
-          <p className="mt-0.5 mb-2 text-xs leading-relaxed text-md3-on-surface-variant">Tampilan terang, gelap, atau ikuti pengaturan sistem.</p>
-          <SegmentedButtons
-            options={THEME_OPTIONS}
-            value={THEME_LABEL_BY_MODE[themeMode]}
-            onChange={(label) => setThemeMode(THEME_MODE_BY_LABEL[label])}
-            ariaLabel="Pilih tema tampilan"
-          />
-        </div>
-        <div className="flex items-center gap-3 border-b border-md3-outline-variant pb-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-md3-on-surface">Kategori</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-md3-on-surface-variant">Sesuaikan kategori pengeluaran, pemasukan, dan tabunganmu.</p>
+      <section aria-label="Pengaturan">
+        <SectionTitle>Pengaturan</SectionTitle>
+        <div className="divide-y divide-[var(--border)]">
+          <div className="py-3">
+            <p className="text-sm font-medium text-md3-on-surface">Tema</p>
+            <p className="mt-0.5 mb-2 text-xs leading-relaxed text-md3-on-surface-variant">Tampilan terang, gelap, atau ikuti pengaturan sistem.</p>
+            <SegmentedButtons
+              options={THEME_OPTIONS}
+              value={THEME_LABEL_BY_MODE[themeMode]}
+              onChange={(label) => setThemeMode(THEME_MODE_BY_LABEL[label])}
+              ariaLabel="Pilih tema tampilan"
+            />
           </div>
-          <button type="button" onClick={() => setShowCategoryManager(true)} className="min-h-11 min-w-11 rounded-xl bg-sage-100 px-3 py-2 text-xs font-bold text-sage-700 hover:bg-sage-200 transition-colors">Atur kategori</button>
-        </div>
-        <div className="flex justify-between items-center border-b border-md3-outline-variant pb-3">
-          <span className="text-sm font-medium text-md3-on-surface-variant">Suara</span>
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            aria-label={`Efek suara ${soundEnabled ? "aktif" : "nonaktif"}`}
-            aria-pressed={soundEnabled}
-            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
-          >
-            <span
-              className="relative block h-6 w-11 rounded-full transition-colors"
-              style={{ background: soundEnabled ? THEME.primary : THEME.surfaceWarm }}
+          <div className="flex items-center gap-3 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-md3-on-surface">Kategori</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-md3-on-surface-variant">Sesuaikan kategori pengeluaran, pemasukan, dan tabunganmu.</p>
+            </div>
+            <button type="button" onClick={() => setShowCategoryManager(true)} className="min-h-11 min-w-11 rounded-xl bg-sage-100 px-3 py-2 text-xs font-bold text-sage-700 hover:bg-sage-200 transition-colors">Atur</button>
+          </div>
+          <div className="py-3">
+            {editingSaldo ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-md3-on-surface">Saldo awal</span>
+                  <button onClick={() => setEditingSaldo(false)} className="text-xs font-semibold text-md3-on-surface-variant">Batal</button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder={String(settings.startingBalance)}
+                    value={rawSaldo}
+                    onChange={e => setRawSaldo(formatInputRupiah(e.target.value))}
+                    className="field-outlined flex-1 px-3 py-2 text-sm font-semibold"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-md3-on-surface-variant uppercase tracking-wider block mb-1">Tanggal</label>
+                  <input
+                    type="date"
+                    value={editDate}
+                    onChange={e => setEditDate(e.target.value)}
+                    className="field-outlined w-full px-3 py-2 text-sm font-semibold"
+                  />
+                </div>
+                <button
+                  onClick={handleSaveSaldo}
+                  disabled={savingSaldo}
+                  className="w-full min-h-11 py-2.5 rounded-xl text-sm font-bold text-white transition-transform active:scale-[0.97] disabled:opacity-50"
+                  style={{ background: savingSaldo ? "#ccc" : THEME.primary }}
+                >
+                  {savingSaldo ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-md3-on-surface-variant">Saldo awal</span>
+                <button
+                  onClick={handleStartEdit}
+                  className="min-h-11 text-sm font-bold text-md3-on-surface hover:text-sage-600 transition-colors flex items-center gap-1"
+                >
+                  <Wallet size={12} />
+                  {formatRpFull(settings.startingBalance)}
+                </button>
+              </div>
+            )}
+            {!editingSaldo && settings.startingBalanceDate && (
+              <div className="flex justify-between items-center mt-1">
+                <span className="text-[10px] text-md3-on-surface-variant">Per tanggal</span>
+                <span className="text-[10px] font-semibold text-md3-on-surface-variant flex items-center gap-1">
+                  <Calendar size={9} />
+                  {formatDateDisplay(settings.startingBalanceDate)}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-between items-center py-3">
+            <span className="text-sm font-medium text-md3-on-surface-variant">Suara</span>
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              aria-label={`Efek suara ${soundEnabled ? "aktif" : "nonaktif"}`}
+              aria-pressed={soundEnabled}
+              className="relative flex min-h-11 min-w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
             >
               <span
-                className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-md3-surface-container-lowest shadow-warm transition-transform"
-                style={{ transform: `translateX(${soundEnabled ? "22px" : "0"})` }}
-              />
-            </span>
-          </button>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-md3-on-surface-variant">Getaran</span>
-          <button
-            onClick={() => setHapticsEnabled(!hapticsEnabled)}
-            aria-label={`Umpan balik getar ${hapticsEnabled ? "aktif" : "nonaktif"}`}
-            aria-pressed={hapticsEnabled}
-            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
-          >
-            <span
-              className="relative block h-6 w-11 rounded-full transition-colors"
-              style={{ background: hapticsEnabled ? THEME.primary : THEME.surfaceWarm }}
+                className="relative block h-6 w-11 rounded-full transition-colors"
+                style={{ background: soundEnabled ? THEME.primary : THEME.surfaceWarm }}
+              >
+                <span
+                  className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-md3-surface-container-lowest shadow-warm transition-transform"
+                  style={{ transform: `translateX(${soundEnabled ? "22px" : "0"})` }}
+                />
+              </span>
+            </button>
+          </div>
+          <div className="flex justify-between items-center py-3">
+            <span className="text-sm font-medium text-md3-on-surface-variant">Getaran</span>
+            <button
+              onClick={() => setHapticsEnabled(!hapticsEnabled)}
+              aria-label={`Umpan balik getar ${hapticsEnabled ? "aktif" : "nonaktif"}`}
+              aria-pressed={hapticsEnabled}
+              className="relative flex min-h-11 min-w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
             >
               <span
-                className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-md3-surface-container-lowest shadow-warm transition-transform"
-                style={{ transform: `translateX(${hapticsEnabled ? "22px" : "0"})` }}
-              />
-            </span>
-          </button>
+                className="relative block h-6 w-11 rounded-full transition-colors"
+                style={{ background: hapticsEnabled ? THEME.primary : THEME.surfaceWarm }}
+              >
+                <span
+                  className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-md3-surface-container-lowest shadow-warm transition-transform"
+                  style={{ transform: `translateX(${hapticsEnabled ? "22px" : "0"})` }}
+                />
+              </span>
+            </button>
+          </div>
         </div>
-      </SectionCard>
+      </section>
 
       {showCategoryManager && (
         <CategoryManager
@@ -313,86 +380,26 @@ export default function ProfileTab({ userName, session, data, entitlement, signO
       {/* Wave 2: ownership hub — connection identity lives with the balance editor. */}
       <div className="space-y-4">
         <SheetsHubCard lastSyncAt={lastSyncAt} isOnline={isOnline} onRefresh={onRefresh} refreshing={refreshing} />
-        <SectionCard title="Total saldo saat ini">
-          <BalanceCheckpointCard data={data} onRefresh={onRefresh} onToast={onToast} header={false} />
-        </SectionCard>
+        <BalanceCheckpointCard data={data} onRefresh={onRefresh} onToast={onToast} header={false} />
       </div>
 
-      <SectionCard title="Panduan">
+      <section aria-label="Panduan">
+        <SectionTitle>Panduan</SectionTitle>
         <DocsSection />
-      </SectionCard>
+      </section>
 
-      <SectionCard title="Data & akun">
-        {editingSaldo ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-md3-on-surface-variant">Saldo Awal</span>
-              <button onClick={() => setEditingSaldo(false)} className="text-xs font-semibold text-md3-on-surface-variant">Batal</button>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder={String(settings.startingBalance)}
-                value={rawSaldo}
-                onChange={e => setRawSaldo(formatInputRupiah(e.target.value))}
-                className="field-outlined flex-1 px-3 py-2 text-sm font-semibold"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-md3-on-surface-variant uppercase tracking-wider block mb-1">Tanggal</label>
-              <input
-                type="date"
-                value={editDate}
-                onChange={e => setEditDate(e.target.value)}
-                className="field-outlined w-full px-3 py-2 text-sm font-semibold"
-              />
-            </div>
-            <button
-              onClick={handleSaveSaldo}
-              disabled={savingSaldo}
-              className="w-full min-h-11 py-2.5 rounded-xl text-sm font-bold text-white transition-transform active:scale-[0.97] disabled:opacity-50"
-              style={{ background: savingSaldo ? "#ccc" : THEME.primary }}
-            >
-              {savingSaldo ? "Menyimpan..." : "Simpan"}
-            </button>
-          </div>
-        ) : (
-          <div className="border-b border-md3-outline-variant pb-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-md3-on-surface-variant">Saldo Awal</span>
-              <button
-                onClick={handleStartEdit}
-                className="min-h-11 text-sm font-bold text-md3-on-surface hover:text-sage-600 transition-colors flex items-center gap-1"
-              >
-                <Wallet size={12} />
-                {formatRpFull(settings.startingBalance)}
-              </button>
-            </div>
-            {settings.startingBalanceDate && (
-              <div className="flex justify-between items-center mt-1">
-                <span className="text-[10px] text-md3-on-surface-variant">Per tanggal</span>
-                <span className="text-[10px] font-semibold text-md3-on-surface-variant flex items-center gap-1">
-                  <Calendar size={9} />
-                  {formatDateDisplay(settings.startingBalanceDate)}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-        <button onClick={() => signOut({ callbackUrl: "/" })} aria-label="Keluar" className="w-full min-h-11 pt-2 flex items-center justify-between group">
-          <span className="text-sm font-bold text-rose-500 group-hover:opacity-80 transition-opacity">Keluar</span>
-          <LogOut size={16} color={THEME.danger} aria-hidden="true" className="group-hover:translate-x-1 transition-transform" />
+      <div className="flex items-center justify-center gap-6 pt-2">
+        <button onClick={() => signOut({ callbackUrl: "/" })} aria-label="Keluar" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-md3-on-surface-variant hover:opacity-80 transition-opacity">
+          <LogOut size={14} aria-hidden="true" /> Keluar
         </button>
         <button
           type="button"
           onClick={() => setShowDeleteAccount(true)}
-          className="w-full min-h-11 pt-3 text-left text-sm font-bold text-rose-600"
+          className="min-h-11 text-sm font-bold text-rose-500 hover:opacity-80 transition-opacity"
         >
-          Hapus Akun
+          Hapus akun
         </button>
-      </SectionCard>
+      </div>
       <Sheet
         open={showDeleteAccount}
         onClose={() => !deletingAccount && setShowDeleteAccount(false)}

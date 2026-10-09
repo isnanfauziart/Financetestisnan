@@ -11,8 +11,8 @@ const transactions = [
 ]
 
 describe("stable weekly insights", () => {
-  it("uses the approved readable forest-violet semantic colors", () => {
-    const allowedColors = new Set(["#2F6B57", "#8A5A00", "#B33A3A", "#6E59B5", "#2D6A62", "#255344"])
+  it("uses the approved readable calm-ledger semantic colors", () => {
+    const allowedColors = new Set(["#2F6B57", "#8A5A00", "#B33A3A", "#6E59B5", "#1F2D28"])
     const result = selectStableInsights({ transactions, weekPeriod: "2026-W31", limit: 3 })
 
     expect(result.every(card => allowedColors.has(card.color))).toBe(true)

@@ -58,26 +58,30 @@ describe("ProfileTab ownership cleanup", () => {
 
     expect(screen.getByRole("heading", { name: "Ayu Lestari" })).toBeInTheDocument()
     expect(screen.getAllByText("ayu@example.com").length).toBeGreaterThan(0)
-    expect(screen.getByText("Tentang akunmu")).toBeInTheDocument()
-    expect(screen.getByText("Total Transaksi")).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "Akun" })).toBeInTheDocument()
+    expect(screen.getByText("Nama pengguna")).toBeInTheDocument()
+    expect(screen.getByText("Total transaksi")).toBeInTheDocument()
   })
 
-  it("shows the name field near account identity and refreshes settings after saving", async () => {
+  it("shows the name field behind Ubah and refreshes settings after saving", async () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true }) })
     vi.stubGlobal("fetch", fetchSpy)
 
     render(<ProfileTab {...createProps()} />)
 
-    const identityHeading = screen.getByText("Tentang akunmu")
+    const accountRegion = screen.getByRole("region", { name: "Akun" })
+    // The name editor stays hidden until Ubah is tapped.
+    expect(screen.queryByLabelText("Nama pengguna")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Ubah" }))
+
     const input = screen.getByLabelText("Nama pengguna")
-    const ownershipHeading = screen.getByText("Data Milikmu")
-    const accessHeading = screen.getByText("Paket kamu")
-    expect(identityHeading.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(identityHeading.compareDocumentPosition(ownershipHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.getByText(/Catatan keuanganmu tetap berada di Google Sheets milikmu/i)).toBeInTheDocument()
+    const ownershipText = screen.getByText(/Catatan keuanganmu tetap berada di Google Sheets milikmu/i)
+    const paketRegion = screen.getByRole("region", { name: "Paket dan pemakaian" })
+    expect(accountRegion.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(accountRegion.compareDocumentPosition(ownershipText) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText(/Artami tidak menghubungkan rekening bank/i)).toBeInTheDocument()
     expect(screen.getByText(/Tidak ada iklan/i)).toBeInTheDocument()
-    expect(input.compareDocumentPosition(accessHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(input.compareDocumentPosition(paketRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
     fireEvent.change(input, { target: { value: "  Nama Profil  " } })
     fireEvent.click(screen.getByRole("button", { name: "Simpan" }))
@@ -97,29 +101,28 @@ describe("ProfileTab ownership cleanup", () => {
     await waitFor(() => expect(refetchSettings).toHaveBeenCalled())
   })
 
-  it("adds paket dan akses near the top before preferences", () => {
+  it("adds paket dan pemakaian near the top before preferences", () => {
     render(<ProfileTab {...createProps()} />)
 
-    const accessHeading = screen.getByText("Paket kamu")
-    const preferencesHeading = screen.getByText("Pengaturan")
+    const paketRegion = screen.getByRole("region", { name: "Paket dan pemakaian" })
+    const preferencesRegion = screen.getByRole("region", { name: "Pengaturan" })
 
     expect(screen.getByText("Paket")).toBeInTheDocument()
-    expect(screen.getByText("Free")).toBeInTheDocument()
-    expect(screen.getByText("Data disimpan di")).toBeInTheDocument()
-    expect(accessHeading.compareDocumentPosition(preferencesHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getAllByText("Free").length).toBeGreaterThan(0)
+    expect(paketRegion.compareDocumentPosition(preferencesRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it("keeps preferences, data controls, and logout while excluding bills and reports", () => {
     render(<ProfileTab {...createProps()} />)
 
-    expect(screen.getByText("Pengaturan")).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "Pengaturan" })).toBeInTheDocument()
     expect(screen.getByText("Suara")).toBeInTheDocument()
     expect(screen.getByText("Getaran")).toBeInTheDocument()
     expect(screen.getByLabelText("Efek suara aktif")).toBeInTheDocument()
     expect(screen.getByLabelText("Umpan balik getar nonaktif")).toBeInTheDocument()
-    expect(screen.getByText("Data & akun")).toBeInTheDocument()
-    expect(screen.getByText("Saldo Awal")).toBeInTheDocument()
+    expect(screen.getByText("Saldo awal")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Keluar" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Hapus akun" })).toBeInTheDocument()
 
     expect(screen.queryByText(/Bills section mock/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/laporan/i)).not.toBeInTheDocument()
@@ -130,15 +133,14 @@ describe("ProfileTab ownership cleanup", () => {
     render(<ProfileTab {...createProps()} />)
 
     expect(screen.getByText("Kategori")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /atur kategori/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Atur" })).toBeInTheDocument()
   })
 
   it("hides the upgrade CTA and shows Pro benefits for a paid account", () => {
     render(<ProfileTab {...createProps({ entitlement: { tier: "paid", usage: {} }, data: { transactions: [] } })} />)
 
-    expect(screen.queryByRole("link", { name: "Upgrade ke Pro" })).not.toBeInTheDocument()
-    expect(screen.getByText("Kamu sudah memakai Artami Pro.")).toBeInTheDocument()
-    expect(screen.getByText("Silakan nikmati semua fitur yang tersedia. Semoga Artami membantu mengelola keuangan kamu. Terima kasih!")).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Upgrade ke Pro/ })).not.toBeInTheDocument()
+    expect(screen.getByText(/Kamu memakai Artami Pro seumur hidup/)).toBeInTheDocument()
   })
 
   it("shows Free quota usage and warning states from /api/me metadata", () => {
@@ -159,8 +161,9 @@ describe("ProfileTab ownership cleanup", () => {
     expect(screen.getByText("60 / 75")).toBeInTheDocument()
     expect(screen.getByRole("status")).toHaveTextContent("Hampir mencapai batas")
     expect(screen.getByRole("alert")).toHaveTextContent("Batas sudah terpakai")
-    expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveAttribute("href", "/upgrade")
-    expect(screen.getByRole("link", { name: "Upgrade ke Pro" })).toHaveClass("bg-violet-600")
+    const upgradeLink = screen.getByRole("link", { name: /Upgrade ke Pro/ })
+    expect(upgradeLink).toHaveAttribute("href", "/upgrade")
+    expect(upgradeLink).toHaveClass("bg-violet-600")
   })
 
   it("labels the Profile upgrade entry as temporarily closed when registration is unavailable", () => {
