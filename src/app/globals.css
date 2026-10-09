@@ -6,16 +6,16 @@
   --font-display: 'Playfair Display', serif;
   --font-body: 'DM Sans', sans-serif;
 
-  --bg: #FBF8F1;
-  --surface: #FFFFFF;
-  --surface-warm: #F3ECE2;
-  --border: #E2D9CC;
+  --bg: #F3EEE5;
+  --surface: #FDFCF8;
+  --surface-warm: #ECE4D3;
+  --border: #DED3BE;
   --text-primary: #29231E;
   --text-secondary: #6B625A;
   --text-tertiary: #7A7168;
   --income: #2F6B57;
-  --expense: #A45343;
-  --savings: #2D6A62;
+  --expense: #A85B45;
+  --savings: #2F6B57;
   --primary: #2F6B57;
   --primary-deep: #255344;
   --smart: #6E59B5;
@@ -62,18 +62,18 @@
   --md-sys-color-on-error: #FFFFFF;
   --md-sys-color-error-container: #FCEAEA;
   --md-sys-color-on-error-container: #902D2D;
-  --md-sys-color-surface: #FBF8F1;
-  --md-sys-color-surface-container-lowest: #FFFFFF;
-  --md-sys-color-surface-container-low: #FDFBF6;
-  --md-sys-color-surface-container: #F7F1E8;
-  --md-sys-color-surface-container-high: #F3ECE2;
-  --md-sys-color-surface-container-highest: #EFE7DB;
+  --md-sys-color-surface: #F3EEE5;
+  --md-sys-color-surface-container-lowest: #FDFCF8;
+  --md-sys-color-surface-container-low: #FAF6EE;
+  --md-sys-color-surface-container: #F3EEE5;
+  --md-sys-color-surface-container-high: #ECE4D3;
+  --md-sys-color-surface-container-highest: #E2D6BC;
   --md-sys-color-on-surface: #29231E;
   --md-sys-color-on-surface-variant: #6B625A;
   --md-sys-color-outline: #C8BEB1;
-  --md-sys-color-outline-variant: #E2D9CC;
+  --md-sys-color-outline-variant: #DED3BE;
   --md-sys-color-inverse-surface: #29231E;
-  --md-sys-color-inverse-on-surface: #FBF8F1;
+  --md-sys-color-inverse-on-surface: #F3EEE5;
   --md-sys-color-inverse-primary: #D6CDEE;
 }
 
@@ -93,7 +93,7 @@
   --text-tertiary: #A89E93;
   --income: #8CC5AB;
   --expense: #E09684;
-  --savings: #86C0B5;
+  --savings: #8CC5AB;
   --warning: #EDBE62;
   --danger: #F09A9A;
   --smart-bg: #37304F;
@@ -394,10 +394,10 @@ body {
 }
 
 .glass-nav {
-  background: rgba(251, 248, 241, 0.88);
+  background: rgba(243, 238, 229, 0.88);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgba(226, 217, 204, 0.8);
+  border: 1px solid rgba(222, 211, 190, 0.8);
   box-shadow: 0 12px 40px rgba(41, 35, 30, 0.08), inset 0 1px 0 rgba(255,255,255,0.7);
 }
 
@@ -632,158 +632,10 @@ body {
   --plan-surface-low: var(--md-sys-color-surface-container-low);
   --plan-sage: #607b68;
   --plan-amber: #a8792e;
-  --plan-clay: #a45343;
+  --plan-clay: #A85B45;
   --plan-shadow: 0 6px 20px rgba(41, 35, 30, 0.06);
 }
 
-.plan-hero {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 26px 28px 24px;
-  overflow: hidden;
-  border: 1px solid var(--plan-line);
-  border-radius: 28px;
-  background: linear-gradient(135deg, var(--plan-surface) 0%, var(--plan-surface-low) 100%);
-  box-shadow: var(--plan-shadow);
-}
-
-.plan-hero::after {
-  content: "";
-  position: absolute;
-  right: -34px;
-  top: -54px;
-  width: 180px;
-  height: 180px;
-  border: 1px solid color-mix(in srgb, var(--plan-sage) 22%, transparent);
-  border-radius: 50%;
-  box-shadow: -18px 18px 0 -17px color-mix(in srgb, var(--plan-sage) 16%, transparent), -36px 36px 0 -35px color-mix(in srgb, var(--plan-sage) 12%, transparent);
-  pointer-events: none;
-}
-
-.plan-hero__copy,
-.plan-hero__meta {
-  position: relative;
-  z-index: 1;
-}
-
-.plan-hero__copy {
-  max-width: 660px;
-}
-
-.plan-hero__eyebrow,
-.plan-kicker {
-  color: var(--plan-muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  line-height: 1.3;
-  text-transform: uppercase;
-}
-
-.plan-hero h1 {
-  margin-top: 7px;
-  color: var(--plan-ink);
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 2.65rem);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.02;
-}
-
-.plan-hero__description {
-  max-width: 52ch;
-  margin-top: 10px;
-  color: var(--plan-muted);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-.plan-hero__meta {
-  flex: 0 0 auto;
-  min-width: 132px;
-  padding: 12px 14px;
-  border-left: 2px solid var(--plan-sage);
-}
-
-.plan-hero__meta strong {
-  display: block;
-  margin-top: 4px;
-  color: var(--plan-ink);
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.05;
-}
-
-.plan-chapter-nav {
-  padding: 8px;
-  border: 1px solid var(--plan-line);
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--plan-surface) 88%, transparent);
-  box-shadow: var(--plan-shadow);
-}
-
-.plan-chapter-nav__rail {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.plan-brief-rows { margin-top: 16px; }
-.plan-brief-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; width: 100%; min-height: 84px; padding: 18px 0; border-bottom: 1px solid var(--plan-line); text-align: left; }
-.plan-brief-row:last-child { border-bottom: 0; }
-.plan-brief-row:disabled { opacity: .65; }
-.plan-brief-row:hover:not(:disabled) { background: var(--md-sys-color-surface-container-low); }
-.plan-brief-label { color: var(--plan-ink); font: 700 1.1rem/1.3 var(--font-display); }
-.plan-brief-value { font-size: 12px; text-align: right; align-self: center; }
-.plan-brief-detail { grid-column: 1 / -1; color: var(--plan-muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-
-.plan-chapter-nav button {
-  min-width: 0;
-  border: 1px solid transparent;
-  border-radius: 14px;
-  transition: background-color var(--motion-control) var(--ease-out), border-color var(--motion-control) var(--ease-out), color var(--motion-control) var(--ease-out), transform var(--motion-control) var(--ease-out);
-}
-
-.plan-chapter-nav button:not([aria-current="page"]):hover {
-  border-color: var(--plan-line);
-}
-
-/* Wave 7 — narrow-screen Rencana navigation (scrollable labelled rail). */
-.plan-chapter-nav__scroll {
-  position: relative;
-  min-width: 0;
-}
-
-/* Double class beats the narrow-screen .plan-chapter-nav__rail media rules. */
-.plan-chapter-nav .plan-chapter-nav__rail--scroll {
-  display: flex;
-  grid-template-columns: none;
-  overflow-x: auto;
-  scroll-padding: 4px;
-  padding-bottom: 2px;
-}
-
-.plan-chapter-nav__fade {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 28px;
-  pointer-events: none;
-  background: linear-gradient(to left, color-mix(in srgb, var(--plan-surface) 92%, transparent), transparent);
-}
-
-.plan-chapter-nav__hint {
-  margin-top: 6px;
-  padding: 0 4px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--plan-muted);
-}
 
 .plan-section-transition {
   animation: planSectionIn 240ms var(--ease-out) both;
@@ -794,105 +646,32 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.plan-overview {
-  display: grid;
-  gap: 18px;
-}
-
-.plan-overview__header {
-  padding: 20px 22px;
-  border: 1px solid var(--plan-line);
-  border-radius: 22px;
-  background: var(--plan-surface);
-  box-shadow: var(--plan-shadow);
-}
-
-.plan-overview__header h2,
-.plan-section-heading h2 {
-  color: var(--plan-ink);
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.plan-overview__header h2 {
-  margin-top: 5px;
-  font-size: 1.45rem;
-  line-height: 1.1;
-}
-
-.plan-overview__header > p:not(.plan-kicker) {
-  max-width: 60ch;
-  margin-top: 8px;
+/* ===== Rencana hub (flat pillar rows) ===== */
+/* Plan kicker: shared eyebrow label for TargetGauge (via GoalCard).
+   Restored after the hub revamp removed the plan-hero rule that used to
+   share this selector — the gauge caption must keep its styling. */
+.plan-kicker {
   color: var(--plan-muted);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-.plan-signal-card {
-  position: relative;
-  min-height: 190px;
-  overflow: hidden;
-  padding: 18px;
-  border: 1px solid var(--plan-line);
-  border-top-width: 3px;
-  border-radius: 18px;
-  background: var(--plan-surface);
-  box-shadow: var(--plan-shadow);
-  text-align: left;
-  transition: background-color var(--motion-control) var(--ease-out), border-color var(--motion-control) var(--ease-out), transform var(--motion-control) var(--ease-out), box-shadow var(--motion-control) var(--ease-out);
-}
-
-.plan-signal-card:hover {
-  box-shadow: 0 10px 26px rgba(41, 35, 30, 0.09);
-  transform: translateY(-2px);
-}
-
-.plan-signal-card__icon {
-  display: flex;
-  width: 40px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-}
-
-.plan-signal-card__label {
-  display: block;
-  margin-top: 17px;
-  color: var(--plan-ink);
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.plan-signal-card__value {
-  display: block;
-  margin-top: 7px;
-  color: var(--plan-muted);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.plan-signal-card__action {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 44px;
-  margin-top: 12px;
-  color: var(--plan-ink);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+.plan-hub-row .plan-brief-value {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--plan-ink);
+  text-align: left;
+}
+.plan-hub-row .plan-brief-detail {
+  display: block;
+  font-size: 11px;
+  color: var(--plan-muted);
+  line-height: 1.5;
 }
 
-.plan-secondary-panel {
-  padding: 20px 22px;
-  border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 28%, var(--plan-line));
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--md-sys-color-primary-container) 62%, var(--plan-surface));
-  box-shadow: var(--plan-shadow);
-}
 
 .plan-section-shell {
   margin-top: 6px;
@@ -1197,33 +976,9 @@ body {
 }
 
 @media (max-width: 639px) {
-  .plan-hero {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 16px;
-    padding: 22px 20px 20px;
-  }
-
-  .plan-hero__meta {
-    align-self: stretch;
-    min-width: 0;
-  }
-
-  .plan-chapter-nav { padding: 7px; }
-  .plan-chapter-nav__rail {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-  }
-  .plan-summary-strip { grid-template-columns: 1fr; }
   .plan-section-heading { align-items: flex-start; flex-direction: column; }
 }
 
-@media (max-width: 359px) {
-  .plan-chapter-nav__rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .plan-brief-row { grid-template-columns: minmax(0, 1fr); }
-  .plan-brief-value { text-align: left; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .plan-section-transition { animation: none; }

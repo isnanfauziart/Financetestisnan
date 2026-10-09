@@ -1,9 +1,8 @@
 "use client"
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import dynamic from "next/dynamic"
-import { Calculator, ArrowRight, Target, Wallet, Receipt, LayoutDashboard, HandCoins, CalendarDays } from "lucide-react"
+import { Calculator, ArrowRight, ArrowLeft, ChevronDown, Target, Wallet, Receipt, LayoutDashboard, HandCoins, CalendarDays } from "lucide-react"
 import { THEME } from "./_components/constants"
-import useOverflowHint from "./_components/useOverflowHint"
 import GoalsSection from "@/components/GoalsSection"
 import DebtsSection from "@/components/DebtsSection"
 import BudgetsSection from "@/components/BudgetsSection"
@@ -12,7 +11,6 @@ import EventBudgetsSection from "@/components/EventBudgetsSection"
 import { BudgetBrief, GoalBrief, BillBrief } from "@/components/PlanBriefSignal"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import { hasFeature, isFeatureEnabled, getFeatureGate, isProRegistrationOpen } from "@/lib/featureAccess"
-import { maskRupiah } from "./_components/helpers"
 import EyeToggle from "./_components/EyeToggle"
 
 const FITrackerCard = dynamic(() => import("@/components/FITrackerCard"), { ssr: false })
@@ -45,39 +43,27 @@ const SECTION_FEATURES = {
   event: "momental",
 }
 
-const PLAN_PILLARS = [
-  { key: "goal", feature: "goals", label: "Target", description: "Jaga tujuan yang ingin kamu capai.", icon: Target },
-  { key: "budget", feature: "budgets", label: "Anggaran", description: "Atur batas belanja bulan ini.", icon: Wallet },
-  { key: "tagihan", feature: "bills", label: "Tagihan", description: "Siapkan pembayaran yang mendekat.", icon: Receipt },
+const HUB_PILLARS = [
+  { key: "goal", feature: "goals", label: "Target", icon: Target },
+  { key: "budget", feature: "budgets", label: "Anggaran", icon: Wallet },
+  { key: "tagihan", feature: "bills", label: "Tagihan", icon: Receipt },
+  { key: "utang", feature: "debts", label: "Utang & Piutang", icon: HandCoins },
+  { key: "event", feature: "momental", label: "Event", icon: CalendarDays },
+  { key: "simulasi", feature: null, label: "Simulasi", icon: Calculator },
 ]
 
-const PLAN_PILLAR_TONES = {
-  goal: {
-    border: "border-t-sage-400",
-    hover: "hover:bg-sage-50",
-    icon: "bg-sage-100 text-sage-700",
-    affordance: "text-sage-700",
-  },
-  budget: {
-    border: "border-t-amber-400",
-    hover: "hover:bg-amber-50",
-    icon: "bg-amber-100 text-amber-700",
-    affordance: "text-amber-700",
-  },
-  tagihan: {
-    border: "border-t-clay-400",
-    hover: "hover:bg-clay-50",
-    icon: "bg-clay-100 text-clay-600",
-    affordance: "text-clay-600",
-  },
-}
-
-// Wave 7 decision record: both narrow-screen patterns (scrollable labelled
-// rail vs "Lainnya" grouping) were rendered at 360x640 and evaluated against
-// the roadmap's mobile, keyboard, focus, discoverability, and overflow checks.
-// The scrollable labelled rail passed all five and keeps every planning
+// Decision record (supersedes Wave 7): both narrow-screen patterns (scrollable
+// labelled rail vs "Lainnya" grouping) were rendered at 360x640 and evaluated
+// against the roadmap's mobile, keyboard, focus, discoverability, and overflow
+// checks. The scrollable labelled rail passed all five and keeps every planning
 // section permanently discoverable, so it ships. See the decision record in
 // docs/superpowers/plans and progress.md.
+// Reversal 2026-10-09: the rail was replaced by the Ringkasan hub — one flat
+// pillar list with live status lines, no horizontal scrolling. Rationale: the
+// rail hid 2-3 of 7 sections on 360px screens, each pill carried its own accent
+// color, and the hub reuses the existing live briefs while keeping every
+// section reachable (deep links and the Beranda checklist still address each
+// section key directly).
 export function getPlanSectionLabel(key) {
   return PLAN_SECTIONS.find(section => section.key === key)?.label || key
 }
@@ -113,6 +99,7 @@ export default function PlanTab({
    sessionKey,
    moneyHidden = false,
    onToggleMoneyVisibility,
+   onOpenMonthFilter,
 }) {
   const [internalActiveSection, setInternalActiveSection] = useState("overview")
   const visibleSections = PLAN_SECTIONS.filter(section => {
@@ -127,46 +114,26 @@ export default function PlanTab({
   const simulationAvailable = isFeatureEnabled(entitlement, "financialIndependence") || isFeatureEnabled(entitlement, "whatIf")
   const proRegistrationOpen = isProRegistrationOpen(entitlement)
   // Privacy-eye mode: shared with the Home/Statistik eyes — any eye toggles all.
-  const masked = (formatted) => (moneyHidden ? maskRupiah(formatted) : formatted)
   const showEye = typeof onToggleMoneyVisibility === "function"
-  const scrollRailRef = useRef(null)
-  const [railRef, railOverflows] = useOverflowHint()
-  // Wave 7 — keep the active section visible in the rail after navigation
-  // (deep links, far sections); reduced-motion users get an instant jump.
-  useEffect(() => {
-    const rail = scrollRailRef.current
-    const active = rail?.querySelector('[aria-current="page"]')
-    if (!rail || !active || rail.scrollWidth <= rail.clientWidth) return
-    const target = Math.max(0, active.offsetLeft - rail.offsetLeft - 8)
-    const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    rail.scrollTo({ left: target, behavior: prefersReducedMotion ? "auto" : "smooth" })
-  }, [currentSection])
 
-  const renderSectionButton = section => {
-    const isActive = currentSection === section.key
-    const Icon = section.icon
-    return (
-      <button
-        key={section.key}
-        id={`plan-nav-${section.key}`}
-        aria-controls="plan-section-panel"
-        type="button"
-        aria-current={isActive ? "page" : undefined}
-        onClick={() => handleSectionChange(section.key)}
-        className={`min-h-11 shrink-0 whitespace-nowrap rounded-2xl px-3 py-2.5 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${
-          isActive
-            ? "bg-earth-900 text-white shadow-warm"
-            : "bg-md3-surface-container-lowest text-md3-on-surface-variant hover:bg-md3-surface-container-low hover:text-md3-on-surface"
-        }`}
-      >
-        <span className="inline-flex items-center justify-center gap-1.5">
-          <span data-plan-icon-tile className={`flex h-7 w-7 items-center justify-center rounded-xl ${PLAN_SECTION_TONES[section.key]}`}>
-            <Icon size={14} strokeWidth={2.2} aria-hidden="true" />
-          </span>
-          <span>{section.label}</span>
-        </span>
-      </button>
-    )
+  const renderPillarStatus = (pillar, available) => {
+    if (!available) return pillar.key === "simulasi" ? "Segera hadir." : "Fitur ini belum bisa kamu pakai."
+    switch (pillar.key) {
+      case "budget":
+        return <BudgetBrief moneyHidden={moneyHidden} selectedMonth={selectedMonth} selectedYear={selectedYear} selectedAccount={selectedAccount} transactions={transactions} prefix="hub-budget-brief" />
+      case "goal":
+        return <GoalBrief allocations={data?.balances?.allocations} prefix="hub-goal-brief" />
+      case "tagihan":
+        return <BillBrief moneyHidden={moneyHidden} bills={bills} billsLoading={billsLoading} billsError={billsError} prefix="hub-bill-brief" />
+      case "utang":
+        return "Kelola utang & piutangmu."
+      case "event":
+        return "Rencanakan anggaran untuk momen spesial."
+      case "simulasi":
+        return "Target bebas finansial & What-If."
+      default:
+        return ""
+    }
   }
 
   const handleSectionChange = (sectionKey) => {
@@ -179,89 +146,75 @@ export default function PlanTab({
 
   return (
     <div className="plan-tab px-5 pt-4 animate-bento-in" key="plan-tab">
-      <div className="mx-auto max-w-6xl space-y-5">
-        <header className="plan-hero" aria-labelledby="plan-page-title">
-          <div className="plan-hero__copy">
-            <p className="plan-hero__eyebrow">Rencana keuangan</p>
-            <h1 id="plan-page-title" tabIndex={-1} className="focus:outline-none">Rencanakan keuanganmu.</h1>
-            <p className="plan-hero__description">Atur anggaran, tagihan, dan target bulan ini.</p>
+      <div className="mx-auto max-w-6xl space-y-6">
+        <header aria-labelledby="plan-page-title">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant">Rencana</p>
+            {onOpenMonthFilter ? (
+              <button
+                type="button"
+                onClick={onOpenMonthFilter}
+                className="inline-flex min-h-9 items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-bold text-md3-on-surface"
+                aria-label="Ubah bulan di Statistik"
+              >
+                {selectedMonth || "Bulan ini"} {selectedYear || ""} <ChevronDown size={12} aria-hidden="true" />
+              </button>
+            ) : (
+              <span className="inline-flex min-h-9 items-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-bold text-md3-on-surface">
+                {selectedMonth || "Bulan ini"} {selectedYear || ""}
+              </span>
+            )}
+            {showEye && <EyeToggle hidden={moneyHidden} onToggle={onToggleMoneyVisibility} />}
           </div>
-          <div className="plan-hero__meta">
-            <span className="plan-hero__eyebrow">Bulan dipilih</span>
-            <strong>{selectedMonth || "Bulan ini"} {selectedYear || ""}</strong>
-          </div>
+          <h1 id="plan-page-title" tabIndex={-1} className="focus:outline-none mt-2 font-display text-[1.9rem] font-bold tracking-tight text-md3-on-surface">
+            {currentSection === "overview" ? "Rencana bulan ini" : getPlanSectionLabel(currentSection)}
+          </h1>
         </header>
 
-        <nav className="plan-chapter-nav" aria-label="Navigasi Rencana">
-          <div className="plan-chapter-nav__scroll" data-plan-nav-prototype="scroll">
-            <div ref={element => { scrollRailRef.current = element; railRef.current = element }} className="plan-chapter-nav__rail plan-chapter-nav__rail--scroll">
-              {visibleSections.map(renderSectionButton)}
-            </div>
-            <span className="plan-chapter-nav__fade" aria-hidden="true" />
-          </div>
-          {railOverflows && (
-            <p className="plan-chapter-nav__hint">Geser untuk melihat semua bagian</p>
-          )}
-        </nav>
+        {currentSection !== "overview" && (
+          <button
+            type="button"
+            onClick={() => handleSectionChange("overview")}
+            className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-md3-on-surface-variant"
+            aria-label="Kembali ke Ringkasan Rencana"
+          >
+            <ArrowLeft size={14} aria-hidden="true" /> Ringkasan
+          </button>
+        )}
 
         <div key={currentSection} id="plan-section-panel" className="plan-section-transition">
           {currentSection === "overview" && (
-            <section className="plan-overview" aria-labelledby="plan-overview-title">
-              <div className="plan-overview__header plan-monthly-brief">
-                <p className="plan-kicker">Ringkasan bulan</p>
-                <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
-                  <h2 id="plan-overview-title">Rencana bulan ini</h2>
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold text-md3-on-surface-variant">
-                    {selectedMonth || "Bulan ini"} {selectedYear || ""}
-                    {showEye && <EyeToggle hidden={moneyHidden} onToggle={onToggleMoneyVisibility} />}
-                  </span>
-                </div>
-              <div className="plan-brief-rows">
-                {[PLAN_PILLARS[1], PLAN_PILLARS[2], PLAN_PILLARS[0]].map(({ key, feature, label }) => {
-                  const available = hasFeature(entitlement, feature)
-                  const tone = PLAN_PILLAR_TONES[key]
+            <section aria-label="Ringkasan Rencana">
+              <div className="divide-y divide-[var(--border)]">
+                {HUB_PILLARS.filter((pillar) => pillar.key === "simulasi" ? visibleSections.some((section) => section.key === "simulasi") : true).map((pillar) => {
+                  const available = pillar.key === "simulasi" ? simulationAvailable : hasFeature(entitlement, pillar.feature)
+                  const Icon = pillar.icon
+                  const proLocked = pillar.key === "simulasi" && available && !hasFeature(entitlement, "financialIndependence") && !hasFeature(entitlement, "whatIf")
                   return (
                     <button
-                      key={key}
+                      key={pillar.key}
                       type="button"
                       disabled={!available}
-                      onClick={() => available && handleSectionChange(key)}
-                      aria-label={`${available ? "Buka" : "Fitur terkunci"} ${label}`}
-                      aria-describedby={`${key}-brief-detail${available ? ` ${key}-brief-value` : ""}`}
-                      className={`plan-brief-row ${tone.affordance} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2`}
+                      onClick={() => available && handleSectionChange(pillar.key)}
+                      aria-label={`${available ? "Buka" : "Fitur terkunci"} ${pillar.label}`}
+                      className="plan-hub-row flex min-h-11 w-full items-center gap-3 py-4 text-left transition-colors hover:bg-[var(--surface)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
                     >
-                      <span className="plan-brief-label">{label}</span>
-                      {!available ? <span id={`${key}-brief-detail`} className="plan-brief-detail">Fitur ini belum bisa kamu pakai.</span> : key === "budget" ? <BudgetBrief moneyHidden={moneyHidden} {...{ selectedMonth, selectedYear, selectedAccount, transactions, prefix: `${key}-brief` }} /> : key === "goal" ? <GoalBrief allocations={data?.balances?.allocations} prefix={`${key}-brief`} /> : <BillBrief moneyHidden={moneyHidden} {...{ bills, billsLoading, billsError, prefix: `${key}-brief` }} />}
+                      <span data-plan-icon-tile className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl ${PLAN_SECTION_TONES[pillar.key]}`}>
+                        <Icon size={17} strokeWidth={2.1} aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[15px] font-bold text-md3-on-surface">{pillar.label}</span>
+                        <span className="mt-0.5 block text-xs leading-relaxed text-md3-on-surface-variant">{renderPillarStatus(pillar, available)}</span>
+                      </span>
+                      {proLocked ? (
+                        <span className="flex-shrink-0 rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-bold text-violet-700">Pro</span>
+                      ) : (
+                        <ArrowRight size={14} className="flex-shrink-0 text-md3-on-surface-variant" aria-hidden="true" />
+                      )}
                     </button>
                   )
                 })}
               </div>
-              </div>
-
-              <section className="plan-secondary-panel" aria-labelledby="plan-simulation-overview-title">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-md3-surface-container-lowest text-violet-600">
-                    <Calculator size={18} aria-hidden="true" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600">Simulasi</p>
-                    <h2 id="plan-simulation-overview-title" className="mt-1 text-lg font-display font-bold text-md3-on-surface">Target bebas finansial dan What-If</h2>
-                    <p className="mt-2 text-xs leading-relaxed text-md3-on-surface-variant">Dana yang kamu butuhkan dan What-If untuk melihat efek perubahan kebiasaan terhadap waktu pencapaian.</p>
-                  </div>
-                </div>
-                {simulationAvailable ? (
-                  <button
-                    type="button"
-                    onClick={() => handleSectionChange("simulasi")}
-                    aria-label="Buka target & What-If"
-                    className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-violet-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
-                  >
-                    Buka target &amp; What-If <ArrowRight size={14} aria-hidden="true" />
-                  </button>
-                ) : (
-                  <p className="mt-4 text-xs font-semibold text-md3-on-surface-variant">Simulasi belum bisa dipakai saat ini.</p>
-                )}
-              </section>
             </section>
           )}
 

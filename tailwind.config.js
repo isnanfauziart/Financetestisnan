@@ -78,11 +78,11 @@ module.exports = {
           'inverse-on-surface': 'var(--md-sys-color-inverse-on-surface)',
           'inverse-primary': 'var(--md-sys-color-inverse-primary)',
         },
-        // Cream (backgrounds)
+        // Cream (backgrounds) — remapped to the warm paper world
         cream: {
-          50: '#FBF8F1',
-          100: '#F7F1E8',
-          200: '#EFE7DB',
+          50: '#FDFCF8',
+          100: '#F3EEE5',
+          200: '#ECE4D3',
         },
         // Sage (income / positive)
         sage: {

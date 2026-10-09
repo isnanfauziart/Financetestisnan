@@ -204,7 +204,7 @@ export default function HomeTab({
 
   return (
     <div className="px-5 pt-4 animate-bento-in" key="home-tab">
-      <div className="space-y-3">
+      <div className="space-y-7">
         {data?.history?.limited && data?.history?.hasOlderData && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-md3-on-surface-variant" role="note">
             <p className="font-bold">Yang tampil {data.history.months} bulan terakhir</p>
@@ -213,8 +213,8 @@ export default function HomeTab({
             </p>
           </div>
         )}
-        <div className="bento-tile-dark mesh-hero text-white p-5 sm:p-6 relative overflow-hidden animate-bento-in stagger-1 min-h-[220px]" data-testid="home-hero" style={{ backgroundColor: THEME.heroBg }}>
-          <div className="relative z-10 h-full flex flex-col justify-between gap-6">
+        <div className="mesh-hero text-white p-5 sm:p-6 relative overflow-hidden rounded-[28px] animate-bento-in stagger-1" data-testid="home-hero" style={{ backgroundColor: THEME.heroBg }}>
+          <div className="relative z-10 flex flex-col gap-5">
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-1.5">
                 <div className="flex items-center gap-1.5">
@@ -229,66 +229,70 @@ export default function HomeTab({
               <p className="text-[12px] sm:text-sm font-semibold text-white/80">
                 {deltaLabel} {masked(formatRp(Math.abs(monthlyDelta)))} bulan ini
               </p>
-              <div className="rounded-2xl px-3 py-2 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }}>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{BALANCE_COPY.availableNow}</p>
-                <p className="mt-0.5 text-lg font-display font-bold tabular-nums">{masked(formatRpFull(balances?.available?.value || 0))}</p>
-                <p className="text-[10px] font-semibold text-white/70">{formatBalanceBasis(balances?.currentCash?.provisional)}</p>
-                {heldInSavings > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveNav("plan")
-                      openPlanSection?.("goal")
-                    }}
-                    className="mt-1.5 inline-flex min-h-8 items-center gap-1 rounded-full bg-white/15 px-2.5 text-[10px] font-bold text-white/90 transition-colors hover:bg-white/25"
-                    aria-label="Atur tabungan yang disisihkan di Rencana"
-                  >
-                    {masked(formatRpFull(heldInSavings))} {BALANCE_COPY.heldInSavings.toLowerCase()} <ArrowRight size={10} aria-hidden="true" />
-                  </button>
-                )}
+              <div className="border-t border-white/15 pt-4">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{BALANCE_COPY.availableNow}</p>
+                  <p className="text-lg font-display font-bold tabular-nums">{masked(formatRpFull(balances?.available?.value || 0))}</p>
+                </div>
+                <p className="mt-0.5 text-[10px] font-semibold text-white/70">{formatBalanceBasis(balances?.currentCash?.provisional)}</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  {heldInSavings > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveNav("plan")
+                        openPlanSection?.("goal")
+                      }}
+                      className="inline-flex min-h-8 items-center gap-1 rounded-full bg-white/15 px-2.5 text-[10px] font-bold text-white/90 transition-colors hover:bg-white/25"
+                      aria-label="Atur tabungan yang disisihkan di Rencana"
+                    >
+                      {masked(formatRpFull(heldInSavings))} {BALANCE_COPY.heldInSavings.toLowerCase()} <ArrowRight size={10} aria-hidden="true" />
+                    </button>
+                  )}
+                  {rincianRows.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setRincianOpen(true)}
+                      aria-label="Buka rincian saldo"
+                      className="inline-flex min-h-8 items-center gap-1 rounded-full bg-white/15 px-2.5 text-[10px] font-bold text-white/90 transition-colors hover:bg-white/25"
+                    >
+                      Rincian saldo <ArrowRight size={10} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-            {/* Layer 3: compact current-month cash row — always in the hero. */}
-            <div className="rounded-2xl px-4 py-3 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.12)" }} data-testid="hero-cash-row">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5">
+            {/* Flat current-month cash row — hairline dividers, no nested boxes. */}
+            <div className="border-t border-white/15 pt-4" data-testid="hero-cash-row">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-2">
                 Arus kas bulan ini · {AVAILABLE_MONTHS[currentDate.monthIndex]} {currentDate.year}
               </p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="min-w-0">
+              <div className="grid grid-cols-3">
+                <div className="min-w-0 pr-3">
                   <p className="text-[10px] font-semibold text-white/70">Uang masuk</p>
-                  <p className="text-[11px] sm:text-sm font-bold tabular-nums">{masked(formatRp(heroCashIn))}</p>
+                  <p className="mt-0.5 text-[11px] sm:text-sm font-bold tabular-nums">{masked(formatRp(heroCashIn))}</p>
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 border-l border-white/15 px-3">
                   <p className="text-[10px] font-semibold text-white/70">Uang keluar</p>
-                  <p className="text-[11px] sm:text-sm font-bold tabular-nums">{masked(formatRp(heroCashOut))}</p>
+                  <p className="mt-0.5 text-[11px] sm:text-sm font-bold tabular-nums">{masked(formatRp(heroCashOut))}</p>
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 border-l border-white/15 pl-3">
                   <p className="text-[10px] font-semibold text-white/70">Arus kas bersih</p>
-                  <p className="text-[11px] sm:text-sm font-bold tabular-nums">
+                  <p className="mt-0.5 text-[11px] sm:text-sm font-bold tabular-nums">
                     {masked(`${heroCashNet > 0 ? "+" : heroCashNet < 0 ? "−" : ""}${formatRp(Math.abs(heroCashNet))}`)}
                   </p>
                 </div>
               </div>
             </div>
-            {rincianRows.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setRincianOpen(true)}
-                aria-label="Buka rincian saldo"
-                className="inline-flex min-h-11 items-center gap-1.5 self-start rounded-full bg-white/15 px-3 py-2 text-[11px] font-bold text-white/90 transition-colors hover:bg-white/25"
-              >
-                Rincian saldo <ArrowRight size={12} aria-hidden="true" />
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Wave 6: Yang perlu kamu cek sits directly below the hero. */}
-        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3 sm:p-4 animate-bento-in stagger-2" data-testid="home-checklist">
-          <div className="flex items-center justify-between gap-3 mb-3 px-1">
+        {/* Flat checklist — hairline rows, no nested cards. */}
+        <section className="animate-bento-in stagger-2" data-testid="home-checklist" aria-labelledby="home-checklist-title">
+          <div className="flex items-center justify-between gap-3 mb-1 px-1">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant">Beranda</p>
-              <h3 className="text-sm sm:text-base font-bold font-display text-md3-on-surface">Yang perlu kamu cek</h3>
+              <h3 id="home-checklist-title" className="text-sm sm:text-base font-bold font-display text-md3-on-surface">Yang perlu kamu cek</h3>
             </div>
             <button
               onClick={() => setActiveNav("plan")}
@@ -299,7 +303,7 @@ export default function HomeTab({
             </button>
           </div>
 
-          <div className={`grid gap-2 ${priorityActions.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+          <div className="divide-y divide-[var(--border)]">
             {priorityActions.map((action) => {
               const Icon = action.icon
               return (
@@ -307,27 +311,26 @@ export default function HomeTab({
                   key={action.key}
                   onClick={action.onClick}
                   aria-label={action.aria}
-                  className="rounded-2xl border border-md3-outline-variant p-3 text-left hover:-translate-y-0.5 transition-transform bg-md3-surface-container-low"
+                  className="flex w-full items-center gap-3 py-3.5 text-left transition-colors hover:bg-[var(--surface)]"
                 >
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center flex-shrink-0 ${action.tint}`}>
-                      <Icon size={16} strokeWidth={2.2} aria-hidden="true" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-md3-on-surface-variant">{action.eyebrow}</p>
-                      <p className="text-sm font-bold text-md3-on-surface leading-snug mt-1">{action.title}</p>
-                      <p className="text-[11px] text-md3-on-surface-variant leading-snug mt-1">{action.description}</p>
-                    </div>
+                  <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center flex-shrink-0 ${action.tint}`}>
+                    <Icon size={16} strokeWidth={2.2} aria-hidden="true" />
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-md3-on-surface-variant">{action.eyebrow}</p>
+                    <p className="text-sm font-bold text-md3-on-surface leading-snug mt-0.5">{action.title}</p>
+                    <p className="text-[11px] text-md3-on-surface-variant leading-snug mt-0.5">{action.description}</p>
+                  </div>
+                  <ArrowRight size={14} className="flex-shrink-0 text-md3-on-surface-variant" aria-hidden="true" />
                 </button>
               )
             })}
           </div>
-        </div>
+        </section>
 
         {/* Top 3 pengeluaran for the selected filter period. Rows open the
             existing Top-10 expense drill-down scoped to the same period. */}
-        <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-4 animate-bento-in stagger-2" aria-labelledby="home-top-expenses-title" data-testid="home-top-expenses">
+        <section className="animate-bento-in stagger-2" aria-labelledby="home-top-expenses-title" data-testid="home-top-expenses">
           <div className="flex items-start justify-between gap-3 mb-3 px-1">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-md3-on-surface-variant">{scopedPeriodLabel}</p>
@@ -340,11 +343,11 @@ export default function HomeTab({
             </div>
 
           {topExpenses.length === 0 ? (
-            <p className="rounded-2xl bg-md3-surface px-3 py-4 text-center text-xs font-semibold text-md3-on-surface-variant">
+            <p className="py-4 text-center text-xs font-semibold text-md3-on-surface-variant">
               Belum ada pengeluaran untuk periode ini.
             </p>
           ) : (
-            <div className="space-y-1.5">
+            <div className="divide-y divide-[var(--border)]">
               {topExpenses.map((tx, index) => {
                 const special = isSpecialExpense(tx)
                 const { icon: CategoryIcon } = getCategoryVisual(tx.category)
@@ -354,7 +357,7 @@ export default function HomeTab({
                     type="button"
                     onClick={() => setDrillDown({ type: "expense", title: "Pengeluaran", transactions: scopedTransactions })}
                     aria-label={`Lihat pengeluaran terbesar nomor ${index + 1}: ${tx.category}`}
-                    className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2 text-left transition-colors hover:bg-md3-surface active:scale-[0.99]"
+                    className="flex min-h-11 w-full items-center gap-3 py-2.5 text-left transition-colors hover:bg-[var(--surface)]"
                   >
                     <span aria-hidden="true" className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-md3-surface-container-high text-xs font-bold tabular-nums text-md3-on-surface-variant">
                       {index + 1}
@@ -383,7 +386,7 @@ export default function HomeTab({
 
         {/* Wave 6: the generic focus note moved out of the hero — it must not
             compete with the financial headline or the check actions. */}
-        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-3 sm:p-4 animate-bento-in stagger-3" data-testid="home-focus-note">
+        <div className="animate-bento-in stagger-3 border-l-2 border-[var(--income)] pl-4" data-testid="home-focus-note">
           <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant mb-1">{focusNote.label}</p>
           <p className="text-sm font-semibold leading-relaxed text-md3-on-surface">{focusNote.message}</p>
         </div>
@@ -447,7 +450,7 @@ export default function HomeTab({
             }
           />
         ) : (
-          <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant shadow-warm p-2">
+          <div>
             {recent5.map((t, i) => {
               const amountColor = t.type === "income" ? THEME.income : t.type === "savings" ? THEME.savings : THEME.expense
               const special = isSpecialExpense(t)
