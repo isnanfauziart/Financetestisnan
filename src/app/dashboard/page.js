@@ -1747,6 +1747,7 @@ export default function Dashboard() {
               billsError={billsError}
               moneyHidden={moneyHidden}
               onToggleMoneyVisibility={handleToggleMoneyVisibility}
+              onOpenMonthFilter={() => setActiveNav("stats")}
               settings={settings}
               onSettingsChanged={refetchSettings}
               sessionKey={sessionKey}
@@ -1919,8 +1920,8 @@ export default function Dashboard() {
            className={`fixed right-4 sm:right-5 z-[45] max-w-md transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-opacity ${fabVisible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none motion-safe:translate-y-24 opacity-0"}`}
            style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}
          >
-          <div className="w-14 h-14 rounded-2xl shadow-pop flex items-center justify-center motion-safe:active:scale-90 transition-transform duration-[140ms] motion-reduce:transition-none" style={{ backgroundColor: THEME.primaryBg, boxShadow: "0 12px 32px rgba(47,107,87,0.28)" }}>
-           <Plus size={22} color={THEME.primaryDeep} strokeWidth={2.5} aria-hidden="true" />
+          <div className="w-14 h-14 rounded-full shadow-pop flex items-center justify-center motion-safe:active:scale-90 transition-transform duration-[140ms] motion-reduce:transition-none" style={{ backgroundColor: THEME.heroBg, boxShadow: "0 12px 32px rgba(31,45,40,0.32)" }}>
+           <Plus size={22} color="#F3EEE5" strokeWidth={2.5} aria-hidden="true" />
          </div>
       </button>}
 
@@ -1946,7 +1947,7 @@ export default function Dashboard() {
                   if (nav.id === "plan") setActivePlanSection("overview")
                   setActiveNav(nav.id)
                 }}
-                className={`group relative flex min-w-0 h-12 items-center justify-center rounded-[20px] px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-md3-primary transition-[flex,background-color,color] duration-[var(--motion-control)] [transition-timing-function:var(--ease-emphasized)] ${isActive ? "flex-[1.6] gap-1.5 bg-md3-primary text-md3-on-primary" : "flex-1 gap-0 text-md3-on-surface-variant"}`}
+                className={`group relative flex min-w-0 h-12 items-center justify-center rounded-[20px] px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-md3-primary transition-[flex,background-color,color] duration-[var(--motion-control)] [transition-timing-function:var(--ease-emphasized)] ${isActive ? "flex-[1.6] gap-1.5 bg-[var(--hero-bg)] text-white" : "flex-1 gap-0 text-md3-on-surface-variant"}`}
               >
                 <div className="relative flex h-6 w-6 flex-shrink-0 items-center justify-center">
                   <nav.icon size={20} strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />

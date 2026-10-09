@@ -5,8 +5,8 @@ const COLORS = {
   amber: "#8A5A00",
   danger: "#B33A3A",
   primary: "#6E59B5",
-  savings: "#2D6A62",
-  primaryDeep: "#255344",
+  savings: "#2F6B57",
+  primaryDeep: "#1F2D28",
 }
 
 function hash(value) {

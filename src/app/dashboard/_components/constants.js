@@ -1,21 +1,21 @@
 export const THEME = {
-  bg: "#FBF8F1",
-  surface: "#FFFFFF",
-  surfaceMuted: "#F7F2EA",
-  surfaceWarm: "#F3ECE2",
-  border: "#E2D9CC",
+  bg: "#F3EEE5",
+  surface: "#FDFCF8",
+  surfaceMuted: "#FAF6EE",
+  surfaceWarm: "#ECE4D3",
+  border: "#DED3BE",
   textPrimary: "#29231E",
   textSecondary: "#6B625A",
   textTertiary: "#7A7168",
   income: "#2F6B57",
   incomeBg: "#E5F0EB",
-  expense: "#A45343",
-  expenseBg: "#F8E8E4",
-  savings: "#2D6A62",
-  savingsBg: "#E6F2EF",
+  expense: "#A85B45",
+  expenseBg: "#F7E9E4",
+  savings: "#2F6B57",
+  savingsBg: "#E5F0EB",
   primary: "#2F6B57",
   primaryBg: "#E5F0EB",
-  primaryDeep: "#255344",
+  primaryDeep: "#1F2D28",
   smart: "#6E59B5",
   smartBg: "#F0EBFA",
   warning: "#8A5A00",
@@ -27,7 +27,7 @@ export const THEME = {
   heroLight: "#8EB5A5",
 }
 
-export const COLORS = ["#2F6B57", "#A45343", "#2D6A62", "#6E59B5", "#8A5A00", "#5B7F9A", "#B33A3A", "#8FBAB2", "#CB796B", "#B9AADE"]
+export const COLORS = ["#2F6B57", "#A85B45", "#2F6B57", "#6E59B5", "#8A5A00", "#5B7F9A", "#B33A3A", "#8FBAB2", "#CB796B", "#B9AADE"]
 
 export const EXPENSE_CATEGORIES = [
   "Transportasi","Sedekah","Elektronik","Healthcare","Utang","Body Care",

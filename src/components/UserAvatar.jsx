@@ -2,15 +2,9 @@
 
 import { useState } from "react"
 
-// Wave 10 — avatar fallback. Google accounts may have no profile photo; a bare
-// <img> then renders a broken-image icon. This renders the photo when it loads
-// and a deterministic initials tile when it fails or is missing.
+// Avatar fallback: single deep-green monogram tile, on-brand with the hero.
 const TILE_STYLES = [
-  { background: "#2F6B57" },
-  { background: "#7C5CBF" },
-  { background: "#3E5C76" },
-  { background: "#A8792E" },
-  { background: "#A45343" },
+  { background: "#1F2D28" },
 ]
 
 function initialsFrom(name, email) {

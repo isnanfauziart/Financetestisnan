@@ -16,9 +16,9 @@ export const chartTheme = {
   // Axis ticks: on-surface-variant
   axisTick: { fontSize: 11, fill: '#6B625A' },
   // Grid stroke: outline-variant (exported for charts that add CartesianGrid)
-  gridStroke: '#E2D9CC',
+  gridStroke: '#DED3BE',
   // Ordered categorical series palette: [primary violet, tertiary gold, terracotta/clay, moss, sage]
-  seriesPalette: ['#6E59B5', '#D4A853', '#A45343', '#2D6A62', '#2F6B57'],
+  seriesPalette: ['#6E59B5', '#D4A853', '#A85B45', '#2D6A62', '#2F6B57'],
   // Heatmap: zero-state + 4 tonal steps of the clay container family (light -> dark)
   heatmap: {
     empty: '#F6EFE5',
