@@ -6,27 +6,31 @@ import { THEME, AVAILABLE_MONTHS } from "@/app/dashboard/_components/constants"
 import { formatRp, useCountUp } from "@/app/dashboard/_components/helpers"
 import ChartTooltip from "@/components/charts/ChartTooltip"
 import StatTile from "@/components/charts/StatTile"
+import TrendSpanChips from "@/components/charts/TrendSpanChips"
+import { sliceWindowEnd, spanMonthsFor } from "@/lib/trendWindow"
 
 function getRoutineExpense(month) {
   return month?.pengeluaranRutin ?? month?.pengeluaran ?? 0
 }
 
-export default function SavingsRateTrend({ monthlyData }) {
+export default function SavingsRateTrend({ monthlyData, span = "12 bln", onSpanChange = () => {}, anchor = null }) {
+  const spanMonths = spanMonthsFor(span)
   const chartData = useMemo(() => {
     if (!monthlyData || monthlyData.length < 2) return []
-    return monthlyData
-      .filter(m => m.pemasukan > 0)
-      .slice(-12)
-      .map(m => {
-        const expense = getRoutineExpense(m)
-        return {
-          label: m.year ? `${m.month} ${m.year}` : m.month,
-          rate: ((m.pemasukan - expense) / m.pemasukan) * 100,
-          income: m.pemasukan,
-          expense,
-        }
-      })
-  }, [monthlyData])
+    // Anchor-truncate first (positional), then drop empty months, then span.
+    const truncated = sliceWindowEnd(monthlyData, { span: null, anchor })
+    const filtered = truncated.filter(m => m.pemasukan > 0)
+    const inSpan = spanMonths == null ? filtered : filtered.slice(-spanMonths)
+    return inSpan.map(m => {
+      const expense = getRoutineExpense(m)
+      return {
+        label: m.year ? `${m.month} ${m.year}` : m.month,
+        rate: ((m.pemasukan - expense) / m.pemasukan) * 100,
+        income: m.pemasukan,
+        expense,
+      }
+    })
+  }, [monthlyData, spanMonths, anchor])
 
   const currentRate = chartData.length > 0 ? chartData[chartData.length - 1].rate : 0
   const animatedRate = useCountUp(Math.round(currentRate * 10), 1000) / 10
@@ -46,14 +50,25 @@ export default function SavingsRateTrend({ monthlyData }) {
   }, [chartData])
 
   const stats = useMemo(() => {
-    if (chartData.length === 0) return { avg: 0, best: 0, worst: 0 }
+    if (chartData.length === 0) return { avg: 0, best: 0, worst: 0, bestLabel: "", worstLabel: "" }
     const rates = chartData.map(d => d.rate)
+    const bestIdx = rates.indexOf(Math.max(...rates))
+    const worstIdx = rates.indexOf(Math.min(...rates))
+    const shortMonth = (label) => String(label).split(" ")[0]
     return {
       avg: rates.reduce((s, v) => s + v, 0) / rates.length,
       best: Math.max(...rates),
       worst: Math.min(...rates),
+      bestLabel: shortMonth(chartData[bestIdx].label),
+      worstLabel: shortMonth(chartData[worstIdx].label),
     }
   }, [chartData])
+
+  const windowLabel = chartData.length === 0
+    ? ""
+    : chartData.length === 1
+      ? chartData[0].label
+      : `${chartData[0].label} – ${chartData[chartData.length - 1].label}`
 
   if (chartData.length < 2) {
     return (
@@ -72,14 +87,23 @@ export default function SavingsRateTrend({ monthlyData }) {
   return (
     <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <PiggyBank size={14} color={THEME.savings} aria-hidden="true" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Savings Rate Trend</p>
         </div>
+        <TrendSpanChips value={span} onChange={onSpanChange} ariaLabel="Rentang tren savings rate" />
+      </div>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        {windowLabel && (
+          <p className="text-[10.5px] text-md3-on-surface-variant">
+            Jendela: <span className="font-bold text-md3-on-surface">{windowLabel}</span>
+            {anchor && anchor.month ? " · berakhir di bulan pilihan" : ""}
+          </p>
+        )}
         {trend.direction !== "flat" && (
           <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+            className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap"
             style={{
               background: trend.direction === "up" ? THEME.incomeBg : THEME.dangerBg,
               color: trend.direction === "up" ? THEME.income : THEME.danger,
@@ -171,8 +195,8 @@ export default function SavingsRateTrend({ monthlyData }) {
       {/* Stats row (shared StatTile) */}
       <div className="grid grid-cols-3 gap-2.5">
         <StatTile label="Rata-rata" value={`${stats.avg.toFixed(1)}%`} tone="neutral" />
-        <StatTile label="Terbaik" value={`${stats.best.toFixed(1)}%`} tone="income" />
-        <StatTile label="Terendah" value={`${stats.worst.toFixed(1)}%`} tone="danger" />
+        <StatTile label="Terbaik" value={`${stats.best.toFixed(1)}% (${stats.bestLabel})`} tone="income" />
+        <StatTile label="Terendah" value={`${stats.worst.toFixed(1)}% (${stats.worstLabel})`} tone="danger" />
       </div>
 
       {/* Legend */}

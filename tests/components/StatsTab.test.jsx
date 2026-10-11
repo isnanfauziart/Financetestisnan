@@ -181,12 +181,12 @@ describe("StatsTab Filter aktif summary", () => {
     expect(screen.getAllByText("Dasar: Semua transaksi").length).toBeGreaterThanOrEqual(1)
   })
 
-  it("labels the chart basis in the Kategori section", () => {
+  it("labels the expense bar chart with the selected period in the Kategori section", () => {
     render(<StatsTab {...createProps({})} />)
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
 
-    expect(screen.getAllByText("Dasar: Pengeluaran rutin saja").length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText("Pengeluaran terbesar bulan Jul 2026")).toBeInTheDocument()
   })
 
   it("marks the date-range toggle with aria-expanded and aria-controls", () => {
@@ -244,7 +244,7 @@ describe("StatsTab comparison controls", () => {
     expect(resetComparePeriods).toHaveBeenCalledTimes(1)
   })
 
-  it("renders every comparison category as a dumbbell row with both period values and delta", async () => {
+  it("renders every comparison category as paired-bar rows with both period values and delta", async () => {
     const compareChartData = [
       { category: "Makan", "Jul 2026": 800_000, "Jun 2026": 600_000 },
       { category: "Transportasi", "Jul 2026": 300_000, "Jun 2026": 500_000 },
@@ -255,36 +255,29 @@ describe("StatsTab comparison controls", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
 
     const comparison = screen.getByText("Perbandingan per Kategori").closest(".bento-tile")
-    expect(comparison.querySelector(".overflow-x-auto")).toBeTruthy()
-    expect(comparison.querySelectorAll("svg circle").length).toBeGreaterThanOrEqual(6)
-    expect(comparison.querySelectorAll("svg line").length).toBeGreaterThanOrEqual(2)
+    // No horizontal scroll container anymore — every row is self-contained.
+    expect(comparison.querySelector(".overflow-x-auto")).toBeNull()
     expect(comparison).toHaveTextContent("Makan")
     expect(comparison).toHaveTextContent("Transportasi")
     expect(comparison).toHaveTextContent("Sewa")
     expect(comparison).toHaveTextContent("Rp 800 rb")
-    expect(comparison).toHaveTextContent("vs Rp 600 rb")
-    expect(comparison).toHaveTextContent("vs Rp 500 rb")
+    expect(comparison).toHaveTextContent("Rp 600 rb")
+    expect(comparison).toHaveTextContent("Rp 500 rb")
     expect(comparison).toHaveTextContent("↑ 33%")
     expect(comparison).toHaveTextContent("↓ 40%")
-    expect(comparison).toHaveTextContent("Keduanya menunjukkan pengeluaran")
+    expect(comparison).toHaveTextContent("baru")
     expect(comparison).toHaveTextContent("Jul 2026 vs Jun 2026")
     expect(comparison.querySelector(".recharts-legend-wrapper")).toBeNull()
+    // Two labeled bars per row: current period + previous period.
+    const rows = comparison.querySelector('[aria-describedby="stats-comparison-summary"]')
+    expect(rows.querySelectorAll(".bg-sage-500").length).toBe(3)
+    expect(rows.querySelectorAll(".bg-sage-300").length).toBe(3)
 
     const colorKey = screen.getByRole("group", { name: "Keterangan warna perbandingan" })
     expect(colorKey).toHaveTextContent("Jul 2026")
     expect(colorKey).toHaveTextContent("Jun 2026")
-    expect(colorKey).toHaveTextContent("Keduanya menunjukkan pengeluaran")
-    const colorMarkers = [...colorKey.querySelectorAll("span[aria-hidden=\"true\"]")]
-    const toCssColor = color => {
-      const probe = document.createElement("span")
-      probe.style.background = color
-      return probe.style.background
-    }
+    const colorMarkers = [...colorKey.querySelectorAll('span[aria-hidden="true"]')]
     expect(colorMarkers).toHaveLength(2)
-    expect(colorMarkers.map(marker => marker.style.background)).toEqual([
-      toCssColor(THEME.primary),
-      toCssColor("#C8BEB1"),
-    ])
   })
 })
 
@@ -428,20 +421,30 @@ describe("StatsTab financial summary", () => {
     expect(screen.getByText(/Tren Bulanan: 1 periode/i)).toBeInTheDocument()
   })
 
-  it("uses the latest populated period for the category trend alternative", () => {
+  it("scopes the category trend card to the filter year with monthly averages and YoY", () => {
+    const transactions = [
+      { type: "expense", category: "Makan", month: "Jan", year: "2025", amount: 120_000 },
+      { type: "expense", category: "Makan", month: "Feb", year: "2025", amount: 60_000 },
+      { type: "expense", category: "Makan", month: "Jan", year: "2024", amount: 90_000 },
+      // Jajan has no 2024 data → YoY pill shows "baru".
+      { type: "expense", category: "Jajan", month: "Jan", year: "2025", amount: 50_000 },
+      // Other years must not leak into the card.
+      { type: "expense", category: "Makan", month: "Mar", year: "2023", amount: 999_999 },
+    ]
     render(<StatsTab {...createProps({
+      data: { transactions },
+      selectedYear: "2025",
+      availableYears: ["2026", "2025"],
       isAllMonths: true,
-      routineTop5Categories: ["Makan"],
-      routineTrendData: [
-        { month: "Jul", Makan: 800_000 },
-        { month: "Des", Makan: 0 },
-      ],
     })} />)
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
 
-    expect(screen.getByText(/Tren kategori pengeluaran: Jul/i)).toBeInTheDocument()
-    expect(screen.queryByText(/Tren kategori pengeluaran: Des/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Rata-rata pengeluaran terbesar di tahun 2025" })).toBeInTheDocument()
+    // 180.000 / 12 bulan = Rp 15 rb/bln; YoY = (180.000 − 90.000) / 90.000 = +100%
+    expect(screen.getByText(/Rata-rata pengeluaran terbesar di tahun 2025\. 1\. Makan Rp 15 rb per bulan/i)).toBeInTheDocument()
+    expect(screen.getByText("↑ 100%")).toBeInTheDocument()
+    expect(screen.getByText("baru")).toBeInTheDocument()
   })
 
   it("shows the selected period, surplus status, and supporting income and expense metrics", () => {
@@ -732,5 +735,68 @@ describe("StatsTab routine/actual analysis mode", () => {
     fireEvent.click(screen.getByRole("option", { name: "Semua" }))
     expect(analysisModeSelect).toHaveTextContent("Semua")
     expect(screen.getAllByText("Laptop").length).toBeGreaterThan(0)
+  })
+})
+
+describe("StatsTab per-card trend windows", () => {
+  const MONTHS_10 = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt"]
+  const routineMonthlyData = MONTHS_10.map((month) => ({
+    month, year: "2026", pemasukan: 3_000_000, pengeluaran: 1_000_000, surplus: 2_000_000,
+  }))
+
+  function renderTren(props = {}) {
+    render(<StatsTab {...createProps({ routineMonthlyData, ...props })} />)
+    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
+  }
+
+  it("removes the old section-level trend filter", () => {
+    renderTren()
+    expect(screen.queryByText("Rentang grafik tren")).not.toBeInTheDocument()
+  })
+
+  it("shows a trailing window ending at the selected month with its own chip", () => {
+    renderTren()
+
+    const chips = screen.getByRole("radiogroup", { name: "Rentang tren bulanan" })
+    expect(within(chips).getByRole("radio", { name: "Semua", checked: true })).toBeInTheDocument()
+    // Selected month is Jul 2026 (default props): window ends there, not today.
+    expect(screen.getByText("Jan 2026 – Jul 2026")).toBeInTheDocument()
+    expect(screen.getByText(/berakhir di bulan pilihan/)).toBeInTheDocument()
+  })
+
+  it("narrows the monthly chart from its own chip without touching other cards", () => {
+    renderTren()
+
+    const chips = screen.getByRole("radiogroup", { name: "Rentang tren bulanan" })
+    fireEvent.click(within(chips).getByRole("radio", { name: "6 bln" }))
+
+    expect(screen.getByText("Feb 2026 – Jul 2026")).toBeInTheDocument()
+    // Sibling cards keep their own defaults.
+    expect(forecastProps.current.span).toBe("6 bln")
+    expect(savingsTrendProps.current.span).toBe("12 bln")
+  })
+
+  it("passes span, onSpanChange, and the anchor to the forecast and savings cards", () => {
+    renderTren()
+
+    expect(forecastProps.current.span).toBe("6 bln")
+    expect(typeof forecastProps.current.onSpanChange).toBe("function")
+    expect(forecastProps.current.anchor).toEqual({ month: "Jul", year: "2026" })
+    expect(savingsTrendProps.current.span).toBe("12 bln")
+    expect(typeof savingsTrendProps.current.onSpanChange).toBe("function")
+    expect(savingsTrendProps.current.anchor).toEqual({ month: "Jul", year: "2026" })
+  })
+
+  it("passes a null anchor in Semua Bulan mode", () => {
+    const clientMonthlyData = ["Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"].map((month) => ({
+      month, pemasukan: 3_000_000, pengeluaran: 1_000_000, surplus: 2_000_000,
+    }))
+    renderTren({ isAllMonths: true, clientMonthlyData })
+
+    const chips = screen.getByRole("radiogroup", { name: "Rentang tren bulanan" })
+    expect(within(chips).getByRole("radio", { name: "Semua", checked: true })).toBeInTheDocument()
+    expect(screen.getByText("Mei 2026 – Des 2026")).toBeInTheDocument()
+    expect(forecastProps.current.anchor).toBeNull()
+    expect(savingsTrendProps.current.anchor).toBeNull()
   })
 })

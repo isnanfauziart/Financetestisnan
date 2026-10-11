@@ -213,21 +213,37 @@ function emptyForecast(projectionMonth, monthsUsed, dataGapCount) {
 }
 
 /**
+ * Month key for a monthly-series entry (`{ month: "Oktober", year: "2026" }`).
+ * Returns null when the month/year can't be parsed (e.g. year "Semua Tahun").
+ */
+export function entryMonthKey(monthName, year) {
+  return parseMonthValue(monthName, year)
+}
+
+/**
  * Compute a deterministic cash-flow forecast from complete observed months.
  *
  * @param {Array} monthlyData
- * @param {{transactions?: Array, bills?: Array, now?: Date}} options
+ * @param {{transactions?: Array, bills?: Array, now?: Date, basisMonths?: number|null, projectionKey?: number|null}} options
+ *   basisMonths: projection basis window (6 default; null = whole history).
+ *   projectionKey: explicit projected month key (anchored windows); defaults
+ *   to the month after the current WIB month.
  * @returns {Object}
  */
-export function computeForecast(monthlyData, { transactions = [], bills = [], now = new Date() } = {}) {
+export function computeForecast(monthlyData, { transactions = [], bills = [], now = new Date(), basisMonths = 6, projectionKey = null } = {}) {
   const currentKey = getWibMonth(now)
-  const projectionKey = currentKey + 1
-  const projectionMonth = formatMonth(projectionKey)
+  // Anchored forecasts (Statistik → Tren with a selected month) project the
+  // month right after the window's last entry; otherwise project next month.
+  const resolvedProjectionKey = projectionKey ?? currentKey + 1
+  const projectionMonth = formatMonth(resolvedProjectionKey)
   const grouped = new Map()
 
   for (const entry of Array.isArray(monthlyData) ? monthlyData : []) {
     const key = readEntryMonth(entry)
-    if (key === null || key >= currentKey) continue
+    // Default path excludes the current partial month; an anchored window
+    // excludes everything from the projected month onward.
+    const cutoffKey = projectionKey ?? currentKey
+    if (key === null || key >= cutoffKey) continue
     const existing = grouped.get(key) || {
       key,
       pemasukan: 0,
@@ -248,7 +264,8 @@ export function computeForecast(monthlyData, { transactions = [], bills = [], no
   }
 
   const observed = [...grouped.values()].sort((a, b) => a.key - b.key)
-  const recent = observed.slice(-6)
+  // `basisMonths: null` ("Semua") uses the whole observed history.
+  const recent = basisMonths == null ? observed : observed.slice(-basisMonths)
   const specialHistoryExcludedCount = recent.reduce((sum, entry) => sum + entry.specialHistoryExcludedCount, 0)
   const dataGapCount = recent.length < 2
     ? 0
@@ -306,12 +323,14 @@ export function computeForecast(monthlyData, { transactions = [], bills = [], no
     - (convertedByMonth.get(entry.key) || 0)))
   const incomeAverage = average(incomes)
   const incomeCv = incomeAverage > 0 ? standardDeviation(incomes) / incomeAverage : Infinity
-  const stableIncome = recent.length === 6 && incomeCv <= 0.25
+  // "stable" needs a full basis window; the window size now follows the chip.
+  const targetBasisSize = basisMonths ?? observed.length
+  const stableIncome = recent.length === targetBasisSize && incomeCv <= 0.25
   const incomeProfile = recent.length < 6 ? "limited" : stableIncome ? "stable" : "irregular"
   const incomeMethod = stableIncome ? "weighted" : "median"
   const variableIncomeBaseline = stableIncome ? weightedAverage(incomes) : median(incomes)
   const variableExpenseBaseline = weightedAverage(capWithTukeyFences(variableExpenses))
-  const { scheduledIncome, scheduledExpense } = scheduledBillTotals(bills, projectionKey)
+  const { scheduledIncome, scheduledExpense } = scheduledBillTotals(bills, resolvedProjectionKey)
   const projectedIncome = variableIncomeBaseline + scheduledIncome
   const projectedExpense = variableExpenseBaseline + scheduledExpense
   const projectedSurplus = projectedIncome - projectedExpense

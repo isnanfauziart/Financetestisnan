@@ -6,10 +6,17 @@ import { THEME } from "@/app/dashboard/_components/constants"
 import { formatRp, useCountUp } from "@/app/dashboard/_components/helpers"
 import ChartTooltip from "@/components/charts/ChartTooltip"
 import StatTile from "@/components/charts/StatTile"
-import { computeForecast } from "@/lib/forecast"
+import { computeForecast, entryMonthKey } from "@/lib/forecast"
+import { sliceWindowEnd, spanMonthsFor } from "@/lib/trendWindow"
+import TrendSpanChips from "@/components/charts/TrendSpanChips"
 import Sheet from "@/app/dashboard/_components/Sheet"
 
-const FORMULA_COPY = "Proyeksi ini dihitung berdasarkan hingga enam bulan lengkap terakhir, dengan mempertimbangkan pola pemasukan, pengeluaran, tagihan, dan pembayaran terjadwal."
+function formatFormulaCopy(basisMonths) {
+  const basis = basisMonths == null
+    ? "seluruh riwayat bulan lengkap yang tersedia"
+    : `hingga ${basisMonths} bulan lengkap terakhir`
+  return `Proyeksi ini dihitung berdasarkan ${basis}, dengan mempertimbangkan pola pemasukan, pengeluaran, tagihan, dan pembayaran terjadwal.`
+}
 const RECONCILIATION_NOTE = "Pengeluaran rutin yang sudah dijadwalkan sebagai tagihan hanya dihitung satu kali: riwayatnya keluar dari baseline rutin dan masuk sebagai tagihan terjadwal."
 const SPECIAL_HISTORY_NOTE = "Riwayat Spesial tidak masuk baseline rutin."
 
@@ -46,12 +53,32 @@ function CoverageSummary({ forecast, scheduledExpense, scheduledIncome }) {
   )
 }
 
-export default function CashFlowForecast({ monthlyData, routineMonthlyData, transactions, bills, billsLoading, billsError, now, onOpenBills }) {
+export default function CashFlowForecast({ monthlyData, routineMonthlyData, transactions, bills, billsLoading, billsError, now, onOpenBills, span = "6 bln", onSpanChange = () => {}, anchor = null }) {
   const [isInfoOpen, setIsInfoOpen] = useState(false)
   const forecastMonthlyData = routineMonthlyData || monthlyData || []
+  // The chip drives the whole card: the window is truncated to the anchor
+  // month first, then the projection basis follows the selected span.
+  const spanMonths = spanMonthsFor(span)
+  const windowedMonthlyData = useMemo(
+    () => sliceWindowEnd(forecastMonthlyData, { span: null, anchor }),
+    [forecastMonthlyData, anchor]
+  )
+  // An anchored window projects the month right after its last entry.
+  const anchorProjectionKey = useMemo(() => {
+    if (!anchor || windowedMonthlyData.length === 0) return null
+    const last = windowedMonthlyData[windowedMonthlyData.length - 1]
+    const key = entryMonthKey(last.month, last.year)
+    return key == null ? null : key + 1
+  }, [anchor, windowedMonthlyData])
   const forecast = useMemo(
-    () => computeForecast(forecastMonthlyData, { transactions: transactions || [], bills: bills || [], now: new Date(now) }),
-    [forecastMonthlyData, transactions, bills, now]
+    () => computeForecast(windowedMonthlyData, {
+      transactions: transactions || [],
+      bills: bills || [],
+      now: new Date(now),
+      basisMonths: spanMonths,
+      projectionKey: anchorProjectionKey,
+    }),
+    [windowedMonthlyData, transactions, bills, now, spanMonths, anchorProjectionKey]
   )
 
   const animatedIncome = useCountUp(forecast.projectedIncome ?? 0, 1000)
@@ -105,24 +132,25 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
   return (
     <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <TrendingUp size={14} className="text-violet-500" aria-hidden="true" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-md3-on-surface-variant">Proyeksi Arus Kas</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">
-            {forecast.projectionMonth} (proyeksi)
-          </span>
-          <button
-            type="button"
-            onClick={() => setIsInfoOpen(true)}
-            aria-label="Info proyeksi arus kas"
-            className="w-7 h-7 rounded-full bg-md3-surface text-md3-on-surface-variant hover:bg-md3-surface-container-high transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
-          >
-            <Info size={14} aria-hidden="true" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsInfoOpen(true)}
+          aria-label="Info proyeksi arus kas"
+          className="w-7 h-7 rounded-full bg-md3-surface text-md3-on-surface-variant hover:bg-md3-surface-container-high transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+        >
+          <Info size={14} aria-hidden="true" />
+        </button>
+      </div>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <TrendSpanChips value={span} onChange={onSpanChange} ariaLabel="Rentang proyeksi arus kas" />
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 whitespace-nowrap">
+          {forecast.projectionMonth} (proyeksi)
+        </span>
       </div>
 
       {/* KPI cards (shared StatTile) */}
@@ -170,11 +198,19 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
                     { key: "pengeluaran", label: "Pengeluaran", color: THEME.expense, format: formatRp },
                     { key: "surplus", label: "Surplus", color: row => (row.surplus >= 0 ? THEME.savings : THEME.danger), format: formatRp },
                   ]}
-                  footer="Proyeksi: garis putus-putus"
                 />
               }
             />
             <ReferenceLine y={0} stroke={THEME.surfaceWarm} strokeDasharray="4 4" />
+            {/* "sekarang" divider between the last actual month and the projection */}
+            {forecast.chartData.length >= 2 && (
+              <ReferenceLine
+                x={forecast.chartData[forecast.chartData.length - 2].label}
+                stroke={THEME.expense}
+                strokeDasharray="4 4"
+                label={{ value: "sekarang", position: "top", fontSize: 10, fill: THEME.expense, fontWeight: 700 }}
+              />
+            )}
             {/* Actual surplus area + line */}
             <Area
               type="monotone"
@@ -227,11 +263,14 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
         </div>
         <p className="text-[11px] text-md3-on-surface-variant">
           Berdasarkan {forecast.monthsUsed} bulan lengkap
+          {forecast.chartData.length >= 2 && (
+            <> ({forecast.chartData[0].label} – {forecast.chartData[forecast.chartData.length - 2].label})</>
+          )}
         </p>
       </div>
 
       <Sheet open={isInfoOpen} onClose={() => setIsInfoOpen(false)} title="Rumus Proyeksi Arus Kas">
-        <p className="text-sm leading-relaxed text-md3-on-surface-variant">{FORMULA_COPY}</p>
+        <p className="text-sm leading-relaxed text-md3-on-surface-variant">{formatFormulaCopy(spanMonths)}</p>
         <CoverageSummary forecast={forecast} scheduledExpense={forecast.scheduledExpense} scheduledIncome={forecast.scheduledIncome} />
         <p className="mt-3 text-xs leading-relaxed text-md3-on-surface-variant">{RECONCILIATION_NOTE}</p>
         {forecast.specialHistoryExcluded && (

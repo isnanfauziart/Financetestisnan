@@ -11,20 +11,23 @@ import EmptyState from "./_components/EmptyState"
 import RecapSection from "./_components/RecapSection"
 import StatsDataTable from "./_components/StatsDataTable"
 import useOverflowHint from "./_components/useOverflowHint"
-import SegmentedButtons from "./_components/SegmentedButtons"
 import ChartTile from "@/components/charts/ChartTile"
-import { Sparkline, DumbbellChart } from "@/components/charts/Sparkline"
+import { Sparkline } from "@/components/charts/Sparkline"
 import { useChartScheme } from "@/components/charts/useChartScheme"
 import { chartTheme, resolveChartTheme } from "@/lib/chartTheme"
 import MonthlyReportButton from "@/components/MonthlyReportButton"
 import YearInReviewButton from "@/components/YearInReviewButton"
 import CashFlowForecast from "@/components/CashFlowForecast"
 import SavingsRateTrend from "@/components/SavingsRateTrend"
+import TrendSpanChips from "@/components/charts/TrendSpanChips"
+import { sliceWindowEnd, formatWindowLabel, spanMonthsFor } from "@/lib/trendWindow"
+import NetWorthTrend from "@/components/NetWorthTrend"
 import AnomalyAlerts from "@/components/AnomalyAlerts"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import InsightCard from "@/components/InsightCard"
 import { hasFeature, isFeatureEnabled, getFeatureGate, isProRegistrationOpen } from "@/lib/featureAccess"
 import { getDisplayThresholds } from "@/lib/heatmapThresholds"
+import { isSpecialExpense } from "@/lib/expenseClass"
 
 const DAY_HEADERS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 const STATS_SECTIONS = [
@@ -37,8 +40,6 @@ const ANALYSIS_MODES = [
   { key: "routine", label: "Rutin" },
   { key: "actual", label: "Semua" },
 ]
-const TREND_SPAN_OPTIONS = ["6 bln", "12 bln", "Semua"]
-const TREND_SPANS = { "6 bln": 6, "12 bln": 12, "Semua": null }
 const SURPLUS_SPARK_MONTHS = 6
 
 function ChartSkeleton({ height = 180 }) {
@@ -64,20 +65,10 @@ function getMonthlyTrendSummary(monthlyData) {
   return `Tren bulanan: ${monthlyData.length} periode. Periode terakhir ${latest.month || "terakhir"}, pemasukan ${formatRp(latest.pemasukan || 0)}, pengeluaran ${formatRp(latest.pengeluaran || 0)}, surplus ${formatRp(latest.surplus || 0)}.`
 }
 
-function getCategoryTrendSummary(monthlyData, categories) {
-  if (!monthlyData.length || !categories.length) return "Tren kategori pengeluaran: belum ada data."
-  const latest = [...monthlyData].reverse().find(row => categories.some(category => Number(row[category]) > 0)) || monthlyData[monthlyData.length - 1]
-  const ranked = categories.slice(0, 5).map(category => `${category} ${formatRp(latest[category] || 0)}`).join(", ")
-  return `Tren kategori pengeluaran: ${latest.month || "periode terakhir"}. ${ranked}.`
-}
-
-/**
- * Revamp B — slice a monthly series to the selected trend span while keeping
- * month order. `Semua` keeps every period; numeric spans take the last N.
- */
-function sliceTrendSpan(series, span) {
-  if (!span) return series
-  return series.slice(-span)
+function getYearCategorySummary(rows, yearLabel) {
+  if (!rows.length) return "Rata-rata pengeluaran kategori: belum ada data."
+  const ranked = rows.map((row, index) => `${index + 1}. ${row.category} ${formatRp(row.average)} per bulan`).join(", ")
+  return `Rata-rata pengeluaran terbesar di tahun ${yearLabel}. ${ranked}.`
 }
 
 export default function StatsTab({
@@ -125,8 +116,6 @@ export default function StatsTab({
   onOpenPlanBills = undefined,
   controlledAnalysisMode,
   onAnalysisModeChange,
-  controlledTrendSpan = undefined,
-  onTrendSpanChange = undefined,
   onRepeatTx,
   moneyHidden = false,
   onToggleMoneyVisibility,
@@ -140,7 +129,13 @@ export default function StatsTab({
   const masked = (formatted) => (moneyHidden ? maskRupiah(formatted) : formatted)
   const showEye = typeof onToggleMoneyVisibility === "function"
   const [showDateRange, setShowDateRange] = useState(false)
-  const [internalTrendSpan, setInternalTrendSpan] = useState("Semua")
+  // Per-card trend windows (6 bln / 12 bln / Semua), independent per card.
+  // Defaults preserve each card's previous behavior: the monthly chart
+  // followed the old section filter (Semua), the forecast used 6 months,
+  // and the savings-rate chart used 12.
+  const [spanMonthly, setSpanMonthly] = useState("Semua")
+  const [spanForecast, setSpanForecast] = useState("6 bln")
+  const [spanSavings, setSpanSavings] = useState("12 bln")
   // Wave 5: section and analysis mode are URL-backed. The page passes a
   // controlled value + callback; the internal fallback keeps standalone usage
   // (and existing tests) working unchanged.
@@ -165,9 +160,12 @@ export default function StatsTab({
   const [internalAnalysisMode, setInternalAnalysisMode] = useState("routine")
   const resolvedAnalysisMode = controlledAnalysisMode ?? internalAnalysisMode
   const setAnalysisMode = (mode) => (onAnalysisModeChange ? onAnalysisModeChange(mode) : setInternalAnalysisMode(mode))
-  // Revamp C — controlled-with-fallback period granularity, mirroring the analysis mode pattern.
-  const trendSpan = controlledTrendSpan ?? internalTrendSpan
-  const setTrendSpan = (span) => (onTrendSpanChange ? onTrendSpanChange(span) : setInternalTrendSpan(span))
+  // Trailing-window anchor: with a selected month the trend windows end at
+  // that month ("what led into October?"); otherwise they end at the present.
+  const trendAnchor = useMemo(
+    () => (isAllMonths ? null : { month: selectedMonth, year: selectedYear }),
+    [isAllMonths, selectedMonth, selectedYear]
+  )
   const hasDateRange = dateFrom || dateTo
   const routineAnalyticsMonthlyData = routineMonthlyData || monthlyData
   const isRoutineMode = resolvedAnalysisMode === "routine"
@@ -176,8 +174,55 @@ export default function StatsTab({
   const activeCashFlowMonthlyData = isAllMonths
     ? (isRoutineMode ? (routineCashFlowMonthlyData || cashFlowMonthlyData || []) : (cashFlowMonthlyData || []))
     : []
-  const chartTop5Categories = isRoutineMode ? (routineTop5Categories || top5Categories) : top5Categories
-  const chartTrendData = isRoutineMode ? (routineTrendData || trendData) : trendData
+  // Trend card year: the filter year, or the latest year present in the data.
+  const trendYearLabel = useMemo(() => {
+    if (selectedYear && selectedYear !== "Semua Tahun") return String(selectedYear)
+    const years = (data?.transactions || []).map(t => Number(t.year)).filter(y => Number.isFinite(y))
+    return years.length ? String(Math.max(...years)) : String(new Date().getFullYear())
+  }, [data, selectedYear])
+  // Year-scoped top-category rows: monthly average for the trend year + YoY
+  // against the same elapsed window last year. Built from raw transactions
+  // (not the span-sliced trend series) so the "di tahun X" title always holds.
+  const yearCategoryRows = useMemo(() => {
+    const transactions = data?.transactions || []
+    const now = new Date()
+    const elapsedMonths = trendYearLabel === String(now.getFullYear()) ? now.getMonth() + 1 : 12
+    const prevYearLabel = String(Number(trendYearLabel) - 1)
+    const sumFor = (year, category, months) => {
+      let total = 0
+      for (const t of transactions) {
+        if (String(t.year) !== year || t.type !== "expense" || t.category !== category) continue
+        if (months && !months.includes(t.month)) continue
+        if (isRoutineMode && isSpecialExpense(t)) continue
+        total += Number(t.amount) || 0
+      }
+      return total
+    }
+    const totals = {}
+    for (const t of transactions) {
+      if (String(t.year) !== trendYearLabel || t.type !== "expense") continue
+      if (isRoutineMode && isSpecialExpense(t)) continue
+      totals[t.category] = (totals[t.category] || 0) + (Number(t.amount) || 0)
+    }
+    const windowMonths = AVAILABLE_MONTHS.slice(0, elapsedMonths)
+    return Object.entries(totals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([category], index) => {
+        const series = AVAILABLE_MONTHS.map(m => sumFor(trendYearLabel, category, [m]))
+        const totalY = series.reduce((s, v) => s + v, 0)
+        const average = elapsedMonths > 0 ? totalY / elapsedMonths : 0
+        const totalPrev = sumFor(prevYearLabel, category, windowMonths)
+        const delta = totalPrev > 0 ? ((totalY - totalPrev) / totalPrev) * 100 : null
+        return {
+          category,
+          series,
+          average,
+          delta,
+          color: activeChartTheme.seriesPalette[index % activeChartTheme.seriesPalette.length],
+        }
+      })
+  }, [data, trendYearLabel, isRoutineMode, activeChartTheme])
   const activeCompareDataA = isRoutineMode ? (routineCompareDataA || compareDataA) : compareDataA
   const activeCompareDataB = isRoutineMode ? (routineCompareDataB || compareDataB) : compareDataB
   const activeCompareChartData = isRoutineMode ? (routineCompareChartData || compareChartData) : compareChartData
@@ -192,6 +237,10 @@ export default function StatsTab({
     : statSurplus < 0
       ? { background: "rgba(217,154,125,0.2)", color: "#ffd8c7" }
       : { background: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.88)" }
+  // Kategori — expense bar caption names the selected period explicitly.
+  const expenseCaption = isAllMonths
+    ? `Pengeluaran terbesar · ${summaryPeriod.toLowerCase()}`
+    : `Pengeluaran terbesar bulan ${summaryPeriod}`
   const insightCards = Array.isArray(insights) ? insights : []
   // Wave 7 — persistent readable summary of the material filters (roadmap decision 17).
   // Removable filters keep their chips below; period/account/basis/comparison render as text.
@@ -205,9 +254,22 @@ export default function StatsTab({
   ]
   // Wave 7 — inclusive-actual vs routine-only basis disclosure wherever the two can appear together.
   const chartBasisLabel = isRoutineMode ? "Dasar: Pengeluaran rutin saja" : "Dasar: Semua transaksi"
-  // Revamp C — period granularity for the Tren charts (6 bln / 12 bln / Semua).
-  const spannedMonthlyData = useMemo(() => sliceTrendSpan(chartClientMonthlyData || [], TREND_SPANS[trendSpan]), [chartClientMonthlyData, trendSpan])
-  const spannedCategoryTrendData = useMemo(() => sliceTrendSpan(chartTrendData || [], TREND_SPANS[trendSpan]), [chartTrendData, trendSpan])
+  // Tren Bulanan window: the filtered monthly series in "Semua Bulan" mode,
+  // otherwise a trailing window on the ungated routine series — the same basis
+  // the forecast and savings-rate cards use. (Non-routine mode keeps the old
+  // behavior: no monthly series when a month is selected.)
+  const trendMonthlySeries = useMemo(() => {
+    if (isAllMonths) return chartClientMonthlyData || []
+    return isRoutineMode ? (routineAnalyticsMonthlyData || []) : []
+  }, [isAllMonths, chartClientMonthlyData, isRoutineMode, routineAnalyticsMonthlyData])
+  const trendMonthlyWindowed = useMemo(
+    () => sliceWindowEnd(trendMonthlySeries, { span: spanMonthsFor(spanMonthly), anchor: trendAnchor }),
+    [trendMonthlySeries, spanMonthly, trendAnchor]
+  )
+  const trendMonthlyWindowLabel = formatWindowLabel(
+    trendMonthlyWindowed,
+    selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : null
+  )
   // Revamp B — hero 6-month surplus sparkline + month-over-month delta chip.
   const heroSpark = useMemo(() => {
     const series = (clientMonthlyData || []).slice(-SURPLUS_SPARK_MONTHS)
@@ -222,26 +284,6 @@ export default function StatsTab({
     ? heroSpark.current - heroSpark.previous
     : null
   const heroDeltaUp = heroDelta != null && heroDelta > 0
-  // Revamp B — ranked sparkline rows for the top-5 category trend.
-  const categoryTrendRows = useMemo(() => chartTop5Categories.map((category, index) => {
-    const series = spannedCategoryTrendData.map(row => (row[category] == null ? null : Number(row[category])))
-    const latest = (() => {
-      for (let i = series.length - 1; i >= 0; i -= 1) {
-        if (series[i] != null && series[i] !== 0) return { value: series[i], index: i }
-      }
-      return series.length ? { value: series[series.length - 1] || 0, index: series.length - 1 } : { value: 0, index: -1 }
-    })()
-    const previous = latest.index > 0 ? series[latest.index - 1] : null
-    const delta = previous != null && previous !== 0 ? ((latest.value - previous) / previous) * 100 : null
-    return {
-      category,
-      series,
-      latest: latest.value,
-      previous,
-      delta,
-      color: activeChartTheme.seriesPalette[index % activeChartTheme.seriesPalette.length],
-    }
-  }), [chartTop5Categories, spannedCategoryTrendData, activeChartTheme])
   // Revamp B — relative quartile heatmap thresholds for the displayed month.
   // The legacy snapshot array is passed as fallback so identity can detect
   // "relative thresholds active" for the footnote.
@@ -251,18 +293,17 @@ export default function StatsTab({
   )
   // Wave 7 — overflow-gated horizontal-scroll hints and keyboard-operable chart data tables.
   const [cashFlowScrollRef, cashFlowOverflows] = useOverflowHint()
-  const [comparisonScrollRef, comparisonOverflows] = useOverflowHint()
   const categoryTableRows = chartExpenseCategories.slice(0, 8).map(category => ({
     label: category.name,
     values: [formatRp(category.value), `${formatCategoryPercentage(category.value, chartExpenseTotal)}%`],
   }))
-  const trendTableRows = spannedMonthlyData.map(row => ({
+  const trendTableRows = trendMonthlyWindowed.map(row => ({
     label: row.month,
     values: [formatRp(row.pemasukan || 0), formatRp(row.pengeluaran || 0), formatRp(row.surplus || 0)],
   }))
-  const trendCategoryTableRows = categoryTrendRows.map(row => ({
+  const trendCategoryTableRows = yearCategoryRows.map(row => ({
     label: row.category,
-    values: [formatRp(row.latest || 0)],
+    values: [`${formatRp(row.average)}/bln`],
   }))
   const comparisonTableRows = activeCompareChartData.map(item => ({
     label: item.category,
@@ -290,14 +331,6 @@ export default function StatsTab({
     label: row.label,
     values: [formatRp(row.pemasukan), formatRp(row.pengeluaran), formatRp(row.rataRataPemasukan || 0), formatRp(row.rataRataPengeluaran || 0)],
   }))
-  // Revamp B — shared value scale for the comparison dumbbell rows.
-  const comparisonDomain = useMemo(() => {
-    let max = 0
-    activeCompareChartData.forEach(item => {
-      max = Math.max(max, Number(item[compareLabelA]) || 0, Number(item[compareLabelB]) || 0)
-    })
-    return [0, Math.max(1, max)]
-  }, [activeCompareChartData, compareLabelA, compareLabelB])
 
   return (
     <div className="px-5 pt-4 space-y-5 animate-bento-in" key="stats-tab">
@@ -448,6 +481,11 @@ export default function StatsTab({
             </section>
           )}
 
+          {/* Net worth trend — month-end history on a warm band, below the hero card */}
+          {refreshing ? <ChartSkeleton height={260} /> : (
+            <NetWorthTrend history={data?.netWorthHistory || []} moneyHidden={moneyHidden} />
+          )}
+
           {isAllMonths && (
             refreshing ? <ChartSkeleton height={300} /> : (
               <ChartTile
@@ -539,7 +577,7 @@ export default function StatsTab({
             ].map(({ key, title, categories, summaryId, ariaLabel }) => (
               <section key={key} className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 shadow-warm" aria-label={ariaLabel}>
                 <h3 id={`${summaryId}-title`} className="text-sm font-bold mb-2 font-display text-md3-on-surface">{title}</h3>
-                <p className="text-[11px] text-md3-on-surface-variant">{key === "expense" ? chartBasisLabel : "Dasar: Semua transaksi"}</p>
+                <p className="text-[11px] text-md3-on-surface-variant">{key === "expense" ? expenseCaption : "Dasar: Semua transaksi"}</p>
                 <p id={summaryId} className="sr-only">{getCategorySummary(title, categories)}</p>
                 {categories.length === 0 ? (
                   <EmptyState icon={<Wallet size={18} />} title="Belum ada" />
@@ -596,46 +634,47 @@ export default function StatsTab({
           </div>
           )}
 
-          {/* Top categories trend — ranked sparkline rows (revamp B) */}
-          {chartTop5Categories.length > 0 && (
+          {/* Yearly average category trend — ranked rows with YoY pills */}
+          {yearCategoryRows.length > 0 && (
             refreshing ? <ChartSkeleton height={270} /> : (
-            <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" aria-label="Tren Kategori Pengeluaran">
+            <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" aria-label={`Rata-rata pengeluaran terbesar di tahun ${trendYearLabel}`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-bold font-display text-md3-on-surface">Tren Kategori Pengeluaran</h3>
-                  <p className="mt-1 text-[11px] text-md3-on-surface-variant">{chartBasisLabel}</p>
+                  <h3 className="text-sm font-bold font-display text-md3-on-surface">Rata-rata pengeluaran terbesar di tahun {trendYearLabel}</h3>
+                  <p className="mt-1 text-[11px] text-md3-on-surface-variant">Rata-rata per bulan · % vs tahun {String(Number(trendYearLabel) - 1)}</p>
                 </div>
                 <span className="flex-shrink-0 rounded-full bg-md3-surface px-2.5 py-1 text-[10px] font-bold text-md3-on-surface-variant">
-                  {spannedCategoryTrendData.length} bulan
+                  12 bulan
                 </span>
               </div>
-              <p id="stats-category-trend-summary" className="sr-only">{getCategoryTrendSummary(spannedCategoryTrendData, chartTop5Categories)}</p>
-              <div className="mt-3 space-y-1" aria-describedby="stats-category-trend-summary">
-                {categoryTrendRows.map((row) => {
+              <p id="stats-category-trend-summary" className="sr-only">{getYearCategorySummary(yearCategoryRows, trendYearLabel)}</p>
+              <div className="mt-2" aria-describedby="stats-category-trend-summary">
+                {yearCategoryRows.map((row, index) => {
                   const deltaUp = row.delta != null && row.delta > 0
-                  const deltaLabel = row.delta == null
-                    ? "baru"
-                    : `${deltaUp ? "+" : ""}${row.delta.toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}%`
                   return (
-                    <div key={row.category} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-md3-surface-container-low transition-colors">
+                    <div key={row.category} className="flex items-center gap-2.5 border-b border-md3-outline-variant/60 px-2 py-2.5 last:border-0 hover:bg-md3-surface-container-low transition-colors">
+                      <span className="w-4 flex-shrink-0 font-display text-[13px] font-bold text-md3-on-surface-variant" aria-hidden="true">{index + 1}</span>
                       <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: row.color }} aria-hidden="true" />
                       <span className="min-w-0 flex-1 truncate text-xs font-semibold text-md3-on-surface">{row.category}</span>
-                      <Sparkline points={row.series} width={88} height={28} color={row.color} strokeWidth={1.75} />
-                      <span
-                        className={`flex-shrink-0 text-[11px] font-bold tabular-nums ${deltaUp ? "text-md3-error" : "text-md3-primary"}`}
-                        style={row.delta == null ? { opacity: 0.5 } : undefined}
-                      >
-                        {deltaUp ? "↑" : row.delta != null && row.delta < 0 ? "↓" : "•"} {deltaLabel}
+                      <Sparkline points={row.series} mode="area" width={92} height={30} color={row.color} strokeWidth={1.75} />
+                      {row.delta == null ? (
+                        <span className="flex-shrink-0 rounded-full bg-md3-surface px-2 py-1 text-[10px] font-bold text-md3-on-surface-variant">baru</span>
+                      ) : (
+                        <span className={`flex-shrink-0 rounded-full px-2 py-1 text-[10px] font-bold tabular-nums ${deltaUp ? "bg-clay-100 text-clay-600" : "bg-sage-100 text-sage-700"}`}>
+                          {deltaUp ? "↑" : "↓"} {Math.abs(Math.round(row.delta))}%
+                        </span>
+                      )}
+                      <span className="w-[92px] flex-shrink-0 text-right text-xs font-bold tabular-nums text-md3-on-surface">
+                        {formatRp(row.average)}<span className="font-medium text-md3-on-surface-variant">/bln</span>
                       </span>
-                      <span className="flex-shrink-0 w-20 text-right text-xs font-bold text-md3-on-surface tabular-nums">{formatRp(row.latest || 0)}</span>
                     </div>
                   )
                 })}
               </div>
               <StatsDataTable
                 id="stats-category-trend-table"
-                caption="Data tren kategori pengeluaran"
-                columns={["Kategori", "Periode terakhir"]}
+                caption="Data rata-rata kategori pengeluaran"
+                columns={["Kategori", "Rata-rata per bulan"]}
                 rows={trendCategoryTableRows}
               />
             </section>
@@ -646,29 +685,28 @@ export default function StatsTab({
 
       {activeSection === "tren" && (
         <div id="stats-panel-tren" role="tabpanel" aria-labelledby="stats-tab-tren" tabIndex={-1} className="space-y-5">
-          {/* Revamp C — period granularity for trend charts */}
-          <div className="glass rounded-2xl p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" role="group" aria-label="Rentang tren">
-            <p className="text-[11px] font-semibold text-md3-on-surface-variant">Rentang grafik tren</p>
-            <div className="sm:w-64" data-testid="stats-trend-span">
-              <SegmentedButtons
-                options={TREND_SPAN_OPTIONS}
-                value={trendSpan}
-                onChange={setTrendSpan}
-                ariaLabel="Rentang grafik tren"
-              />
-            </div>
-          </div>
-
-          {/* Monthly trend */}
-          {isAllMonths && (
+          {/* Monthly trend — per-card range chip; trailing window when a month is selected.
+              The isAllMonths branch preserves the legacy empty-chart render. */}
+          {(isAllMonths || trendMonthlyWindowed.length > 0) && (
             refreshing ? <ChartSkeleton height={240} /> : (
             <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" aria-label="Tren Bulanan">
-              <h3 className="text-sm font-bold font-display text-md3-on-surface">Tren Bulanan</h3>
-              <p className="mt-1 text-[11px] text-md3-on-surface-variant">{chartBasisLabel}</p>
-              <p id="stats-monthly-trend-summary" className="sr-only">{getMonthlyTrendSummary(spannedMonthlyData)}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-bold font-display text-md3-on-surface">Tren Bulanan</h3>
+                  <p className="mt-1 text-[11px] text-md3-on-surface-variant">{chartBasisLabel}</p>
+                </div>
+                <TrendSpanChips value={spanMonthly} onChange={setSpanMonthly} ariaLabel="Rentang tren bulanan" />
+              </div>
+              {trendMonthlyWindowLabel && (
+                <p className="mt-1 text-[11px] text-md3-on-surface-variant">
+                  Jendela: <span className="font-bold text-md3-on-surface">{trendMonthlyWindowLabel}</span>
+                  {trendAnchor && trendAnchor.month ? " · berakhir di bulan pilihan" : ""}
+                </p>
+              )}
+              <p id="stats-monthly-trend-summary" className="sr-only">{getMonthlyTrendSummary(trendMonthlyWindowed)}</p>
               <div role="img" aria-describedby="stats-monthly-trend-summary" className="mt-3">
                 <ResponsiveContainer width="100%" height={240}>
-                  <ComposedChart data={spannedMonthlyData} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+                  <ComposedChart data={trendMonthlyWindowed} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={activeChartTheme.gridStroke} />
                     <XAxis dataKey="month" tick={activeChartTheme.axisTick} axisLine={false} tickLine={false} />
                     <YAxis
@@ -696,8 +734,8 @@ export default function StatsTab({
             )
           )}
 
-          {getFeatureGate(effectiveEntitlement, "cashFlowForecast") === "unavailable" ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(effectiveEntitlement, "cashFlowForecast") === "unresolved" ? <LockedFeaturePreview title="Cash Flow Forecast" unresolved /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={routineAnalyticsMonthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} onOpenBills={onOpenPlanBills} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." example="Contoh: surplus bulan depan diproyeksikan dari enam bulan lengkap terakhir." proRegistrationOpen={proRegistrationOpen} />}
-          <SavingsRateTrend monthlyData={routineAnalyticsMonthlyData} />
+          {getFeatureGate(effectiveEntitlement, "cashFlowForecast") === "unavailable" ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(effectiveEntitlement, "cashFlowForecast") === "unresolved" ? <LockedFeaturePreview title="Cash Flow Forecast" unresolved /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={routineAnalyticsMonthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} onOpenBills={onOpenPlanBills} span={spanForecast} onSpanChange={setSpanForecast} anchor={trendAnchor} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." example="Contoh: surplus bulan depan diproyeksikan dari enam bulan lengkap terakhir." proRegistrationOpen={proRegistrationOpen} />}
+          <SavingsRateTrend monthlyData={routineAnalyticsMonthlyData} span={spanSavings} onSpanChange={setSpanSavings} anchor={trendAnchor} />
 
           {/* Month comparison */}
           <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" aria-label="Bandingkan Bulan">
@@ -767,55 +805,53 @@ export default function StatsTab({
                     <p id="stats-comparison-summary" className="sr-only">
                       Perbandingan pengeluaran {compareLabelA} dan {compareLabelB}: {activeCompareChartData.map(item => `${item.category}, ${formatRp(item[compareLabelA] || 0)} dan ${formatRp(item[compareLabelB] || 0)}`).join("; ")}.
                     </p>
-                    <div className="overflow-x-auto" ref={comparisonScrollRef}>
-                      <div aria-describedby="stats-comparison-summary" style={{ minWidth: Math.max(320, activeCompareChartData.length * 96) }}>
-                        {activeCompareChartData.slice(0, 8).map((item, index) => {
-                          const valueA = Number(item[compareLabelA]) || 0
-                          const valueB = Number(item[compareLabelB]) || 0
-                          const delta = valueB > 0 ? ((valueA - valueB) / valueB) * 100 : null
-                          const isUp = delta != null && delta > 0
-                          return (
-                            <div key={item.category} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-md3-surface-container-low transition-colors">
+                    <div aria-describedby="stats-comparison-summary">
+                      {activeCompareChartData.slice(0, 8).map((item, index) => {
+                        const valueA = Number(item[compareLabelA]) || 0
+                        const valueB = Number(item[compareLabelB]) || 0
+                        const pairMax = Math.max(valueA, valueB)
+                        const delta = valueB > 0 ? ((valueA - valueB) / valueB) * 100 : null
+                        const isUp = delta != null && delta > 0
+                        return (
+                          <div key={item.category} className="rounded-xl px-2 py-2.5 hover:bg-md3-surface-container-low transition-colors">
+                            <div className="flex items-center gap-2.5">
                               <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: activeChartTheme.seriesPalette[index % activeChartTheme.seriesPalette.length] }} aria-hidden="true" />
                               <span className="min-w-0 flex-1 truncate text-xs font-semibold text-md3-on-surface">{item.category}</span>
-                              <DumbbellChart
-                                rows={[{ a: valueA, b: valueB }]}
-                                domain={comparisonDomain}
-                                width={150}
-                                rowHeight={28}
-                                colorA={THEME.primary}
-                                colorB="#C8BEB1"
-                                formatValue={value => formatRp(value).replace("Rp ", "")}
-                              />
-                              <span className="flex-shrink-0 text-right">
-                                <span className="block text-[11px] font-bold text-md3-on-surface tabular-nums">{formatRp(valueA)}</span>
-                                <span className="block text-[10px] font-semibold text-md3-on-surface-variant tabular-nums">vs {formatRp(valueB)}</span>
-                              </span>
-                              <span
-                                className={`flex-shrink-0 w-14 text-right text-[11px] font-bold tabular-nums ${isUp ? "text-md3-error" : "text-md3-primary"}`}
-                                style={delta == null ? { opacity: 0.5 } : undefined}
-                              >
-                                {delta == null ? "baru" : `${isUp ? "↑" : "↓"} ${Math.abs(delta).toLocaleString("id-ID", { maximumFractionDigits: 0 })}%`}
-                              </span>
+                              {delta == null ? (
+                                <span className="flex-shrink-0 rounded-full bg-md3-surface px-2 py-1 text-[10px] font-bold text-md3-on-surface-variant">baru</span>
+                              ) : (
+                                <span className={`flex-shrink-0 rounded-full px-2 py-1 text-[10px] font-bold tabular-nums ${isUp ? "bg-clay-100 text-clay-600" : "bg-sage-100 text-sage-700"}`}>
+                                  {isUp ? "↑" : "↓"} {Math.abs(delta).toLocaleString("id-ID", { maximumFractionDigits: 0 })}%
+                                </span>
+                              )}
                             </div>
-                          )
-                        })}
-                      </div>
+                            <div className="mt-2 space-y-1.5">
+                              {[
+                                { value: valueA, width: pairMax > 0 ? (valueA / pairMax) * 100 : 0, bar: "bg-sage-500", label: "text-md3-on-surface" },
+                                { value: valueB, width: pairMax > 0 ? (valueB / pairMax) * 100 : 0, bar: "bg-sage-300", label: "text-md3-on-surface-variant" },
+                              ].map((bar, barIndex) => (
+                                <div key={barIndex} className="flex items-center gap-2">
+                                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-md3-surface-container-high">
+                                    <div className={`h-full rounded-full ${bar.bar}`} style={{ width: `${bar.width}%` }} />
+                                  </div>
+                                  <span className={`w-16 flex-shrink-0 text-[10px] font-bold tabular-nums ${bar.label}`}>{formatRp(bar.value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                     <div role="group" aria-label="Keterangan warna perbandingan" className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-md3-on-surface-variant">
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full" style={{ background: THEME.primary }} aria-hidden="true" />
+                        <span className="h-2 w-2 rounded-full bg-sage-500" aria-hidden="true" />
                         {compareLabelA}
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full" style={{ background: "#C8BEB1" }} aria-hidden="true" />
+                        <span className="h-2 w-2 rounded-full bg-sage-300" aria-hidden="true" />
                         {compareLabelB}
                       </span>
-                      <p className="basis-full text-[10px] text-md3-on-surface-variant">Keduanya menunjukkan pengeluaran — titik lebih kanan berarti lebih besar.</p>
                     </div>
-                    {comparisonOverflows && (
-                      <p data-testid="stats-comparison-hint" className="mt-2 text-[10px] font-semibold text-md3-on-surface-variant">Geser untuk melihat semua kategori</p>
-                    )}
                     <StatsDataTable
                       id="stats-comparison-table"
                       caption="Data perbandingan bulan"
