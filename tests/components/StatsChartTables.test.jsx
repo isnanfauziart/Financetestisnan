@@ -171,8 +171,11 @@ describe("StatsTab chart data tables", () => {
   it("exposes the monthly trend and category trend charts as data tables", () => {
     render(<StatsTab {...createProps({
       clientMonthlyData: [{ month: "Jan", pemasukan: 5_000_000, pengeluaran: 2_000_000, surplus: 3_000_000 }],
-      routineTop5Categories: ["Makan"],
-      routineTrendData: [{ month: "Jan", Makan: 800_000 }],
+      data: { transactions: [
+        { type: "expense", category: "Makan", month: "Jan", year: "2025", amount: 120_000 },
+      ] },
+      selectedYear: "2025",
+      availableYears: ["2026", "2025"],
     })} />)
 
     fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
@@ -184,7 +187,9 @@ describe("StatsTab chart data tables", () => {
     // Category trend table (inside the Kategori panel)
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
     fireEvent.click(screen.getByRole("button", { name: "Lihat data sebagai tabel" }))
-    expect(screen.getByRole("region", { name: "Data tren kategori pengeluaran" })).toHaveTextContent("Makan")
+    const table = screen.getByRole("region", { name: "Data rata-rata kategori pengeluaran" })
+    expect(table).toHaveTextContent("Makan")
+    expect(table).toHaveTextContent("Rp 10 rb/bln")
   })
 
   it("exposes the month comparison chart as a data table with both period columns", () => {

@@ -13,7 +13,9 @@ vi.mock("recharts", () => ({
   CartesianGrid: () => null,
   Tooltip: () => null,
   ResponsiveContainer: ({ children }) => <div>{children}</div>,
-  ReferenceLine: () => null,
+  ReferenceLine: ({ x, label }) => (
+    <g data-testid="reference-line" data-x={x} data-label={typeof label === "object" ? label?.value : label} />
+  ),
 }))
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
@@ -145,7 +147,7 @@ describe("CashFlowForecast", () => {
 
     fireEvent.click(infoButton)
     expect(screen.getByRole("dialog")).toHaveTextContent("Rumus Proyeksi Arus Kas")
-    expect(screen.getByText("Proyeksi ini dihitung berdasarkan hingga enam bulan lengkap terakhir, dengan mempertimbangkan pola pemasukan, pengeluaran, tagihan, dan pembayaran terjadwal.")).toBeInTheDocument()
+    expect(screen.getByText("Proyeksi ini dihitung berdasarkan hingga 6 bulan lengkap terakhir, dengan mempertimbangkan pola pemasukan, pengeluaran, tagihan, dan pembayaran terjadwal.")).toBeInTheDocument()
     expect(screen.getByText("Riwayat Spesial tidak masuk baseline rutin.")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "Tutup" }))
@@ -244,5 +246,58 @@ describe("CashFlowForecast", () => {
 
     expect(expectedForecast.insufficientData).toBe(false)
     expect(screen.getByText(formatRp(expectedForecast.projectedIncome))).toBeInTheDocument()
+  })
+
+  it("renders an independent range chip defaulting to 6 bln", () => {
+    renderForecast({ monthlyData: createMonthlyData(14) })
+
+    const chips = screen.getByRole("radiogroup", { name: "Rentang proyeksi arus kas" })
+    expect(within(chips).getByRole("radio", { name: "6 bln", checked: true })).toBeInTheDocument()
+    expect(within(chips).getByRole("radio", { name: "12 bln", checked: false })).toBeInTheDocument()
+    expect(within(chips).getByRole("radio", { name: "Semua", checked: false })).toBeInTheDocument()
+    expect(screen.getByText(/Berdasarkan 6 bulan lengkap/)).toBeInTheDocument()
+  })
+
+  it("drives the whole card from the chip: basis, footnote, and callback", () => {
+    const monthlyData = createMonthlyData(14)
+    const onSpanChange = vi.fn()
+    renderForecast({ monthlyData, span: "12 bln", onSpanChange })
+
+    expect(screen.getByText(/Berdasarkan 12 bulan lengkap/)).toBeInTheDocument()
+
+    const chips = screen.getByRole("radiogroup", { name: "Rentang proyeksi arus kas" })
+    fireEvent.click(within(chips).getByRole("radio", { name: "Semua" }))
+    expect(onSpanChange).toHaveBeenCalledWith("Semua")
+  })
+
+  it("uses the full history when the Semua chip is selected", () => {
+    renderForecast({ monthlyData: createMonthlyData(14), span: "Semua" })
+
+    expect(screen.getByText(/Berdasarkan 14 bulan lengkap/)).toBeInTheDocument()
+  })
+
+  it("marks the actual/projection boundary with a sekarang divider", () => {
+    const monthlyData = createMonthlyData(8)
+    const expected = computeForecast(monthlyData, {})
+    const lastActualLabel = expected.chartData[expected.chartData.length - 2].label
+
+    renderForecast({ monthlyData })
+
+    const dividers = screen.getAllByTestId("reference-line")
+    const sekarang = dividers.find((d) => d.getAttribute("data-label") === "sekarang")
+    expect(sekarang).toBeDefined()
+    expect(sekarang.getAttribute("data-x")).toBe(lastActualLabel)
+  })
+
+  it("projects the month after the anchor when a month is selected", () => {
+    const monthlyData = createMonthlyData(10)
+    const last = monthlyData.at(-1)
+    const { year, monthIndex } = getWibMonthParts()
+
+    renderForecast({ monthlyData, anchor: { month: last.month, year: last.year } })
+
+    // The anchor is the last complete month, so the projection is the current month.
+    expect(screen.getByText(`${MONTHS[monthIndex]} ${year} (proyeksi)`)).toBeInTheDocument()
+    expect(screen.getByText(/Berdasarkan 6 bulan lengkap/)).toBeInTheDocument()
   })
 })
