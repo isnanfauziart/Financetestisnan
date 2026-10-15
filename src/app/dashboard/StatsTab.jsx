@@ -19,8 +19,6 @@ import MonthlyReportButton from "@/components/MonthlyReportButton"
 import YearInReviewButton from "@/components/YearInReviewButton"
 import CashFlowForecast from "@/components/CashFlowForecast"
 import SavingsRateTrend from "@/components/SavingsRateTrend"
-import TrendSpanChips from "@/components/charts/TrendSpanChips"
-import { sliceWindowEnd, formatWindowLabel, spanMonthsFor } from "@/lib/trendWindow"
 import NetWorthTrend from "@/components/NetWorthTrend"
 import AnomalyAlerts from "@/components/AnomalyAlerts"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
@@ -57,12 +55,6 @@ function getCategorySummary(title, categories) {
 function formatCategoryPercentage(value, total) {
   const percentage = total > 0 ? (Number(value) || 0) / total * 100 : 0
   return percentage.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-}
-
-function getMonthlyTrendSummary(monthlyData) {
-  if (!monthlyData.length) return "Tren bulanan: belum ada data."
-  const latest = monthlyData[monthlyData.length - 1]
-  return `Tren bulanan: ${monthlyData.length} periode. Periode terakhir ${latest.month || "terakhir"}, pemasukan ${formatRp(latest.pemasukan || 0)}, pengeluaran ${formatRp(latest.pengeluaran || 0)}, surplus ${formatRp(latest.surplus || 0)}.`
 }
 
 function getYearCategorySummary(rows, yearLabel) {
@@ -130,10 +122,8 @@ export default function StatsTab({
   const showEye = typeof onToggleMoneyVisibility === "function"
   const [showDateRange, setShowDateRange] = useState(false)
   // Per-card trend windows (6 bln / 12 bln / Semua), independent per card.
-  // Defaults preserve each card's previous behavior: the monthly chart
-  // followed the old section filter (Semua), the forecast used 6 months,
-  // and the savings-rate chart used 12.
-  const [spanMonthly, setSpanMonthly] = useState("Semua")
+  // Defaults preserve each card's previous behavior: the forecast used
+  // 6 months and the savings-rate chart used 12.
   const [spanForecast, setSpanForecast] = useState("6 bln")
   const [spanSavings, setSpanSavings] = useState("12 bln")
   // Wave 5: section and analysis mode are URL-backed. The page passes a
@@ -170,7 +160,6 @@ export default function StatsTab({
   const routineAnalyticsMonthlyData = routineMonthlyData || monthlyData
   const isRoutineMode = resolvedAnalysisMode === "routine"
   const chartExpenseCategories = isRoutineMode ? (routineExpenseCategories || expenseCategories) : expenseCategories
-  const chartClientMonthlyData = isRoutineMode ? (routineClientMonthlyData || clientMonthlyData) : clientMonthlyData
   const activeCashFlowMonthlyData = isAllMonths
     ? (isRoutineMode ? (routineCashFlowMonthlyData || cashFlowMonthlyData || []) : (cashFlowMonthlyData || []))
     : []
@@ -254,22 +243,6 @@ export default function StatsTab({
   ]
   // Wave 7 — inclusive-actual vs routine-only basis disclosure wherever the two can appear together.
   const chartBasisLabel = isRoutineMode ? "Dasar: Pengeluaran rutin saja" : "Dasar: Semua transaksi"
-  // Tren Bulanan window: the filtered monthly series in "Semua Bulan" mode,
-  // otherwise a trailing window on the ungated routine series — the same basis
-  // the forecast and savings-rate cards use. (Non-routine mode keeps the old
-  // behavior: no monthly series when a month is selected.)
-  const trendMonthlySeries = useMemo(() => {
-    if (isAllMonths) return chartClientMonthlyData || []
-    return isRoutineMode ? (routineAnalyticsMonthlyData || []) : []
-  }, [isAllMonths, chartClientMonthlyData, isRoutineMode, routineAnalyticsMonthlyData])
-  const trendMonthlyWindowed = useMemo(
-    () => sliceWindowEnd(trendMonthlySeries, { span: spanMonthsFor(spanMonthly), anchor: trendAnchor }),
-    [trendMonthlySeries, spanMonthly, trendAnchor]
-  )
-  const trendMonthlyWindowLabel = formatWindowLabel(
-    trendMonthlyWindowed,
-    selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : null
-  )
   // Revamp B — hero 6-month surplus sparkline + month-over-month delta chip.
   const heroSpark = useMemo(() => {
     const series = (clientMonthlyData || []).slice(-SURPLUS_SPARK_MONTHS)
@@ -296,10 +269,6 @@ export default function StatsTab({
   const categoryTableRows = chartExpenseCategories.slice(0, 8).map(category => ({
     label: category.name,
     values: [formatRp(category.value), `${formatCategoryPercentage(category.value, chartExpenseTotal)}%`],
-  }))
-  const trendTableRows = trendMonthlyWindowed.map(row => ({
-    label: row.month,
-    values: [formatRp(row.pemasukan || 0), formatRp(row.pengeluaran || 0), formatRp(row.surplus || 0)],
   }))
   const trendCategoryTableRows = yearCategoryRows.map(row => ({
     label: row.category,
@@ -654,9 +623,8 @@ export default function StatsTab({
                   return (
                     <div key={row.category} className="flex items-center gap-2.5 border-b border-md3-outline-variant/60 px-2 py-2.5 last:border-0 hover:bg-md3-surface-container-low transition-colors">
                       <span className="w-4 flex-shrink-0 font-display text-[13px] font-bold text-md3-on-surface-variant" aria-hidden="true">{index + 1}</span>
-                      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: row.color }} aria-hidden="true" />
                       <span className="min-w-0 flex-1 truncate text-xs font-semibold text-md3-on-surface">{row.category}</span>
-                      <Sparkline points={row.series} mode="area" width={92} height={30} color={row.color} strokeWidth={1.75} />
+                      <Sparkline points={row.series} mode="area" width={64} height={30} color={row.color} strokeWidth={1.75} />
                       {row.delta == null ? (
                         <span className="flex-shrink-0 rounded-full bg-md3-surface px-2 py-1 text-[10px] font-bold text-md3-on-surface-variant">baru</span>
                       ) : (
@@ -685,55 +653,6 @@ export default function StatsTab({
 
       {activeSection === "tren" && (
         <div id="stats-panel-tren" role="tabpanel" aria-labelledby="stats-tab-tren" tabIndex={-1} className="space-y-5">
-          {/* Monthly trend — per-card range chip; trailing window when a month is selected.
-              The isAllMonths branch preserves the legacy empty-chart render. */}
-          {(isAllMonths || trendMonthlyWindowed.length > 0) && (
-            refreshing ? <ChartSkeleton height={240} /> : (
-            <section className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-4 sm:p-5 shadow-warm" aria-label="Tren Bulanan">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-bold font-display text-md3-on-surface">Tren Bulanan</h3>
-                  <p className="mt-1 text-[11px] text-md3-on-surface-variant">{chartBasisLabel}</p>
-                </div>
-                <TrendSpanChips value={spanMonthly} onChange={setSpanMonthly} ariaLabel="Rentang tren bulanan" />
-              </div>
-              {trendMonthlyWindowLabel && (
-                <p className="mt-1 text-[11px] text-md3-on-surface-variant">
-                  Jendela: <span className="font-bold text-md3-on-surface">{trendMonthlyWindowLabel}</span>
-                  {trendAnchor && trendAnchor.month ? " · berakhir di bulan pilihan" : ""}
-                </p>
-              )}
-              <p id="stats-monthly-trend-summary" className="sr-only">{getMonthlyTrendSummary(trendMonthlyWindowed)}</p>
-              <div role="img" aria-describedby="stats-monthly-trend-summary" className="mt-3">
-                <ResponsiveContainer width="100%" height={240}>
-                  <ComposedChart data={trendMonthlyWindowed} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={activeChartTheme.gridStroke} />
-                    <XAxis dataKey="month" tick={activeChartTheme.axisTick} axisLine={false} tickLine={false} />
-                    <YAxis
-                      width={58}
-                      tickFormatter={value => formatRp(value)}
-                      tick={activeChartTheme.axisTick}
-                      axisLine={false}
-                      tickLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="pemasukan" name="Pemasukan" fill={THEME.income} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={0} animationDuration={220} />
-                    <Bar dataKey="pengeluaran" name="Pengeluaran" fill={THEME.expense} radius={[6, 6, 0, 0]} maxBarSize={14} animationBegin={40} animationDuration={220} />
-                    <Line type="monotone" dataKey="surplus" name="Surplus" stroke={THEME.savings} strokeWidth={3} dot={{ r: 4, fill: THEME.savings, strokeWidth: 2, stroke: "#fff" }} animationBegin={80} animationDuration={260} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-              <StatsDataTable
-                id="stats-monthly-trend-table"
-                caption="Data tren bulanan"
-                columns={["Bulan", "Pemasukan", "Pengeluaran", "Surplus"]}
-                rows={trendTableRows}
-              />
-            </section>
-            )
-          )}
-
           {getFeatureGate(effectiveEntitlement, "cashFlowForecast") === "unavailable" ? <LockedFeaturePreview title="Cash Flow Forecast" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(effectiveEntitlement, "cashFlowForecast") === "unresolved" ? <LockedFeaturePreview title="Cash Flow Forecast" unresolved /> : hasFeature(effectiveEntitlement, "cashFlowForecast") ? <CashFlowForecast monthlyData={routineAnalyticsMonthlyData} transactions={allTransactions} bills={bills} billsLoading={billsLoading} billsError={billsError} now={now} onOpenBills={onOpenPlanBills} span={spanForecast} onSpanChange={setSpanForecast} anchor={trendAnchor} /> : <LockedFeaturePreview title="Cash Flow Forecast" description="Prediksi arus kas tersedia di Pro." example="Contoh: surplus bulan depan diproyeksikan dari enam bulan lengkap terakhir." proRegistrationOpen={proRegistrationOpen} />}
           <SavingsRateTrend monthlyData={routineAnalyticsMonthlyData} span={spanSavings} onSpanChange={setSpanSavings} anchor={trendAnchor} />
 
