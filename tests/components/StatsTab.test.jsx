@@ -170,7 +170,7 @@ describe("StatsTab Filter aktif summary", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
 
-    expect(screen.getAllByText("Dasar: Pengeluaran rutin saja").length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/Dasar: Pengeluaran rutin saja/)).toBeInTheDocument()
   })
 
   it("labels the actual chart basis in the Tren section", () => {
@@ -178,7 +178,7 @@ describe("StatsTab Filter aktif summary", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
 
-    expect(screen.getAllByText("Dasar: Semua transaksi").length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/Dasar: Semua transaksi/)).toBeInTheDocument()
   })
 
   it("labels the expense bar chart with the selected period in the Kategori section", () => {
@@ -402,7 +402,7 @@ describe("StatsTab financial summary", () => {
     expect(screen.queryByText("Begini kondisi keuanganmu")).not.toBeInTheDocument()
   })
 
-  it("provides text alternatives for category and monthly trend charts", () => {
+  it("provides text alternatives for category charts", () => {
     render(<StatsTab {...createProps({
       isAllMonths: true,
       expenseCategories: [{ name: "Makan", value: 800_000 }],
@@ -410,15 +410,11 @@ describe("StatsTab financial summary", () => {
       incomeCategories: [{ name: "Gaji", value: 5_000_000 }],
       routineTop5Categories: ["Makan"],
       routineTrendData: [{ month: "Jul", Makan: 800_000 }],
-      clientMonthlyData: [{ month: "Jul", pemasukan: 5_000_000, pengeluaran: 800_000, surplus: 4_200_000 }],
     })} />)
 
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
     expect(screen.getByText(/Pengeluaran terbesar: Makan/i)).toBeInTheDocument()
     expect(screen.getByText(/Pemasukan terbesar: Gaji/i)).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
-    expect(screen.getByText(/Tren Bulanan: 1 periode/i)).toBeInTheDocument()
   })
 
   it("scopes the category trend card to the filter year with monthly averages and YoY", () => {
@@ -754,28 +750,6 @@ describe("StatsTab per-card trend windows", () => {
     expect(screen.queryByText("Rentang grafik tren")).not.toBeInTheDocument()
   })
 
-  it("shows a trailing window ending at the selected month with its own chip", () => {
-    renderTren()
-
-    const chips = screen.getByRole("radiogroup", { name: "Rentang tren bulanan" })
-    expect(within(chips).getByRole("radio", { name: "Semua", checked: true })).toBeInTheDocument()
-    // Selected month is Jul 2026 (default props): window ends there, not today.
-    expect(screen.getByText("Jan 2026 – Jul 2026")).toBeInTheDocument()
-    expect(screen.getByText(/berakhir di bulan pilihan/)).toBeInTheDocument()
-  })
-
-  it("narrows the monthly chart from its own chip without touching other cards", () => {
-    renderTren()
-
-    const chips = screen.getByRole("radiogroup", { name: "Rentang tren bulanan" })
-    fireEvent.click(within(chips).getByRole("radio", { name: "6 bln" }))
-
-    expect(screen.getByText("Feb 2026 – Jul 2026")).toBeInTheDocument()
-    // Sibling cards keep their own defaults.
-    expect(forecastProps.current.span).toBe("6 bln")
-    expect(savingsTrendProps.current.span).toBe("12 bln")
-  })
-
   it("passes span, onSpanChange, and the anchor to the forecast and savings cards", () => {
     renderTren()
 
@@ -788,14 +762,8 @@ describe("StatsTab per-card trend windows", () => {
   })
 
   it("passes a null anchor in Semua Bulan mode", () => {
-    const clientMonthlyData = ["Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"].map((month) => ({
-      month, pemasukan: 3_000_000, pengeluaran: 1_000_000, surplus: 2_000_000,
-    }))
-    renderTren({ isAllMonths: true, clientMonthlyData })
+    renderTren({ isAllMonths: true })
 
-    const chips = screen.getByRole("radiogroup", { name: "Rentang tren bulanan" })
-    expect(within(chips).getByRole("radio", { name: "Semua", checked: true })).toBeInTheDocument()
-    expect(screen.getByText("Mei 2026 – Des 2026")).toBeInTheDocument()
     expect(forecastProps.current.anchor).toBeNull()
     expect(savingsTrendProps.current.anchor).toBeNull()
   })
