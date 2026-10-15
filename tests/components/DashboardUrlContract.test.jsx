@@ -95,6 +95,6 @@ describe("Wave 5 dashboard wiring contracts", () => {
     // Ringkasan hub; no per-device toggle remains.
     expect(plan).not.toContain("localStorage")
     expect(plan).not.toContain("plan-chapter-nav__rail--scroll")
-    expect(plan).toContain("plan-hub-row")
+    expect(plan).toContain("PlanHubCards")
   })
 })

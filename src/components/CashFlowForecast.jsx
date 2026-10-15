@@ -153,14 +153,15 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
         </span>
       </div>
 
-      {/* KPI cards (shared StatTile) */}
+      {/* KPI cards (shared StatTile, large numerals per design review) */}
       <div className="grid grid-cols-3 gap-2.5 mb-4">
-        <StatTile label="Pemasukan" value={formatRp(animatedIncome)} tone="income" />
-        <StatTile label="Pengeluaran" value={formatRp(animatedExpense)} tone="expense" />
+        <StatTile label="Pemasukan" value={formatRp(animatedIncome)} tone="income" large />
+        <StatTile label="Pengeluaran" value={formatRp(animatedExpense)} tone="expense" large />
         <StatTile
           label="Surplus"
           value={formatRp(animatedSurplus)}
           tone={surplusPositive ? "savings" : "danger"}
+          large
         />
       </div>
 

@@ -6,7 +6,7 @@ import { getChartSchemeIsDark, resolveChartTheme } from "@/lib/chartTheme"
  * and SavingsRateTrend stats share one visual language: tinted surface,
  * colored value, consistent label scale.
  */
-export default function StatTile({ label, value, tone = "neutral" }) {
+export default function StatTile({ label, value, tone = "neutral", large = false }) {
   const theme = resolveChartTheme(getChartSchemeIsDark())
 
   const tones = {
@@ -24,7 +24,7 @@ export default function StatTile({ label, value, tone = "neutral" }) {
   return (
     <div className="rounded-2xl p-3" style={{ background: style.background }}>
       <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: theme.textSecondary }}>{label}</p>
-      <p className="text-sm font-bold tabular-nums" style={{ color: style.color }}>{value}</p>
+      <p className={large ? "font-display text-[1.35rem] font-extrabold tabular-nums" : "text-sm font-bold tabular-nums"} style={{ color: style.color }}>{value}</p>
     </div>
   )
 }

@@ -668,20 +668,6 @@ body {
   line-height: 1.3;
   text-transform: uppercase;
 }
-.plan-hub-row .plan-brief-value {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--plan-ink);
-  text-align: left;
-}
-.plan-hub-row .plan-brief-detail {
-  display: block;
-  font-size: 11px;
-  color: var(--plan-muted);
-  line-height: 1.5;
-}
-
 
 .plan-section-shell {
   margin-top: 6px;
