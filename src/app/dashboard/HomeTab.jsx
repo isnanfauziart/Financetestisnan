@@ -230,9 +230,9 @@ export default function HomeTab({
                 {deltaLabel} {masked(formatRp(Math.abs(monthlyDelta)))} bulan ini
               </p>
               <div className="border-t border-white/15 pt-4">
-                <div className="flex items-baseline justify-between gap-3">
+                <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{BALANCE_COPY.availableNow}</p>
-                  <p className="text-lg font-display font-bold tabular-nums">{masked(formatRpFull(balances?.available?.value || 0))}</p>
+                  <p className="mt-1 text-[1.65rem] font-display font-bold tabular-nums leading-none">{masked(formatRpFull(balances?.available?.value || 0))}</p>
                 </div>
                 <p className="mt-0.5 text-[10px] font-semibold text-white/70">{formatBalanceBasis(balances?.currentCash?.provisional)}</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">

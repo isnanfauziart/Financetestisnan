@@ -1,14 +1,15 @@
-import { describe, it, expect, vi } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, within } from "@testing-library/react"
 import PlanTab from "@/app/dashboard/PlanTab"
 
 const dynamicCapture = vi.hoisted(() => ({ props: null }))
-vi.mock("@/lib/useSharedData", () => ({
-  useBudgets: () => ({ budgets: [], loading: false, error: null }),
-  useGoals: () => ({ goals: [], loading: false, error: null }),
-  useDebts: () => ({ debts: [], loading: false, error: null }),
-  useEvents: () => ({ events: [], loading: false, error: null }),
+const sharedData = vi.hoisted(() => ({
+  useBudgets: vi.fn(() => ({ budgets: [], loading: false, error: null })),
+  useGoals: vi.fn(() => ({ goals: [], loading: false, error: null })),
+  useDebts: vi.fn(() => ({ debts: [], loading: false, error: null })),
+  useEvents: vi.fn(() => ({ events: [], loading: false, error: null })),
 }))
+vi.mock("@/lib/useSharedData", () => sharedData)
 
 vi.mock("next/dynamic", () => ({
   default: () => function DynamicMock(props) {
@@ -59,7 +60,7 @@ function createProps(overrides = {}) {
 }
 
 describe("PlanTab privacy eye", () => {
-  it("renders the Ringkasan eye and masks brief amounts in privacy mode", () => {
+  it("renders the Ringkasan eye and masks card amounts in privacy mode", () => {
     render(<PlanTab {...createProps({
       moneyHidden: true,
       bills: [{ id: "b1", nama: "Internet", jumlah: 389000, daysUntilDue: 1, aktif: true }],
@@ -67,7 +68,9 @@ describe("PlanTab privacy eye", () => {
 
     const eye = screen.getAllByTestId("privacy-eye-toggle")[0]
     expect(eye).toHaveAttribute("aria-pressed", "true")
-    expect(screen.getByText("Internet · Rp ••••••••")).toBeInTheDocument()
+    const tagihan = within(screen.getByRole("button", { name: "Buka Tagihan" }))
+    expect(tagihan.getByText("Internet")).toBeInTheDocument()
+    expect(tagihan.getByText("Rp ••••••••")).toBeInTheDocument()
   })
 })
 
@@ -88,11 +91,12 @@ describe("PlanTab planning ownership", () => {
     expect(getHubPillar("Simulasi")).toBeInTheDocument()
   })
 
-  it("keeps hub pillars at a 44px minimum height", () => {
+  it("renders the hub as a card gallery inside the Ringkasan region", () => {
     render(<PlanTab {...createProps()} />)
 
+    expect(screen.getByRole("region", { name: "Ringkasan Rencana" })).toBeInTheDocument()
     ;["Target", "Anggaran", "Tagihan", "Utang & Piutang", "Event", "Simulasi"].forEach((label) => {
-      expect(getHubPillar(label)).toHaveClass("min-h-11")
+      expect(getHubPillar(label)).toBeInTheDocument()
     })
   })
 
@@ -158,7 +162,7 @@ describe("PlanTab planning ownership", () => {
     })
   })
 
-  it("keeps hub pillars flat while showing semantic affordances", () => {
+  it("keeps hub cards keyboard-focusable with a visible focus ring", () => {
     render(<PlanTab {...createProps()} />)
 
     const pillarTones = [
@@ -169,7 +173,6 @@ describe("PlanTab planning ownership", () => {
 
     pillarTones.forEach(([label, background, color]) => {
       const pillar = getHubPillar(label)
-      expect(pillar).toHaveClass("plan-hub-row")
       expect(pillar).toHaveClass("focus-visible:ring-2")
       expect(pillar.querySelector("[data-plan-icon-tile]")).toHaveClass(background, color)
       expect(within(pillar).getByText(label)).toBeInTheDocument()
@@ -248,17 +251,16 @@ describe("PlanTab planning ownership", () => {
   })
 })
 
-describe("PlanTab Concept A — attention band + Semua fitur", () => {
+describe("PlanTab hub cards — attention band + card gallery", () => {
   const urgentBill = { id: "b1", nama: "Internet", jumlah: 389000, daysUntilDue: 1, aktif: true }
 
-  it("labels the pillar list Semua fitur with a big serif number per pillar", () => {
+  it("shows per-card hero content on the hub cards", () => {
     render(<PlanTab {...createProps({ bills: [urgentBill] })} />)
 
-    expect(screen.getByText("Semua fitur")).toBeInTheDocument()
-    expect(screen.queryByText("Semua pilar")).not.toBeInTheDocument()
     const tagihan = within(getHubPillar("Tagihan"))
-    expect(tagihan.getByText("Besok")).toHaveClass("font-display")
-    expect(tagihan.getByText(/Internet · Rp 389 rb/)).toBeInTheDocument()
+    expect(tagihan.getByText("Internet")).toBeInTheDocument()
+    expect(tagihan.getByText("Rp 389 rb")).toBeInTheDocument()
+    expect(tagihan.getByText("Besok")).toBeInTheDocument()
   })
 
   it("shows the Perlu perhatian band for urgent items and opens the section on tap", () => {
@@ -273,6 +275,98 @@ describe("PlanTab Concept A — attention band + Semua fitur", () => {
     render(<PlanTab {...createProps({ bills: [] })} />)
 
     expect(screen.queryByRole("region", { name: "Perlu perhatian" })).not.toBeInTheDocument()
-    expect(screen.getByText("Semua fitur")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Buka Target" })).toBeInTheDocument()
+  })
+})
+
+describe("PlanHubCards visuals", () => {
+  const resetSharedData = () => {
+    sharedData.useBudgets.mockReturnValue({ budgets: [], loading: false, error: null })
+    sharedData.useGoals.mockReturnValue({ goals: [], loading: false, error: null })
+    sharedData.useDebts.mockReturnValue({ debts: [], loading: false, error: null })
+    sharedData.useEvents.mockReturnValue({ events: [], loading: false, error: null })
+  }
+
+  beforeEach(() => { resetSharedData() })
+
+  it("renders the target card with goal progress and ETA", () => {
+    sharedData.useGoals.mockReturnValue({
+      goals: [{ id: "g1", nama: "Dana Darurat", target: 10000000, status: "active", deadline: "2027-12" }],
+      loading: false,
+      error: null,
+    })
+    render(<PlanTab {...createProps({
+      data: { netWorth: 0, balances: { allocations: { byGoal: { g1: { remaining: 4200000 } } } } },
+    })} />)
+
+    const card = within(screen.getByRole("button", { name: "Buka Target" }))
+    expect(card.getByText("Dana Darurat")).toBeInTheDocument()
+    expect(card.getByText("Rp 4.2 jt")).toBeInTheDocument()
+    expect(card.getByText("/ Rp 10.0 jt")).toBeInTheDocument()
+    expect(card.getByRole("progressbar", { name: /Progres target Dana Darurat/ })).toHaveAttribute("aria-valuenow", "42")
+    expect(card.getByText(/± \d+ bln lagi/)).toBeInTheDocument()
+  })
+
+  it("renders the budget card with per-category bars and a hot flag at 90%+", () => {
+    sharedData.useBudgets.mockReturnValue({
+      budgets: [
+        { kategori: "Makan", limit: 1000000, akun: "", bulan: "Jul", tahun: "2026" },
+        { kategori: "Jajan", limit: 500000, akun: "", bulan: "Jul", tahun: "2026" },
+      ],
+      loading: false,
+      error: null,
+    })
+    render(<PlanTab {...createProps({
+      transactions: [
+        { type: "expense", category: "Makan", amount: 780000, month: "Jul", year: "2026", account: "BCA" },
+        { type: "expense", category: "Jajan", amount: 460000, month: "Jul", year: "2026", account: "BCA" },
+      ],
+    })} />)
+
+    const card = within(screen.getByRole("button", { name: "Buka Anggaran" }))
+    expect(card.getByText("Rp 1.2 jt")).toBeInTheDocument()
+    expect(card.getByText("Makan")).toBeInTheDocument()
+    expect(card.getByText("78%")).toBeInTheDocument()
+    expect(card.getByText("Jajan")).toBeInTheDocument()
+    expect(card.getByText("92%")).toHaveClass("text-clay-600")
+  })
+
+  it("renders the utang card with the owed split", () => {
+    sharedData.useDebts.mockReturnValue({
+      debts: [
+        { status: "open", arah: "utang", sisaSaldo: 500000 },
+        { status: "open", arah: "piutang", sisaSaldo: 1200000 },
+      ],
+      loading: false,
+      error: null,
+    })
+    render(<PlanTab {...createProps()} />)
+
+    const card = within(screen.getByRole("button", { name: "Buka Utang & Piutang" }))
+    expect(card.getByText("Rp 500 rb")).toBeInTheDocument()
+    expect(card.getByText("Rp 1.2 jt")).toBeInTheDocument()
+  })
+
+  it("renders the event card with the deadline", () => {
+    sharedData.useEvents.mockReturnValue({
+      events: [{ nama: "Nikahan Dena", tanggalSelesai: "2026-12-20", totalBudget: 5000000, pct: 40, status: "active" }],
+      loading: false,
+      error: null,
+    })
+    render(<PlanTab {...createProps()} />)
+
+    const card = within(screen.getByRole("button", { name: "Buka Event" }))
+    expect(card.getByText("Nikahan Dena")).toBeInTheDocument()
+    expect(card.getByText("Rp 2.0 jt")).toBeInTheDocument()
+    expect(card.getByText(/Des 2026/)).toBeInTheDocument()
+  })
+
+  it("shows the Pro badge on the Simulasi card when the feature is tier-locked", () => {
+    render(<PlanTab {...createProps({
+      entitlement: { features: { financialIndependence: false, whatIf: false } },
+    })} />)
+
+    const card = within(screen.getByRole("button", { name: "Buka Simulasi" }))
+    expect(card.getByText("Pro")).toBeInTheDocument()
   })
 })

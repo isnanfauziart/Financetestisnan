@@ -8,8 +8,8 @@ import DebtsSection from "@/components/DebtsSection"
 import BudgetsSection from "@/components/BudgetsSection"
 import BillsSection from "@/components/BillsSection"
 import EventBudgetsSection from "@/components/EventBudgetsSection"
-import { useBudgetBriefData, useGoalBriefData, useBillBriefData, useUtangBriefData, useEventBriefData } from "@/components/PlanBriefSignal"
 import { useAttentionItems, AttentionBand } from "@/components/PlanAttention"
+import PlanHubCards from "@/components/PlanHubCards"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
 import { hasFeature, isFeatureEnabled, getFeatureGate, isProRegistrationOpen } from "@/lib/featureAccess"
 import EyeToggle from "./_components/EyeToggle"
@@ -26,16 +26,6 @@ const PLAN_SECTIONS = [
   { key: "simulasi", label: "Simulasi", icon: Calculator },
 ]
 
-const PLAN_SECTION_TONES = {
-  overview: "bg-md3-surface-container-high text-md3-on-surface-variant",
-  goal: "bg-sage-100 text-sage-700",
-  budget: "bg-amber-100 text-amber-700",
-  tagihan: "bg-clay-100 text-clay-600",
-  utang: "bg-rose-100 text-rose-700",
-  event: "bg-indigo-100 text-indigo-700",
-  simulasi: "bg-violet-100 text-violet-700",
-}
-
 const SECTION_FEATURES = {
   goal: "goals",
   budget: "budgets",
@@ -43,15 +33,6 @@ const SECTION_FEATURES = {
   utang: "debts",
   event: "momental",
 }
-
-const HUB_PILLARS = [
-  { key: "goal", feature: "goals", label: "Target", icon: Target },
-  { key: "budget", feature: "budgets", label: "Anggaran", icon: Wallet },
-  { key: "tagihan", feature: "bills", label: "Tagihan", icon: Receipt },
-  { key: "utang", feature: "debts", label: "Utang & Piutang", icon: HandCoins },
-  { key: "event", feature: "momental", label: "Event", icon: CalendarDays },
-  { key: "simulasi", feature: null, label: "Simulasi", icon: Calculator },
-]
 
 // Decision record (supersedes Wave 7): both narrow-screen patterns (scrollable
 // labelled rail vs "Lainnya" grouping) were rendered at 360x640 and evaluated
@@ -117,35 +98,7 @@ export default function PlanTab({
   // Privacy-eye mode: shared with the Home/Statistik eyes — any eye toggles all.
   const showEye = typeof onToggleMoneyVisibility === "function"
 
-  // Concept A (approved 2026-10-09): pillar data for the "Semua fitur" rows —
-  // headline number (right, serif) + caption (under the label), from the shared
-  // brief data hooks so the hub never invents numbers.
-  const budgetData = useBudgetBriefData({ selectedMonth, selectedYear, selectedAccount, transactions, moneyHidden })
-  const goalData = useGoalBriefData({ allocations: data?.balances?.allocations })
-  const billData = useBillBriefData({ bills, billsLoading, billsError, moneyHidden })
-  const utangData = useUtangBriefData({ moneyHidden })
-  const eventData = useEventBriefData({ moneyHidden })
-
   const attentionItems = useAttentionItems({ entitlement, bills, transactions, selectedMonth, selectedYear, selectedAccount, moneyHidden })
-
-  // Headline phrases that are not numbers — rendered as the caption instead
-  // of the big serif figure.
-  const NON_NUMERIC_VALUES = new Set([
-    "Belum ada tagihan", "Belum ada anggaran", "Belum ada target aktif",
-    "Lunas semua", "Belum ada event",
-  ])
-
-  const pillarData = (pillar, available) => {
-    if (!available) return pillar.key === "simulasi"
-      ? { number: null, caption: "Segera hadir." }
-      : { number: null, caption: "Fitur ini belum bisa kamu pakai." }
-    if (pillar.key === "simulasi") return { number: null, caption: "Target bebas finansial & What-If." }
-    const d = { budget: budgetData, goal: goalData, tagihan: billData, utang: utangData, event: eventData }[pillar.key]
-    if (!d || d.status !== "ok" || NON_NUMERIC_VALUES.has(d.value)) {
-      return { number: null, caption: d ? d.value : "" }
-    }
-    return { number: d.value, caption: d.detail }
-  }
 
   const handleSectionChange = (sectionKey) => {
     if (onSectionChange) {
@@ -197,41 +150,25 @@ export default function PlanTab({
           {currentSection === "overview" && (
             <>
               <AttentionBand items={attentionItems} onOpen={(section) => handleSectionChange(section)} />
-              <section aria-label="Ringkasan Rencana">
-              <p className="mt-6 text-xs font-bold uppercase tracking-[0.14em] text-[var(--kicker)]">Semua fitur</p>
-              <div className="divide-y divide-[var(--border)]">
-                {HUB_PILLARS.filter((pillar) => pillar.key === "simulasi" ? visibleSections.some((section) => section.key === "simulasi") : true).map((pillar) => {
-                  const available = pillar.key === "simulasi" ? simulationAvailable : hasFeature(entitlement, pillar.feature)
-                  const Icon = pillar.icon
-                  const proLocked = pillar.key === "simulasi" && available && !hasFeature(entitlement, "financialIndependence") && !hasFeature(entitlement, "whatIf")
-                  const { number, caption } = pillarData(pillar, available)
-                  return (
-                    <button
-                      key={pillar.key}
-                      type="button"
-                      disabled={!available}
-                      onClick={() => available && handleSectionChange(pillar.key)}
-                      aria-label={`${available ? "Buka" : "Fitur terkunci"} ${pillar.label}`}
-                      className="plan-hub-row flex min-h-11 w-full items-center gap-3 py-4 text-left transition-colors hover:bg-[var(--surface)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
-                    >
-                      <span data-plan-icon-tile className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl ${PLAN_SECTION_TONES[pillar.key]}`}>
-                        <Icon size={16} strokeWidth={2.1} aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[15px] font-bold text-md3-on-surface">{pillar.label}</span>
-                        {caption ? <span className="mt-0.5 block text-xs leading-relaxed text-md3-on-surface-variant">{caption}</span> : null}
-                      </span>
-                      {number ? <span className="whitespace-nowrap font-display text-[17px] font-bold text-md3-on-surface">{number}</span> : null}
-                      {proLocked ? (
-                        <span className="flex-shrink-0 rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-bold text-violet-700">Pro</span>
-                      ) : (
-                        <ArrowRight size={14} className="flex-shrink-0 text-md3-on-surface-variant" aria-hidden="true" />
-                      )}
-                    </button>
-                  )
-                })}
+              <div className="mt-6">
+                <PlanHubCards
+                  selectedMonth={selectedMonth}
+                  selectedYear={selectedYear}
+                  selectedAccount={selectedAccount}
+                  transactions={transactions}
+                  allocations={data?.balances?.allocations}
+                  bills={bills}
+                  billsLoading={billsLoading}
+                  billsError={billsError}
+                  moneyHidden={moneyHidden}
+                  entitlement={entitlement}
+                  simulationAvailable={simulationAvailable}
+                  simulationProLocked={
+                    simulationAvailable && !hasFeature(entitlement, "financialIndependence") && !hasFeature(entitlement, "whatIf")
+                  }
+                  onOpen={(section) => handleSectionChange(section)}
+                />
               </div>
-            </section>
             </>
           )}
 

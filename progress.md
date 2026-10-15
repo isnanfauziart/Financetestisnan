@@ -2033,3 +2033,103 @@ Append new entries at the BOTTOM. Each entry: date, tasks completed, files chang
 **Verification:** focused suites 118/118; final diff review — no findings (single masking point); full suite **1194 passed / 2 skipped**; production build passed (placeholder env vars); `git diff --check` clean. Uncommitted on top of `22408c2`.
 
 **Blockers:** none.
+
+## 2026-10-09 — "Calm Living Ledger" visual revamp: Beranda / Rencana / Profil (uncommitted)
+
+**Task:** Implement the user-approved visual concepts (warm paper `#F3EEE5`, one flat deep-green hero `#1F2D28`, hairline dividers instead of nested cards, 3 meaning-colors, serif numerals) for the Beranda, Rencana, and Profil tabs plus bottom nav/FAB restyle. Approved in chat 2026-10-09 ("Okay implement it for now"). Statistik and landing page NOT in scope.
+
+**Changes:**
+- Tokens (`src/app/globals.css`, `src/lib/designTokens.js`, `src/app/dashboard/_components/constants.js`, `tailwind.config.js`): bg `#F3EEE5`, surface `#FDFCF8`, warm surface `#ECE4D3`, border `#DED3BE`; income/savings merged to `#2F6B57`; expense terracotta — concept said `#B9695B` but that fails the repo's 4.5:1 text-contrast rule, so the text token is `#A85B45` (computed 4.94:1); hero/nav-active deep green `#1F2D28`.
+- `page.js`: active bottom-nav tab → deep-green pill (behavior unchanged); FAB → deep-green circle, still `openQuickAdd("expense")`, NO create-menu.
+- `HomeTab.jsx`: hero flattened (no nested glass boxes; hairline dividers between "Bisa dipakai sekarang" and cash-flow columns); checklist, top-3 expenses, focus note, recent transactions → flat hairline rows. Data/logic untouched.
+- `PlanTab.jsx`: **Wave 7 reversal** — the 7-section horizontal scroll rail (with overflow hint) is REPLACED by a Ringkasan hub: compact `RENCANA` heading + month chip, six flat tappable pillar rows (Target, Anggaran, Tagihan, Utang & Piutang, Event, Simulasi) with live status from the existing Brief components, Pro badge for Simulasi when locked, "Ringkasan" back button inside sections. Month chip jumps to Statistik (`setActiveNav("stats")`). Reversal documented in a code decision-record comment. Privacy-eye toggle kept in the hub header; pillar rows keep `min-h-11` and semantic icon tones; deep-link section keys unchanged.
+- `ProfileTab.jsx`: flat hairline sections — Akun (green monogram fallback, name editor behind "Ubah", email + total transaksi), Paket & Pemakaian (quota bars, terracotta "Hampir mencapai batas" / danger "Batas sudah terpakai", violet upgrade CTA), Data Milikmu (deep-green brand panel), Pengaturan (theme/sound/haptics/toggles, saldo awal editor moved here, Kategori manager), quiet Keluar/Hapus akun. All handlers preserved.
+- `UserAvatar.jsx`: fallback tile → single deep-green monogram.
+- `src/lib/insights.js`, `src/lib/chartTheme.js`: colors synced (savings → `#2F6B57`, primaryDeep → `#1F2D28`, chart terracotta → `#A85B45`, grid → `#DED3BE`). `COLORS` palette expense slot → `#A85B45`.
+- Dead CSS removed: `.plan-hero`, `.plan-chapter-nav`, `.plan-brief-row`, `.plan-overview`, `.plan-signal-card`, `.plan-secondary-panel`, overflow-hint styles. `.plan-kicker` was initially removed by mistake and RESTORED (TargetGauge/GoalCard uses it for the "Progress target" caption).
+- Tests updated to the new contracts: `PlanNavigationPrototypes` (7, hub vs rail), `PlanTab` (18, hub pillars/back-button/deep-links), `ProfileTab` (8, new sections), `DashboardUrlContract` (9, hub assertions), `DashboardMotion` (active-tab color), `featureVisibility` (pillar names), `uiContrast` (new foundation values), `insights` (new allowed colors).
+
+**Verification:** focused suites green per batch; full suite **1194 passed / 2 skipped** (172 files, 173 total); production build passed (11 missing env vars supplied as placeholders — Phase 4 fail-fast is presence-only; bare `npm run build` fails in this checkout for missing env, environment blocker not code); independent final diff review — verdict REQUEST CHANGES, findings fixed: (1) restored `.plan-kicker` (real visual regression), (2) `COLORS[1]` → `#A85B45`, (3) D-2 (`#2D6A62` in chart `seriesPalette`) intentionally kept — categorical palettes need 5 distinct series and the dark palette uses the same tonal-pair pattern; Statistik charts were out of the approved scope. `git diff --check` clean. Uncommitted on top of `baa17ba`. Nothing deployed.
+
+**Known deviations from concept:** expense text uses `#A85B45` (contrast); Utang/Event pillars show static descriptions (old code never had live briefs for them); month chip navigates to Statistik rather than opening a month picker; no paper grain texture; Simulasi shows a Pro badge rather than a blurred preview.
+
+**Blockers:** none.
+
+## 2026-10-09 — Profil section rhythm + Rencana Concept A (approved, pushed in one commit)
+
+**Approvals this round:** Profil section-rhythm mockup (corrected dividers) approved; Rencana hub rejected — three alternatives rendered (A Prioritas, B Progress pillars, C Horizon groups); Isnan picked **A** with enriched numbers; "pilar" renamed to "fitur" at his request; final mockup (rencana-A-final-v3.png) approved ❤️. Note: his image viewer cached the first mockup version, so numbers appeared missing — resolved by re-sending under a fresh filename.
+
+**Implemented (single commit, single push to main):**
+
+Profil (`ProfileTab.jsx`, `globals.css`):
+1. Louder kickers: 12px semibold deep-green via new `--kicker` var (light #1F2D28 / dark #EDE6D8).
+2. Paket & Pemakaian moved onto a full-bleed warm band (`-mx-5 bg-[var(--surface-warm)]`) with darker hairlines via new `--border-warm` (light #D2C09C / dark #5C5347).
+3. Icon tiles (40px, tinted) on the 5 Pengaturan rows: Tema violet/Moon, Kategori terracotta/Tag, Saldo awal indigo/Wallet, Suara sage/Volume2, Getaran amber/Vibrate.
+4. Balance checkpoint wrapped in its own zone: warm band framed by hairlines top/bottom; SheetsHubCard stays on paper.
+5. Values were already bold ink-adaptive; kept semantic (dark-mode safe).
+
+Rencana (`PlanTab.jsx`, `PlanBriefSignal.jsx`, `PlanAttention.jsx`, `globals.css`):
+6. "Perlu perhatian" attention band (terracotta tint via new `--attention-bg/border/text` vars): bills due ≤3d (overdue incl.), budgets ≥80% used, open debts due ≤7d (overdue incl.); max 3, most urgent first; auto-hides when calm; tap opens the section. Feature-gated; amounts privacy-masked.
+7. "Semua fitur" (renamed from "Semua pilar"): six pillar rows with 40px icon tiles, status captions, and big serif numbers right-aligned.
+8. New live briefs: UtangBrief (open total + note count) and EventBrief (nearest upcoming event countdown + budget pct) — replaced the old static descriptions.
+9. Briefs refactored to data hooks (`use*BriefData`); component wrappers kept for the tested text contract.
+
+**Verification:** full suite 1209 passed / 2 skipped / 0 failed (15 new tests: briefs, attention rules, Concept A layout); production build passed with placeholder env values; independent diff review done — one finding fixed (attention kicker #A85B45→#9C5238 to hold the 4.5:1 contrast contract; dark pair already 5.77). Nits recorded: unguarded formatRp fields (theoretical), implicit cross-type urgency ordering, duplicated daysUntil, hardcoded NON_NUMERIC_VALUES set.
+
+**Push:** one commit via GitHub App push_files API (single call this time — payload under the arg limit), local reset to origin/main; progress.md kept locally uncommitted as usual. Not deployed to production.
+
+## 2026-10-10 — Statistik: net worth trend chart on Ringkasan (approved, committed locally)
+
+**Brainstorm:** Isnan wanted a Moni-style line chart below the Ringkasan card showing kekayaan bersih movement. Classified bounded (recharts already installed, netWorthHistory already flows). Two directions explored — month-end trend vs Moni-style monthly race — he picked **month-end trend**. Mockups approved: in-context placement, decline + sparse states, 18-month Pro density (label thinning only), warm band instead of a card (his question; recommended band over card to avoid cards-on-cards regression), caption line removed + centered larger headline at his request.
+
+**Implemented (single commit, single push to main):**
+- New `src/components/NetWorthTrend.jsx`: month-end net worth line on a full-bleed warm band directly below the hero card; centered serif headline (text-4xl) + delta chip (sage up / terracotta down); honest empty state under 2 points ("Belum cukup riwayat"); x-labels thin to every 3rd past 12 points (data never thinned); privacy-eye masking on headline/chip/tooltip; role=img + aria-label summary; dark-mode adaptive via var(--income)/var(--expense).
+- `src/app/dashboard/StatsTab.jsx`: import + insertion with ChartSkeleton while refreshing.
+- Data: existing `data.netWorthHistory` (month-end snapshots from recorded balance checkpoints). Free = 4 months, Pro = unlimited (`getHistoryWindow`: months null). No new API work.
+
+**Verification:** focused 6/6 new tests pass (empty state, growth chip, decline styling, masking, label thinning); full suite 1215 passed / 2 skipped / 0 failed; production build passed with placeholder env values; one independent final diff review — verdict SAFE TO PUSH, one dead-code nit fixed (unused domain calc). `git diff --check` clean. Committed locally as ONE commit (52bcff4) but NOT pushed: the GitHub push approval was declined by Isnan on 2026-10-10 ~07:35 WIB — awaiting his explicit go-ahead to retry. Not deployed to production.
+
+## 2026-10-10 — Statistik Kategori/Tren clarity round B/C/D (approved, committed locally)
+
+**Context:** Isnan found the two Kategori charts confusing (same categories, different Rp numbers, unexplained). Visual-first process: mockups approved at each step (he corrected me once for implementing before showing visuals — reverted, then proceeded visual-first).
+
+**Implemented (single local commit, not pushed):**
+- B: "Pengeluaran terbesar" caption "Dasar: Pengeluaran rutin saja" → "Pengeluaran terbesar bulan {Month Year}" from the filter ("· semua bulan ..." fallback when no month selected). No number/logic changes.
+- C: trend card retitled "Rata-rata pengeluaran terbesar di tahun {Y}" (Y = filter year, else latest data year). Numbers changed from "latest active month" to monthly average for the year (total ÷ elapsed months); % changed from month-over-month to year-over-year vs the same window last year ("baru" pill when no prior-year data); top-5 re-ranked within the year; rows restyled (rank numbers, area sparklines, clay/sage % pills, Rp/bln); basis caption deleted. Year-scoped data built from raw data.transactions in StatsTab, bypassing the old span-sliced trendData (which had a month-name year-merge quirk — deliberately not fixed as out of scope).
+- D: "Perbandingan per Kategori" horizontal-scroll DumbbellChart replaced with self-contained paired-bar rows (sage-500 current period, sage-300 previous, widths relative to per-row max, labeled values, % pills); legend kept with new colors; explainer sentence, "geser" hint, scroll container, comparisonDomain and DumbbellChart import removed. Summary cards untouched.
+
+**Verification:** focused 56/56 pass (4 old tests updated to the new contract + new assertions: period caption, year scoping/average/YoY/"baru"/no cross-year leakage, paired-bar rows with no scroll container); full suite passed with 0 failures; production build passed with placeholder env; one independent final diff review — verdict SAFE TO PUSH (3 non-blocking nits). `git diff --check` clean. Committed locally as ONE commit; NOT pushed (awaiting his explicit push approval; the earlier net-worth commit is also still local). Not deployed.
+
+## 2026-10-10 — Statistik Tren revamp: per-card range chips (approved, implemented locally, not committed)
+
+**Context:** Isnan reported the "Rentang grafik tren" filter (6 bln / 12 bln / Semua) changed nothing. Root cause found in code: the filter only fed the "Tren Bulanan" chart, which is hidden when a month is selected (`isAllMonths` gate), while Proyeksi Arus Kas hardcoded a 6-month basis and Savings Rate Trend hardcoded 12 months — so the control was dead in his view. Visual-first process: two mockup states approved (v1b "Semua Bulan", v2b month-selected trailing window), incl. his tweaks ("kini" → "sekarang", smoothed curves). His decisions: (1) whole card follows the filter, (2) small range chip per chart, (3) accepted my recommendation — selected month becomes a trailing-window anchor ("what led into October?") instead of a dead-end hint.
+
+**Implemented (uncommitted, NOT pushed — awaiting his explicit commit/push approval):**
+- New `src/lib/trendWindow.js`: `sliceWindowEnd(series, {span, anchor})` (anchor falls back to last entry; "Semua Tahun" matches latest same-named month), `formatWindowLabel`, `TREND_SPAN_MONTHS`/`spanMonthsFor` ("Semua" stays null — `?? 6` would have been a bug).
+- New `src/components/charts/TrendSpanChips.jsx`: compact per-card chip (radiogroup/radio ARIA).
+- `StatsTab.jsx`: section-level filter + `controlledTrendSpan`/`sliceTrendSpan` plumbing removed; three independent chip states with behavior-preserving defaults (monthly "Semua", forecast "6 bln", savings "12 bln"); `trendAnchor` from month/year selection; Tren Bulanan renders trailing window on the ungated routine series when a month is selected (non-routine mode keeps old hidden behavior); effective window labeled ("Jendela: Mei – Okt 2026 · berakhir di bulan pilihan"); `isAllMonths` empty-chart render preserved (two existing tests pin it).
+- `CashFlowForecast.jsx`: chip drives the whole card — `basisMonths` + anchored `projectionKey` (month after window's last entry); footnote "Berdasarkan N bulan lengkap (…–…)"; formula sheet copy parameterized; tooltip "Proyeksi: garis putus-putus" footer removed; "sekarang" ReferenceLine divider (THEME.expense) at the last actual point.
+- `SavingsRateTrend.jsx`: chip replaces hardcoded `.slice(-12)` (anchor-truncate → drop empty months → span); "Jendela:" label; best/worst tiles now show the month. Verdict thresholds (≥20%/10–20%/<10%) deliberately untouched — the mockup's 50% scale contradicted the app's own "Sangat Baik" logic, flagged to Isnan as a separate product decision.
+- `src/lib/forecast.js`: only parameterization — `basisMonths` (default 6), `projectionKey` (default null → legacy `currentKey+1` path), exported `entryMonthKey`; income "stable" profile now keys off the full basis window. Algorithm otherwise untouched.
+
+**Verification:** focused suites green per batch (trendWindow 14/14, forecast lib 27/27 incl. pre-existing, CashFlowForecast 18/18, SavingsRateTrend 4/4, StatsTab family 61/61); one independent final diff review — verdict SAFE TO INTEGRATE, no blocking findings (reviewer also ran a throwaway parity check proving the default forecast path is byte-identical to HEAD; temp files removed); full suite **1249 passed / 2 skipped / 0 failed** (177 files); production build passed with placeholder env values; `git diff --check` clean. Non-blocking nits: unused import removed; SavingsRateTrend <2-month empty state has no chips (pre-existing structure, candidate follow-up).
+
+**Blockers:** none. Not committed, not pushed, not deployed — commit/push awaiting Isnan's explicit approval (standing rule).
+
+## 2026-10-11 — Statistik rounds shipped: squash + push to main (8ed119b)
+
+**What happened:** ~08:24 WIB the three local Statistik commits (net-worth trend 0318aa9, Kategori/Tren clarity 1d2582d, per-card trend chips 7c2a361) were squashed into ONE commit `8ed119b` ("feat(stats): net worth trend, chart clarity round + trend range chips") and pushed to GitHub `main`. Local main reset to origin/main; the pushed tree was verified byte-identical to the local work (nothing lost). Netlify auto-deployed main — Isnan's screenshots that morning confirm the new UI live. progress.md stays uncommitted by design.
+
+## 2026-10-11 — Statistik/Beranda polish round: 4 tweaks (approved, implemented, uncommitted)
+
+**Context:** Isnan sent 4 numbered tweaks with screenshots (~08:33 WIB): (1) category names truncated ("Tr…") on the "Rata-rata pengeluaran" card, (2) delete the Tren Bulanan chart, (3) "Bisa dipakai sekarang" number right-aligned — move left near the label, (4) Proyeksi Arus Kas numbers need emphasis ("what do you think?"). Sharpening questions first per standing rule: he picked (1)=option A (compact one-line rows), (2)=entire card. Mockups approved visually, then "Implement it now".
+
+**Implemented (uncommitted, NOT pushed):**
+- Tweak 1 (`StatsTab.jsx`): category row color dot removed (redundant with sparkline color), sparkline 92→64px; name column grows ~35px → ~90px so full names (e.g. "Transportasi") fit. Rank, % pill, Rp/bln kept.
+- Tweak 2 (`StatsTab.jsx`): entire Tren Bulanan card removed — chart, "Data tren bulanan" table, its chip, `spanMonthly` state, `trendMonthlySeries/Windowed/WindowLabel` memos, `trendTableRows`, `getMonthlyTrendSummary`, `chartClientMonthlyData`, and the now-unused `trendWindow`/`TrendSpanChips` imports. `trendAnchor` preserved and still passed to both remaining cards.
+- Tweak 3 (`HomeTab.jsx`): hero "Bisa dipakai sekarang" row (`justify-between`) → stacked block: label on top, amount below at `text-[1.65rem]` left-aligned, mirroring the Kekayaan Bersih block.
+- Tweak 4 (`StatTile.jsx` + `CashFlowForecast.jsx`): new opt-in `large` prop (default false — SavingsRateTrend tiles byte-identical); `large` renders `font-display text-[1.35rem] font-extrabold tabular-nums`. All three forecast tiles pass `large`.
+
+**Verification:** focused batches green (StatsTab+tables 56/56 with 7 tests updated to the new contract, HomeTab 23/23, StatTile+Forecast+Savings+Home 47/47 incl. new `StatTile.test.jsx`); one independent final diff review — verdict SAFE TO INTEGRATE, no blocking findings (dangling refs, a11y, scope all checked); full suite **1249 passed / 2 skipped / 0 failed** (178 files); production build passed with placeholder env values; `git diff --check` clean.
+
+**Blockers:** none. Not committed, not pushed — awaiting Isnan's explicit approval (standing rule).

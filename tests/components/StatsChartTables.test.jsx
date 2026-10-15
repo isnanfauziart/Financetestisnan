@@ -168,9 +168,8 @@ describe("StatsTab chart data tables", () => {
     expect(table).toHaveTextContent("Transportasi")
   })
 
-  it("exposes the monthly trend and category trend charts as data tables", () => {
+  it("exposes the category trend chart as a data table (the monthly trend card was removed)", () => {
     render(<StatsTab {...createProps({
-      clientMonthlyData: [{ month: "Jan", pemasukan: 5_000_000, pengeluaran: 2_000_000, surplus: 3_000_000 }],
       data: { transactions: [
         { type: "expense", category: "Makan", month: "Jan", year: "2025", amount: 120_000 },
       ] },
@@ -180,9 +179,8 @@ describe("StatsTab chart data tables", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Tren" }))
 
-    // Monthly trend table (first disclosure inside the Tren panel)
-    fireEvent.click(screen.getAllByRole("button", { name: "Lihat data sebagai tabel" })[0])
-    expect(screen.getByRole("region", { name: "Data tren bulanan" })).toHaveTextContent("Jan")
+    // The Tren Bulanan card and its data table no longer exist.
+    expect(screen.queryByRole("region", { name: "Data tren bulanan" })).not.toBeInTheDocument()
 
     // Category trend table (inside the Kategori panel)
     fireEvent.click(screen.getByRole("tab", { name: "Kategori" }))
