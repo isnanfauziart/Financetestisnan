@@ -163,7 +163,7 @@ describe("HomeTab priority actions", () => {
     const priorityHeading = screen.getByText("Yang perlu kamu cek")
     const billAction = screen.getByRole("button", { name: /bayar tagihan internet wifi/i })
     const budgetAction = screen.getByRole("button", { name: /cek budget makanan/i })
-    const topExpenseRow = screen.getAllByRole("button", { name: /lihat pengeluaran terbesar nomor/i })
+    const topExpenseRow = screen.getAllByRole("button", { name: /lihat rincian pengeluaran/i })
 
     expect(billAction).toBeInTheDocument()
     expect(budgetAction).toBeInTheDocument()
@@ -195,7 +195,7 @@ describe("HomeTab priority actions", () => {
     expect(within(section).queryByText("Gaji")).not.toBeInTheDocument()
     expect(within(section).getByText("Spesial")).toBeInTheDocument()
 
-    const rows = within(section).getAllByRole("button", { name: /lihat pengeluaran terbesar nomor/i })
+    const rows = within(section).getAllByRole("button", { name: /lihat rincian pengeluaran/i })
     expect(rows).toHaveLength(3)
     expect(rows[0]).toHaveTextContent("Rp 900 rb")
     expect(rows[1]).toHaveTextContent("Rp 450 rb")
@@ -208,7 +208,8 @@ describe("HomeTab priority actions", () => {
       filteredTransactions: [],
     })} />)
 
-    expect(screen.getByText("Belum ada pengeluaran untuk periode ini.")).toBeInTheDocument()
+    expect(screen.getByText("Belum ada pengeluaran")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Catat pengeluaran" })).toBeInTheDocument()
   })
 
   it("opens the top-10 expense drill-down scoped to the filtered transactions", () => {
@@ -219,7 +220,7 @@ describe("HomeTab priority actions", () => {
 
     render(<HomeTab {...createProps({ filteredTransactions, setDrillDown })} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Lihat pengeluaran terbesar nomor 1: Makanan" }))
+    fireEvent.click(screen.getByRole("button", { name: "Lihat rincian pengeluaran Makanan" }))
 
     expect(setDrillDown).toHaveBeenCalledWith({
       type: "expense",
@@ -378,6 +379,7 @@ describe("HomeTab priority actions", () => {
     render(<HomeTab {...createProps({
       insights: [
         { type: "info", icon: () => <span aria-hidden="true" />, color: "#2F6B57", text: "Insight untuk urutan" },
+        { type: "info", icon: () => <span aria-hidden="true" />, color: "#2F6B57", text: "Insight kedua untuk urutan" },
       ],
       entitlement: { features: { budgets: true, healthScore: true } },
     })} />)
@@ -506,5 +508,108 @@ describe("HomeTab priority actions", () => {
 
     expect(screen.getByText("Catat transaksi pertamamu supaya Artami bisa mulai membaca keuanganmu.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Catat transaksi" })).toBeInTheDocument()
+  })
+})
+
+describe("HomeTab agreed updates (items 4/11/12/14/20)", () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it("demotes safe-to-spend to a semibold sub-display with a per-day runway line", () => {
+    render(<HomeTab {...createProps({
+      data: {
+        ...createProps().data,
+        balances: { available: { value: 1400000 }, rincian: {} },
+      },
+    })} />)
+
+    const hero = screen.getByTestId("home-hero")
+    // Net worth stays the bold hero headline.
+    expect(within(hero).getByText("Rp 12.500.000")).toBeInTheDocument()
+    // Safe-to-spend is a secondary sub-display, not a competing headline.
+    const safeToSpend = within(hero).getByText("Rp 1.400.000")
+    expect(safeToSpend).toHaveClass("font-semibold")
+    expect(safeToSpend.className).not.toMatch("font-bold")
+    // Per-day runway line exists.
+    expect(within(hero).getByText(/\/hari.*hari tersisa/)).toBeInTheDocument()
+  })
+
+  it("elevates the top insight into a dark coach card with a CTA", () => {
+    const openPlanSection = vi.fn()
+    render(<HomeTab {...createProps({
+      openPlanSection,
+      insights: [
+        { type: "warning", icon: () => <span aria-hidden="true" />, color: "#B33A3A", text: "Budget jajan hampir habis" },
+        { type: "info", icon: () => <span aria-hidden="true" />, color: "#2F6B57", text: "Insight kedua" },
+      ],
+    })} />)
+
+    const coach = screen.getByTestId("home-coach-card")
+    expect(within(coach).getByText("Budget jajan hampir habis")).toBeInTheDocument()
+    // Budget keyword routes the CTA to the budget section.
+    fireEvent.click(within(coach).getByRole("button", { name: "Cek anggaran" }))
+    expect(openPlanSection).toHaveBeenCalledWith("budget")
+    // The second insight stays a quiet card under the section heading.
+    expect(screen.getByRole("heading", { name: "Insights utama" })).toBeInTheDocument()
+    expect(screen.getByText("Insight kedua")).toBeInTheDocument()
+  })
+
+  it("renders the 2x2 daily health grid with deep links", () => {
+    const setActiveNav = vi.fn()
+    const openPlanSection = vi.fn()
+    render(<HomeTab {...createProps({ setActiveNav, openPlanSection })} />)
+
+    const grid = screen.getByTestId("home-daily-health")
+    expect(within(grid).getByText("Terpakai hari ini")).toBeInTheDocument()
+    expect(within(grid).getByText("Sisa bulan ini")).toBeInTheDocument()
+    expect(within(grid).getByText("Tagihan jatuh tempo")).toBeInTheDocument()
+    expect(within(grid).getByText("Ditabung bulan ini")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /buka tagihan di rencana/i }))
+    expect(openPlanSection).toHaveBeenCalledWith("tagihan")
+  })
+
+  it("opens the layout sheet, hides a card, and persists the choice", () => {
+    render(<HomeTab {...createProps()} />)
+
+    expect(screen.getByTestId("home-daily-health")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Atur tampilan Beranda" }))
+    expect(screen.getByText("Atur tampilan Beranda")).toBeInTheDocument()
+
+    // Hide the daily health grid.
+    fireEvent.click(screen.getByRole("switch", { name: "Sembunyikan Kesehatan harian" }))
+    fireEvent.click(screen.getByRole("button", { name: "Selesai" }))
+
+    expect(screen.queryByTestId("home-daily-health")).not.toBeInTheDocument()
+    const saved = JSON.parse(window.localStorage.getItem("artami:home-layout:v1"))
+    expect(saved.hidden).toContain("healthGrid")
+  })
+
+  it("restores the default layout on reset", () => {
+    window.localStorage.setItem("artami:home-layout:v1", JSON.stringify({ order: ["hero"], hidden: ["healthGrid"] }))
+    render(<HomeTab {...createProps()} />)
+    expect(screen.queryByTestId("home-daily-health")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Atur tampilan Beranda" }))
+    fireEvent.click(screen.getByRole("button", { name: /atur ulang/i }))
+    fireEvent.click(screen.getByRole("button", { name: "Selesai" }))
+
+    expect(screen.getByTestId("home-daily-health")).toBeInTheDocument()
+  })
+})
+
+describe("HomeTab edit mode hero lock (item 20)", () => {
+  it("keeps the hero pinned: no reorder, no hide", () => {
+    render(<HomeTab {...createProps()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Atur tampilan Beranda" }))
+
+    // Hero chevrons are disabled; its visibility toggle is disabled too.
+    expect(screen.getByRole("button", { name: "Pindahkan Hero saldo ke atas" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Pindahkan Hero saldo ke bawah" })).toBeDisabled()
+    expect(screen.getByRole("switch", { name: "Sembunyikan Hero saldo" })).toBeDisabled()
+
+    // Other cards remain movable.
+    expect(screen.getByRole("button", { name: "Pindahkan Saran hari ini ke bawah" })).not.toBeDisabled()
   })
 })

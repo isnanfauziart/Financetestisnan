@@ -15,10 +15,15 @@ vi.mock("@/lib/useSharedData", () => ({
 }))
 
 vi.mock("@/components/BudgetCard", () => ({
-  default: ({ budget, spent, onClick }) => (
-    <button type="button" data-testid={`budget-${budget.bulan}-${budget.tahun}`} onClick={onClick}>
-      {budget.kategori} {spent}
-    </button>
+  default: ({ budget, spent, onClick, onDelete }) => (
+    <div>
+      <button type="button" data-testid={`budget-${budget.bulan}-${budget.tahun}`} onClick={onClick}>
+        {budget.kategori} {spent}
+      </button>
+      <button type="button" aria-label={`Hapus budget ${budget.kategori}`} onClick={() => onDelete?.()}>
+        hapus
+      </button>
+    </div>
   ),
 }))
 vi.mock("@/components/BudgetSetupModal", () => ({ default: () => null }))
@@ -74,5 +79,41 @@ describe("BudgetsSection education", () => {
 
     expect(screen.getByTestId("budget-Jul-2026")).toHaveTextContent("Jajan 100000")
     expect(screen.getByTestId("budget-Agu-2026")).toHaveTextContent("Jajan 250000")
+  })
+})
+
+describe("BudgetsSection delete confirmation", () => {
+  it("confirms deletion through ConfirmSheet instead of the native confirm dialog", async () => {
+    const { fireEvent, waitFor } = await import("@testing-library/react")
+    const confirmSpy = vi.spyOn(window, "confirm")
+    const fetchSpy = vi.spyOn(window, "fetch").mockResolvedValue({ ok: true, json: async () => ({}) })
+    hookState.budgets = [{ kategori: "Jajan", bulan: "Agu", tahun: "2026", akun: "", limit: 1000000 }]
+    hookState.refetch = vi.fn()
+
+    render(
+      <BudgetsSection
+        selectedMonth="Agu"
+        selectedYear="2026"
+        selectedAccount="Semua Akun"
+        filteredTransactions={[]}
+        expenseCategories={[]}
+        onToast={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Hapus budget Jajan" }))
+    // No native confirm() — the shared ConfirmSheet appears instead.
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(screen.getByText("Hapus anggaran?")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Hapus", exact: true }))
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/budgets",
+      expect.objectContaining({ method: "DELETE" }),
+    ))
+
+    confirmSpy.mockRestore()
+    fetchSpy.mockRestore()
+    hookState.budgets = []
   })
 })

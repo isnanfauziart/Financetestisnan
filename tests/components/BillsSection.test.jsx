@@ -104,11 +104,15 @@ describe("BillsSection record reachability", () => {
 
     render(<BillsSection onToast={vi.fn()} onBillsChanged={onBillsChanged} />)
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /bayar internet/i })).toBeInTheDocument())
-    expect(screen.getByRole("button", { name: /bayar internet/i })).toHaveClass("min-h-11", "min-w-11")
-    expect(screen.getByRole("button", { name: /nonaktifkan internet/i })).toHaveClass("min-h-11", "min-w-11")
-    expect(screen.getByRole("button", { name: /hapus internet/i })).toHaveClass("min-h-11", "min-w-11")
-    fireEvent.click(screen.getByRole("button", { name: /bayar internet/i }))
+    // Item 9 — primary action is always visible; secondary actions live in
+    // the overflow menu.
+    await waitFor(() => expect(screen.getByRole("button", { name: /tandai lunas internet/i })).toBeInTheDocument())
+    expect(screen.getByRole("button", { name: /tandai lunas internet/i })).toHaveClass("min-h-11")
+    fireEvent.click(screen.getByRole("button", { name: /aksi internet/i }))
+    expect(screen.getByRole("menuitem", { name: /nonaktifkan internet/i })).toBeInTheDocument()
+    expect(screen.getByRole("menuitem", { name: /hapus internet/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /tandai lunas internet/i }))
     fireEvent.click(screen.getByRole("button", { name: "Mock bayar" }))
 
     await waitFor(() => expect(onBillsChanged).toHaveBeenCalledTimes(1))
@@ -134,8 +138,9 @@ describe("BillsSection record reachability", () => {
 
     render(<BillsSection onToast={vi.fn()} onBillsChanged={onBillsChanged} />)
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /hapus internet/i })).toBeInTheDocument())
-    fireEvent.click(screen.getByRole("button", { name: /hapus internet/i }))
+    await waitFor(() => expect(screen.getByRole("button", { name: /aksi internet/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole("button", { name: /aksi internet/i }))
+    fireEvent.click(screen.getByRole("menuitem", { name: /hapus internet/i }))
     fireEvent.click(screen.getByRole("button", { name: "Hapus" }))
 
     await waitFor(() => expect(onBillsChanged).toHaveBeenCalledTimes(1))
@@ -175,8 +180,8 @@ describe("BillsSection record reachability", () => {
 
     render(<BillsSection onToast={vi.fn()} onBillsChanged={onBillsChanged} />)
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /bayar internet/i })).toBeInTheDocument())
-    fireEvent.click(screen.getByRole("button", { name: /bayar internet/i }))
+    await waitFor(() => expect(screen.getByRole("button", { name: /tandai lunas internet/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole("button", { name: /tandai lunas internet/i }))
     fireEvent.click(screen.getByRole("button", { name: "Mock edit" }))
     fireEvent.click(screen.getByRole("button", { name: "Mock simpan edit" }))
 
@@ -317,7 +322,7 @@ describe("BillsSection render stability", () => {
     rerender(<BillsSection onToast={vi.fn()} sessionKey="user-a" />)
 
     expect(screen.getByRole("button", { name: "Mock simpan baru" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /bayar internet/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /tandai lunas internet/i })).toBeInTheDocument()
     expect(billsFetchCount()).toBe(1)
   })
 
