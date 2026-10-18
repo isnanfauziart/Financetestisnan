@@ -61,7 +61,9 @@ export default function RecurringExpenseRadar({ transactions = [], bills = [], d
                   {candidate.category}{candidate.account ? ` · ${candidate.account}` : ""}
                 </p>
               </div>
-              <p className="flex-shrink-0 text-sm font-bold text-violet-700">{formatRpFull(candidate.medianAmount)}</p>
+              {/* Item 1 — money values stay neutral; violet is reserved for
+                  links/nav/Pro-smart chrome. */}
+              <p className="flex-shrink-0 text-sm font-bold text-md3-on-surface">{formatRpFull(candidate.medianAmount)}</p>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-md3-on-surface-variant">
               <span className="inline-flex items-center gap-1"><CalendarDays size={12} aria-hidden="true" /> Sekitar tanggal {Math.round(candidate.typicalDay)}</span>

@@ -1,11 +1,11 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { CalendarDays, Plus, Sparkles } from "lucide-react"
+import { CalendarDays, Plus, Wallet, ClipboardList, Receipt } from "lucide-react"
 import { THEME } from "@/app/dashboard/_components/constants"
-import EmptyState from "@/app/dashboard/_components/EmptyState"
 import EventCard from "./EventCard"
 import EventSetupModal from "./EventSetupModal"
 import EventDetailModal from "./EventDetailModal"
+import FeatureEducation from "./FeatureEducation"
 
 export default function EventBudgetsSection({ filteredTransactions, onToast, refreshTrigger, onUsageChange, proRegistrationOpen = true }) {
   const [events, setEvents] = useState([])
@@ -73,13 +73,11 @@ export default function EventBudgetsSection({ filteredTransactions, onToast, ref
 
   if (loading) {
     return (
-      <div className="mt-6 animate-bento-in">
-        <div className="flex items-center gap-1.5 mb-3 px-1">
-          <CalendarDays size={14} style={{ color: THEME.warning }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Event Budget</h3>
-        </div>
-        <div className="bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-6 shadow-warm text-center">
-          <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" />
+      <div className="plan-section-shell animate-bento-in">
+        <SectionHeader />
+        <div className="plan-loading-state text-center" role="status" aria-label="Memuat event budget" aria-busy="true">
+          <span className="sr-only">Memuat event budget…</span>
+          <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" aria-hidden="true" />
         </div>
       </div>
     )
@@ -87,18 +85,15 @@ export default function EventBudgetsSection({ filteredTransactions, onToast, ref
 
   if (error) {
     return (
-      <div className="mt-6 animate-bento-in">
-        <div className="flex items-center gap-1.5 mb-3 px-1">
-          <CalendarDays size={14} style={{ color: THEME.warning }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Event Budget</h3>
-        </div>
-        <div className="bento-tile bg-rose-50 border border-rose-200 p-4 shadow-warm" role="alert">
+      <div className="plan-section-shell animate-bento-in">
+        <SectionHeader />
+        <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4" role="alert">
           <p className="text-sm font-semibold text-rose-800">Gagal memuat event budget</p>
           <p className="text-xs text-rose-700 mt-1">{error}</p>
           <button
             type="button"
             onClick={() => fetchEvents()}
-            className="mt-3 text-xs font-bold px-3 py-1.5 rounded-full text-white bg-rose-600 hover:bg-rose-700"
+            className="mt-3 min-h-11 min-w-11 text-xs font-bold px-3 py-1.5 rounded-xl text-white bg-rose-600 hover:bg-rose-700"
           >
             Coba lagi
           </button>
@@ -107,29 +102,50 @@ export default function EventBudgetsSection({ filteredTransactions, onToast, ref
     )
   }
 
-  return (
-    <div className="mt-6 animate-bento-in">
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-1.5">
+  // Item 7 — one shared section header: h2 1.45rem + one solid green 44px CTA.
+  function SectionHeader() {
+    return (
+      <div className="plan-section-heading">
+        <div className="plan-section-heading__title">
           <CalendarDays size={14} style={{ color: THEME.warning }} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Event Budget</h3>
+          <h2>Event</h2>
           {activeEvents.length > 0 && (
-            <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider">{activeEvents.length} aktif</span>
+            <span className="plan-section-heading__meta">{activeEvents.length} aktif</span>
           )}
         </div>
-        <button onClick={() => setSetupState({ mode: "create" })} className="text-[11px] font-bold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all" aria-label="Buat event budget">
-          <Plus size={12} strokeWidth={3} aria-hidden="true" /> Buat
+        <button
+          onClick={() => setSetupState({ mode: "create" })}
+          className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white shadow-pop flex items-center gap-1 transition-colors hover:bg-sage-600 active:scale-95"
+          aria-label="Buat event budget"
+        >
+          <Plus size={12} strokeWidth={3} aria-hidden="true" /> Buat Event
         </button>
       </div>
+    )
+  }
+
+  return (
+    <div className="plan-section-shell animate-bento-in">
+      <SectionHeader />
 
       {events.length === 0 ? (
-        <EmptyState
-          icon={<Sparkles size={20} />}
-          title="Belum ada event budget"
-          hint="Buat event budget untuk melacak pengeluaran besar seperti Anak Masuk Sekolah atau Lebaran"
+        <FeatureEducation
+          className="plan-empty-state"
+          title="Rencanakan event tanpa bocor"
+          description="Pisahkan budget acara dari pengeluaran harian, supaya satu hajatan tidak menggerus tabungan."
+          steps={[
+            { icon: <Wallet size={16} aria-hidden="true" />, title: "Tentukan budget event", description: "Total dana yang boleh dipakai untuk acara ini." },
+            { icon: <ClipboardList size={16} aria-hidden="true" />, title: "Daftar kebutuhan", description: "Rinci pos belanja: venue, konsumsi, transport." },
+            { icon: <Receipt size={16} aria-hidden="true" />, title: "Catat saat belanja", description: "Setiap pengeluaran event tercatat terpisah." },
+            { icon: <CalendarDays size={16} aria-hidden="true" />, title: "Pantau sisa", description: "Lihat sisa budget event secara real-time." },
+          ]}
+          example="Liburan akhir tahun — budget Rp 5.000.000, terpakai Rp 1.200.000, sisa Rp 3.800.000."
           action={
-            <button onClick={() => setSetupState({ mode: "create" })} className="text-xs font-bold px-4 py-2 rounded-full text-white mesh-violet shadow-pop">
-              Buat Event
+            <button
+              onClick={() => setSetupState({ mode: "create" })}
+              className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-4 py-2 text-xs font-bold text-white shadow-pop transition-colors hover:bg-sage-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-200 focus-visible:ring-offset-2"
+            >
+              Buat event pertama
             </button>
           }
         />

@@ -93,41 +93,54 @@ export default function HealthScoreCard({
           </div>
         </div>
 
-        {/* Score bar + number */}
+        {/* Item 16 — score as an SVG arc gauge (presentation only; the
+            scoring logic above is untouched). The arc draws with the
+            count-up so it animates in sync with the number. */}
         <div className="mb-4">
-          <div className="h-2.5 rounded-full overflow-hidden mb-3" style={{ background: THEME.surfaceWarm }}>
-            <div
-              className="h-full rounded-full transition-all duration-1100"
-              style={{
-                width: `${Math.min(100, animatedScore)}%`,
-                background: `linear-gradient(90deg, ${THEME.savings}, ${gradeColor})`,
-                transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
-              }}
-            />
-          </div>
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span
-              className="text-4xl sm:text-5xl font-display font-bold tracking-tight leading-none"
-              style={{ color: gradeColor }}
-            >
-              {animatedScore}
-            </span>
-            <span
-              className="text-lg font-display font-bold"
-              style={{ color: gradeColor }}
-            >
-              {grade}
-            </span>
-            {delta !== 0 && (
+          <div
+            className="relative mx-auto w-52"
+            role="img"
+            aria-label={`Skor kesehatan finansial ${Math.round(animatedScore)} dari 100, grade ${grade}`}
+          >
+            <svg viewBox="0 0 200 118" className="block w-full" aria-hidden="true">
+              <path
+                d="M 20 100 A 80 80 0 0 1 180 100"
+                fill="none"
+                stroke={THEME.surfaceWarm}
+                strokeWidth="14"
+                strokeLinecap="round"
+              />
+              <path
+                d="M 20 100 A 80 80 0 0 1 180 100"
+                fill="none"
+                stroke={gradeColor}
+                strokeWidth="14"
+                strokeLinecap="round"
+                strokeDasharray={`${(Math.min(100, Math.max(0, animatedScore)) / 100) * 251.3} 251.3`}
+                style={{ transition: "stroke-dasharray 120ms linear" }}
+              />
+            </svg>
+            <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
               <span
-                className="text-[11px] font-semibold flex items-center gap-0.5"
-                style={{ color: delta > 0 ? THEME.income : THEME.danger }}
+                className="font-display text-4xl font-bold leading-none tracking-tight tabular-nums sm:text-5xl"
+                style={{ color: gradeColor }}
               >
-                {delta > 0 ? <TrendingUp size={12} aria-hidden="true" /> : <TrendingDown size={12} aria-hidden="true" />}
-                {delta > 0 ? "+" : ""}{delta} dari bulan lalu
+                {animatedScore}
               </span>
-            )}
+              <span className="mt-1 text-sm font-display font-bold" style={{ color: gradeColor }}>
+                {grade} · {gradeDesc}
+              </span>
+            </div>
           </div>
+          {delta !== 0 && (
+            <p
+              className="mt-2 flex items-center justify-center gap-1 text-[11px] font-semibold"
+              style={{ color: delta > 0 ? THEME.income : THEME.danger }}
+            >
+              {delta > 0 ? <TrendingUp size={12} aria-hidden="true" /> : <TrendingDown size={12} aria-hidden="true" />}
+              {delta > 0 ? "+" : ""}{delta} dari bulan lalu
+            </p>
+          )}
         </div>
 
         {/* Divider */}

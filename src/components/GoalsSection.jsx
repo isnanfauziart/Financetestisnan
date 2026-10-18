@@ -145,7 +145,7 @@ export default function GoalsSection({ data, transactions, onToast, refreshTrigg
         </div>
         <button
           onClick={() => setSetupState({ mode: "create" })}
-          className="plan-section-action min-w-11 px-2 flex items-center gap-1 hover:gap-2"
+          className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white shadow-pop flex items-center gap-1 transition-colors hover:bg-sage-600 active:scale-95"
           aria-label="Tambah target baru"
         >
           <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah Target
