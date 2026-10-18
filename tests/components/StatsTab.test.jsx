@@ -441,6 +441,9 @@ describe("StatsTab financial summary", () => {
     expect(screen.getByText(/Rata-rata pengeluaran terbesar di tahun 2025\. 1\. Makan Rp 15 rb per bulan/i)).toBeInTheDocument()
     expect(screen.getByText("↑ 100%")).toBeInTheDocument()
     expect(screen.getByText("baru")).toBeInTheDocument()
+    // Item 6 — the window badge reflects the real computed window: 2025 is a
+    // past year, so the full 12-month window.
+    expect(screen.getByText("12 bulan")).toBeInTheDocument()
   })
 
   it("shows the selected period, surplus status, and supporting income and expense metrics", () => {

@@ -35,3 +35,40 @@ describe("RecapSection special expense totals", () => {
     expect(screen.getByText("Rp 1.0 jt")).toBeInTheDocument()
   })
 })
+
+describe("RecapSection global filter seeding", () => {
+  beforeEach(() => {
+    useSettings.mockReturnValue({ settings: { categories: {} } })
+  })
+
+  const txs = [
+    { id: "a", type: "expense", category: "Makan", amount: 100000, month: "Agu", year: "2026", date: "8 Agu 2026", expenseClass: "routine", account: "BCA" },
+    { id: "b", type: "expense", category: "Makan", amount: 200000, month: "Sep", year: "2026", date: "8 Sep 2026", expenseClass: "routine", account: "BCA" },
+  ]
+
+  it("seeds the report filters from the global Statistik filters and shows the chip", async () => {
+    const { fireEvent } = await import("@testing-library/react")
+    render(
+      <RecapSection
+        transactions={txs}
+        globalFilter={{ month: "Agu", year: "2026", account: "BCA" }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    // Seeded: only the Agu group renders, and the following-global chip shows.
+    expect(screen.getByText("Mengikuti filter global")).toBeInTheDocument()
+    expect(screen.queryByText("Filter khusus laporan")).not.toBeInTheDocument()
+    expect(screen.getByText(/1 bulan/)).toBeInTheDocument()
+
+    // Override the month -> badge switches to "filter khusus laporan".
+    fireEvent.click(screen.getByRole("button", { name: "Bulan" }))
+    fireEvent.click(screen.getByRole("option", { name: "Sep" }))
+    expect(screen.getByText("Filter khusus laporan")).toBeInTheDocument()
+
+    // "Atur Ulang" returns to the global seed.
+    fireEvent.click(screen.getByRole("button", { name: /atur ulang filter laporan/i }))
+    expect(screen.getByText("Mengikuti filter global")).toBeInTheDocument()
+  })
+})

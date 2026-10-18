@@ -128,7 +128,7 @@ describe("Rencana hub (Ringkasan as dashboard)", () => {
     const onOpenMonthFilter = vi.fn()
     render(<PlanTab {...createProps({ onOpenMonthFilter })} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Ubah bulan di Statistik" }))
+    fireEvent.click(screen.getByRole("button", { name: "Ubah bulan di Rencana" }))
 
     expect(onOpenMonthFilter).toHaveBeenCalledTimes(1)
   })

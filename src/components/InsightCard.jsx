@@ -9,6 +9,9 @@ import { THEME } from "@/app/dashboard/_components/constants"
  *
  * variant "tinted" (Stats): type label + tone-tinted background.
  * variant "neutral" (Home): quiet list card with an accent icon chip.
+ * variant "coach" (Home, item 14): the single top insight elevated into a
+ *   dark #1F2D28 card with a concrete CTA. Max one per screen; when nothing
+ *   is actionable the quiet variants are used instead.
  */
 const INSIGHT_TONES = {
   positive: { container: THEME.incomeBg, accent: THEME.income, label: "Positif" },
@@ -19,10 +22,31 @@ const INSIGHT_TONES = {
 
 const TYPE_ICONS = { positive: TrendingUp, warning: AlertCircle, danger: AlertCircle, info: Info }
 
-export default function InsightCard({ insight, variant = "tinted", style = undefined }) {
+export default function InsightCard({ insight, variant = "tinted", style = undefined, actionLabel, onAction }) {
   const Icon = insight.icon || Sparkles
   const tone = INSIGHT_TONES[insight.type] || INSIGHT_TONES.info
   const accent = insight.color || tone.accent
+
+  if (variant === "coach") {
+    return (
+      <article className="rounded-[20px] p-4 sm:p-5 text-white shadow-pop" style={{ background: "#1F2D28", ...style }} data-testid="home-coach-card">
+        <div className="flex items-center gap-1.5">
+          <Icon size={13} aria-hidden="true" className="opacity-80" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">Saran hari ini</p>
+        </div>
+        <p className="mt-2 text-sm font-semibold leading-relaxed text-white">{insight.text}</p>
+        {actionLabel && typeof onAction === "function" && (
+          <button
+            type="button"
+            onClick={onAction}
+            className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#F3EEE5] px-4 text-xs font-bold text-[#1F2D28] transition-transform active:scale-[0.97]"
+          >
+            {actionLabel}
+          </button>
+        )}
+      </article>
+    )
+  }
 
   if (variant === "neutral") {
     return (

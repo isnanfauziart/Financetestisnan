@@ -139,7 +139,7 @@ export default function SavingsRateTrend({ monthlyData, span = "12 bln", onSpanC
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.surfaceWarm} vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 9, fill: "#9c8978", fontWeight: 500 }}
+              tick={{ fontSize: 11, fill: "#6B625A", fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
             />

@@ -8,6 +8,7 @@ import DebtsSection from "@/components/DebtsSection"
 import BudgetsSection from "@/components/BudgetsSection"
 import BillsSection from "@/components/BillsSection"
 import EventBudgetsSection from "@/components/EventBudgetsSection"
+import SimulasiSection from "@/components/SimulasiSection"
 import { useAttentionItems, AttentionBand } from "@/components/PlanAttention"
 import PlanHubCards from "@/components/PlanHubCards"
 import LockedFeaturePreview from "@/components/LockedFeaturePreview"
@@ -108,6 +109,20 @@ export default function PlanTab({
     setInternalActiveSection(sectionKey)
   }
 
+  // Item 18 — applying a simulation scenario nudges the user to the section
+  // where they act on it.
+  const handleApplyScenario = (scenarioKey) => {
+    const routes = {
+      save: { section: "goal", message: "Siap nabung Rp 500 rb — buka Target untuk mulai." },
+      cut: { section: "budget", message: "Siap hemat jajan — sesuaikan limit di Anggaran." },
+      bill: { section: "tagihan", message: "Siap lewati tagihan — atur di Tagihan." },
+    }
+    const route = routes[scenarioKey]
+    if (!route) return
+    onToast?.(route.message, "success")
+    handleSectionChange(route.section)
+  }
+
   return (
     <div className="plan-tab px-5 pt-4 animate-bento-in" key="plan-tab">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -119,7 +134,7 @@ export default function PlanTab({
                 type="button"
                 onClick={onOpenMonthFilter}
                 className="inline-flex min-h-9 items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-bold text-md3-on-surface"
-                aria-label="Ubah bulan di Statistik"
+                aria-label="Ubah bulan di Rencana"
               >
                 {selectedMonth || "Bulan ini"} {selectedYear || ""} <ChevronDown size={12} aria-hidden="true" />
               </button>
@@ -227,6 +242,17 @@ export default function PlanTab({
 
           {currentSection === "simulasi" && (
             <div className="space-y-5">
+              {(hasFeature(entitlement, "whatIf") || hasFeature(entitlement, "financialIndependence")) && (
+                <SimulasiSection
+                  monthlyData={monthlyData}
+                  transactions={transactions}
+                  bills={bills}
+                  availableBalance={data?.balances?.available?.value ?? 0}
+                  now={now}
+                  onApplyScenario={handleApplyScenario}
+                />
+              )}
+
               {getFeatureGate(entitlement, "financialIndependence") === "unavailable" ? <LockedFeaturePreview title="Financial Freedom" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(entitlement, "financialIndependence") === "unresolved" ? <LockedFeaturePreview title="Financial Freedom" unresolved /> : hasFeature(entitlement, "financialIndependence") ? <FITrackerCard netWorth={data?.netWorth} monthlyData={monthlyData} netWorthHistory={netWorthHistory} now={now} /> : <LockedFeaturePreview title="Financial Freedom" description="Pelacak Financial Freedom tersedia di Pro." example="Contoh: target dana 12× pengeluaran bulanan dengan perkiraan waktu dari surplus tercatat." proRegistrationOpen={proRegistrationOpen} />}
 
               {getFeatureGate(entitlement, "whatIf") === "unavailable" ? <LockedFeaturePreview title="What-If" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(entitlement, "whatIf") === "unresolved" ? <LockedFeaturePreview title="What-If" unresolved /> : hasFeature(entitlement, "whatIf") ? <button onClick={onWhatIfOpen} className="plan-card w-full p-4 text-left active:scale-[0.99]" aria-label="Buka simulator What-If"><div className="flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: THEME.primaryBg, color: THEME.primary }}><Calculator size={16} aria-hidden="true" /></div><div><p className="text-sm font-bold text-md3-on-surface">What-If Scenario</p><p className="mt-0.5 text-[10px] text-md3-on-surface-variant">Simulasi dampak pengurangan pengeluaran ke goal</p></div></div><ArrowRight size={14} className="text-earth-400" aria-hidden="true" /></div></button> : <LockedFeaturePreview title="What-If" description="Simulasi dampak pengurangan pengeluaran tersedia di Pro." example="Contoh: kurangi jajan Rp 200.000/bulan, goal tercapai 1 bulan lebih cepat." proRegistrationOpen={proRegistrationOpen} />}

@@ -143,22 +143,23 @@ describe("PlanTab planning ownership", () => {
     })
   })
 
-  it("uses semantic icon tiles for every hub pillar", () => {
+  it("uses semantic icon tiles and soft solid fills for every hub pillar", () => {
     render(<PlanTab {...createProps()} />)
 
     const semanticTones = [
-      ["Target", "bg-sage-100", "text-sage-700"],
-      ["Anggaran", "bg-amber-100", "text-amber-700"],
-      ["Tagihan", "bg-clay-100", "text-clay-600"],
-      ["Utang & Piutang", "bg-rose-100", "text-rose-700"],
-      ["Event", "bg-indigo-100", "text-indigo-700"],
-      ["Simulasi", "bg-violet-100", "text-violet-700"],
+      ["Target", "bg-sage-100", "bg-white/70", "text-sage-700"],
+      ["Anggaran", "bg-amber-100", "bg-white/70", "text-amber-700"],
+      ["Tagihan", "bg-clay-100", "bg-white/70", "text-clay-600"],
+      ["Utang & Piutang", "bg-rose-100", "bg-white/70", "text-rose-700"],
+      ["Event", "bg-indigo-100", "bg-white/70", "text-indigo-700"],
+      ["Simulasi", "bg-[#1F2D28]", "bg-violet-100", "text-violet-700"],
     ]
 
-    semanticTones.forEach(([label, background, color]) => {
-      const iconTile = getHubPillar(label).querySelector("[data-plan-icon-tile]")
+    semanticTones.forEach(([label, cardFill, tileBg, tileColor]) => {
+      const pillar = getHubPillar(label)
 
-      expect(iconTile).toHaveClass(background, color)
+      expect(pillar).toHaveClass(cardFill)
+      expect(pillar.querySelector("[data-plan-icon-tile]")).toHaveClass(tileBg, tileColor)
     })
   })
 
@@ -166,9 +167,9 @@ describe("PlanTab planning ownership", () => {
     render(<PlanTab {...createProps()} />)
 
     const pillarTones = [
-      ["Target", "bg-sage-100", "text-sage-700"],
-      ["Anggaran", "bg-amber-100", "text-amber-700"],
-      ["Tagihan", "bg-clay-100", "text-clay-600"],
+      ["Target", "bg-white/70", "text-sage-700"],
+      ["Anggaran", "bg-white/70", "text-amber-700"],
+      ["Tagihan", "bg-white/70", "text-clay-600"],
     ]
 
     pillarTones.forEach(([label, background, color]) => {

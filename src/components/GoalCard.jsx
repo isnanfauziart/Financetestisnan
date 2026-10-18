@@ -45,7 +45,7 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
               </span>
             )}
             {!settled && achieved && (
-              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "#d4a85322", color: "#d4a853" }}>
+              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: THEME.warningBg, color: THEME.warning }}>
                 ✓ Selesai
               </span>
             )}
@@ -85,13 +85,26 @@ export default function GoalCard({ goal, progress, onContribute, onEdit, onDelet
             {paceLabel(pace, deadline)}
           </p>
         )}
+        {/* Item 19 — warm microcopy keyed to the existing pace thresholds. */}
+        {pace && pace.status === "on_track" && (
+          <p className="mt-1 text-[10px] font-semibold text-left" style={{ color: THEME.primary }}>
+            Sesuai rencana — lanjutkan.
+          </p>
+        )}
+        {pace && (pace.status === "behind" || pace.status === "expired" || pace.status === "no_contributions") && (
+          <p className="mt-1 text-[10px] font-semibold text-left" style={{ color: THEME.primary }}>
+            {pace.additionalMonthly > 0 || pace.requiredMonthly > 0
+              ? `Perlu tambah ${formatRp(pace.additionalMonthly > 0 ? pace.additionalMonthly : pace.requiredMonthly)}/bulan — kamu bisa.`
+              : "Mulai dari langkah kecil — kamu bisa."}
+          </p>
+        )}
         {pace && sharedCategory && (
           <p className="plan-card__meta">
             Kategori ini dipakai beberapa target; cek pembagiannya.
           </p>
         )}
         {!settled && achieved && (
-          <p className="text-[10px] font-semibold" style={{ color: "#d4a853" }}>
+          <p className="text-[10px] font-semibold" style={{ color: THEME.warning }}>
             Target tercapai
           </p>
         )}

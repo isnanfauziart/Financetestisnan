@@ -6,6 +6,14 @@ import RowActionsMenu from "@/app/dashboard/_components/RowActionsMenu"
 import BudgetProgressBar from "./BudgetProgressBar"
 import { computeBudgetPace } from "@/lib/budgetPace"
 
+// Item 19 — warm Indonesian microcopy keyed to the existing pace
+// thresholds (computeBudgetPace is untouched).
+const PACE_COPY = {
+  steady: "Aman, masih di jalur.",
+  slower: "Masih longgar — pertahankan.",
+  faster: "Agak cepat — pelan-pelan sampai akhir bulan.",
+}
+
 function statusLabel(pct) {
   if (pct >= 100) return { text: "Over", color: THEME.danger }
   if (pct >= 90) return { text: "Hampir", color: THEME.expense }
@@ -76,9 +84,14 @@ export default function BudgetCard({ budget, spent, onClick, onEdit, onDelete, c
             Sisa {formatRp(pace.remaining)} · sekitar {formatRp(pace.dailyRoom)}/hari
           </p>
         )}
+        {pace?.status === "active" && pace?.paceStatus && PACE_COPY[pace.paceStatus] && (
+          <p className="mt-1 text-[10px] font-semibold text-left" style={{ color: THEME.primary }}>
+            {PACE_COPY[pace.paceStatus]}
+          </p>
+        )}
         {pace?.status === "over" && (
           <p className="text-[10px] font-semibold mt-1 text-left" style={{ color: THEME.danger }}>
-            Melebihi {formatRp(pace.exceeded)}
+            Melebihi {formatRp(pace.exceeded)} — yuk rem sedikit minggu ini.
           </p>
         )}
       </button>

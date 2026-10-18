@@ -169,13 +169,17 @@ export default function StatsTab({
     const years = (data?.transactions || []).map(t => Number(t.year)).filter(y => Number.isFinite(y))
     return years.length ? String(Math.max(...years)) : String(new Date().getFullYear())
   }, [data, selectedYear])
+  // Item 6 — the real computed window for the trend-year card, shared by
+  // the rows below and the badge in the card header (not a hardcoded label).
+  const elapsedMonths = useMemo(() => {
+    const now = new Date()
+    return trendYearLabel === String(now.getFullYear()) ? now.getMonth() + 1 : 12
+  }, [trendYearLabel])
   // Year-scoped top-category rows: monthly average for the trend year + YoY
   // against the same elapsed window last year. Built from raw transactions
   // (not the span-sliced trend series) so the "di tahun X" title always holds.
   const yearCategoryRows = useMemo(() => {
     const transactions = data?.transactions || []
-    const now = new Date()
-    const elapsedMonths = trendYearLabel === String(now.getFullYear()) ? now.getMonth() + 1 : 12
     const prevYearLabel = String(Number(trendYearLabel) - 1)
     const sumFor = (year, category, months) => {
       let total = 0
@@ -211,7 +215,7 @@ export default function StatsTab({
           color: activeChartTheme.seriesPalette[index % activeChartTheme.seriesPalette.length],
         }
       })
-  }, [data, trendYearLabel, isRoutineMode, activeChartTheme])
+  }, [data, trendYearLabel, isRoutineMode, activeChartTheme, elapsedMonths])
   const activeCompareDataA = isRoutineMode ? (routineCompareDataA || compareDataA) : compareDataA
   const activeCompareDataB = isRoutineMode ? (routineCompareDataB || compareDataB) : compareDataB
   const activeCompareChartData = isRoutineMode ? (routineCompareChartData || compareChartData) : compareChartData
@@ -612,8 +616,11 @@ export default function StatsTab({
                   <h3 className="text-sm font-bold font-display text-md3-on-surface">Rata-rata pengeluaran terbesar di tahun {trendYearLabel}</h3>
                   <p className="mt-1 text-[11px] text-md3-on-surface-variant">Rata-rata per bulan · % vs tahun {String(Number(trendYearLabel) - 1)}</p>
                 </div>
+                {/* Item 6 — window badge derived from the real computed
+                    window (elapsed months of the selected year), not a
+                    hardcoded label. */}
                 <span className="flex-shrink-0 rounded-full bg-md3-surface px-2.5 py-1 text-[10px] font-bold text-md3-on-surface-variant">
-                  12 bulan
+                  {elapsedMonths} bulan
                 </span>
               </div>
               <p id="stats-category-trend-summary" className="sr-only">{getYearCategorySummary(yearCategoryRows, trendYearLabel)}</p>
@@ -866,7 +873,18 @@ export default function StatsTab({
               {getFeatureGate(effectiveEntitlement, "yearInReview") === "unavailable" ? <LockedFeaturePreview title="Year-in-Review" description="Fitur sedang tidak tersedia." unavailable proRegistrationOpen={proRegistrationOpen} /> : getFeatureGate(effectiveEntitlement, "yearInReview") === "unresolved" ? <LockedFeaturePreview title="Year-in-Review" unresolved /> : hasFeature(effectiveEntitlement, "yearInReview") ? <YearInReviewButton transactions={allTransactions} monthlyData={monthlyData} routineMonthlyData={routineMonthlyData} userName={userName} entitlement={effectiveEntitlement} /> : <LockedFeaturePreview title="Year-in-Review" description="Kilasan tahunan tersedia untuk pengguna Pro." example="Contoh: kilasan Jan–Des dalam PDF — total pemasukan, pengeluaran rutin dan spesial, serta tabungan." proRegistrationOpen={proRegistrationOpen} />}
             </div>
           </div>
-          <RecapSection transactions={data?.transactions || []} history={data?.history} onEdit={onEditTx} onDelete={onDeleteTx} onRepeat={onRepeatTx} />
+          <RecapSection
+            transactions={data?.transactions || []}
+            history={data?.history}
+            onEdit={onEditTx}
+            onDelete={onDeleteTx}
+            onRepeat={onRepeatTx}
+            globalFilter={{
+              month: selectedMonth === "Semua Bulan" ? "all" : selectedMonth,
+              year: selectedYear === "Semua Tahun" ? "all" : selectedYear,
+              account: selectedAccount === "Semua Akun" ? "all" : selectedAccount,
+            }}
+          />
         </div>
       )}
     </div>

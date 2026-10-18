@@ -94,26 +94,27 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage,
 
   if (loading) {
     return (
-      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
-        <div className="shimmer-bg rounded-2xl h-24" aria-hidden="true" />
+      <div className="plan-section-shell animate-bento-in">
+        <SectionHeader />
+        <div className="plan-loading-state text-center" role="status" aria-label="Memuat utang/piutang" aria-busy="true">
+          <span className="sr-only">Memuat utang/piutang…</span>
+          <div className="w-8 h-8 mx-auto border-2 border-md3-outline-variant border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
-        <div className="flex items-center gap-1.5 mb-3 px-0.5">
-          <CreditCard size={14} color={THEME.primary} aria-hidden="true" />
-          <h3 className="text-sm font-bold font-display text-md3-on-surface">Utang Piutang</h3>
-        </div>
+      <div className="plan-section-shell animate-bento-in">
+        <SectionHeader />
         <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4" role="alert">
           <p className="text-sm font-semibold text-rose-800">Gagal memuat utang/piutang</p>
           <p className="text-xs text-rose-700 mt-1">{error}</p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="mt-3 text-xs font-bold px-3 py-1.5 rounded-full text-white bg-rose-600 hover:bg-rose-700"
+            className="mt-3 min-h-11 min-w-11 text-xs font-bold px-3 py-1.5 rounded-xl text-white bg-rose-600 hover:bg-rose-700"
           >
             Coba lagi
           </button>
@@ -122,10 +123,34 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage,
     )
   }
 
+  // Item 7 — one shared section header: h2 1.45rem + one solid green 44px CTA.
+  function SectionHeader() {
+    return (
+      <div className="plan-section-heading">
+        <div className="plan-section-heading__title">
+          <CreditCard size={14} color={THEME.primary} aria-hidden="true" />
+          <h2>Utang Piutang</h2>
+          {openDebts.length > 0 && (
+            <span className="plan-section-heading__meta">{openDebts.length} aktif</span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setSetupOpen(true)}
+          className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white shadow-pop flex items-center gap-1 transition-colors hover:bg-sage-600 active:scale-95"
+          aria-label="Tambah utang/piutang"
+        >
+          <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah Utang
+        </button>
+      </div>
+    )
+  }
+
   // Don't show section if no debts at all
   if (debts.length === 0 && !setupOpen) {
     return (
-      <div className="mt-6 animate-bento-in">
+      <div className="plan-section-shell animate-bento-in">
+        <SectionHeader />
         <FeatureEducation
           title="Pantau utang dan piutang dengan jelas"
           description="Catat siapa yang terlibat, jumlahnya, dan kapan perlu diselesaikan."
@@ -152,21 +177,8 @@ export default function DebtsSection({ onToast, onUsageChange, transactionUsage,
 
   return (
     <>
-      <div className="mt-6 bento-tile bg-md3-surface-container-lowest border border-md3-outline-variant p-5 shadow-warm animate-bento-in">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3 px-0.5">
-          <div className="flex items-center gap-1.5">
-            <CreditCard size={14} color={THEME.primary} aria-hidden="true" />
-            <h3 className="text-sm font-bold font-display text-md3-on-surface">Utang Piutang</h3>
-          </div>
-          <button
-            onClick={() => setSetupOpen(true)}
-            className="w-7 h-7 rounded-lg bg-violet-50 hover:bg-violet-100 flex items-center justify-center text-violet-600 transition-colors"
-            aria-label="Tambah utang/piutang"
-          >
-            <Plus size={14} />
-          </button>
-        </div>
+      <div className="plan-section-shell animate-bento-in">
+        <SectionHeader />
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-2.5 mb-4">

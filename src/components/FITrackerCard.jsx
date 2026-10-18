@@ -71,7 +71,7 @@ function ProjectionChart({ data, target }) {
   const chart = (
     <LineChart width={320} height={170} data={data} margin={{ top: 8, right: 8, left: 8, bottom: 4 }}>
       <CartesianGrid stroke={THEME.surfaceWarm} strokeDasharray="3 3" vertical={false} />
-      <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#9c8978" }} axisLine={false} tickLine={false} />
+      <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#6B625A" }} axisLine={false} tickLine={false} />
       <YAxis hide domain={["auto", "auto"]} />
       <Tooltip content={<ProjectionTooltip />} />
       <ReferenceLine y={target} stroke={THEME.warning} strokeDasharray="2 3" label={{ value: "Target", position: "insideTopRight", fill: THEME.warning, fontSize: 10 }} />

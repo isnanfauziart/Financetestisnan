@@ -9,6 +9,7 @@ import BudgetSetupModal from "./BudgetSetupModal"
 import BudgetCopyModal from "./BudgetCopyModal"
 import BudgetDetailModal from "./BudgetDetailModal"
 import FeatureEducation from "./FeatureEducation"
+import ConfirmSheet from "@/app/dashboard/_components/ConfirmSheet"
 import { matchesBudgetPeriod } from "@/lib/budgetPace"
 
 export default function BudgetsSection({
@@ -29,6 +30,10 @@ export default function BudgetsSection({
   const [setupState, setSetupState] = useState(null)
   const [detailBudget, setDetailBudget] = useState(null)
   const [copyOpen, setCopyOpen] = useState(false)
+  // Item 5 — delete confirmation uses the shared ConfirmSheet, not the
+  // native confirm() dialog, like every other Rencana section.
+  const [deleteBudget, setDeleteBudget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   const monthParam = selectedMonth && selectedMonth !== "Semua Bulan" ? selectedMonth : ""
   const yearParam = selectedYear && selectedYear !== "Semua Tahun" ? selectedYear : ""
@@ -93,7 +98,8 @@ export default function BudgetsSection({
   }
 
   async function handleDelete(budget) {
-    if (!confirm(`Hapus budget ${budget.kategori} ${budget.bulan} ${budget.tahun}?`)) return
+    if (!budget || deleting) return
+    setDeleting(true)
     try {
       const res = await fetch("/api/budgets", {
         method: "DELETE",
@@ -103,10 +109,13 @@ export default function BudgetsSection({
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || "Gagal menghapus")
        onToast?.("Anggaran dihapus ✓", "success")
+      setDeleteBudget(null)
       refetch()
       onUsageChange?.()
     } catch (err) {
       onToast?.(err.message, "error")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -220,7 +229,7 @@ export default function BudgetsSection({
                     categoryMeta={settings?.categories?.expense?.find(item => (typeof item === "string" ? item : item?.name) === b.kategori)}
                     onClick={() => setDetailBudget(b)}
                     onEdit={() => openEdit(b)}
-                    onDelete={() => handleDelete(b)}
+                    onDelete={() => setDeleteBudget(b)}
                     now={now}
                   />
                 </div>
@@ -302,6 +311,18 @@ export default function BudgetsSection({
           billsLoading={billsLoading}
           billsError={billsError}
           now={now}
+        />
+      )}
+
+      {deleteBudget && (
+        <ConfirmSheet
+          title="Hapus anggaran?"
+          message={`Anggaran ${deleteBudget.kategori} ${deleteBudget.bulan} ${deleteBudget.tahun} akan dihapus permanen.`}
+          confirmLabel="Hapus"
+          confirmColor={THEME.danger}
+          onConfirm={() => handleDelete(deleteBudget)}
+          onClose={() => { if (!deleting) setDeleteBudget(null) }}
+          confirming={deleting}
         />
       )}
     </div>

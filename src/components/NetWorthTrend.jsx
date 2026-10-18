@@ -13,14 +13,32 @@ function fullLabel(point) {
   return `${point.month} ${point.year}`.trim()
 }
 
-function TrendTooltip({ active, payload, moneyHidden }) {
+// Item 13 — floating pill tooltip on the tapped point: month · value ·
+// delta vs the previous month. activeDot gives tap feedback.
+function TrendTooltip({ active, payload, moneyHidden, points = [] }) {
   if (!active || !payload || payload.length === 0) return null
   const point = payload[0]?.payload
   if (!point) return null
   const value = moneyHidden ? maskRupiah(formatRpFull(point.value)) : formatRpFull(point.value)
+  const idx = points.findIndex((p) => String(p.key ?? "") === String(point.key ?? ""))
+  const prev = idx > 0 ? points[idx - 1] : null
+  const delta = prev ? point.value - prev.value : 0
+  const deltaLabel = prev
+    ? (moneyHidden
+        ? maskRupiah(formatRpFull(delta))
+        : `${delta > 0 ? "+" : ""}${formatRp(delta)}`)
+    : null
   return (
-    <div className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-xs font-bold text-md3-on-surface shadow-warm">
-      {fullLabel(point)} · {value}
+    <div className="flex items-center gap-1.5 rounded-full bg-md3-inverse-surface px-3.5 py-2 text-xs font-bold text-md3-inverse-on-surface shadow-warm">
+      <span>{fullLabel(point)}</span>
+      <span aria-hidden="true">·</span>
+      <span>{value}</span>
+      {deltaLabel && (
+        <>
+          <span aria-hidden="true">·</span>
+          <span style={{ color: delta >= 0 ? "var(--income)" : "var(--expense)" }}>{deltaLabel}</span>
+        </>
+      )}
     </div>
   )
 }
@@ -104,9 +122,9 @@ export default function NetWorthTrend({ history = [], moneyHidden = false }) {
                 axisLine={false}
                 tickMargin={10}
               />
-              <Tooltip content={<TrendTooltip moneyHidden={moneyHidden} />} cursor={{ stroke: "var(--border-warm)", strokeWidth: 1 }} />
+              <Tooltip content={<TrendTooltip moneyHidden={moneyHidden} points={points} />} cursor={{ stroke: "var(--border-warm)", strokeWidth: 1 }} />
               <Area type="monotone" dataKey="value" fill={line} fillOpacity={0.08} stroke="none" isAnimationActive={false} />
-              <Line type="monotone" dataKey="value" stroke={line} strokeWidth={2.5} dot={renderDot} activeDot={false} />
+              <Line type="monotone" dataKey="value" stroke={line} strokeWidth={2.5} dot={renderDot} activeDot={{ r: 5, stroke: "var(--surface)", strokeWidth: 2 }} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

@@ -186,7 +186,7 @@ export default function CashFlowForecast({ monthlyData, routineMonthlyData, tran
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.surfaceWarm} vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 10, fill: "#9c8978", fontWeight: 500 }}
+              tick={{ fontSize: 10, fill: "#6B625A", fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
             />

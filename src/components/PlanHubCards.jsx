@@ -18,22 +18,22 @@ const SECTION_FEATURES = {
 }
 
 const CARD_META = {
-  goal: { label: "Target", icon: Target, tone: "bg-sage-100 text-sage-700" },
-  budget: { label: "Anggaran", icon: Wallet, tone: "bg-amber-100 text-amber-700" },
-  tagihan: { label: "Tagihan", icon: Receipt, tone: "bg-clay-100 text-clay-600" },
-  utang: { label: "Utang & Piutang", icon: HandCoins, tone: "bg-rose-100 text-rose-700" },
-  event: { label: "Event", icon: CalendarDays, tone: "bg-indigo-100 text-indigo-700" },
-  simulasi: { label: "Simulasi", icon: Calculator, tone: "bg-violet-100 text-violet-700" },
+  goal: { label: "Target", icon: Target, card: "bg-sage-100", tile: "bg-white/70 text-sage-700" },
+  budget: { label: "Anggaran", icon: Wallet, card: "bg-amber-100", tile: "bg-white/70 text-amber-700" },
+  tagihan: { label: "Tagihan", icon: Receipt, card: "bg-clay-100", tile: "bg-white/70 text-clay-600" },
+  utang: { label: "Utang & Piutang", icon: HandCoins, card: "bg-rose-100", tile: "bg-white/70 text-rose-700" },
+  event: { label: "Event", icon: CalendarDays, card: "bg-indigo-100", tile: "bg-white/70 text-indigo-700" },
+  simulasi: { label: "Simulasi", icon: Calculator, card: null, tile: "bg-violet-100 text-violet-700" },
 }
 
-function HubCardButton({ label, available, onOpen, span, dark, children }) {
+function HubCardButton({ label, available, onOpen, span, dark, fill, children }) {
   return (
     <button
       type="button"
       disabled={!available}
       onClick={() => available && onOpen()}
       aria-label={`${available ? "Buka" : "Fitur terkunci"} ${label}`}
-      className={`bento-tile p-4 text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${span ? "col-span-2" : ""} ${dark ? "border border-[#1F2D28] bg-[#1F2D28] text-white" : "border border-md3-outline-variant bg-md3-surface-container-lowest"}`}
+      className={`bento-tile p-4 text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${span ? "col-span-2" : ""} ${dark ? "border border-[#1F2D28] bg-[#1F2D28] text-white" : `border border-md3-outline-variant ${fill || "bg-md3-surface-container-lowest"}`}`}
     >
       {children}
     </button>
@@ -41,10 +41,10 @@ function HubCardButton({ label, available, onOpen, span, dark, children }) {
 }
 
 function CardTag({ cardKey, dark }) {
-  const { label, icon: Icon, tone } = CARD_META[cardKey]
+  const { label, icon: Icon, tile } = CARD_META[cardKey]
   return (
     <p className="flex items-center gap-1.5">
-      <span data-plan-icon-tile className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl ${tone}`}>
+      <span data-plan-icon-tile className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl ${tile}`}>
         <Icon size={14} strokeWidth={2.1} aria-hidden="true" />
       </span>
       <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${dark ? "text-white/60" : "text-md3-on-surface-variant"}`}>
@@ -92,7 +92,7 @@ function CardEmpty({ value, detail, cta }) {
 function TargetCard({ data, available, onOpen }) {
   const g = data.goal
   return (
-    <HubCardButton label="Target" available={available} onOpen={onOpen} span>
+    <HubCardButton label="Target" available={available} onOpen={onOpen} span fill={CARD_META.goal.card}>
       <CardTag cardKey="goal" />
       {data.status === "loading" ? (
         <p className="mt-2 text-sm font-semibold text-md3-on-surface-variant">{data.value}</p>
@@ -119,7 +119,7 @@ function TargetCard({ data, available, onOpen }) {
 function BudgetCard({ data, available, onOpen }) {
   const s = data.summary
   return (
-    <HubCardButton label="Anggaran" available={available} onOpen={onOpen} span>
+    <HubCardButton label="Anggaran" available={available} onOpen={onOpen} span fill={CARD_META.budget.card}>
       <CardTag cardKey="budget" />
       {data.status === "loading" ? (
         <p className="mt-2 text-sm font-semibold text-md3-on-surface-variant">{data.value}</p>
@@ -157,7 +157,7 @@ function BudgetCard({ data, available, onOpen }) {
 function BillCard({ data, available, onOpen }) {
   const b = data.bill
   return (
-    <HubCardButton label="Tagihan" available={available} onOpen={onOpen}>
+    <HubCardButton label="Tagihan" available={available} onOpen={onOpen} fill={CARD_META.tagihan.card}>
       <CardTag cardKey="tagihan" />
       {data.status === "loading" ? (
         <p className="mt-2 text-sm font-semibold text-md3-on-surface-variant">{data.value}</p>
@@ -165,7 +165,7 @@ function BillCard({ data, available, onOpen }) {
         <>
           <p className="mt-2 truncate text-sm font-bold text-md3-on-surface">{b.nama}</p>
           <p className="mt-1 font-display text-[1.4rem] font-bold tabular-nums text-md3-on-surface">{b.jumlahLabel}</p>
-          <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${b.urgent || b.overdue ? "bg-clay-100 text-clay-600" : "bg-md3-surface-container-high text-md3-on-surface-variant"}`}>
+          <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${b.urgent || b.overdue ? "bg-clay-500 text-white" : "bg-md3-surface-container-high text-md3-on-surface-variant"}`}>
             {b.overdue ? `Terlambat ${Math.abs(b.daysUntilDue)} hari` : b.dueLabel}
           </p>
           <span className="block"><CardCta>{b.urgent || b.overdue ? "Bayar" : "Lihat"}</CardCta></span>
@@ -180,18 +180,18 @@ function BillCard({ data, available, onOpen }) {
 function UtangCard({ data, available, onOpen }) {
   const s = data.split
   return (
-    <HubCardButton label="Utang & Piutang" available={available} onOpen={onOpen}>
+    <HubCardButton label="Utang & Piutang" available={available} onOpen={onOpen} fill={CARD_META.utang.card}>
       <CardTag cardKey="utang" />
       {data.status === "loading" ? (
         <p className="mt-2 text-sm font-semibold text-md3-on-surface-variant">{data.value}</p>
       ) : s && s.count > 0 ? (
         <>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
-            <div className="rounded-xl bg-rose-50 px-2.5 py-2">
+            <div className="rounded-xl bg-white/60 px-2.5 py-2">
               <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-md3-on-surface-variant">Utangku</p>
               <p className="mt-0.5 font-display text-[15px] font-bold tabular-nums text-rose-700">{s.utangLabel}</p>
             </div>
-            <div className="rounded-xl bg-sage-50 px-2.5 py-2">
+            <div className="rounded-xl bg-white/60 px-2.5 py-2">
               <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-md3-on-surface-variant">Piutang</p>
               <p className="mt-0.5 font-display text-[15px] font-bold tabular-nums text-sage-700">{s.piutangLabel}</p>
             </div>
@@ -208,7 +208,7 @@ function UtangCard({ data, available, onOpen }) {
 function EventCard({ data, available, onOpen }) {
   const e = data.event
   return (
-    <HubCardButton label="Event" available={available} onOpen={onOpen}>
+    <HubCardButton label="Event" available={available} onOpen={onOpen} fill={CARD_META.event.card}>
       <CardTag cardKey="event" />
       {data.status === "loading" ? (
         <p className="mt-2 text-sm font-semibold text-md3-on-surface-variant">{data.value}</p>

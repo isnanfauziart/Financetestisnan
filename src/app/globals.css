@@ -449,7 +449,15 @@ body {
   display: none;
 }
 
-/* ===== Mesh Hero Gradient ===== */
+/* ===== Mesh Hero Gradient =====
+   ACCENT RULE (item 1): one accent system.
+   - Green #2F6B57 (--primary/--income/--savings) = money & primary actions:
+     buttons, amounts, success states.
+   - Violet #6E59B5 (--smart) = links & navigation, Pro / smart features.
+   The old mesh-* gradient helpers are retired except mesh-hero (dark hero
+   card) and mesh-violet. Despite its name, mesh-violet renders the primary
+   green: every usage ("Catat transaksi", "Buat Goal", sheet connector CTA)
+   is an action button, and actions are green per the rule above. */
 .mesh-hero {
   background: var(--hero-bg);
   position: relative;
@@ -458,32 +466,8 @@ body {
   display: none;
 }
 
-.mesh-aurora {
-  background: var(--primary);
-}
-
-.mesh-sage {
-  background: var(--income);
-}
-
-.mesh-clay {
-  background: var(--expense);
-}
-
-.mesh-moss {
-  background: var(--savings);
-}
-
 .mesh-violet {
   background: var(--primary);
-}
-
-.mesh-smart {
-  background: var(--smart);
-}
-
-.mesh-amber {
-  background: var(--warning);
 }
 
 /* ===== Interactive Chart Slice ===== */
