@@ -8,6 +8,7 @@ import BillSetupModal from "./BillSetupModal"
 import BillPayModal from "./BillPayModal"
 import FeatureEducation from "./FeatureEducation"
 import LockedFeaturePreview from "./LockedFeaturePreview"
+import RowActionsMenu from "@/app/dashboard/_components/RowActionsMenu"
 import RecurringExpenseRadar from "./RecurringExpenseRadar"
 import { hasFeature, isFeatureEnabled, isProRegistrationOpen } from "@/lib/featureAccess"
 
@@ -232,7 +233,7 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
         </div>
         <button
           onClick={() => setSetupState({ mode: "create" })}
-          className="plan-section-action min-h-11 min-w-11 rounded-xl px-2 flex items-center gap-1 hover:gap-2"
+          className="min-h-11 min-w-11 rounded-xl bg-sage-500 px-3 py-1.5 text-[11px] font-bold text-white shadow-pop flex items-center gap-1 transition-colors hover:bg-sage-600 active:scale-95"
           aria-label="Tambah tagihan baru"
         >
           <Plus size={12} strokeWidth={3} aria-hidden="true" /> Tambah Tagihan
@@ -341,30 +342,26 @@ export default function BillsSection({ onToast, refreshTrigger, onUsageChange, o
                       </p>
                       <p className="plan-bill-card__due">tgl {bill.tanggalJatuhTempo}</p>
                     </div>
-                    <div className="flex flex-col gap-1 opacity-100 can-hover:opacity-0 can-hover:group-hover:opacity-100 transition-opacity">
+                  </div>
+                  {/* Item 9 — actions always visible on touch: compact primary
+                      "Tandai lunas" + overflow menu. No hover-only patterns. */}
+                  <div className="mt-2 flex items-center justify-end gap-2">
                     <button
+                      type="button"
                       onClick={() => setPayBill(bill)}
-                      aria-label={`Bayar ${bill.nama}`}
-                      className="min-h-11 min-w-11 rounded-xl flex items-center justify-center text-white text-[10px] font-bold"
+                      aria-label={`Tandai lunas ${bill.nama}`}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-[11px] font-bold text-white transition-transform active:scale-[0.97]"
                       style={{ background: THEME.primary }}
                     >
-                      <CheckCircle size={12} />
+                      <CheckCircle size={13} aria-hidden="true" /> Tandai lunas
                     </button>
-                    <button
-                      onClick={() => handleToggleActive(bill)}
-                      aria-label={`Nonaktifkan ${bill.nama}`}
-                      className="min-h-11 min-w-11 rounded-xl bg-md3-surface hover:bg-amber-100 flex items-center justify-center text-md3-on-surface-variant hover:text-amber-600 transition-colors"
-                    >
-                      <Power size={10} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(bill)}
-                      aria-label={`Hapus ${bill.nama}`}
-                      className="min-h-11 min-w-11 rounded-xl bg-md3-surface hover:bg-rose-100 flex items-center justify-center text-md3-on-surface-variant hover:text-rose-500 transition-colors"
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                    </div>
+                    <RowActionsMenu
+                      menuLabel={`Aksi ${bill.nama}`}
+                      items={[
+                        { label: "Nonaktifkan", icon: Power, onClick: () => handleToggleActive(bill), ariaLabel: `Nonaktifkan ${bill.nama}` },
+                        { label: "Hapus", icon: Trash2, onClick: () => handleDelete(bill), ariaLabel: `Hapus ${bill.nama}`, danger: true },
+                      ]}
+                    />
                   </div>
                 </div>
               )
