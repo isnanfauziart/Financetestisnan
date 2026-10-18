@@ -7,11 +7,19 @@ import { MoreVertical, Pencil, Repeat, Trash2 } from "lucide-react"
 // same approach as SelectField; measure-and-reflow only if menus ever grow.
 const MENU_WIDTH = 176
 
-export default function RowActionsMenu({ onEdit, onDelete, onRepeat, repeatLabel = "Ulangi", editLabel = "Edit", deleteLabel = "Hapus", menuLabel = "Menu aksi" }) {
+export default function RowActionsMenu({ onEdit, onDelete, onRepeat, repeatLabel = "Ulangi", editLabel = "Edit", deleteLabel = "Hapus", menuLabel = "Menu aksi", items }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const btnRef = useRef(null)
   const menuRef = useRef(null)
+
+  // Item 9: optional custom menu items (e.g. bill row overflow) — each item
+  // is { label, icon: IconComponent, onClick, ariaLabel, danger }.
+  const menuItems = items || [
+    ...(onEdit ? [{ label: editLabel, icon: Pencil, onClick: onEdit, ariaLabel: editLabel }] : []),
+    ...(onRepeat ? [{ label: repeatLabel, icon: Repeat, onClick: onRepeat, ariaLabel: repeatLabel }] : []),
+    ...(onDelete ? [{ label: deleteLabel, icon: Trash2, onClick: onDelete, ariaLabel: deleteLabel, danger: true }] : []),
+  ]
 
   useEffect(() => {
     if (!open) return
@@ -58,35 +66,25 @@ export default function RowActionsMenu({ onEdit, onDelete, onRepeat, repeatLabel
           className="fixed z-[9999] glass-strong rounded-2xl overflow-hidden shadow-pop-lg w-44 py-1 animate-scale-in motion-reduce:animate-none"
           style={{ top: pos.top, left: pos.left }}
         >
-          <button
-            type="button"
-            role="menuitem"
-            aria-label={editLabel}
-            onClick={() => { setOpen(false); onEdit() }}
-            className="min-h-11 w-full flex items-center gap-2.5 px-4 text-sm font-semibold text-md3-on-surface hover:bg-md3-surface-container-high transition-colors text-left"
-          >
-            <Pencil size={14} aria-hidden="true" /> Edit
-          </button>
-          {onRepeat && (
-            <button
-              type="button"
-              role="menuitem"
-              aria-label={repeatLabel}
-              onClick={() => { setOpen(false); onRepeat() }}
-              className="min-h-11 w-full flex items-center gap-2.5 px-4 text-sm font-semibold text-md3-on-surface hover:bg-md3-surface-container-high transition-colors text-left"
-            >
-              <Repeat size={14} aria-hidden="true" /> Ulangi
-            </button>
-          )}
-          <button
-            type="button"
-            role="menuitem"
-            aria-label={deleteLabel}
-            onClick={() => { setOpen(false); onDelete() }}
-            className="min-h-11 w-full flex items-center gap-2.5 px-4 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left"
-          >
-            <Trash2 size={14} aria-hidden="true" /> Hapus
-          </button>
+          {menuItems.filter((item) => typeof item.onClick === "function").map((item) => {
+            const ItemIcon = item.icon
+            return (
+              <button
+                key={item.ariaLabel || item.label}
+                type="button"
+                role="menuitem"
+                aria-label={item.ariaLabel || item.label}
+                onClick={() => { setOpen(false); item.onClick() }}
+                className={`min-h-11 w-full flex items-center gap-2.5 px-4 text-sm font-semibold transition-colors text-left ${
+                  item.danger
+                    ? "text-rose-600 hover:bg-rose-50"
+                    : "text-md3-on-surface hover:bg-md3-surface-container-high"
+                }`}
+              >
+                {ItemIcon && <ItemIcon size={14} aria-hidden="true" />} {item.label}
+              </button>
+            )
+          })}
         </div>,
         document.body
       )}

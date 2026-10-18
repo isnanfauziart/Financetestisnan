@@ -220,13 +220,13 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
             </div>
           )}
           <SelectField label="Kategori" value={formData.kategori} onChange={v => setFormData(f => ({ ...f, kategori: v }))}
-            options={categoryOptions} placeholder="Pilih kategori" />
+            options={categoryOptions} placeholder="Pilih kategori" variant="outlined" />
           {formData.kategori && !formData.eventId && (
             <EventSuggestionChip kategori={formData.kategori} eventId={formData.eventId} onSelect={v => setFormData(f => ({ ...f, eventId: v }))} />
           )}
           <EventTagPicker value={formData.eventId || ""} onChange={v => setFormData(f => ({ ...f, eventId: v }))} />
           <SelectField label="Akun" value={formData.akunBank} onChange={v => setFormData(f => ({ ...f, akunBank: v }))}
-            options={BANK_ACCOUNTS} placeholder="Pilih akun" />
+            options={BANK_ACCOUNTS} placeholder="Pilih akun" variant="outlined" />
           {txType === "expense" && (
             <SpecialExpenseField
               checked={formData.sifat === "Spesial"}
@@ -240,7 +240,7 @@ export default function QuickAddSheet({ open, onClose, initialType = "expense", 
           <div>
             <label htmlFor="qa-note" className="text-[10px] font-bold text-md3-on-surface-variant mb-1.5 block uppercase tracking-wider">Keterangan</label>
             <input id="qa-note" type="text" placeholder="Tulis keterangan transaksi" value={formData.keterangan} onChange={e => setFormData(f => ({ ...f, keterangan: e.target.value }))} aria-label="Keterangan transaksi"
-              className="w-full px-4 py-3 bg-md3-surface border border-md3-outline-variant rounded-2xl text-sm font-medium outline-none" />
+              className="field-outlined w-full px-4 py-3 text-sm font-semibold" />
           </div>
           {writeGuard.blocked && (
             <p role="alert" className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">

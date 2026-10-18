@@ -4,7 +4,7 @@ import { createPortal } from "react-dom"
 import { ChevronDown } from "lucide-react"
 import { THEME } from "./constants"
 
-export default function SelectField({ label, value, onChange, options, placeholder, isDark = false }) {
+export default function SelectField({ label, value, onChange, options, placeholder, isDark = false, variant }) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(Math.max(0, options.indexOf(value)))
   const btnRef = useRef(null)
@@ -119,8 +119,10 @@ export default function SelectField({ label, value, onChange, options, placehold
         aria-controls={listboxId}
         onKeyDown={handleButtonKeyDown}
         onClick={() => { if (!open) updatePos(); setOpen(!open) }}
-        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${
-          isDark ? "bg-white/15 text-white hover:bg-white/20" : "glass text-md3-on-surface hover:bg-md3-surface-container-high"
+        className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 ${
+          variant === "outlined"
+            ? "field-outlined font-semibold text-md3-on-surface"
+            : `rounded-2xl ${isDark ? "bg-white/15 text-white hover:bg-white/20" : "glass text-md3-on-surface hover:bg-md3-surface-container-high"}`
         }`}
       >
         <span className="truncate font-medium">{value || placeholder}</span>

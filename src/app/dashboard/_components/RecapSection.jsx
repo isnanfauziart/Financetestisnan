@@ -1,6 +1,6 @@
 "use client"
 import { useState, useMemo } from "react"
-import { ListFilter, X } from "lucide-react"
+import { ListFilter, X, CheckCircle2 } from "lucide-react"
 import {
   THEME,
   AVAILABLE_MONTHS,
@@ -37,16 +37,35 @@ function getMonthKey(month, year) {
   return `${month} ${year}`
 }
 
-export default function RecapSection({ transactions = [], history, onEdit, onDelete, onRepeat }) {
+export default function RecapSection({ transactions = [], history, onEdit, onDelete, onRepeat, globalFilter }) {
   const { settings } = useSettings()
+
+  // Item 8 — the report filters start from the global Statistik filters so
+  // the report agrees with the charts above it. Overriding any of the three
+  // seeded dimensions marks the report as using its own filter.
+  const globalSeed = useMemo(() => {
+    const norm = (v, allLabel) => (!v || v === "all" || v === allLabel ? "all" : v)
+    return {
+      month: norm(globalFilter?.month, "Semua Bulan"),
+      year: norm(globalFilter?.year, "Semua Tahun"),
+      account: norm(globalFilter?.account, "Semua Akun"),
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalFilter?.month, globalFilter?.year, globalFilter?.account])
+
   const [filter, setFilter] = useState({
-    month: "all",
-    year: "all",
-    account: "all",
+    month: globalSeed.month,
+    year: globalSeed.year,
+    account: globalSeed.account,
     category: "all",
     type: "all",
     class: "all",
   })
+
+  const followsGlobal =
+    filter.month === globalSeed.month &&
+    filter.year === globalSeed.year &&
+    filter.account === globalSeed.account
   const [expanded, setExpanded] = useState({})
   const [pages, setPages] = useState({})
 
@@ -134,8 +153,9 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
     filter.type !== "all" ||
     filter.class !== "all"
 
+  // "Atur Ulang" returns to the global Statistik filters, not to "all".
   const clearFilter = () =>
-    setFilter({ month: "all", year: "all", account: "all", category: "all", type: "all", class: "all" })
+    setFilter({ month: globalSeed.month, year: globalSeed.year, account: globalSeed.account, category: "all", type: "all", class: "all" })
 
   if (transactions.length === 0) {
     return (
@@ -169,6 +189,25 @@ export default function RecapSection({ transactions = [], history, onEdit, onDel
         <span className="text-[10px] font-bold text-md3-on-surface-variant uppercase tracking-wider ml-1">
           · {groups.length} bulan · {totalTx} tx
         </span>
+      </div>
+      {/* Item 8 — shows whether the report follows the global Statistik
+          filters or the user has overridden them. */}
+      <div className="px-1">
+        {followsGlobal ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold"
+            style={{ background: THEME.savingsBg, color: THEME.primary }}
+          >
+            <CheckCircle2 size={10} aria-hidden="true" /> Mengikuti filter global
+          </span>
+        ) : (
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold"
+            style={{ background: THEME.warningBg, color: THEME.warning }}
+          >
+            Filter khusus laporan
+          </span>
+        )}
       </div>
       {history?.limited && (
         <p className="px-1 text-xs leading-relaxed text-md3-on-surface-variant">
