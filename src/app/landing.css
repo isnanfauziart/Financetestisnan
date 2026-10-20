@@ -2832,6 +2832,185 @@ body:has(.landing-page) {
   color: var(--landing-clay-deep);
 }
 
+/* Android download chapter. */
+.android-download {
+  border-top: 1px solid var(--landing-line);
+}
+
+.android-download__grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(2.5rem, 6vw, 5.5rem);
+  align-items: start;
+}
+
+.android-download__copy h2 {
+  font-family: var(--font-landing-display), "Source Serif 4", serif;
+  font-size: clamp(3rem, 4.2vw, 4rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+}
+
+.android-download__lead {
+  max-width: 34rem;
+  margin-top: 1.25rem !important;
+  color: var(--landing-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.android-download__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.android-download__meta li {
+  padding: 0.42rem 0.75rem;
+  border: 1px solid var(--landing-line);
+  border-radius: 999px;
+  background: var(--landing-fog);
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.android-download__actions {
+  flex-wrap: wrap;
+  margin-top: 1.75rem;
+}
+
+.android-download__cta {
+  gap: 0.55rem;
+}
+
+.android-download__cta svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.android-download__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  max-width: 32rem;
+  margin-top: 1.5rem !important;
+  color: var(--landing-muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.android-download__note svg {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.18rem;
+  color: var(--landing-moss);
+}
+
+.android-download__panel {
+  padding: clamp(1.5rem, 3vw, 2.4rem);
+  border-radius: 1rem;
+  background: var(--landing-sage);
+}
+
+.android-download__app {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(23, 60, 55, 0.16);
+}
+
+.android-download__app img {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 1.1rem;
+}
+
+.android-download__app strong {
+  display: block;
+  font-family: var(--font-landing-display), serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.android-download__app span,
+.android-download__app small {
+  display: block;
+  color: var(--landing-muted);
+  font-size: 0.78rem;
+}
+
+.android-download__app > svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-left: auto;
+  color: var(--landing-moss-deep);
+}
+
+.android-download__steps {
+  display: grid;
+  gap: 1.4rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.android-download__steps li {
+  display: flex;
+  gap: 1rem;
+}
+
+.android-download__steps li > span {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: var(--landing-moss-deep);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.android-download__steps h3 {
+  font-size: 0.98rem;
+  font-weight: 750;
+}
+
+.android-download__steps p {
+  margin-top: 0.3rem !important;
+  color: var(--landing-muted);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.android-download__update {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 1.75rem !important;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(23, 60, 55, 0.16);
+  color: var(--landing-moss-deep);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.android-download__update svg {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.2rem;
+}
+
 .faq {
   display: grid;
   grid-template-columns: 0.75fr 1.25fr;
@@ -3174,6 +3353,10 @@ body:has(.landing-page) {
     gap: 3rem;
   }
 
+  .android-download__grid {
+    grid-template-columns: 1fr;
+  }
+
 }
 
 @media (min-width: 48rem) and (max-width: 63.99rem) {
@@ -3255,9 +3438,20 @@ body:has(.landing-page) {
   .privacy-story__copy h2,
   .intelligence-platform__heading h2,
   .impact-lab__heading h2,
+  .android-download__copy h2,
   .final-cta h2 {
     font-size: 2.5rem;
     line-height: 1.25;
+  }
+
+  .android-download__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .android-download__actions .text-link {
+    justify-content: center;
   }
 
   .hero__copy > p {

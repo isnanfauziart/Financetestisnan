@@ -33,8 +33,10 @@ describe("Artami landing page integration", () => {
       privacy: "/privacy",
       terms: "/terms",
       playStore: null,
+      androidApk: "/api/download-apk",
     })
     expect(SITE_LINKS.playStoreAvailable).toBe(false)
+    expect(SITE_LINKS.androidApkAvailable).toBe(true)
     expect(Object.values(SITE_LINKS).filter((value) => typeof value === "string")).not.toContain(
       expect.stringMatching(/^https?:\/\//),
     )
@@ -71,6 +73,7 @@ describe("Artami landing page integration", () => {
     expect(pricing).toContain("<thead>")
 
     for (const component of [
+      "AndroidDownload",
       "DataOwnership",
       "EditorialHero",
       "PlatformPillars",
@@ -86,6 +89,9 @@ describe("Artami landing page integration", () => {
     ]) {
       expect(page).toContain(component)
     }
+    expect(page).toContain("ANDROID_DOWNLOAD")
+    expect(content).toContain('{ label: "Android", href: "#android" }')
+    expect(content).toContain("Sudah tersedia. Kamu bisa download APK resmi Artami")
     expect(page).not.toContain("FutureForecast")
     expect(page).not.toContain("<WhatIfScenario")
   })
@@ -107,6 +113,7 @@ describe("Artami landing page integration", () => {
     }
 
     for (const file of [
+      "AndroidDownload.jsx",
       "DataOwnership.jsx",
       "EditorialHero.jsx",
       "Faq.jsx",
@@ -159,6 +166,7 @@ describe("Artami landing page integration", () => {
     expect(css).toContain(".hero__sticky")
     expect(css).toContain(".hero-product-frame")
     expect(css).toContain(".platform-pillars")
+    expect(css).toContain(".android-download")
     expect(css).toContain(".product-showcase")
     expect(css).toContain(".intelligence-platform")
     expect(css).toContain(".impact-lab")
@@ -277,6 +285,8 @@ describe("Artami landing art direction refinements", () => {
     expect(cta).toContain('href={links.webApp}')
     expect(cta).toContain("Mulai gratis")
     expect(cta).toContain("links.playStoreAvailable")
+    expect(cta).toContain("links.androidApkAvailable")
+    expect(cta).toContain("Download untuk Android")
     expect(cta).toContain('aria-hidden="true"')
     expect(cta).toContain('focusable="false"')
     expect(cta).not.toContain("Buka Artami")
@@ -291,7 +301,27 @@ describe("Artami landing art direction refinements", () => {
     expect(footer).toContain("links.privacy")
     expect(footer).toContain("links.terms")
     expect(footer).toContain("links.webApp")
-    expect(footer).toContain("segera hadir di Play Store")
+    expect(footer).toContain("links.androidApk")
+    expect(footer).toContain("Download APK Android")
+    expect(footer).toContain("APK versi 1.0.0")
+    expect(footer).not.toContain("segera hadir di Play Store")
     expect(footer).not.toMatch(/https?:\/\//)
+  })
+
+  it("offers the Android APK through the tracked download route with install steps", async () => {
+    const section = await source("src/components/landing/AndroidDownload.jsx")
+    const content = await source("src/lib/landingContent.js")
+
+    expect(section).toContain('id="android"')
+    expect(section).toContain("links.androidApk")
+    expect(section).toContain("Download APK Android")
+    expect(section).toContain("content.steps")
+    expect(section).not.toContain("/artami.apk")
+    expect(section).not.toMatch(/^\s*["']use client["']/)
+    expect(content).toContain("ANDROID_DOWNLOAD")
+    expect(content).toContain("3,2 MB")
+    expect(content).toContain("Versi 1.0.0")
+    expect(content).toContain("com.artami.app")
+    expect(content).toContain("Izinkan pemasangan")
   })
 })

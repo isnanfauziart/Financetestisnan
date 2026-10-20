@@ -19,6 +19,8 @@ export default function FinalCTA({ links }) {
             </a>
             {links.playStoreAvailable ? (
               <a className="button final-cta__secondary" href={links.playStore}>Unduh di Play Store</a>
+            ) : links.androidApkAvailable ? (
+              <a className="button final-cta__secondary" href="#android">Download untuk Android</a>
             ) : null}
           </div>
         </div>

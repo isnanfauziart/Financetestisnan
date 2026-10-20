@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import {
+  ANDROID_DOWNLOAD,
   DATA_OWNERSHIP,
   EVENT_BUDGETS,
   FAQ_ITEMS,
@@ -10,6 +11,7 @@ import {
   SCENARIOS,
 } from "@/lib/landingContent"
 import { SITE_LINKS } from "@/lib/landingLinks"
+import AndroidDownload from "@/components/landing/AndroidDownload"
 import DataOwnership from "@/components/landing/DataOwnership"
 import EditorialHero from "@/components/landing/EditorialHero"
 import Faq from "@/components/landing/Faq"
@@ -72,6 +74,7 @@ export default async function Home() {
         <FinancialIntelligence />
         <ImpactLab scenarios={SCENARIOS} />
         <Pricing plans={PRICING_PLANS} links={SITE_LINKS} />
+        <AndroidDownload content={ANDROID_DOWNLOAD} links={SITE_LINKS} />
         <Faq items={FAQ_ITEMS} />
         <FinalCTA links={SITE_LINKS} />
       </main>
