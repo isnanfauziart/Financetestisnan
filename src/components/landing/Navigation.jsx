@@ -7,6 +7,7 @@ export default function Navigation({ items, links }) {
   const [isOpen, setIsOpen] = useState(false)
   const menuButtonRef = useRef(null)
   const hasPlayStoreLink = Boolean(links.playStore)
+  const hasAndroidApkLink = Boolean(links.androidApk)
   const closeMobileNavigation = () => {
     setIsOpen(false)
     menuButtonRef.current?.focus()
@@ -66,6 +67,8 @@ export default function Navigation({ items, links }) {
           ))}
           {hasPlayStoreLink ? (
             <a href={links.playStore} onClick={closeMobileNavigation}>Dapatkan di Play Store</a>
+          ) : hasAndroidApkLink ? (
+            <a href={links.androidApk} onClick={closeMobileNavigation}>Download APK Android</a>
           ) : (
             <p className="navigation__store-status" aria-disabled="true">Segera hadir di Play Store</p>
           )}

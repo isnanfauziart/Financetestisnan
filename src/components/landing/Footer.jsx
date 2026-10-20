@@ -43,7 +43,9 @@ export default function Footer({ links }) {
         <div className="site-footer__group">
           <h3>Akses</h3>
           <a href={links.webApp}>Buka Artami</a>
-          <p className="site-footer__store-status">Android · segera hadir di Play Store</p>
+          <a href="#android">Aplikasi Android</a>
+          <a href={links.androidApk}>Download APK Android</a>
+          <p className="site-footer__store-status">Android · APK versi 1.0.0 · 3,2 MB</p>
         </div>
       </nav>
 

@@ -3,8 +3,35 @@ export const NAV_ITEMS = Object.freeze([
   { label: "Kecerdasan", href: "#kecerdasan" },
   { label: "Privasi", href: "#privasi" },
   { label: "Harga", href: "#harga" },
+  { label: "Android", href: "#android" },
   { label: "FAQ", href: "#faq" },
 ])
+
+export const ANDROID_DOWNLOAD = Object.freeze({
+  eyebrow: "Aplikasi Android",
+  title: "Artami, langsung dari layar utama HP-mu.",
+  description:
+    "Download APK resmi Artami dari artami.web.id dan pasang di Android-mu. Ringan, tanpa perantara, dan langsung terhubung ke Google Sheet milikmu — sama seperti versi web-nya.",
+  version: "Versi 1.0.0",
+  size: "3,2 MB",
+  packageId: "com.artami.app",
+  steps: Object.freeze([
+    {
+      title: "Download APK-nya",
+      copy: "Ketuk tombol download di halaman ini. File-nya hanya 3,2 MB dan selalu berasal dari domain resmi artami.web.id.",
+    },
+    {
+      title: "Izinkan pemasangan",
+      copy: "Kalau Android meminta izin, izinkan pemasangan dari browser yang kamu pakai — cukup sekali, khusus untuk file ini.",
+    },
+    {
+      title: "Buka dan masuk",
+      copy: "Ketuk Pasang, buka Artami, lalu masuk dengan akun Google-mu. Catatanmu tetap tersimpan di Sheet milikmu sendiri.",
+    },
+  ]),
+  updateNote:
+    "Sebagian besar pembaruan Artami muncul otomatis tanpa download ulang, karena aplikasi Android-nya menampilkan versi web terbaru. APK baru hanya diperlukan bila ada perubahan pada aplikasi Android-nya sendiri.",
+})
 
 export const DATA_OWNERSHIP = Object.freeze({
   headline: "Datamu, tetap milikmu.",
@@ -159,6 +186,6 @@ export const FAQ_ITEMS = Object.freeze([
     id: "android",
     question: "Kapan aplikasi Android tersedia?",
     answer:
-      "Aplikasi Android sedang dipersiapkan untuk Play Store. Untuk sekarang, Artami bisa dipakai langsung lewat browser.",
+      "Sudah tersedia. Kamu bisa download APK resmi Artami langsung dari halaman ini — buka bagian Android, download file-nya (3,2 MB, versi 1.0.0), lalu pasang di HP-mu. Versi Play Store sedang disiapkan; untuk sekarang, Artami juga tetap bisa dipakai langsung lewat browser.",
   },
 ])
