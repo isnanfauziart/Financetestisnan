@@ -157,7 +157,77 @@ export async function updateSheetValues(accessToken, range, values, spreadsheetI
   return res.json()
 }
 
+/** Extra rows added past the required row so the grid does not grow one write at a time. */
+export const GRID_ROW_HEADROOM = 100
+
+/** Largest end row each tab needs for a values:batchUpdate payload. */
+export function requiredRowsByTab(data) {
+  const required = new Map()
+  for (const entry of data || []) {
+    const range = String(entry?.range || "")
+    const bang = range.lastIndexOf("!")
+    if (bang < 0) continue
+    let tab = range.slice(0, bang)
+    if (tab.startsWith("'") && tab.endsWith("'")) tab = tab.slice(1, -1).replace(/''/g, "'")
+    const rows = [...range.slice(bang + 1).matchAll(/(\d+)/g)].map(match => Number(match[1]))
+    if (!tab || rows.length === 0) continue
+    const endRow = Math.max(...rows)
+    if (endRow > (required.get(tab) || 0)) required.set(tab, endRow)
+  }
+  return required
+}
+
+/**
+ * values:batchUpdate rejects a range past the tab's grid ("exceeds grid
+ * limits") and never grows the grid itself, so a ledger whose last filled
+ * row sits on the grid's final row becomes unwritable — grow any deficient
+ * tab first. Runs before the values call: a failure here aborts the write
+ * with nothing written, matching the pipeline's fail-closed posture. Tabs
+ * missing from the metadata are left alone so the values call reports its
+ * own error, exactly as before.
+ */
+async function ensureGridRowsForWrite(accessToken, spreadsheetId, data) {
+  const required = requiredRowsByTab(data)
+  if (required.size === 0) return
+
+  const metadataRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  })
+  if (!metadataRes.ok) throw new Error(`Sheets API error: ${await metadataRes.text()}`)
+  const metadata = await metadataRes.json()
+
+  const requests = []
+  for (const sheet of metadata.sheets || []) {
+    const minRows = required.get(sheet.properties?.title)
+    if (!minRows) continue
+    const rowCount = Number(sheet.properties?.gridProperties?.rowCount || 0)
+    if (rowCount >= minRows) continue
+    requests.push({
+      updateSheetProperties: {
+        properties: {
+          sheetId: sheet.properties.sheetId,
+          gridProperties: { rowCount: minRows + GRID_ROW_HEADROOM },
+        },
+        fields: "gridProperties.rowCount",
+      },
+    })
+  }
+  if (requests.length === 0) return
+
+  const updateRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ requests }),
+  })
+  if (!updateRes.ok) throw new Error(`Sheets API error: ${await updateRes.text()}`)
+}
+
 export async function batchUpdateSheetValues(accessToken, spreadsheetId, data, valueInputOption = "USER_ENTERED") {
+  await ensureGridRowsForWrite(accessToken, spreadsheetId, data)
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`
   const res = await fetch(url, {
     method: "POST",
