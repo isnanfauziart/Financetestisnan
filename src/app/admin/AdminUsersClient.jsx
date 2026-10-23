@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { CheckCircle2, ExternalLink, Loader2, RefreshCw, X } from "lucide-react"
 import { formatRpFull } from "@/app/dashboard/_components/helpers"
+import { useModalDialog } from "./useModalDialog"
 
 const EMPTY_SUMMARY = { total: 0, free: 0, paid: 0, active7d: 0, sheetConnected: 0 }
 
@@ -77,6 +78,7 @@ function SectionError({ message, onRetry }) {
 }
 
 function UserDetailPanel({ detail, onClose, onRetry, onViewProof }) {
+  const dialogRef = useModalDialog({ open: true, onClose })
   const user = detail.user || {}
   const transaction = detail.usage?.transactions
   const payments = detail.payments || []
@@ -84,7 +86,7 @@ function UserDetailPanel({ detail, onClose, onRetry, onViewProof }) {
   return (
     <>
       <button type="button" aria-label="Tutup detail pengguna" onClick={onClose} className="fixed inset-0 z-40 bg-earth-950/35" />
-      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-xl overflow-y-auto border-l border-earth-100 bg-cream-50 p-4 shadow-warm-xl sm:p-6" role="dialog" aria-modal="true" aria-label={`Detail pengguna ${title}`}>
+      <aside ref={dialogRef} className="fixed inset-y-0 right-0 z-50 w-full max-w-xl overflow-y-auto border-l border-earth-100 bg-cream-50 p-4 shadow-warm-xl sm:p-6" role="dialog" aria-modal="true" aria-label={`Detail pengguna ${title}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-600">Detail pengguna</p>
@@ -260,6 +262,8 @@ export default function AdminUsersClient() {
     setProof(null)
   }
 
+  const proofDialogRef = useModalDialog({ open: Boolean(proof), onClose: closeProof })
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const visibleRange = total ? `${(page - 1) * pageSize + 1}-${Math.min(total, page * pageSize)}` : "0"
   const hasUsers = users.length > 0
@@ -272,21 +276,18 @@ export default function AdminUsersClient() {
   }, [activeUserId, detail, openUser, users])
 
   return (
-    <main className="min-h-screen px-4 py-6 text-earth-900 sm:px-6 lg:px-8">
+    <div className="px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-5">
-        <header className="rounded-3xl border border-earth-100 bg-white/85 p-5 shadow-warm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">User directory</p>
-              <h2 className="font-display text-3xl font-bold text-earth-900">Pengguna Artami</h2>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-earth-500">Lihat siapa yang memakai aplikasi, status Sheet, aktivitas terakhir, kuota transaksi, dan riwayat pembayaran tanpa mengubah akun pengguna.</p>
-            </div>
-            <button type="button" onClick={() => fetchUsers({ silent: true })} disabled={loading || refreshing} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-earth-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-earth-800 disabled:cursor-not-allowed disabled:opacity-50">
-              {refreshing ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={16} aria-hidden="true" />}
-              Segarkan pengguna
-            </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-earth-900">Pengguna Artami</h2>
+            <p className="mt-0.5 max-w-2xl text-sm text-earth-500">Lihat siapa yang memakai aplikasi, status Sheet, aktivitas terakhir, kuota transaksi, dan riwayat pembayaran tanpa mengubah akun pengguna.</p>
           </div>
-        </header>
+          <button type="button" onClick={() => fetchUsers({ silent: true })} disabled={loading || refreshing} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-earth-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-earth-800 disabled:cursor-not-allowed disabled:opacity-50">
+            {refreshing ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={16} aria-hidden="true" />}
+            Segarkan pengguna
+          </button>
+        </div>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" aria-label="Ringkasan pengguna">
           <SummaryCard label="Total" value={`${summary.total} pengguna`} />
@@ -346,12 +347,12 @@ export default function AdminUsersClient() {
       {detail && <UserDetailPanel detail={detail} onClose={closeDetail} onRetry={retryDetail} onViewProof={viewProof} />}
       {proof && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-earth-950/60 p-4 backdrop-blur-sm" role="presentation">
-          <section role="dialog" aria-modal="true" aria-labelledby="admin-user-proof-title" className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-3xl bg-white p-5 shadow-warm-xl">
+          <section ref={proofDialogRef} role="dialog" aria-modal="true" aria-labelledby="admin-user-proof-title" className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-3xl bg-white p-5 shadow-warm-xl">
             <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider text-earth-400">Bukti pembayaran</p><h2 id="admin-user-proof-title" className="font-display text-2xl font-bold text-earth-900">{proof.payment.reference}</h2></div><button type="button" onClick={closeProof} aria-label="Tutup bukti pembayaran" className="rounded-full p-2 text-earth-500 hover:bg-earth-50"><X size={18} aria-hidden="true" /></button></div>
             <div className="mt-4 flex min-h-64 flex-1 items-center justify-center overflow-auto rounded-2xl bg-earth-50 p-3">{proof.loading && <LoadingText label="Memuat bukti..." />}{proof.error && <p role="alert" className="text-sm font-semibold text-rose-600">{proof.error}</p>}{proof.url && !proof.loading && !proof.error && <img src={proof.url} alt={`Bukti pembayaran ${proof.payment.reference}`} className="max-h-[65vh] max-w-full object-contain" />}</div>
           </section>
         </div>
       )}
-    </main>
+    </div>
   )
 }

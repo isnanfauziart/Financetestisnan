@@ -17,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react"
 import { formatRpFull } from "@/app/dashboard/_components/helpers"
+import { useModalDialog } from "./useModalDialog"
 
 const REJECT_REASONS = ["Bukti tidak jelas", "Nominal tidak sesuai", "Pembayaran belum ditemukan", "Bukti duplikat", "Lainnya"]
 const REVOKE_REASONS = ["Dana dikembalikan", "Pembayaran duplikat", "Pembayaran terdeteksi palsu", "Koreksi administratif", "Lainnya"]
@@ -94,6 +95,11 @@ function formatDateTime(value) {
 
 function getApiError(data, fallback) {
   return data?.error || data?.message || fallback
+}
+
+function readInitialSearch() {
+  if (typeof window === "undefined") return ""
+  return (new URL(window.location.href).searchParams.get("search") || "").trim()
 }
 
 function StatusPill({ status }) {
@@ -229,10 +235,11 @@ function PaymentCard({ payment, onAction, onViewProof }) {
 }
 
 function ProofDialog({ proofUrl, payment, loading, error, onClose }) {
+  const dialogRef = useModalDialog({ open: Boolean(payment), onClose })
   if (!payment) return null
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-earth-950/60 p-4 backdrop-blur-sm" role="presentation">
-      <section role="dialog" aria-modal="true" aria-labelledby="proof-dialog-title" className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-3xl bg-white p-5 shadow-warm-xl">
+      <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="proof-dialog-title" className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-3xl bg-white p-5 shadow-warm-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-earth-400">Bukti pembayaran</p>
@@ -253,12 +260,13 @@ function ProofDialog({ proofUrl, payment, loading, error, onClose }) {
 }
 
 function ResultDialog({ result, onClose }) {
+  const dialogRef = useModalDialog({ open: Boolean(result), onClose })
   if (!result) return null
   const status = result.payment?.status || "pending"
   const approved = status === "approved"
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-earth-950/50 p-4 backdrop-blur-sm" role="presentation">
-      <section role="dialog" aria-modal="true" aria-labelledby="result-dialog-title" className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-warm-xl">
+      <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="result-dialog-title" className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-warm-xl">
         <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${approved ? "bg-moss-100 text-moss-700" : "bg-earth-100 text-earth-700"}`}>
           {approved ? <CheckCircle2 size={28} aria-hidden="true" /> : <ShieldCheck size={28} aria-hidden="true" />}
         </div>
@@ -281,6 +289,7 @@ function ActionDialog({ draft, error, submitting, onClose, onChange, onSubmit })
   const reasonRequired = Boolean(config?.reasons)
   const noteRequired = draft?.reason === "Lainnya"
   const valid = !submitting && (!reasonRequired || draft.reason) && (!noteRequired || draft.note.trim())
+  const dialogRef = useModalDialog({ open: Boolean(draft && config && payment), onClose })
   if (!draft || !config || !payment) return null
 
   const Icon = config.icon
@@ -289,6 +298,7 @@ function ActionDialog({ draft, error, submitting, onClose, onChange, onSubmit })
   return (
     <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-earth-950/50 p-4 backdrop-blur-sm sm:items-center" role="presentation">
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-action-title"
@@ -390,9 +400,10 @@ function ActionDialog({ draft, error, submitting, onClose, onChange, onSubmit })
 }
 
 export default function AdminPaymentsClient() {
-  const [mode, setMode] = useState("pending")
-  const [searchInput, setSearchInput] = useState("")
-  const [searchQuery, setSearchQuery] = useState("")
+  const [initialSearch] = useState(readInitialSearch)
+  const [mode, setMode] = useState(() => (initialSearch ? "history" : "pending"))
+  const [searchInput, setSearchInput] = useState(initialSearch)
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
   const [page, setPage] = useState(1)
   const [payments, setPayments] = useState([])
   const [total, setTotal] = useState(0)
@@ -514,10 +525,7 @@ export default function AdminPaymentsClient() {
         message: ACTIONS[draft.action].done,
       })
       setDraft(null)
-      setMode("history")
-      setPage(1)
-      setSearchInput("")
-      setSearchQuery("")
+      fetchPayments({ silent: true })
     } catch (err) {
       setDialogError(err.message)
     } finally {
@@ -564,26 +572,23 @@ export default function AdminPaymentsClient() {
   }
 
   return (
-    <main className="min-h-screen bg-cream-50 px-4 py-6 text-earth-900 sm:px-6 lg:px-8">
+    <div className="px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-5">
-        <header className="rounded-3xl border border-earth-100 bg-white/80 p-5 shadow-warm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">Artami Admin</p>
-              <h1 className="font-display text-3xl font-bold text-earth-900">Pembayaran QRIS</h1>
-              <p className="mt-1 text-sm text-earth-500">Review bukti pembayaran, koreksi audit, dan riwayat akses Pro.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => fetchPayments({ silent: true })}
-              disabled={refreshing || loading}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-earth-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-earth-800 focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {refreshing ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={16} aria-hidden="true" />}
-              Segarkan
-            </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-earth-900">Pembayaran QRIS</h2>
+            <p className="mt-0.5 text-sm text-earth-500">Review bukti pembayaran, koreksi audit, dan riwayat akses Pro.</p>
           </div>
-        </header>
+          <button
+            type="button"
+            onClick={() => fetchPayments({ silent: true })}
+            disabled={refreshing || loading}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-earth-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-earth-800 focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {refreshing ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={16} aria-hidden="true" />}
+            Segarkan
+          </button>
+        </div>
 
         <details className="rounded-3xl border border-earth-100 bg-white/80 p-5 shadow-warm">
           <summary className="cursor-pointer font-bold text-earth-800">Pulihkan Pro tanpa pembayaran</summary>
@@ -764,6 +769,6 @@ export default function AdminPaymentsClient() {
         }}
       />
       <ResultDialog result={result} onClose={() => setResult(null)} />
-    </main>
+    </div>
   )
 }
