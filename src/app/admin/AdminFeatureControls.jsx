@@ -66,6 +66,7 @@ export default function AdminFeatureControls({ onSuccess }) {
   const [minAgeDays, setMinAgeDays] = useState("")
   const [maxAgeDays, setMaxAgeDays] = useState("")
   const [users, setUsers] = useState([])
+  const [usersTotal, setUsersTotal] = useState(null)
   const [selectedUsers, setSelectedUsers] = useState([])
   const [usersLoading, setUsersLoading] = useState(false)
 
@@ -89,6 +90,22 @@ export default function AdminFeatureControls({ onSuccess }) {
       })
       .catch(err => active && setError(err.message))
       .finally(() => active && setLoading(false))
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    const userId = new URLSearchParams(window.location.search).get("user")
+    if (!userId) return
+    let active = true
+    fetch(`/api/admin/users/${encodeURIComponent(userId)}?section=account`)
+      .then(response => jsonResponse(response, "Gagal memuat pengguna tertaut."))
+      .then(data => {
+        if (!active || !data.user) return
+        setUsers([data.user])
+        setUsersTotal(1)
+        setSelectedUsers([data.user.id])
+      })
+      .catch(err => active && setError(err.message))
     return () => { active = false }
   }, [])
 
@@ -178,12 +195,16 @@ export default function AdminFeatureControls({ onSuccess }) {
     setError("")
     try {
       const params = new URLSearchParams()
+      params.set("pageSize", "100")
       if (search.trim()) params.set("search", search.trim())
       if (tier) params.set("tier", tier)
       if (minAgeDays) params.set("minAgeDays", minAgeDays)
       if (maxAgeDays) params.set("maxAgeDays", maxAgeDays)
       const data = await jsonResponse(await fetch(`/api/admin/users?${params.toString()}`), "Gagal mencari pengguna.")
-      setUsers(Array.isArray(data.users) ? data.users : [])
+      const list = Array.isArray(data.users) ? data.users : []
+      const total = Number(data.total)
+      setUsers(list)
+      setUsersTotal(Number.isFinite(total) ? total : list.length)
       setSelectedUsers([])
     } catch (err) {
       setError(err.message)
@@ -316,7 +337,7 @@ export default function AdminFeatureControls({ onSuccess }) {
         <form onSubmit={findUsers} className="mt-3"><button type="submit" disabled={usersLoading} className="rounded-xl bg-earth-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{usersLoading ? "Mencari..." : "Cari pengguna"}</button></form>
 
         {users.length > 0 && <div className="mt-4 rounded-xl border border-earth-100 bg-white p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-bold text-earth-800">{selectedUsers.length} dipilih dari {users.length}</p><button type="button" onClick={() => setSelectedUsers(selectedUsers.length === users.length ? [] : users.map(user => user.id))} className="text-xs font-bold text-violet-600">{selectedUsers.length === users.length ? "Batalkan semua" : "Pilih semua"}</button></div>
+          <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-bold text-earth-800">{selectedUsers.length} dipilih dari {usersTotal ?? users.length} pengguna{usersTotal !== null && usersTotal > users.length ? ` (menampilkan ${users.length} pertama)` : ""}</p><button type="button" onClick={() => setSelectedUsers(selectedUsers.length === users.length ? [] : users.map(user => user.id))} className="text-xs font-bold text-violet-600">{selectedUsers.length === users.length ? "Batalkan semua" : "Pilih semua"}</button></div>
           <div className="mt-2 grid max-h-56 gap-2 overflow-auto sm:grid-cols-2">
             {users.map(user => <label key={user.id} className="flex items-start gap-2 rounded-lg px-2 py-2 text-sm hover:bg-earth-50"><input type="checkbox" checked={selectedUsers.includes(user.id)} onChange={() => toggleUser(user.id)} className="mt-1" /><span><strong className="block text-earth-800">{user.name || "Tanpa nama"}</strong><span className="text-xs text-earth-500">{user.email} · {user.tier || "free"}</span></span></label>)}
           </div>

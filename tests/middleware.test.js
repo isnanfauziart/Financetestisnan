@@ -25,6 +25,26 @@ describe("API middleware protection", () => {
     expect(response.headers.get("Retry-After")).toBeTruthy()
   })
 
+  it("gives admin endpoints their own roomier bucket while public payments stay strict", async () => {
+    const { middleware, resetApiRateLimits } = await import("@/middleware")
+    resetApiRateLimits()
+    const admin = new Request("https://example.test/api/admin/payments", {
+      headers: { "x-real-ip": "198.51.100.13" },
+    })
+    const pub = new Request("https://example.test/api/payments", {
+      headers: { "x-real-ip": "198.51.100.13" },
+    })
+
+    // 30 admin calls pass: well beyond the public payment limit of 10/min.
+    for (let i = 0; i < 30; i += 1) expect(middleware(admin).status).toBe(200)
+    // The public payment bucket for the same IP is unaffected and still strict.
+    for (let i = 0; i < 10; i += 1) expect(middleware(pub).status).toBe(200)
+    expect(middleware(pub).status).toBe(429)
+    // The admin bucket still caps, at 60/min.
+    for (let i = 0; i < 30; i += 1) expect(middleware(admin).status).toBe(200)
+    expect(middleware(admin).status).toBe(429)
+  })
+
   it("gives payment and destructive endpoints their stricter buckets", async () => {
     const { middleware, resetApiRateLimits } = await import("@/middleware")
     resetApiRateLimits()

@@ -54,6 +54,16 @@ describe("AdminUsersClient", () => {
     expect(screen.getByRole("button", { name: /lihat bukti/i })).toBeInTheDocument()
   })
 
+  it("closes the user detail panel with Escape", async () => {
+    render(<AdminUsersClient />)
+    fireEvent.click(await screen.findByRole("button", { name: /lihat detail alice/i }))
+    expect(await screen.findByRole("dialog", { name: /detail pengguna/i })).toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: "Escape" })
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /detail pengguna/i })).not.toBeInTheDocument())
+  })
+
   it("refreshes the directory only when the admin asks", async () => {
     render(<AdminUsersClient />)
     await screen.findByText("alice@example.com")
